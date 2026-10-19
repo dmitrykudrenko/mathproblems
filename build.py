@@ -58,6 +58,7 @@ CLASPO = """<script>
     !function (t, e, c, n) {
         var s = e.createElement(c);
         s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
         var r = e.scripts[0];
         r.parentNode.insertBefore(s, r);
         var f = function () {
@@ -93,16 +94,26 @@ SUBSCRIBE = """<section class="mp-subscribe" id="subscribe">
 <script>
 (function () {
   var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
-  var wait = slot.querySelector(".mp-subscribe-wait");
-  // drop the placeholder once Claspo has inserted its form (inside the slot or next to it)
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
   function check() {
-    if (!wait) return;
+    if (done) return;
     var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
     var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
-    if (inSlot || nextTo) { wait.remove(); wait = null; }
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
   }
   check();
   new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
 })();
 </script>"""
 
