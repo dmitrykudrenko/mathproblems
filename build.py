@@ -72,29 +72,34 @@ CLASPO = """<script>
 </script><script>claspo('init');</script>""" % CLASPO_ID if CLASPO_ID else ""
 
 # Newsletter block near the end of every page. The form itself is a Claspo inline widget placed
-# inside #mp-subscribe; until Claspo puts something there the block stays hidden (add #subscribe to
-# the URL to see it anyway, e.g. while choosing the placement in Claspo).
+# inside #mp-subscribe. Until Claspo puts the form there, the slot shows a short placeholder,
+# which disappears by itself once the form arrives.
 SUBSCRIBE_TEXT = {
     "uk": ("Розсилка", "Нові задачі, пояснення й обговорення",
-           "Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік."),
+           "Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік.",
+           "Форма підписки з'явиться тут найближчим часом."),
     "en": ("Newsletter", "New puzzles, explanations and discussions",
-           "I keep adding new puzzles, new ways to explain them and write-ups of the discussions they start. Leave your email and I'll write when something new is out. No spam, one-click unsubscribe."),
+           "I keep adding new puzzles, new ways to explain them and write-ups of the discussions they start. Leave your email and I'll write when something new is out. No spam, one-click unsubscribe.",
+           "The sign-up form will appear here soon."),
 }
-SUBSCRIBE = """<section class="mp-subscribe" id="subscribe" hidden>
+SUBSCRIBE = """<section class="mp-subscribe" id="subscribe">
   <div class="mp-subscribe-text">
     <span class="eyebrow">%s</span>
     <h2>%s</h2>
     <p>%s</p>
   </div>
-  <div class="mp-subscribe-slot" id="mp-subscribe"></div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">%s</p></div>
 </section>
 <script>
 (function () {
   var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
-  // show the block once Claspo has inserted its form (inside the slot or right next to it)
+  var wait = slot.querySelector(".mp-subscribe-wait");
+  // drop the placeholder once Claspo has inserted its form (inside the slot or next to it)
   function check() {
-    var filled = slot.children.length > 0 || [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
-    if (filled || location.hash === "#subscribe") box.hidden = false;
+    if (!wait) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { wait.remove(); wait = null; }
   }
   check();
   new MutationObserver(check).observe(box, { childList: true, subtree: true });
