@@ -7,6 +7,7 @@
 | Задача | UA | EN |
 |---|---|---|
 | Парадокс Монті Голла | [/monty-hall/](https://dmitrykudrenko.github.io/mathproblems/monty-hall/) | [/monty-hall/en/](https://dmitrykudrenko.github.io/mathproblems/monty-hall/en/) |
+| Задача про ряску в озері | [/duckweed-lake/](https://dmitrykudrenko.github.io/mathproblems/duckweed-lake/) | [/duckweed-lake/en/](https://dmitrykudrenko.github.io/mathproblems/duckweed-lake/en/) |
 | Парадокс днів народження | [/birthday/](https://dmitrykudrenko.github.io/mathproblems/birthday/) | [/birthday/en/](https://dmitrykudrenko.github.io/mathproblems/birthday/en/) |
 | Парадокс хибнопозитивного тесту | [/false-positive/](https://dmitrykudrenko.github.io/mathproblems/false-positive/) | [/false-positive/en/](https://dmitrykudrenko.github.io/mathproblems/false-positive/en/) |
 | Правило 37%: задача про секретаря | [/secretary-problem/](https://dmitrykudrenko.github.io/mathproblems/secretary-problem/) | [/secretary-problem/en/](https://dmitrykudrenko.github.io/mathproblems/secretary-problem/en/) |

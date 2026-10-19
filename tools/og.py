@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -46,6 +46,10 @@ TEXT = {
     "friendship-paradox": {
         "uk": (["ПАРАДОКС", "ДРУЖБИ"], "У ваших друзів більше друзів, ніж у вас", None),
         "en": (["THE FRIENDSHIP", "PARADOX"], "Your friends have more friends than you", None),
+    },
+    "duckweed-lake": {
+        "uk": (["РЯСКА", "В ОЗЕРІ"], "1 ряска: 30 днів. 2 ряски: ?", ("15", "29")),
+        "en": (["THE DUCKWEED", "LAKE"], "1 plant: 30 days. 2 plants: ?", ("15", "29")),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється", None),
@@ -191,6 +195,23 @@ def network(x, y):
     return "".join(out)
 
 
+def lake(x, y):
+    import math
+    rnd = random.Random(29)
+    cx, cy, r = x + 190, y + 150, 140
+    out = [f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="#fff"/>',
+           f'<clipPath id="lake"><circle cx="{cx}" cy="{cy}" r="{r}"/></clipPath><g clip-path="url(#lake)">']
+    # day 29: exactly half the lake is covered, as a ragged patch on the left
+    for _ in range(900):
+        a, d = rnd.random() * 2 * math.pi, r * math.sqrt(rnd.random())
+        px, py = cx + d * math.cos(a), cy + d * math.sin(a)
+        if px < cx + 10 * math.sin(py / 9):
+            out.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="{rnd.uniform(5, 9):.1f}" fill="{INK}" fill-opacity="{rnd.uniform(.75, 1):.2f}"/>')
+    out.append(f'</g><circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{SIGNAL}" stroke-width="5"/>')
+    out.append(f'<text x="{cx}" y="{y + 330}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="24" fill="{INK}">29 → 50%</text>')
+    return "".join(out)
+
+
 def svg(kind, lang):
     lines, sub, ans = TEXT[kind][lang]
     big = min(84, int(590 / (max(len(l) for l in lines) * 0.68)))
@@ -220,6 +241,8 @@ def svg(kind, lang):
         parts.append(kids(762, 170))
     elif kind == "buffon-needle":
         parts.append(needles(740, 165))
+    elif kind == "duckweed-lake":
+        parts.append(lake(740, 130))
     elif kind == "friendship-paradox":
         parts.append(network(740, 165))
     else:
