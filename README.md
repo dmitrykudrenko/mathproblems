@@ -40,6 +40,8 @@ python3 build.py
 - Title, description, H1 з ключовою фразою; Open Graph і Twitter Card з картинкою 1200×630.
 - JSON-LD: `WebPage` + `LearningResource`, `FAQPage`, `BreadcrumbList`; на головній `CollectionPage`.
 - `sitemap.xml` з альтернативними мовами.
+- Мова: обраний вручну мовний варіант зберігається в cookie `mp_lang` на рік. Без cookie перша мова браузера
+  uk/ru/be дає українську, en — англійську, інакше вирішує часовий пояс. Боти й прев'ю-краулери не перенаправляються.
 - Відео YouTube вантажиться лише після кліку по обкладинці (швидке перше завантаження).
 
 Після публікації: додати сайт у Google Search Console і надіслати `https://dmitrykudrenko.github.io/mathproblems/sitemap.xml`.

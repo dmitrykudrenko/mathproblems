@@ -22,6 +22,7 @@ import shutil
 from datetime import date
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).parent
 PROBLEMS = ROOT / "problems"
@@ -88,11 +89,48 @@ class LangStripper(HTMLParser):
         return "".join(out)
 
 
+# Runs before the page renders. A language the visitor picked (cookie) wins; otherwise
+# Ukrainian for uk/ru/be browsers or a Ukrainian/neighbouring time zone, English for
+# everyone else. Crawlers and link-preview bots are never redirected, so each URL
+# stays indexable and hreflang does the work for search engines.
+LANG_SCRIPT = """<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = %(path)s, HERE = %(here)s, ALT = %(alt)s;
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.hash);
+})();
+</script>"""
+
+
+def lang_script(lang, urls, base):
+    return LANG_SCRIPT % {"path": json.dumps(urlparse(base).path or "/"), "here": json.dumps(lang),
+                          "alt": json.dumps({l: urlparse(u).path for l, u in urls.items()})}
+
+
 def head(lang, urls, title, description, image, image_alt, ld, base):
     """<head> tags shared by every page. `urls` maps each language to that page's URL."""
     other = "en" if lang == "uk" else "uk"
     return f"""<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+{lang_script(lang, urls, base)}
 <title>{e(title)}</title>
 <meta name="description" content="{e(description)}">
 <meta name="robots" content="index, follow, max-image-preview:large">
