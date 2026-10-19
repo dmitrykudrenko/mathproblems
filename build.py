@@ -52,6 +52,25 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
 VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
 e = html.escape
 
+# Claspo widget script, placed once on every page right before </body> (set CLASPO_ID = "" to turn it off).
+CLASPO_ID = "3C669B8434174669B9FC04D110EE78ED"
+CLASPO = """<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '%s');
+</script><script>claspo('init');</script>""" % CLASPO_ID if CLASPO_ID else ""
+
 # Problem pages were authored for the artifact viewer, which supplied these base styles.
 RESET = """<style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -242,7 +261,7 @@ def build_problem(slug, base):
         if "i.ytimg.com" in body:
             h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
-               f'</head>\n<body>\n{body.strip()}\n</body>\n</html>\n')
+               f'</head>\n<body>\n{body.strip()}\n{CLASPO}\n</body>\n</html>\n')
         write(DOCS / slug / LANG_PATH[lang] / "index.html", doc)
     for f in (src_dir / "assets").iterdir() if (src_dir / "assets").exists() else []:
         if f.suffix in {".png", ".jpg", ".svg", ".webp"} and not f.name.startswith("og-src"):
@@ -295,7 +314,7 @@ def build_hub(problems, base):
         ]}
         h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["og_alt"], ld, base)
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
-               f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n</body>\n</html>\n')
+               f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{CLASPO}\n</body>\n</html>\n')
         write(DOCS / LANG_PATH[lang] / "index.html", doc)
     for f in (HUB / "assets").iterdir():
         if f.suffix in {".png", ".jpg"}:
