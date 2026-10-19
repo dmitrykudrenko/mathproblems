@@ -15,6 +15,14 @@
 | Парадокс двох дітей | [/two-children/](https://dmitrykudrenko.github.io/mathproblems/two-children/) | [/two-children/en/](https://dmitrykudrenko.github.io/mathproblems/two-children/en/) |
 | Голка Бюффона | [/buffon-needle/](https://dmitrykudrenko.github.io/mathproblems/buffon-needle/) | [/buffon-needle/en/](https://dmitrykudrenko.github.io/mathproblems/buffon-needle/en/) |
 | Парадокс дружби | [/friendship-paradox/](https://dmitrykudrenko.github.io/mathproblems/friendship-paradox/) | [/friendship-paradox/en/](https://dmitrykudrenko.github.io/mathproblems/friendship-paradox/en/) |
+| Мотузка навколо Землі | [/rope-around-earth/](https://dmitrykudrenko.github.io/mathproblems/rope-around-earth/) | [/rope-around-earth/en/](https://dmitrykudrenko.github.io/mathproblems/rope-around-earth/en/) |
+| 100 в'язнів і 100 коробок | [/hundred-prisoners/](https://dmitrykudrenko.github.io/mathproblems/hundred-prisoners/) | [/hundred-prisoners/en/](https://dmitrykudrenko.github.io/mathproblems/hundred-prisoners/en/) |
+| Тест когнітивної рефлексії | [/cognitive-reflection/](https://dmitrykudrenko.github.io/mathproblems/cognitive-reflection/) | [/cognitive-reflection/en/](https://dmitrykudrenko.github.io/mathproblems/cognitive-reflection/en/) |
+| Скільки наліпок на альбом | [/coupon-collector/](https://dmitrykudrenko.github.io/mathproblems/coupon-collector/) | [/coupon-collector/en/](https://dmitrykudrenko.github.io/mathproblems/coupon-collector/en/) |
+| Регресія до середнього | [/regression-to-mean/](https://dmitrykudrenko.github.io/mathproblems/regression-to-mean/) | [/regression-to-mean/en/](https://dmitrykudrenko.github.io/mathproblems/regression-to-mean/en/) |
+| Парадокс двох конвертів | [/two-envelopes/](https://dmitrykudrenko.github.io/mathproblems/two-envelopes/) | [/two-envelopes/en/](https://dmitrykudrenko.github.io/mathproblems/two-envelopes/en/) |
+| Серії в підкиданні монети | [/coin-streaks/](https://dmitrykudrenko.github.io/mathproblems/coin-streaks/) | [/coin-streaks/en/](https://dmitrykudrenko.github.io/mathproblems/coin-streaks/en/) |
+| Парадокс Бертрана | [/bertrand-paradox/](https://dmitrykudrenko.github.io/mathproblems/bertrand-paradox/) | [/bertrand-paradox/en/](https://dmitrykudrenko.github.io/mathproblems/bertrand-paradox/en/) |
 
 ## Структура
 

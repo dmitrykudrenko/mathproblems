@@ -1,0 +1,69 @@
+<div class="tz-text">
+  <span class="eyebrow"><span class="uk">Геометрична ймовірність · хорди</span><span class="en">Geometric probability · chords</span></span>
+  <h2><a href="{{URL}}"><span class="uk">Парадокс Бертрана</span><span class="en">Bertrand's paradox</span></a></h2>
+  <p class="tz-q uk">У колі навмання проводять хорду. Який шанс, що вона довша за сторону вписаного рівностороннього трикутника?</p>
+  <p class="tz-q en">A chord of a circle is drawn at random. What is the chance it is longer than the side of the inscribed equilateral triangle?</p>
+  <div class="tz-ans">
+    <div><span><span class="uk">Інтуїція</span><span class="en">Intuition</span></span><b><span class="uk">одна відповідь</span><span class="en">one answer</span></b></div>
+    <div class="r"><span><span class="uk">Насправді</span><span class="en">Actually</span></span><b>1/3 · 1/2 · 1/4</b></div>
+  </div>
+  <p class="tz-d uk">Задача Жозефа Бертрана 1889 року про те, що «навмання» нічого не означає без способу вибору. Три способи обрати хорду дають три правильні відповіді.</p>
+  <p class="tz-d en">Joseph Bertrand's 1889 puzzle about why "at random" means nothing without a procedure. Three ways to pick a chord give three correct answers.</p>
+  <ul class="tz-inside uk"><li>вгадайте шанс</li><li>три способи провести хорду</li><li>100 000 хорд</li><li>дуга, радіус, внутрішнє коло</li><li>соломинки Джейнса</li></ul>
+  <ul class="tz-inside en"><li>guess the chance</li><li>three ways to draw a chord</li><li>100,000 chords</li><li>arc, radius, inner circle</li><li>Jaynes's straws</li></ul>
+  <a class="tz-cta" href="{{URL}}"><span class="uk">Розібратися з парадоксом Бертрана</span><span class="en">Work through Bertrand's paradox</span> →</a>
+</div>
+<div class="tz-stage" id="tz-bertrand-paradox">
+  <span class="tz-try"><span class="uk">Спробуйте тут</span><span class="en">Try it here</span></span>
+  <canvas style="display:block;width:100%;max-width:260px;aspect-ratio:1/1;height:auto" aria-hidden="true"></canvas>
+  <p class="tz-msg" aria-live="polite"></p>
+  <div class="tz-acts"><button type="button" class="tz-btn" data-a="more"></button><button type="button" class="tz-btn" data-a="next"></button></div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById('tz-bertrand-paradox');
+  const en = () => document.documentElement.dataset.lang === 'en';
+  const L = (uk, e) => en() ? e : uk;
+  const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), btns = root.querySelectorAll('.tz-btn');
+  const col = (name, fb) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb;
+  const TAU = 2 * Math.PI, FR = ['1/3', '1/2', '1/4'];
+  let m = 0, list = [];
+  // one random chord of the unit circle; method 0: random endpoints, 1: random radius, 2: random midpoint
+  function chord() {
+    if (m === 0) { const a = Math.random() * TAU, b = Math.random() * TAU; return { x1: Math.cos(a), y1: Math.sin(a), x2: Math.cos(b), y2: Math.sin(b), d: Math.abs(Math.cos((a - b) / 2)) }; }
+    let d, p;
+    if (m === 1) { d = Math.random(); p = Math.random() * TAU; }
+    else { let x, y; do { x = 2 * Math.random() - 1; y = 2 * Math.random() - 1; } while (x * x + y * y > 1); d = Math.hypot(x, y); p = Math.atan2(y, x); }
+    const ux = Math.cos(p), uy = Math.sin(p), h = Math.sqrt(1 - d * d);
+    return { x1: d * ux - h * uy, y1: d * uy + h * ux, x2: d * ux + h * uy, y2: d * uy - h * ux, d };
+  }
+  function add(k) { for (let i = 0; i < k; i++) list.push(chord()); if (list.length > 1000) list.splice(0, list.length - 1000); draw(); text(); }
+  function draw() {
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+    if (!W || !H) return;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const R = Math.min(W, H) / 2 - 4, cx = W / 2, cy = H / 2, ink = col('--ink', '#151515'), sig = col('--signal', '#D9318F');
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fill();
+    ctx.lineCap = 'round'; ctx.lineWidth = list.length > 200 ? .8 : 1.4;
+    [false, true].forEach(pass => list.forEach(c => {
+      const long = c.d < .5; if (long !== pass) return;
+      ctx.strokeStyle = long ? sig : ink; ctx.globalAlpha = long ? .9 : .4;
+      ctx.beginPath(); ctx.moveTo(cx + c.x1 * R, cy - c.y1 * R); ctx.lineTo(cx + c.x2 * R, cy - c.y2 * R); ctx.stroke();
+    }));
+    ctx.globalAlpha = 1; ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke();
+  }
+  function text() {
+    const n = list.length, l = list.filter(c => c.d < .5).length, d = s => en() ? s : s.replace('.', ',');
+    const name = [L('випадкові кінці', 'random endpoints'), L('випадковий радіус', 'random radius'), L('випадкова середина', 'random midpoint')][m];
+    msg.textContent = L('Спосіб ' + (m + 1) + ', ' + name + ': довгих ' + l + ' з ' + n + ' (' + d((100 * l / n).toFixed(0)) + '%). Точно ' + FR[m] + '.',
+      'Method ' + (m + 1) + ', ' + name + ': ' + l + ' long of ' + n + ' (' + (100 * l / n).toFixed(0) + '%). Exactly ' + FR[m] + '.');
+    btns[0].textContent = L('Ще 50 хорд', '50 more chords');
+    btns[1].textContent = L('Інший спосіб', 'Another method');
+  }
+  btns.forEach(b => b.addEventListener('click', () => { if (b.dataset.a === 'next') { m = (m + 1) % 3; list = []; add(100); } else add(50); }));
+  document.addEventListener('langchange', text);
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
+  add(100);
+})();
+</script>

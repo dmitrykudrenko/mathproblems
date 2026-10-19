@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -50,6 +50,38 @@ TEXT = {
     "duckweed-lake": {
         "uk": (["РЯСКА", "В ОЗЕРІ"], "1 ряска: 30 днів. 2 ряски: ?", ("15", "29")),
         "en": (["THE DUCKWEED", "LAKE"], "1 plant: 30 days. 2 plants: ?", ("15", "29")),
+    },
+    "rope-around-earth": {
+        "uk": (["МОТУЗКА", "НАВКОЛО ЗЕМЛІ"], "+1 метр. Наскільки вона підніметься?", ("1 мм", "16 см")),
+        "en": (["THE ROPE AROUND", "THE EARTH"], "+1 metre. How high does it rise?", ("1 mm", "16 cm")),
+    },
+    "hundred-prisoners": {
+        "uk": (["100 В'ЯЗНІВ"], "Кожен може відкрити 50 коробок", ("≈ 0%", "31%")),
+        "en": (["100 PRISONERS"], "Each may open 50 boxes", ("≈ 0%", "31%")),
+    },
+    "cognitive-reflection": {
+        "uk": (["М'ЯЧ І БИТА"], "Разом $1.10. Скільки коштує м'яч?", ("10¢", "5¢")),
+        "en": (["BAT AND BALL"], "$1.10 together. What does the ball cost?", ("10¢", "5¢")),
+    },
+    "coupon-collector": {
+        "uk": (["АЛЬБОМ", "НАЛІПОК"], "50 наліпок. Скільки треба купити?", ("50", "225")),
+        "en": (["THE STICKER", "ALBUM"], "50 stickers. How many to buy?", ("50", "225")),
+    },
+    "regression-to-mean": {
+        "uk": (["РЕГРЕСІЯ ДО", "СЕРЕДНЬОГО"], "Чому похвала нібито шкодить", None),
+        "en": (["REGRESSION TO", "THE MEAN"], "Why praise seems to backfire", None),
+    },
+    "two-envelopes": {
+        "uk": (["ДВА", "КОНВЕРТИ"], "В одному вдвічі більше. Міняти?", None),
+        "en": (["TWO", "ENVELOPES"], "One holds twice the other. Switch?", None),
+    },
+    "coin-streaks": {
+        "uk": (["СЕРІЇ", "МОНЕТИ"], "Найдовша серія зі 100 підкидань", ("3", "7")),
+        "en": (["COIN", "STREAKS"], "Longest streak in 100 flips", ("3", "7")),
+    },
+    "bertrand-paradox": {
+        "uk": (["ПАРАДОКС", "БЕРТРАНА"], "Три правильні відповіді", None),
+        "en": (["BERTRAND'S", "PARADOX"], "Three right answers", None),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється", None),
@@ -212,6 +244,67 @@ def lake(x, y):
     return "".join(out)
 
 
+def extra_visual(kind, x, y, lang="en"):
+    import math
+    rnd = random.Random(5)
+    out = []
+    if kind == "rope-around-earth":
+        cx, cy = x + 190, y + 160
+        out += [f'<circle cx="{cx}" cy="{cy}" r="120" fill="{INK}"/>',
+                f'<circle cx="{cx}" cy="{cy}" r="134" fill="none" stroke="{SIGNAL}" stroke-width="5"/>',
+                f'<line x1="{cx}" y1="{cy - 120}" x2="{cx}" y2="{cy - 134}" stroke="{SIGNAL}" stroke-width="3"/>',
+                f'<text x="{cx}" y="{cy + 8}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="34" fill="#fff">{"+1 м" if lang == "uk" else "+1 m"}</text>']
+    elif kind == "hundred-prisoners":
+        # a permutation drawn as its cycles: no loop longer than half the boxes, so everyone succeeds
+        for (ccx, ccy, rr, n, col) in ((x + 120, y + 110, 80, 14, SIGNAL), (x + 285, y + 95, 58, 9, INK), (x + 255, y + 245, 52, 8, INK), (x + 105, y + 255, 34, 5, INK)):
+            pts = [(ccx + rr * math.cos(2 * math.pi * i / n - math.pi / 2), ccy + rr * math.sin(2 * math.pi * i / n - math.pi / 2)) for i in range(n)]
+            out.append(f'<circle cx="{ccx}" cy="{ccy}" r="{rr}" fill="none" stroke="{col}" stroke-width="3" stroke-opacity=".5"/>')
+            for px, py in pts:
+                out.append(f'<rect x="{px - 11:.1f}" y="{py - 11:.1f}" width="22" height="22" rx="4" fill="{col}"/>')
+    elif kind == "cognitive-reflection":
+        out += [f'<rect x="{x + 20}" y="{y + 90}" width="300" height="56" rx="10" fill="{INK}"/>',
+                f'<rect x="{x + 320}" y="{y + 90}" width="15" height="56" rx="4" fill="{SIGNAL}"/>',
+                f'<rect x="{x + 20}" y="{y + 170}" width="15" height="56" rx="4" fill="{SIGNAL}"/>',
+                f'<text x="{x + 170}" y="{y + 127}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="26" fill="#fff">$1.00</text>',
+                f'<text x="{x + 50}" y="{y + 207}" font-family="{FONT}" font-weight="800" font-size="24" fill="{INK}">5¢</text>',
+                f'<text x="{x + 20}" y="{y + 60}" font-family="{FONT}" font-weight="800" font-size="28" fill="{INK}">$1.10</text>']
+    elif kind == "coupon-collector":
+        for i in range(50):
+            px, py = x + 30 + (i % 10) * 33, y + 40 + (i // 10) * 44
+            have = rnd.random() < 0.86
+            out.append(f'<rect x="{px}" y="{py}" width="26" height="36" rx="4" fill="{INK if have else "#fff"}" stroke="{INK if have else SIGNAL}" stroke-width="2" stroke-dasharray="{"0" if have else "4 3"}"/>')
+    elif kind == "regression-to-mean":
+        out.append(f'<rect x="{x + 20}" y="{y + 10}" width="340" height="280" rx="12" fill="#fff"/>')
+        for _ in range(140):
+            s1 = rnd.gauss(0, 1); s2 = 0.5 * s1 + rnd.gauss(0, 0.85)
+            out.append(f'<circle cx="{x + 190 + s1 * 55:.1f}" cy="{y + 150 - s2 * 55:.1f}" r="4" fill="{INK}" fill-opacity=".75"/>')
+        out += [f'<line x1="{x + 50}" y1="{y + 270}" x2="{x + 330}" y2="{y + 30}" stroke="#BDBDBD" stroke-width="3" stroke-dasharray="8 6"/>',
+                f'<line x1="{x + 50}" y1="{y + 220}" x2="{x + 330}" y2="{y + 80}" stroke="{SIGNAL}" stroke-width="5"/>']
+    elif kind == "two-envelopes":
+        for i, (lab, col) in enumerate((("x", INK), ("2x", SIGNAL))):
+            ex = x + 30 + i * 175
+            out += [f'<rect x="{ex}" y="{y + 70}" width="150" height="104" rx="10" fill="{col}"/>',
+                    f'<path d="M{ex} {y + 74} L{ex + 75} {y + 130} L{ex + 150} {y + 74}" fill="none" stroke="#fff" stroke-width="4" stroke-opacity=".6"/>',
+                    f'<text x="{ex + 75}" y="{y + 225}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="40" fill="{col}">{lab}</text>']
+    elif kind == "coin-streaks":
+        seq = [rnd.random() < .5 for _ in range(60)]
+        seq[23:30] = [True] * 7
+        for i, h in enumerate(seq):
+            px, py = x + 30 + (i % 10) * 33, y + 30 + (i // 10) * 40
+            run = 23 <= i < 30
+            out.append(f'<circle cx="{px + 13}" cy="{py + 13}" r="13" fill="{SIGNAL if run else (INK if h else "#fff")}" stroke="{INK}" stroke-width="2"/>')
+    elif kind == "bertrand-paradox":
+        cx, cy, r = x + 190, y + 150, 130
+        out += [f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="#fff" stroke="{INK}" stroke-width="4"/>']
+        tri = [(cx + r * math.cos(a), cy + r * math.sin(a)) for a in (-math.pi / 2, math.pi / 6, 5 * math.pi / 6)]
+        out.append('<polygon points="' + " ".join(f"{px:.1f},{py:.1f}" for px, py in tri) + f'" fill="none" stroke="{INK}" stroke-width="3"/>')
+        for _ in range(16):
+            a, b = rnd.random() * 2 * math.pi, rnd.random() * 2 * math.pi
+            long_ = abs(math.sin((a - b) / 2)) * 2 * r > r * math.sqrt(3)
+            out.append(f'<line x1="{cx + r * math.cos(a):.1f}" y1="{cy + r * math.sin(a):.1f}" x2="{cx + r * math.cos(b):.1f}" y2="{cy + r * math.sin(b):.1f}" stroke="{SIGNAL if long_ else "#9A9A9A"}" stroke-width="3"/>')
+    return "".join(out)
+
+
 def svg(kind, lang):
     lines, sub, ans = TEXT[kind][lang]
     big = min(84, int(590 / (max(len(l) for l in lines) * 0.68)))
@@ -241,6 +334,9 @@ def svg(kind, lang):
         parts.append(kids(762, 170))
     elif kind == "buffon-needle":
         parts.append(needles(740, 165))
+    elif kind in ("rope-around-earth", "hundred-prisoners", "cognitive-reflection", "coupon-collector",
+                  "regression-to-mean", "two-envelopes", "coin-streaks", "bertrand-paradox"):
+        parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
     elif kind == "friendship-paradox":
