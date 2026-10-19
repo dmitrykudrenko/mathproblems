@@ -195,8 +195,7 @@ def build_problem(slug, base):
                 "isAccessibleForFree": True,
                 "learningResourceType": ["interactive simulation", "game", "explanation"],
                 "educationalLevel": "beginner",
-                "about": {"@type": "Thing", "name": "Monty Hall problem",
-                          "sameAs": "https://en.wikipedia.org/wiki/Monty_Hall_problem"},
+                "about": {"@type": "Thing", **meta["about"]},
                 "image": page_base + f"og-{lang}.png",
                 "dateModified": date.today().isoformat(),
                 "isPartOf": {"@type": "WebSite", "name": SITE_NAME[lang], "url": hub[lang]},
@@ -218,7 +217,8 @@ def build_problem(slug, base):
             },
         ]}
         h = head(lang, urls, m["title"], m["description"], page_base + f"og-{lang}.png", m["og_alt"], ld, base)
-        h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
+        if "i.ytimg.com" in body:
+            h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n{style}\n'
                f'</head>\n<body>\n{body.strip()}\n</body>\n</html>\n')
         write(DOCS / slug / LANG_PATH[lang] / "index.html", doc)

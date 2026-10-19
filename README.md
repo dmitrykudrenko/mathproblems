@@ -6,6 +6,7 @@
 
 | Задача | UA | EN |
 |---|---|---|
+| Парадокс днів народження | [/birthday/](https://dmitrykudrenko.github.io/mathproblems/birthday/) | [/birthday/en/](https://dmitrykudrenko.github.io/mathproblems/birthday/en/) |
 | Парадокс Монті Голла | [/monty-hall/](https://dmitrykudrenko.github.io/mathproblems/monty-hall/) | [/monty-hall/en/](https://dmitrykudrenko.github.io/mathproblems/monty-hall/en/) |
 
 ## Структура
@@ -13,7 +14,7 @@
 ```
 problems/<slug>/
   page.html    сторінка задачі; обидві мови поруч (class="uk" / class="en")
-  meta.json    SEO: title, description, FAQ, картка для каталогу — для кожної мови
+  meta.json    SEO: about (Wikipedia), title, description, FAQ, картка для каталогу — для кожної мови
   assets/      og-uk.png, og-en.png (1200×630) та інші файли
 build.py       збирає сайт у docs/
 docs/          готовий сайт (GitHub Pages публікує з main:/docs)
