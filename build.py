@@ -71,6 +71,47 @@ CLASPO = """<script>
     }(window, document, 'script', '%s');
 </script><script>claspo('init');</script>""" % CLASPO_ID if CLASPO_ID else ""
 
+# Newsletter block near the end of every page. The form itself is a Claspo inline widget placed
+# inside #mp-subscribe; until Claspo puts something there the block stays hidden (add #subscribe to
+# the URL to see it anyway, e.g. while choosing the placement in Claspo).
+SUBSCRIBE_TEXT = {
+    "uk": ("Розсилка", "Нові задачі, пояснення й обговорення",
+           "Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік."),
+    "en": ("Newsletter", "New puzzles, explanations and discussions",
+           "I keep adding new puzzles, new ways to explain them and write-ups of the discussions they start. Leave your email and I'll write when something new is out. No spam, one-click unsubscribe."),
+}
+SUBSCRIBE = """<section class="mp-subscribe" id="subscribe" hidden>
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">%s</span>
+    <h2>%s</h2>
+    <p>%s</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  // show the block once Claspo has inserted its form (inside the slot or right next to it)
+  function check() {
+    var filled = slot.children.length > 0 || [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (filled || location.hash === "#subscribe") box.hidden = false;
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+})();
+</script>"""
+
+
+def with_subscribe(body, lang):
+    """Put the newsletter block right before the last <footer> of the page."""
+    i = body.rfind("<footer")
+    return body[:i] + subscribe_block(lang) + "\n\n" + body[i:] if i != -1 else body + subscribe_block(lang)
+
+
+def subscribe_block(lang):
+    return SUBSCRIBE % SUBSCRIBE_TEXT[lang]
+
+
 # Problem pages were authored for the artifact viewer, which supplied these base styles.
 RESET = """<style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -260,6 +301,7 @@ def build_problem(slug, base):
         h = head(lang, urls, m["title"], m["description"], page_base + f"og-{lang}.png", m["og_alt"], ld, base)
         if "i.ytimg.com" in body:
             h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
+        body = with_subscribe(body, lang)
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
                f'</head>\n<body>\n{body.strip()}\n{CLASPO}\n</body>\n</html>\n')
         write(DOCS / slug / LANG_PATH[lang] / "index.html", doc)
@@ -313,6 +355,7 @@ def build_hub(problems, base):
                  for i, p in enumerate(problems)]}},
         ]}
         h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["og_alt"], ld, base)
+        body = with_subscribe(body, lang)
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
                f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{CLASPO}\n</body>\n</html>\n')
         write(DOCS / LANG_PATH[lang] / "index.html", doc)
