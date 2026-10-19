@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -22,6 +22,30 @@ TEXT = {
     "birthday": {
         "uk": (["ПАРАДОКС ДНІВ", "НАРОДЖЕННЯ"], "Скільки людей потрібно?", ("183", "23")),
         "en": (["THE BIRTHDAY", "PARADOX"], "How many people does it take?", ("183", "23")),
+    },
+    "false-positive": {
+        "uk": (["ПАРАДОКС", "ХИБНОГО ТЕСТУ"], "Тест точний на 99%. Ви хворі?", ("99%", "50%")),
+        "en": (["THE FALSE", "POSITIVE PARADOX"], "The test is 99% accurate. Are you sick?", ("99%", "50%")),
+    },
+    "secretary-problem": {
+        "uk": (["ПРАВИЛО 37%"], "Як обрати найкращого з сотні?", ("1%", "37%")),
+        "en": (["THE 37% RULE"], "How to pick the best of a hundred", ("1%", "37%")),
+    },
+    "simpson-paradox": {
+        "uk": (["ПАРАДОКС", "СІМПСОНА"], "Краще в кожній групі, гірше загалом", None),
+        "en": (["SIMPSON'S", "PARADOX"], "Better in every group, worse overall", None),
+    },
+    "two-children": {
+        "uk": (["ПАРАДОКС", "ДВОХ ДІТЕЙ"], "Хоча б один хлопчик. Обидва?", ("1/2", "1/3")),
+        "en": (["THE TWO-CHILD", "PARADOX"], "At least one is a boy. Both?", ("1/2", "1/3")),
+    },
+    "buffon-needle": {
+        "uk": (["ГОЛКА", "БЮФФОНА"], "Знайти π, кидаючи сірники", None),
+        "en": (["BUFFON'S", "NEEDLE"], "Find π by dropping matches", None),
+    },
+    "friendship-paradox": {
+        "uk": (["ПАРАДОКС", "ДРУЖБИ"], "У ваших друзів більше друзів, ніж у вас", None),
+        "en": (["THE FRIENDSHIP", "PARADOX"], "Your friends have more friends than you", None),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється", None),
@@ -72,6 +96,101 @@ def calendar(x, y):
     return "".join(out)
 
 
+def people(x, y):
+    # 10x10 grid: one true positive (filled signal), one false positive (signal ring)
+    out = []
+    for r in range(10):
+        for c in range(10):
+            cx, cy = x + c * 34, y + r * 34
+            if (r, c) == (2, 6):
+                out.append(f'<circle cx="{cx}" cy="{cy}" r="11" fill="{SIGNAL}"/>')
+            elif (r, c) == (7, 2):
+                out.append(f'<circle cx="{cx}" cy="{cy}" r="9.5" fill="#fff" stroke="{SIGNAL}" stroke-width="3"/>')
+            else:
+                out.append(f'<circle cx="{cx}" cy="{cy}" r="11" fill="{INK}" fill-opacity=".85"/>')
+    return "".join(out)
+
+
+def candidates(x, y):
+    rnd = random.Random(7)
+    hs = [rnd.randint(40, 200) for _ in range(20)]
+    best_seen = max(hs[:7])
+    pick = next(i for i in range(7, 20) if hs[i] > best_seen)
+    out = [f'<line x1="{x + 7 * 19 - 4}" y1="{y - 10}" x2="{x + 7 * 19 - 4}" y2="{y + 215}" stroke="{INK}" stroke-width="2" stroke-dasharray="6 5"/>']
+    for i, h in enumerate(hs):
+        fill = SIGNAL if i == pick else ("#BDBDBD" if i < 7 else INK)
+        out.append(f'<rect x="{x + i * 19}" y="{y + 210 - h}" width="13" height="{h}" rx="3" fill="{fill}"/>')
+    out.append(f'<text x="{x + 7 * 19 + 4}" y="{y + 2}" font-family="{FONT}" font-weight="800" font-size="22" fill="{INK}">37%</text>')
+    return "".join(out)
+
+
+def simpson(x, y, lang):
+    names = {"uk": ("малі", "великі", "разом"), "en": ("small", "large", "total")}[lang]
+    groups = [("93", "87"), ("73", "69"), ("78", "83")]
+    out = []
+    for g, (a, b) in enumerate(groups):
+        gx = x + g * 120
+        for k, v in enumerate((a, b)):
+            h = int(v) * 2.2
+            fill = INK if k == 0 else SIGNAL
+            if g == 2:
+                fill = SIGNAL if k == 1 else INK
+            out.append(f'<rect x="{gx + k * 42}" y="{y + 220 - h}" width="34" height="{h}" rx="5" fill="{fill}"/>')
+        out.append(f'<text x="{gx + 38}" y="{y + 250}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="18" fill="{MUTED}">{names[g]}</text>')
+        if g == 2:
+            out.append(f'<line x1="{gx - 16}" y1="{y}" x2="{gx - 16}" y2="{y + 222}" stroke="#BDBDBD" stroke-width="2"/>')
+    return "".join(out)
+
+
+def kids(x, y):
+    out = []
+    for i, pair in enumerate(("BB", "BG", "GB", "GG")):
+        cx, cy = x + (i % 2) * 180, y + (i // 2) * 150
+        box = SIGNAL if pair == "BB" else INK
+        out.append(f'<rect x="{cx}" y="{cy}" width="160" height="128" rx="18" fill="#fff" stroke="{box}" stroke-width="{4 if pair == "BB" else 0}"/>')
+        for k, ch in enumerate(pair):
+            px = cx + 52 + k * 56
+            col = INK if ch == "B" else "#BDBDBD"
+            out.append(f'<circle cx="{px}" cy="{cy + 46}" r="16" fill="{col}"/><rect x="{px - 18}" y="{cy + 66}" width="36" height="40" rx="12" fill="{col}"/>')
+        if pair == "GG":
+            out.append(f'<line x1="{cx + 14}" y1="{cy + 114}" x2="{cx + 146}" y2="{cy + 14}" stroke="{SIGNAL}" stroke-width="6" stroke-linecap="round"/>')
+    return "".join(out)
+
+
+def needles(x, y):
+    import math
+    rnd = random.Random(3)
+    out = [f'<clipPath id="board"><rect x="{x}" y="{y}" width="380" height="300" rx="16"/></clipPath>',
+           f'<rect x="{x}" y="{y}" width="380" height="300" rx="16" fill="#fff"/><g clip-path="url(#board)">']
+    for k in range(1, 5):
+        out.append(f'<line x1="{x}" y1="{y + k * 60}" x2="{x + 380}" y2="{y + k * 60}" stroke="#C9C9C9" stroke-width="2"/>')
+    for _ in range(26):
+        cx, cy, a = x + 30 + rnd.random() * 320, y + 20 + rnd.random() * 260, rnd.random() * math.pi
+        dx, dy = 30 * math.cos(a), 30 * math.sin(a)
+        y1, y2 = cy - dy, cy + dy
+        cross = any(min(y1, y2) <= y + k * 60 <= max(y1, y2) for k in range(1, 5))
+        out.append(f'<line x1="{cx - dx:.1f}" y1="{y1:.1f}" x2="{cx + dx:.1f}" y2="{y2:.1f}" stroke="{SIGNAL if cross else INK}" stroke-width="5" stroke-linecap="round"/>')
+    return "".join(out) + "</g>"
+
+
+def network(x, y):
+    import math
+    rnd = random.Random(11)
+    hub = (x + 190, y + 150)
+    pts = [(x + 190 + 140 * math.cos(t) * (0.75 + 0.3 * rnd.random()), y + 150 + 120 * math.sin(t) * (0.75 + 0.3 * rnd.random()))
+           for t in [i * 2 * math.pi / 11 for i in range(11)]]
+    out = []
+    for p in pts:
+        out.append(f'<line x1="{hub[0]}" y1="{hub[1]}" x2="{p[0]:.1f}" y2="{p[1]:.1f}" stroke="#BDBDBD" stroke-width="2.5"/>')
+    for i in range(0, 11, 3):
+        a, b = pts[i], pts[(i + 1) % 11]
+        out.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="#BDBDBD" stroke-width="2.5"/>')
+    for p in pts:
+        out.append(f'<circle cx="{p[0]:.1f}" cy="{p[1]:.1f}" r="14" fill="{INK}"/>')
+    out.append(f'<circle cx="{hub[0]}" cy="{hub[1]}" r="30" fill="{SIGNAL}"/>')
+    return "".join(out)
+
+
 def svg(kind, lang):
     lines, sub, ans = TEXT[kind][lang]
     big = min(84, int(590 / (max(len(l) for l in lines) * 0.68)))
@@ -79,7 +198,7 @@ def svg(kind, lang):
              f'<rect x="700" y="40" width="460" height="550" rx="36" fill="{TINT[kind]}"/>', dots(700, 40, 460, 550)]
     for i, l in enumerate(lines):
         parts.append(f'<text x="70" y="{190 + i * (big + 4)}" font-family="{FONT}" font-weight="800" font-size="{big}" letter-spacing="-2" fill="{INK}">{l}</text>')
-    parts.append(f'<text x="72" y="{190 + 2 * (big + 4) + 18}" font-family="{FONT}" font-weight="500" font-size="32" fill="{MUTED}">{sub}</text>')
+    parts.append(f'<text x="72" y="{190 + len(lines) * (big + 4) + 18}" font-family="{FONT}" font-weight="500" font-size="32" fill="{MUTED}">{sub}</text>')
     if ans:
         lo, hi = LABELS[lang]
         y = 500
@@ -91,6 +210,18 @@ def svg(kind, lang):
         parts.append(f'<rect x="752" y="150" width="356" height="330" rx="24" fill="none"/>' + doors(760, 240))
     elif kind == "birthday":
         parts.append(f'<rect x="740" y="220" width="390" height="190" rx="18" fill="#fff"/>' + calendar(752, 232))
+    elif kind == "false-positive":
+        parts.append(people(780, 160))
+    elif kind == "secretary-problem":
+        parts.append(f'<rect x="740" y="190" width="390" height="260" rx="18" fill="#fff"/>' + candidates(752, 215))
+    elif kind == "simpson-paradox":
+        parts.append(f'<rect x="740" y="160" width="390" height="300" rx="18" fill="#fff"/>' + simpson(775, 190, lang))
+    elif kind == "two-children":
+        parts.append(kids(762, 170))
+    elif kind == "buffon-needle":
+        parts.append(needles(740, 165))
+    elif kind == "friendship-paradox":
+        parts.append(network(740, 165))
     else:
         parts.append(f'<g transform="translate(-6,-80) scale(.92)">{doors(800, 180)}</g>')
         parts.append(f'<rect x="740" y="330" width="390" height="190" rx="18" fill="#fff"/>' + calendar(752, 342))

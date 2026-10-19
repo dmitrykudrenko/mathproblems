@@ -1,0 +1,73 @@
+<div class="tz-text">
+  <span class="eyebrow"><span class="uk">Геометрична ймовірність · π</span><span class="en">Geometric probability · π</span></span>
+  <h2><a href="{{URL}}"><span class="uk">Голка Бюффона</span><span class="en">Buffon's needle</span></a></h2>
+  <p class="tz-q uk">Сірник завдовжки як ширина дошки падає на дерев'яну підлогу навмання. Як часто він перетинає шов між дошками?</p>
+  <p class="tz-q en">A match as long as a floorboard is wide drops onto a wooden floor at random. How often does it cross a seam between boards?</p>
+  <div class="tz-ans">
+    <div><span><span class="uk">Інтуїція</span><span class="en">Intuition</span></span><b>≈ 50%</b></div>
+    <div class="r"><span><span class="uk">Насправді</span><span class="en">Actually</span></span><b><span class="uk">2/π ≈ 63,7%</span><span class="en">2/π ≈ 63.7%</span></b></div>
+  </div>
+  <p class="tz-d uk">Випадковий експеримент без жодного кола, з якого виходить число π. Один з найперших прикладів методу Монте-Карло.</p>
+  <p class="tz-d en">A random experiment with no circle in sight that produces the number π. One of the earliest examples of the Monte Carlo method.</p>
+  <ul class="tz-inside uk"><li>вгадайте частку</li><li>підлога й сірники</li><li>мільйон кидків</li><li>звідки береться π</li><li>сітка, кільце, точки</li></ul>
+  <ul class="tz-inside en"><li>guess the share</li><li>a floor and matches</li><li>a million throws</li><li>where π comes from</li><li>grids, rings, points</li></ul>
+  <a class="tz-cta" href="{{URL}}"><span class="uk">Розібратися з голкою Бюффона</span><span class="en">Work through Buffon's needle</span> →</a>
+</div>
+<div class="tz-stage" id="tz-buffon-needle">
+  <span class="tz-try"><span class="uk">Спробуйте тут</span><span class="en">Try it here</span></span>
+  <canvas style="display:block;width:100%;max-width:440px;height:230px;background:#fff;border-radius:18px" aria-hidden="true"></canvas>
+  <p class="tz-msg" aria-live="polite"></p>
+  <div class="tz-acts"><button type="button" class="tz-btn" data-k="10"></button><button type="button" class="tz-btn" data-k="100"></button></div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById('tz-buffon-needle');
+  const en = () => document.documentElement.dataset.lang === 'en';
+  const L = (uk, e) => en() ? e : uk;
+  const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), btns = root.querySelectorAll('.tz-btn');
+  const B = 5, all = [];
+  let n = 0, h = 0;
+  const col = (name, fb) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb;
+  function drop(k) {
+    for (let i = 0; i < k; i++) {
+      let u, v, r;
+      do { u = 2 * Math.random() - 1; v = Math.random(); r = u * u + v * v; } while (r > 1 || r === 0);
+      r = Math.sqrt(r);
+      const c = u / r, s = v / r, cx = .5 + Math.random() * (B - 1);
+      const hit = Math.floor(cx + c / 2) !== Math.floor(cx - c / 2);
+      all.push({ cx, f: Math.random(), c, s, hit }); n++; if (hit) h++;
+    }
+    if (all.length > 1500) all.splice(0, all.length - 1500);
+    draw(); text();
+  }
+  function draw() {
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+    if (!W) return;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const bw = W / B, ink = col('--ink', '#151515'), sig = col('--signal', '#D9318F');
+    ctx.strokeStyle = '#BDBDBD'; ctx.lineWidth = 1;
+    for (let i = 1; i < B; i++) { ctx.beginPath(); ctx.moveTo(i * bw, 0); ctx.lineTo(i * bw, H); ctx.stroke(); }
+    ctx.lineCap = 'round'; ctx.lineWidth = all.length > 300 ? 1.2 : 2.2;
+    [false, true].forEach(pass => all.forEach(m => {
+      if (m.hit !== pass) return;
+      const px = m.cx * bw, py = bw / 2 + m.f * (H - bw), dx = m.c * bw / 2, dy = m.s * bw / 2;
+      ctx.strokeStyle = m.hit ? sig : ink; ctx.globalAlpha = m.hit ? 1 : .45;
+      ctx.beginPath(); ctx.moveTo(px - dx, py - dy); ctx.lineTo(px + dx, py + dy); ctx.stroke();
+    }));
+    ctx.globalAlpha = 1;
+  }
+  function text() {
+    const d = s => en() ? s : s.replace('.', ',');
+    const est = h ? d((2 * n / h).toFixed(3)) : '–';
+    msg.textContent = L('Кидків: ' + n + ', перетинів: ' + h + ' (' + d((100 * h / n).toFixed(1)) + '%). π ≈ 2 · ' + n + ' / ' + h + ' = ' + est,
+      'Drops: ' + n + ', crossings: ' + h + ' (' + (100 * h / n).toFixed(1) + '%). π ≈ 2 · ' + n + ' / ' + h + ' = ' + est);
+    btns[0].textContent = L('Кинути 10 сірників', 'Drop 10 matches');
+    btns[1].textContent = L('Кинути 100', 'Drop 100');
+  }
+  btns.forEach(b => b.addEventListener('click', () => drop(+b.dataset.k)));
+  document.addEventListener('langchange', text);
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
+  drop(20);
+})();
+</script>

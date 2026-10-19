@@ -6,8 +6,14 @@
 
 | Задача | UA | EN |
 |---|---|---|
-| Парадокс днів народження | [/birthday/](https://dmitrykudrenko.github.io/mathproblems/birthday/) | [/birthday/en/](https://dmitrykudrenko.github.io/mathproblems/birthday/en/) |
 | Парадокс Монті Голла | [/monty-hall/](https://dmitrykudrenko.github.io/mathproblems/monty-hall/) | [/monty-hall/en/](https://dmitrykudrenko.github.io/mathproblems/monty-hall/en/) |
+| Парадокс днів народження | [/birthday/](https://dmitrykudrenko.github.io/mathproblems/birthday/) | [/birthday/en/](https://dmitrykudrenko.github.io/mathproblems/birthday/en/) |
+| Парадокс хибнопозитивного тесту | [/false-positive/](https://dmitrykudrenko.github.io/mathproblems/false-positive/) | [/false-positive/en/](https://dmitrykudrenko.github.io/mathproblems/false-positive/en/) |
+| Правило 37%: задача про секретаря | [/secretary-problem/](https://dmitrykudrenko.github.io/mathproblems/secretary-problem/) | [/secretary-problem/en/](https://dmitrykudrenko.github.io/mathproblems/secretary-problem/en/) |
+| Парадокс Сімпсона | [/simpson-paradox/](https://dmitrykudrenko.github.io/mathproblems/simpson-paradox/) | [/simpson-paradox/en/](https://dmitrykudrenko.github.io/mathproblems/simpson-paradox/en/) |
+| Парадокс двох дітей | [/two-children/](https://dmitrykudrenko.github.io/mathproblems/two-children/) | [/two-children/en/](https://dmitrykudrenko.github.io/mathproblems/two-children/en/) |
+| Голка Бюффона | [/buffon-needle/](https://dmitrykudrenko.github.io/mathproblems/buffon-needle/) | [/buffon-needle/en/](https://dmitrykudrenko.github.io/mathproblems/buffon-needle/en/) |
+| Парадокс дружби | [/friendship-paradox/](https://dmitrykudrenko.github.io/mathproblems/friendship-paradox/) | [/friendship-paradox/en/](https://dmitrykudrenko.github.io/mathproblems/friendship-paradox/en/) |
 
 ## Структура
 

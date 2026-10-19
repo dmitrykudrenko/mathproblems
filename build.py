@@ -171,7 +171,7 @@ def css_link(base):
 def write(path, doc):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(doc, encoding="utf-8")
-    print(f"{path.relative_to(ROOT)}  {len(doc) // 1024} KB")
+    print(f"{path.relative_to(DOCS)}  {len(doc) // 1024} KB")
 
 
 def build_problem(slug, base):
@@ -230,7 +230,7 @@ def build_problem(slug, base):
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
                f'</head>\n<body>\n{body.strip()}\n</body>\n</html>\n')
         write(DOCS / slug / LANG_PATH[lang] / "index.html", doc)
-    for f in (src_dir / "assets").iterdir():
+    for f in (src_dir / "assets").iterdir() if (src_dir / "assets").exists() else []:
         if f.suffix in {".png", ".jpg", ".svg", ".webp"} and not f.name.startswith("og-src"):
             shutil.copy(f, DOCS / slug / f.name)
     return slug, meta, urls
@@ -244,7 +244,10 @@ def build_hub(problems, base):
     blocks = []
     for slug, _, _ in problems:
         teaser = (PROBLEMS / slug / "teaser.html").read_text(encoding="utf-8")
-        blocks.append(f'<article class="problem" id="{slug}">\n' + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
+        # the stage on the home page uses the same tint as the problem page itself
+        m = re.search(r"--tint:\s*(#[0-9A-Fa-f]{6})", (PROBLEMS / slug / "page.html").read_text(encoding="utf-8"))
+        tint = f' style="--tint: {m.group(1)}"' if m else ""
+        blocks.append(f'<article class="problem" id="{slug}"{tint}>\n' + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
     src = src.replace("<!--PROBLEMS-->", "\n".join(blocks))
     for lang in LANGS:
         m, other = meta[lang], ("en" if lang == "uk" else "uk")
@@ -280,10 +283,14 @@ def build_hub(problems, base):
     return urls
 
 
-def build(base):
+def build(base, out=None):
+    global DOCS
+    if out:
+        DOCS = Path(out).resolve()
     if DOCS.exists():
         shutil.rmtree(DOCS)
-    dirs = [p for p in PROBLEMS.iterdir() if (p / "page.html").exists()]
+    # a problem is published only once all three source files exist (lets drafts sit in problems/)
+    dirs = [p for p in PROBLEMS.iterdir() if all((p / f).exists() for f in ("page.html", "teaser.html", "meta.json"))]
     dirs.sort(key=lambda p: (json.loads((p / "meta.json").read_text(encoding="utf-8")).get("order", 99), p.name))
     problems = [build_problem(p.name, base) for p in dirs]
     hub = build_hub(problems, base)
@@ -309,5 +316,6 @@ def build(base):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--base-url", default=DEFAULT_BASE, help="public URL of the site root, ending with /")
+    ap.add_argument("--out", help="write the site here instead of docs/ (for local checks)")
     a = ap.parse_args()
-    build(a.base_url if a.base_url.endswith("/") else a.base_url + "/")
+    build(a.base_url if a.base_url.endswith("/") else a.base_url + "/", a.out)

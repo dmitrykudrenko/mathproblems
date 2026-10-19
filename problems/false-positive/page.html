@@ -1,0 +1,1018 @@
+<title>Парадокс хибнопозитивного тесту</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same running order as the other problem pages, from a guess to a crowd of 1,000 to 100,000 simulated tests, the maths and variants. The crowd grid (one cell per person) is this problem's signature object. */
+:root {
+  --tint: #FFEEDD;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); }
+
+/* ---------- crowd: one cell per person ---------- */
+.crowd { display: grid; grid-template-columns: repeat(40, minmax(0, 1fr)); gap: 2px; }
+.crowd i { aspect-ratio: 1; border-radius: 2px; background: var(--cell); transition: background .3s; }
+.crowd i.tp { background: var(--hit); }
+.crowd i.fp { background: var(--day); }
+.crowd i.fn { background: var(--hit-soft); box-shadow: inset 0 0 0 1px var(--hit); }
+.crowd i.pick { outline: 2px solid var(--hit); outline-offset: 2px; position: relative; z-index: 1; animation: pop .45s ease-out; }
+.crowd i.pick.fp { outline-color: var(--day); }
+@keyframes pop { 0% { transform: scale(2.4); } 100% { transform: scale(1); } }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl select { font: inherit; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.ctl input[type=range] { width: 200px; max-width: 100%; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+.big.day { color: var(--day); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); box-shadow: var(--sh, none); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.guess .val { font-family: var(--f-display); font-weight: 800; font-size: 3.4rem; color: var(--day); line-height: 1; }
+.guess input[type=range] { width: 100%; accent-color: var(--day); }
+.scale { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: .72rem; color: var(--muted); }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 150px 1fr 64px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+
+/* ---------- crowd round ---------- */
+.room { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.status { display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.8rem; font-weight: 800; }
+.status .pp b { color: var(--day); }
+.status .mm b { color: var(--hit); }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--hit); }
+.panel { display: grid; gap: 18px; }
+.panel .ctl input[type=range] { width: 100%; }
+.panel .controls { display: grid; gap: 14px; margin: 0; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.9rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.marks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.marks div { border-radius: 10px; background: var(--paper); padding: 8px 10px; }
+.marks b { font-family: var(--f-display); font-size: 1.1rem; display: block; }
+.marks span { font-family: var(--f-mono); font-size: .72rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.6rem; }
+.vs .a b { color: var(--day); }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .84rem; color: var(--muted); }
+.formula { font-family: var(--f-mono); font-size: .92rem; background: var(--paper); border-radius: 10px; padding: 14px 16px; overflow-x: auto; line-height: 1.9; white-space: nowrap; }
+.formula em { font-style: normal; color: var(--hit); font-weight: 600; }
+.inline-ctl { display: flex; align-items: center; gap: 10px; font-size: .86rem; color: var(--muted); flex-wrap: wrap; }
+.inline-ctl input[type=range] { width: 160px; accent-color: var(--day); }
+.tree svg { width: 100%; height: auto; display: block; }
+.tree text { font-family: var(--f-body); font-size: 11px; fill: var(--ink); }
+.tree .m { fill: var(--muted); font-family: var(--f-mono); font-size: 10px; }
+.tree line { stroke: var(--line); stroke-width: 2; }
+.tree .node { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.tree .tpn { fill: var(--hit-soft); stroke: var(--hit); }
+.tree .fpn { fill: var(--day); stroke: var(--day); }
+.tree .fpt { fill: var(--day-ink); font-weight: 700; }
+.tree .tpt { fill: var(--hit); font-weight: 700; }
+.tree .sum { font-weight: 700; }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; margin-top: 18px; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+td .btn { padding: 6px 10px; font-size: .8rem; }
+.res { font-family: var(--f-mono); font-size: .82rem; color: var(--muted); white-space: nowrap; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .crowd { gap: 1px; }
+  .card { padding: 16px; }
+  .marks { grid-template-columns: repeat(2, 1fr); }
+  .crow { grid-template-columns: 96px 1fr 56px; }
+  .vs { grid-template-columns: 1fr; }
+  .result-row { gap: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+<div class="topbar">
+  <span class="brand">1% ill · 99% accurate test · 50% chance</span>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <h1 class="uk"><span class="kw">Парадокс хибнопозитивного тесту</span> Тест точний на 99%. <span class="q">А шанс, що ви хворі, лише 50%.</span></h1>
+    <h1 class="en"><span class="kw">The false positive paradox</span> The test is 99% accurate. <span class="q">Your chance of being ill is 50%.</span></h1>
+    <p class="lead uk">Хворобу має 1 людина зі 100. Тест знаходить 99% хворих і помиляється лише в 1% здорових. Ваш результат позитивний. Більшість людей, зокрема багато лікарів, роблять висновок: «Отже, я хворий з імовірністю 99%». Насправді шанс 50 на 50. Перевірте це на тисячі людей, на симуляції та за теоремою Баєса.</p>
+    <p class="lead en">One person in 100 has the disease. The test catches 99% of sick people and wrongly flags only 1% of healthy ones. You test positive. Most people, many doctors included, conclude: "So I'm 99% likely to be ill." The real chance is 50/50. Check it on a crowd of 1,000, with a simulation and with Bayes' theorem.</p>
+    <div class="odds">
+      <div class="odd"><b>99%</b><span><span class="uk">точність тесту</span><span class="en">test accuracy</span></span></div>
+      <div class="odd hit"><b>50%</b><span><span class="uk">шанс, що ви хворі</span><span class="en">chance you're ill</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="uk">Умова</b><b class="en">The puzzle</b></a>
+      <a href="#guess"><span>1</span><b class="uk">Вгадайте</b><b class="en">Guess</b></a>
+      <a href="#crowd"><span>2</span><b class="uk">Тисяча людей</b><b class="en">A crowd of 1,000</b></a>
+      <a href="#sim"><span>3</span><b class="uk">100 000 тестів</b><b class="en">100,000 tests</b></a>
+      <a href="#why"><span>4</span><b class="uk">Чому так</b><b class="en">Why it works</b></a>
+      <a href="#more"><span>5</span><b class="uk">Ускладнюємо</b><b class="en">Going further</b></a>
+      <a href="#facts"><span>★</span><b class="uk" style="font-weight:inherit">Цікаві факти</b><b class="en" style="font-weight:inherit">Fun facts</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <div class="crowd" id="hero-crowd"></div>
+    <p class="cap"><span class="uk">1 000 людей пройшли тест. Позитивних 20: пурпурні 10 хворі, чорні 10 здорові.</span><span class="en">1,000 people tested. 20 positives: the 10 magenta are ill, the 10 black are healthy.</span></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span><span class="en">The puzzle</span></span>
+    <h2><span class="uk">Уявіть: ви здали аналіз</span><span class="en">Picture this: you've had a test</span></h2>
+    <p class="lead uk">Цю задачу називають парадоксом хибнопозитивного тесту, а помилку, яку тут робить інтуїція, називають помилкою базової частоти. Ми дивимося на точність тесту й забуваємо, наскільки рідкісна сама хвороба. Правильно порахувати допомагає теорема Баєса.</p>
+    <p class="lead en">This puzzle is known as the false positive paradox, and the mistake intuition makes here is called the base rate fallacy. We look at how accurate the test is and forget how rare the disease is. Bayes' theorem shows how to count it correctly.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Хвороба</span><span class="en">The disease</span></h3>
+        <p class="uk">Хворобу має 1% людей, тобто 1 людина зі 100. Ззовні її не видно, симптомів немає.</p>
+        <p class="en">1% of people have the disease, one person in 100. It has no visible symptoms.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Тест</span><span class="en">The test</span></h3>
+        <p class="uk">Якщо людина хвора, тест показує «позитивно» в 99% випадків. Це чутливість. Якщо людина здорова, тест показує «негативно» в 99% випадків. Це специфічність. Отже, лише 1% здорових отримує хибнопозитивний результат.</p>
+        <p class="en">If a person is ill, the test says "positive" 99% of the time. That's the sensitivity. If a person is healthy, it says "negative" 99% of the time. That's the specificity. So only 1% of healthy people get a false positive.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Ви</span><span class="en">You</span></h3>
+        <p class="uk">Вас перевіряють під час планового обстеження, без жодних скарг. Тобто ви випадкова людина з населення.</p>
+        <p class="en">You're tested during a routine check-up, with no complaints. So you're a random member of the population.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Результат</span><span class="en">The result</span></h3>
+        <p class="uk">Тест позитивний. Яка ймовірність, що ви справді хворі?</p>
+        <p class="en">The test is positive. What is the chance you're really ill?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span><span class="en">Intuition says</span></span>
+        <p class="q"><span class="uk">«Тест точний на 99%, отже, я хворий з імовірністю 99%»</span><span class="en">"The test is 99% accurate, so I'm 99% likely to be ill"</span></p>
+        <p class="uk">Насправді шанс 50%. На кожного хворого з позитивним результатом припадає один здоровий з хибнопозитивним. Здорових у 99 разів більше, ніж хворих, тому навіть 1% їхніх помилок дає стільки ж позитивних результатів, скільки всі хворі разом.</p>
+        <p class="en">In fact the chance is 50%. For every sick person who tests positive there is one healthy person with a false positive. Healthy people outnumber the sick 99 to 1, so even 1% of them adds up to as many positives as all the sick people together.</p>
+      </div>
+      <div class="card">
+        <h3><span class="uk">Припущення моделі</span><span class="en">Model assumptions</span></h3>
+        <ul class="rules uk">
+          <li>Частка хворих, або базова частота, дорівнює 1%.</li>
+          <li>Чутливість 99%: тест знаходить 99 зі 100 хворих.</li>
+          <li>Специфічність 99%: 99 зі 100 здорових отримують негативний результат.</li>
+          <li>Вас обрали навмання, а не через симптоми.</li>
+          <li>Повторні тести помиляються незалежно один від одного.</li>
+        </ul>
+        <ul class="rules en">
+          <li>The share of sick people, the base rate, is 1%.</li>
+          <li>Sensitivity 99%: the test finds 99 of 100 sick people.</li>
+          <li>Specificity 99%: 99 of 100 healthy people test negative.</li>
+          <li>You were picked at random, not because of symptoms.</li>
+          <li>Repeat tests make their errors independently.</li>
+        </ul>
+        <p class="note"><span class="uk">Числа умовні. Справжні тести мають різну точність, а лікарі враховують ще й симптоми та інші аналізи. Як це змінює відповідь, видно в раунді 5.</span><span class="en">The numbers are illustrative. Real tests vary in accuracy, and doctors also weigh symptoms and other results. Round 5 shows how that changes the answer.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="uk">Який шанс, що ви хворі?</span><span class="en">What's the chance you're ill?</span></h2>
+    <p class="lead uk">Зафіксуйте відповідь, перш ніж читати далі. Хворобу має 1% людей, тест точний на 99%, ваш результат позитивний.</p>
+    <p class="lead en">Lock in your answer before reading on. 1% of people have the disease, the test is 99% accurate, and your result is positive.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <label for="guess-n" class="note"><span class="uk">Імовірність, що ви хворі</span><span class="en">Chance that you're ill</span></label>
+      <div class="val mono" id="guess-v">80%</div>
+      <input type="range" id="guess-n" min="0" max="100" value="80">
+      <div class="scale"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+      <div class="actions"><button class="btn pri" id="guess-go"><span class="uk">Перевірити</span><span class="en">Check</span></button></div>
+    </div>
+    <div class="card reveal" id="guess-out"></div>
+  </div>
+</section>
+
+<!-- ROUND 2: crowd -->
+<section class="round" id="crowd">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Тисяча людей</span><span class="en">Round 2 · A crowd of 1,000</span></span>
+    <h2><span class="uk">Перевірте тисячу людей і подивіться, хто серед позитивних</span><span class="en">Test 1,000 people and see who the positives really are</span></h2>
+    <p class="lead uk">Кожна клітинка є людиною. Змінюйте частку хворих і точність тесту, а потім обирайте навмання людей з позитивним результатом і дивіться, хто вони насправді.</p>
+    <p class="lead en">Each cell is a person. Change the share of sick people and the test's accuracy, then pick random people who tested positive and see who they really are.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="status">
+        <div><span class="k"><span class="uk">Позитивних результатів</span><span class="en">Positive results</span></span><b class="mono" id="g-pos">20</b></div>
+        <div class="mm"><span class="k"><span class="uk">З них хворих</span><span class="en">Of them ill</span></span><b class="mono" id="g-tp">10</b></div>
+        <div class="mm"><span class="k"><span class="uk">Хворих серед позитивних</span><span class="en">Ill among positives</span></span><b class="mono" id="g-ppv">50%</b></div>
+      </div>
+      <div class="crowd" id="g-crowd"></div>
+      <div class="legend">
+        <span style="--c:var(--hit)"><b class="uk">хворий, тест +</b><b class="en">ill, test +</b></span>
+        <span style="--c:var(--day)"><b class="uk">здоровий, тест + (хибнопозитивний)</b><b class="en">healthy, test + (false positive)</b></span>
+        <span style="--c:var(--hit-soft);--sh:inset 0 0 0 1px var(--hit)"><b class="uk">хворий, тест − (хибнонегативний)</b><b class="en">ill, test − (false negative)</b></span>
+        <span style="--c:var(--cell)"><b class="uk">здоровий, тест −</b><b class="en">healthy, test −</b></span>
+      </div>
+      <p class="msg" id="g-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn hit" id="g-pick"><span class="uk">Обрати випадкового позитивного</span><span class="en">Pick a random positive</span></button>
+        <button class="btn ghost" id="g-rand"><span class="uk">Випадкова тисяча</span><span class="en">Random 1,000</span></button>
+        <button class="btn ghost" id="g-typ"><span class="uk">Типова тисяча</span><span class="en">Typical 1,000</span></button>
+      </div>
+    </div>
+    <div class="card panel">
+      <div class="controls">
+        <label class="ctl" for="g-prev"><span><span class="uk">Частка хворих:</span><span class="en">Share who are ill:</span> <b class="mono" id="g-prev-v">1%</b></span>
+          <input type="range" id="g-prev" min="0" max="9" value="3"></label>
+        <label class="ctl" for="g-sens"><span><span class="uk">Чутливість (хворий → +):</span><span class="en">Sensitivity (ill → +):</span> <b class="mono" id="g-sens-v">99%</b></span>
+          <input type="range" id="g-sens" min="50" max="100" step="1" value="99"></label>
+        <label class="ctl" for="g-spec"><span><span class="uk">Специфічність (здоровий → −):</span><span class="en">Specificity (healthy → −):</span> <b class="mono" id="g-spec-v">99%</b></span>
+          <input type="range" id="g-spec" min="80" max="99.9" step="0.1" value="99"></label>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th></th><th style="text-align:right"><span class="uk">Тест +</span><span class="en">Test +</span></th><th style="text-align:right"><span class="uk">Тест −</span><span class="en">Test −</span></th></tr></thead>
+          <tbody id="g-tbl"></tbody>
+        </table>
+      </div>
+      <div>
+        <span class="note"><span class="uk">Теорема Баєса для цих налаштувань</span><span class="en">Bayes' theorem for these settings</span></span>
+        <b class="big day mono" id="g-th" style="display:block">50%</b>
+        <p class="note" id="g-mode" style="margin-top:6px"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="uk">100 000 тестів і крива для будь-якої поширеності</span><span class="en">100,000 tests and a curve for any prevalence</span></h2>
+    <p class="lead uk">Комп'ютер створює 100 000 людей, кожна з яких хвора з імовірністю, яку ви задали, і перевіряє всіх тестом. Лінія показує теорему Баєса, точки показують симуляцію. Горизонтальна вісь логарифмічна: від 1 людини на 10 000 до половини населення.</p>
+    <p class="lead en">The computer creates 100,000 people, each ill with the probability you set, and tests them all. The line is Bayes' theorem; the dots are the simulation. The horizontal axis is logarithmic, from 1 person in 10,000 to half the population.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="s-prev"><span><span class="uk">Поширеність:</span><span class="en">Prevalence:</span> <b class="mono" id="s-prev-v">1%</b></span>
+        <input type="range" id="s-prev" min="0" max="11" value="6"></label>
+      <label class="ctl" for="s-sens"><span><span class="uk">Чутливість:</span><span class="en">Sensitivity:</span> <b class="mono" id="s-sens-v">99%</b></span>
+        <input type="range" id="s-sens" min="50" max="100" step="1" value="99"></label>
+      <label class="ctl" for="s-spec"><span><span class="uk">Специфічність:</span><span class="en">Specificity:</span> <b class="mono" id="s-spec-v">99%</b></span>
+        <input type="range" id="s-spec" min="80" max="99.9" step="0.1" value="99"></label>
+      <label class="ctl" for="s-n"><span class="uk">Людей</span><span class="en">People</span>
+        <select id="s-n">
+          <option value="10000">10 000</option>
+          <option value="100000" selected>100 000</option>
+          <option value="1000000">1 000 000</option>
+        </select>
+      </label>
+      <button class="btn pri" id="s-run"><span class="uk">Запустити ще раз</span><span class="en">Run again</span></button>
+      <button class="btn ghost" id="s-sweep"><span class="uk">Симулювати всю криву</span><span class="en">Simulate the whole curve</span></button>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="s-chart" style="height:310px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--day)"><b class="uk">теорема Баєса</b><b class="en">Bayes' theorem</b></span>
+          <span style="--c:var(--hit)"><b class="uk">симуляція, 100 000 людей на точку</b><b class="en">simulation, 100,000 people per dot</b></span>
+          <span style="--c:var(--muted)"><b class="uk">пунктир: чутливість, яку підставляє інтуїція</b><b class="en">dashed: the sensitivity intuition reaches for</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile" style="--c:var(--hit)"><div class="k" id="s-k"></div><div class="v" id="s-v">–</div><div class="s" id="s-s"></div></div>
+        <div class="tile" style="--c:var(--day)"><div class="k"><span class="uk">Теорема Баєса</span><span class="en">Bayes' theorem</span></div><div class="v" id="s-t">–</div></div>
+        <div class="marks" id="s-marks"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · П'ять пояснень</span><span class="en">Round 4 · Five explanations</span></span>
+    <h2><span class="uk">Чому точний тест дає лише 50%</span><span class="en">Why an accurate test gives only 50%</span></h2>
+    <p class="lead uk">Тест відповідає на питання «наскільки ймовірний позитивний результат, якщо людина хвора?». Вас цікавить зворотне: «наскільки ймовірно, що я хворий, якщо результат позитивний?». Це різні ймовірності, і пов'язує їх базова частота.</p>
+    <p class="lead en">The test answers "how likely is a positive result if a person is ill?". You want the reverse: "how likely am I to be ill if my result is positive?". These are different probabilities, and the base rate connects them.</p>
+  </div>
+  <div class="why-grid">
+    <div class="card">
+      <span class="kicker"><span class="uk">Натуральні частоти</span><span class="en">Natural frequencies</span></span>
+      <h3><span class="uk">Рахуйте людей, а не відсотки</span><span class="en">Count people, not percentages</span></h3>
+      <div class="vs">
+        <div class="bb"><span><span class="uk">Хворі з позитивним тестом</span><span class="en">Ill people who test positive</span></span><b>99</b><span><span class="uk">зі 100 хворих</span><span class="en">of 100 ill</span></span></div>
+        <div class="a"><span><span class="uk">Здорові з позитивним тестом</span><span class="en">Healthy people who test positive</span></span><b>99</b><span><span class="uk">з 9 900 здорових</span><span class="en">of 9,900 healthy</span></span></div>
+      </div>
+      <p class="uk">Візьміть 10 000 людей. Хворих серед них 100, і тест знайде 99 з них. Здорових 9 900, і 1% з них, тобто 99 людей, отримає хибнопозитивний результат. Разом позитивних 198, а хворих серед них 99. Це рівно половина.</p>
+      <p class="en">Take 10,000 people. 100 of them are ill, and the test finds 99. 9,900 are healthy, and 1% of them, 99 people, get a false positive. That's 198 positives in total, 99 of them ill. Exactly half.</p>
+    </div>
+
+    <div class="card tree">
+      <span class="kicker"><span class="uk">Дерево ймовірностей</span><span class="en">Probability tree</span></span>
+      <h3><span class="uk">Дві гілки дають однаково позитивних</span><span class="en">Two branches, the same number of positives</span></h3>
+      <svg viewBox="0 0 360 228" role="img">
+        <line x1="180" y1="34" x2="80" y2="86"/><line x1="180" y1="34" x2="280" y2="86"/>
+        <line x1="80" y1="112" x2="40" y2="152"/><line x1="80" y1="112" x2="120" y2="152"/>
+        <line x1="280" y1="112" x2="240" y2="152"/><line x1="280" y1="112" x2="320" y2="152"/>
+        <rect class="node" x="115" y="8" width="130" height="26" rx="6"/>
+        <rect class="node" x="28" y="86" width="104" height="26" rx="6"/>
+        <rect class="node" x="222" y="86" width="116" height="26" rx="6"/>
+        <rect class="node tpn" x="10" y="152" width="60" height="26" rx="6"/>
+        <rect class="node" x="90" y="152" width="60" height="26" rx="6"/>
+        <rect class="node fpn" x="210" y="152" width="60" height="26" rx="6"/>
+        <rect class="node" x="290" y="152" width="64" height="26" rx="6"/>
+        <text class="m" x="118" y="58" text-anchor="middle">1%</text><text class="m" x="242" y="58" text-anchor="middle">99%</text>
+        <text class="m" x="48" y="136" text-anchor="middle">99%</text><text class="m" x="112" y="136" text-anchor="middle">1%</text>
+        <text class="m" x="248" y="136" text-anchor="middle">1%</text><text class="m" x="312" y="136" text-anchor="middle">99%</text>
+        <g class="uk">
+          <text x="180" y="25" text-anchor="middle">10 000 людей</text>
+          <text x="80" y="103" text-anchor="middle">100 хворих</text>
+          <text x="280" y="103" text-anchor="middle">9 900 здорових</text>
+          <text class="tpt" x="40" y="169" text-anchor="middle">99 +</text>
+          <text x="120" y="169" text-anchor="middle">1 −</text>
+          <text class="fpt" x="240" y="169" text-anchor="middle">99 +</text>
+          <text x="322" y="169" text-anchor="middle">9 801 −</text>
+          <text class="sum" x="180" y="204" text-anchor="middle">Позитивних: 99 + 99 = 198</text>
+          <text class="m" x="180" y="220" text-anchor="middle">хворих серед них 99 / 198 = 50%</text>
+        </g>
+        <g class="en">
+          <text x="180" y="25" text-anchor="middle">10,000 people</text>
+          <text x="80" y="103" text-anchor="middle">100 ill</text>
+          <text x="280" y="103" text-anchor="middle">9,900 healthy</text>
+          <text class="tpt" x="40" y="169" text-anchor="middle">99 +</text>
+          <text x="120" y="169" text-anchor="middle">1 −</text>
+          <text class="fpt" x="240" y="169" text-anchor="middle">99 +</text>
+          <text x="322" y="169" text-anchor="middle">9,801 −</text>
+          <text class="sum" x="180" y="204" text-anchor="middle">Positives: 99 + 99 = 198</text>
+          <text class="m" x="180" y="220" text-anchor="middle">ill among them 99 / 198 = 50%</text>
+        </g>
+      </svg>
+      <p class="uk">Ліва гілка тонка, бо хворих лише 1%, але тест на ній майже завжди спрацьовує. Права гілка товста, бо здорових 99%, і навіть рідкісна помилка дає на ній стільки ж позитивних результатів.</p>
+      <p class="en">The left branch is thin, since only 1% are ill, but the test almost always fires on it. The right branch is thick, since 99% are healthy, and even a rare error there yields as many positives.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Базова частота</span><span class="en">The base rate</span></span>
+      <h3><span class="uk">Що рідкісніша хвороба, то більше хибних тривог</span><span class="en">The rarer the disease, the more false alarms</span></h3>
+      <div class="inline-ctl"><label for="br-n"><span class="uk">Частка хворих:</span><span class="en">Share who are ill:</span> <b class="mono" id="br-v">1%</b></label><input type="range" id="br-n" min="0" max="11" value="6"></div>
+      <div class="compare" id="br-bars"></div>
+      <p id="br-txt"></p>
+      <p class="note"><span class="uk">Тест тут завжди той самий: чутливість і специфічність 99%.</span><span class="en">The test is always the same here: 99% sensitivity and specificity.</span></p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Шанси й відношення правдоподібності</span><span class="en">Odds and the likelihood ratio</span></span>
+      <h3><span class="uk">Позитивний тест множить шанси на 99</span><span class="en">A positive test multiplies the odds by 99</span></h3>
+      <div class="formula uk">
+        шанси до тесту = 1 : 99<br>
+        відношення правдоподібності = 99% / 1% = 99<br>
+        шанси після тесту = 1 · 99 : 99 = 1 : 1 → <em>50%</em><br>
+        після другого тесту = 1 · 99 : 1 = 99 : 1 → <em>99%</em>
+      </div>
+      <div class="formula en">
+        prior odds = 1 : 99<br>
+        likelihood ratio = 99% / 1% = 99<br>
+        posterior odds = 1 · 99 : 99 = 1 : 1 → <em>50%</em><br>
+        after a second test = 1 · 99 : 1 = 99 : 1 → <em>99%</em>
+      </div>
+      <p class="uk">Позитивний результат у 99 разів імовірніший у хворого, ніж у здорового. Тому він множить шанси на хворобу на 99. Але на старті шанси були 1 до 99, і після множення на 99 виходить лише 1 до 1. Якщо хвороба має 1 людина на 10 000, шанси 1 : 9 999 перетворюються на 99 : 9 999, тобто приблизно 1 : 101.</p>
+      <p class="en">A positive result is 99 times more likely in an ill person than in a healthy one. So it multiplies the odds of disease by 99. But the starting odds were 1 to 99, and multiplying by 99 gives just 1 to 1. If 1 person in 10,000 has the disease, odds of 1 : 9,999 become 99 : 9,999, roughly 1 : 101.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Теорема Баєса</span><span class="en">Bayes' theorem</span></span>
+      <h3><span class="uk">Формула, яка все це рахує</span><span class="en">The formula behind it all</span></h3>
+      <div class="formula uk">
+        P(Х | +) = P(+ | Х) · P(Х) / [ P(+ | Х) · P(Х) + P(+ | З) · P(З) ]<br>
+        = 0,99 · 0,01 / (0,99 · 0,01 + 0,01 · 0,99) = 0,0099 / 0,0198 = <em>50%</em><br>
+        2 позитивні тести: 0,99 · 0,5 / (0,99 · 0,5 + 0,01 · 0,5) = <em>99%</em><br>
+        1 хворий на 10 000: 0,99 · 0,0001 / (0,99 · 0,0001 + 0,01 · 0,9999) ≈ <em>0,98%</em>
+      </div>
+      <div class="formula en">
+        P(S | +) = P(+ | S) · P(S) / [ P(+ | S) · P(S) + P(+ | H) · P(H) ]<br>
+        = 0.99 · 0.01 / (0.99 · 0.01 + 0.01 · 0.99) = 0.0099 / 0.0198 = <em>50%</em><br>
+        2 positive tests: 0.99 · 0.5 / (0.99 · 0.5 + 0.01 · 0.5) = <em>99%</em><br>
+        1 ill in 10,000: 0.99 · 0.0001 / (0.99 · 0.0001 + 0.01 · 0.9999) ≈ <em>0.98%</em>
+      </div>
+      <p class="uk">Х означає «хворий», З означає «здоровий». P(+ | Х) є чутливістю тесту, P(+ | З) дорівнює 1 мінус специфічність, а P(Х) є базовою частотою. Знаменник дорівнює частці всіх позитивних результатів. Коли хвороба рідкісна, у ньому переважає другий доданок, тобто хибнопозитивні результати. Для другого тесту попередня відповідь, 50%, стає новою базовою частотою.</p>
+      <p class="en">S means sick, H means healthy. P(+ | S) is the test's sensitivity, P(+ | H) is 1 minus the specificity, and P(S) is the base rate. The denominator is the share of all positive results. When the disease is rare, the second term dominates it, and that term is the false positives. For a second test, the previous answer, 50%, becomes the new base rate.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 5: escalation -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Ускладнюємо</span><span class="en">Round 5 · Going further</span></span>
+    <h2><span class="uk">Повторний тест, рідкісні хвороби, спам і шахрайство</span><span class="en">Retests, rare diseases, spam and fraud</span></h2>
+    <p class="lead uk">Відповідь залежить від того, з якої ймовірності ви починаєте. Другий незалежний тест, симптоми чи дуже рідкісна хвороба змінюють її в рази. Та сама математика працює для спам-фільтрів і систем, що виявляють шахрайські платежі.</p>
+    <p class="lead en">The answer depends on the probability you start from. A second independent test, symptoms or a very rare disease change it many times over. The same maths applies to spam filters and to systems that flag fraudulent payments.</p>
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="uk">Оберіть ситуацію</span><span class="en">Pick a scenario</span></h3>
+        <div class="presets" id="presets" style="margin-top:14px"></div>
+        <p class="note mono" id="p-par" style="margin-top:14px"></p>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Базова частота</span><span class="en">Base rate</span></span><b class="big mono" id="p-0" style="font-size:1.6rem"></b></div>
+          <div><span class="k"><span class="uk">Після 1 позитивного</span><span class="en">After 1 positive</span></span><b class="big hit mono" id="p-1"></b></div>
+          <div><span class="k"><span class="uk">Після 2 позитивних</span><span class="en">After 2 positives</span></span><b class="big day mono" id="p-2"></b></div>
+        </div>
+        <p class="note" id="p-txt" style="margin-top:14px"></p>
+        <p class="note" style="margin-top:10px"><span class="uk">Числа в сценаріях умовні. Вони показують форму задачі, а не точність конкретних тестів.</span><span class="en">The scenario numbers are illustrative. They show the shape of the problem, not the accuracy of any real test.</span></p>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:10px"><span class="uk">Кожен позитивний результат множить шанси</span><span class="en">Each positive result multiplies the odds</span></h3>
+        <canvas id="ladder" style="height:230px"></canvas>
+        <p class="note" style="margin-top:8px"><span class="uk">Стовпчики показують імовірність після 0–4 позитивних результатів поспіль, якщо тести помиляються незалежно. Для повторних аналізів того самого типу це припущення часто не виконується, тому підтверджують зазвичай іншим методом.</span><span class="en">The bars show the probability after 0 to 4 positive results in a row, assuming the tests err independently. Repeating the same kind of test often breaks that assumption, which is why confirmation usually uses a different method.</span></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="uk">Перевірте симуляцією</span><span class="en">Check it with a simulation</span></h3>
+      <p class="note" style="margin:6px 0 12px"><span class="uk">Тест із чутливістю та специфічністю 99%. Натисніть «Перевірити»: симуляція 2 000 000 людей порахує частку хворих серед тих, хто отримав указані результати.</span><span class="en">A test with 99% sensitivity and specificity. Press "Check": a simulation of 2,000,000 people counts the share who are ill among those with the given results.</span></p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Ситуація</span><span class="en">Situation</span></th><th style="text-align:right"><span class="uk">Шанс хвороби</span><span class="en">Chance of illness</span></th><th></th><th></th></tr></thead>
+          <tbody id="variants"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="uk">Що розповісти друзям</span><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">95%</span>
+        <h3><span class="uk">Гарвардське питання для лікарів</span><span class="en">The Harvard question for doctors</span></h3>
+        <p class="uk">У 1978 році Кассельс, Шенбергер і Грейбойз поставили 60 студентам і лікарям Гарвардської медичної школи таку задачу: хвороба трапляється в 1 людини з 1 000, тест дає 5% хибнопозитивних результатів. Який шанс, що людина з позитивним тестом хвора? Найчастішою відповіддю було 95%. Правильну, близько 2%, дала менш ніж п'ята частина опитаних.</p>
+        <p class="en">In 1978 Casscells, Schoenberger and Graboys put this question to 60 students and doctors at Harvard Medical School: a disease affects 1 person in 1,000, and the test has a 5% false positive rate. What is the chance that a person who tests positive is ill? The most common answer was 95%. Fewer than one in five gave the right answer, about 2%.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">99 зі 100</span><span class="en">99 of 100</span></span>
+        <h3><span class="uk">Натуральні частоти допомагають</span><span class="en">Natural frequencies help</span></h3>
+        <p class="uk">Психолог Герд Гігеренцер показав, що люди, зокрема лікарі, набагато частіше відповідають правильно, коли ту саму задачу формулюють у кількостях людей («99 зі 100 хворих»), а не у відсотках та умовних імовірностях. Тому раунд 2 показує тисячу людей, а не формулу.</p>
+        <p class="en">The psychologist Gerd Gigerenzer showed that people, doctors included, get the answer right far more often when the same problem is stated in counts of people ("99 of 100 ill people") instead of percentages and conditional probabilities. That's why round 2 shows a crowd, not a formula.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">1 : 73 млн</span><span class="en">1 : 73 m</span></span>
+        <h3><span class="uk">Справа Саллі Кларк</span><span class="en">The Sally Clark case</span></h3>
+        <p class="uk">У 1999 році у Великій Британії Саллі Кларк засудили за смерть двох її немовлят. Експерт-педіатр заявив суду, що шанс двох раптових дитячих смертей в одній родині становить 1 до 73 мільйонів. Цифру отримали, піднісши до квадрата шанс однієї такої смерті, ніби дві смерті незалежні. До того ж рідкісність події плутали з імовірністю невинуватості. Це «помилка прокурора», близька родичка помилки базової частоти. Вирок скасували у 2003 році.</p>
+        <p class="en">In 1999 in the UK, Sally Clark was convicted over the deaths of her two baby sons. A paediatrician told the court that the chance of two sudden infant deaths in one family was 1 in 73 million. The figure came from squaring the chance of one such death, as if the two deaths were independent. On top of that, the rarity of the event was confused with the probability of innocence. This is the prosecutor's fallacy, a close relative of the base rate fallacy. The conviction was overturned in 2003.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1763</span>
+        <h3><span class="uk">Есей, опублікований після смерті</span><span class="en">An essay published after his death</span></h3>
+        <p class="uk">Англійський пастор і математик Томас Баєс помер у 1761 році. Його працю про обернену ймовірність знайшов серед паперів друг, Річард Прайс, і представив Лондонському королівському товариству. Есей надрукували в 1763 році. Звичного нам вигляду формулі згодом надав П'єр-Симон Лаплас.</p>
+        <p class="en">The English minister and mathematician Thomas Bayes died in 1761. His friend Richard Price found his work on inverse probability among his papers and presented it to the Royal Society. The essay was published in 1763. Pierre-Simon Laplace later gave the formula its familiar form.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2002</span>
+        <h3><span class="uk">Баєсові спам-фільтри</span><span class="en">Bayesian spam filters</span></h3>
+        <p class="uk">У 2002 році програміст Пол Грем опублікував есей «A Plan for Spam» і запропонував фільтрувати пошту за теоремою Баєса: кожне слово листа змінює шанс, що це спам. Ідея швидко стала популярною. Фільтр має ту саму проблему, що й медичний тест: результат залежить від того, яка частка пошти взагалі є спамом.</p>
+        <p class="en">In 2002 the programmer Paul Graham published the essay "A Plan for Spam", proposing to filter mail with Bayes' theorem: every word in a message shifts the chance that it's spam. The idea caught on quickly. A filter faces the same problem as a medical test: the result depends on what share of all mail is spam in the first place.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">41%</span>
+        <h3><span class="uk">Задача про таксі</span><span class="en">The taxicab problem</span></h3>
+        <p class="uk">Даніел Канеман і Амос Тверскі давали людям таку задачу. У місті 85% таксі зелені, а 15% сині. Свідок нічної аварії каже, що таксі було синє, а розрізняє кольори він правильно в 80% випадків. Найчастіше відповідають, що таксі синє з імовірністю 80%. Насправді близько 41%: зелених машин набагато більше, тому свідок частіше помиляється щодо зеленої машини, ніж правильно бачить синю.</p>
+        <p class="en">Daniel Kahneman and Amos Tversky gave people this problem. In a city, 85% of cabs are green and 15% are blue. A witness to a night-time accident says the cab was blue, and he identifies colours correctly 80% of the time. The most common answer is that the cab is blue with probability 80%. The truth is about 41%: green cabs are so much more common that the witness mistakes a green cab more often than he correctly sees a blue one.</p>
+      </article>
+  </div>
+</section>
+
+<footer>
+  <span class="uk">Теорему названо на честь Томаса Баєса, чий есей опублікували в 1763 році. Помилку базової частоти докладно вивчали психологи Даніел Канеман і Амос Тверскі.</span>
+  <span class="en">The theorem is named after Thomas Bayes, whose essay was published in 1763. The base rate fallacy was studied in depth by the psychologists Daniel Kahneman and Amos Tversky.</span>
+  <span class="mono">P(S | +) = P(+ | S) · P(S) / P(+)</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const R = Math.random;
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? s : String(s).replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+// readable percentage: 3 significant digits for small values, enough decimals near 100% so it never rounds up to a flat 100%
+function pp(p) {
+  if (!(p > 0)) return '0%';
+  if (p >= 1) return '100%';
+  let s;
+  if (p < 0.5) s = String(Number((100 * p).toPrecision(3)));
+  else {
+    const d = Math.min(2, Math.max(1, Math.ceil(-Math.log10(1 - p)) - 1));
+    s = String(Number((100 * p).toFixed(d)));
+    if (s === '100') return '> ' + dec('99.99') + '%';
+  }
+  return dec(s) + '%';
+}
+const plu = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+
+/* ---------- maths ---------- */
+// P(ill | positive) for prevalence p, sensitivity se, specificity sp
+const post = (p, se, sp) => p * se / (p * se + (1 - p) * (1 - sp));
+// after k positive results in a row, assuming independent errors
+const postK = (p, se, sp, k) => { for (let i = 0; i < k; i++) p = post(p, se, sp); return p; };
+// simulate N people: counts of the four kinds
+function simulate(N, p, se, sp) {
+  let tp = 0, fp = 0, fn = 0;
+  for (let i = 0; i < N; i++) {
+    if (R() < p) { if (R() < se) tp++; else fn++; }
+    else if (R() >= sp) fp++;
+  }
+  return { tp, fp, fn, tn: N - tp - fp - fn };
+}
+// share of ill people among those with k positives in a row (or, with neg, among those with one negative)
+function simK(N, p, se, sp, k, neg) {
+  let hit = 0, tot = 0;
+  for (let i = 0; i < N; i++) {
+    const ill = R() < p, q = ill ? se : 1 - sp;
+    if (neg) { if (R() >= q) { tot++; if (ill) hit++; } continue; }
+    let all = true;
+    for (let j = 0; j < k; j++) if (R() >= q) { all = false; break; }
+    if (all) { tot++; if (ill) hit++; }
+  }
+  return { hit, tot };
+}
+const PREV2 = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.5];
+const PREV3 = [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5];
+const prevTxt = p => dec(String(Number((100 * p).toPrecision(3)))) + '%';
+const accTxt = v => dec(String(Number((+v).toFixed(1)))) + '%';
+
+/* ---------- crowd widget: 1,000 cells ---------- */
+const CLS = ['', 'fp', 'fn', 'tp'];           // 0 healthy −, 1 healthy +, 2 ill −, 3 ill +
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+// the expected (rounded) counts for 1,000 people, placed at random
+function typical(p, se, sp) {
+  const ill = Math.round(1000 * p), tp = Math.round(ill * se), fp = Math.round((1000 - ill) * (1 - sp));
+  const a = new Array(1000).fill(0);
+  let i = 0;
+  for (let k = 0; k < tp; k++) a[i++] = 3;
+  for (let k = 0; k < ill - tp; k++) a[i++] = 2;
+  for (let k = 0; k < fp; k++) a[i++] = 1;
+  return shuffle(a);
+}
+function sample(p, se, sp) {
+  return Array.from({ length: 1000 }, () => R() < p ? (R() < se ? 3 : 2) : (R() >= sp ? 1 : 0));
+}
+function Crowd(el) {
+  el.innerHTML = '';
+  const cells = Array.from({ length: 1000 }, () => el.appendChild(document.createElement('i')));
+  return {
+    render(a, pick = -1) { a.forEach((c, i) => { cells[i].className = CLS[c] + (i === pick ? ' pick' : ''); }); }
+  };
+}
+
+/* ---------- hero: a typical 1,000, reshuffled now and then ---------- */
+const hero = Crowd($('#hero-crowd'));
+hero.render(typical(0.01, 0.99, 0.99));
+if (!REDUCE) setInterval(() => { if (!document.hidden) hero.render(typical(0.01, 0.99, 0.99)); }, 3500);
+
+/* ---------- round 1: guess ---------- */
+const guessIn = $('#guess-n');
+let guessed = null;
+guessIn.addEventListener('input', () => { $('#guess-v').textContent = guessIn.value + '%'; if (guessed === null) guessText(); });
+$('#guess-go').addEventListener('click', () => { guessed = +guessIn.value; guessText(); });
+function guessText() {
+  const g = guessed === null ? +guessIn.value : guessed, done = guessed !== null;
+  const rows = [
+    [L('Ваша відповідь', 'Your answer'), g / 100, 'var(--day)', g + '%'],
+    [L('Правильно', 'Correct'), done ? 0.5 : 0, 'var(--hit)', done ? '50%' : '?'],
+    [L('Точність тесту', 'Test accuracy'), 0.99, 'var(--muted)', '99%']
+  ];
+  const verdict = !done ? L('Пересуньте повзунок і натисніть «Перевірити».', 'Move the slider and press "Check".')
+    : Math.abs(g - 50) <= 3 ? L('Точно в ціль. Ви врахували, що здорових людей у 99 разів більше.', 'Spot on. You accounted for healthy people outnumbering the sick 99 to 1.')
+    : g >= 90 ? L('Так відповідає більшість людей, зокрема багато лікарів. Ви підставили точність тесту замість відповіді на питання.', 'That is what most people answer, many doctors included. You used the test\'s accuracy in place of the answer.')
+    : g > 50 ? L('Завищено на ' + (g - 50) + ' в. п. Хибнопозитивних результатів стільки ж, скільки справжніх.', 'Too high by ' + (g - 50) + ' points. There are as many false positives as true ones.')
+    : L('Занижено на ' + (50 - g) + ' в. п. Тест справді знаходить майже всіх хворих, а хибних тривог рівно стільки ж.', 'Too low by ' + (50 - g) + ' points. The test does find almost every ill person, and there are exactly as many false alarms.');
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">' + (done ? '50%' : '?') + '</p>' +
+    '<p>' + verdict + '</p><div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + r[3] + '</span></div>').join('') +
+    '</div><p class="note">' + L('Із 10 000 людей позитивний результат отримають 99 хворих і 99 здорових. Детально в раунді 4.', 'Of 10,000 people, 99 ill and 99 healthy ones test positive. Details in round 4.') + '</p>';
+}
+
+/* ---------- round 2: the crowd ---------- */
+const g = { prev: $('#g-prev'), sens: $('#g-sens'), spec: $('#g-spec') };
+const crowd = Crowd($('#g-crowd'));
+let G = { a: [], mode: 'typ', pick: -1, picks: 0, pickIll: 0 };
+const gPar = () => [PREV2[+g.prev.value], +g.sens.value / 100, +g.spec.value / 100];
+function gBuild(mode) {
+  const [p, se, sp] = gPar();
+  G = { a: mode === 'rand' ? sample(p, se, sp) : typical(p, se, sp), mode, pick: -1, picks: 0, pickIll: 0 };
+  crowd.render(G.a); gText();
+}
+function gText() {
+  const [p, se, sp] = gPar(), a = G.a;
+  const n = [0, 0, 0, 0]; a.forEach(c => n[c]++);
+  const pos = n[1] + n[3];
+  $('#g-prev-v').textContent = prevTxt(p);
+  $('#g-sens-v').textContent = accTxt(g.sens.value);
+  $('#g-spec-v').textContent = accTxt(g.spec.value);
+  $('#g-pos').textContent = fmt(pos);
+  $('#g-tp').textContent = fmt(n[3]);
+  $('#g-ppv').textContent = pos ? pp(n[3] / pos) : '–';
+  $('#g-th').textContent = pp(post(p, se, sp));
+  $('#g-tbl').innerHTML = [
+    [L('Хворі', 'Ill'), n[3], n[2], 'var(--hit)'],
+    [L('Здорові', 'Healthy'), n[1], n[0], 'var(--ink)'],
+    [L('Разом', 'Total'), pos, n[0] + n[2], 'var(--muted)']
+  ].map(r => '<tr><td style="color:' + r[3] + ';font-weight:600">' + r[0] + '</td><td class="num">' + fmt(r[1]) + '</td><td class="num">' + fmt(r[2]) + '</td></tr>').join('');
+  $('#g-mode').textContent = G.mode === 'rand'
+    ? L('Зараз показано випадкову тисячу: кожна людина хвора й отримує результат випадково, тому частка в сітці коливається навколо теорії.', 'This is a random 1,000: each person is ill and gets a result at random, so the grid share wanders around the theory.')
+    : L('Зараз показано типову тисячу: кількості в сітці дорівнюють очікуваним, округленим до цілих людей.', 'This is a typical 1,000: the counts in the grid are the expected ones, rounded to whole people.');
+  let m;
+  if (!pos) m = L('У цій тисячі немає жодного позитивного результату. Збільште частку хворих або зменште специфічність.', 'Nobody in this crowd tested positive. Raise the share who are ill or lower the specificity.');
+  else if (G.pick < 0) m = L('Позитивних результатів: ' + fmt(pos) + '. Оберіть одну з цих людей навмання й подивіться, чи вона справді хвора.', fmt(pos) + ' ' + (pos === 1 ? 'person' : 'people') + ' tested positive. Pick one at random and see whether they are really ill.');
+  else {
+    const ill = a[G.pick] === 3, who = L('Людина №' + (G.pick + 1) + ': тест позитивний. ', 'Person #' + (G.pick + 1) + ': test positive. ');
+    m = who + (ill ? L('Насправді вона <b>хвора</b>.', 'They are really <b>ill</b>.') : L('Насправді вона здорова: це хибнопозитивний результат.', 'They are actually healthy: a false positive.')) +
+      ' ' + L('Перевірено позитивних: ' + G.picks + ', з них хворих ' + G.pickIll + ' (' + pp(G.pickIll / G.picks) + ').', 'Positives checked: ' + G.picks + ', ill: ' + G.pickIll + ' (' + pp(G.pickIll / G.picks) + ').');
+  }
+  $('#g-msg').innerHTML = m;
+  $('#g-pick').disabled = !pos;
+}
+$('#g-pick').addEventListener('click', () => {
+  const idx = []; G.a.forEach((c, i) => { if (c === 1 || c === 3) idx.push(i); });
+  if (!idx.length) return;
+  G.pick = idx[Math.floor(R() * idx.length)];
+  G.picks++; if (G.a[G.pick] === 3) G.pickIll++;
+  crowd.render(G.a, G.pick); gText();
+});
+$('#g-rand').addEventListener('click', () => gBuild('rand'));
+$('#g-typ').addEventListener('click', () => gBuild('typ'));
+Object.values(g).forEach(el => el.addEventListener('input', () => gBuild(G.mode)));
+
+/* ---------- round 3: simulation ---------- */
+const s = { prev: $('#s-prev'), sens: $('#s-sens'), spec: $('#s-spec'), n: $('#s-n') };
+const chart = $('#s-chart');
+let simPoint = null, sweep = [], sweepId = 0;
+const sPar = () => [PREV3[+s.prev.value], +s.sens.value / 100, +s.spec.value / 100];
+function simRun() {
+  const [p, se, sp] = sPar(), N = +s.n.value;
+  simPoint = { p, N, ...simulate(N, p, se, sp) };
+  simText(); drawSim();
+}
+// 25 prevalences on a log scale from 0.01% to 50%, 100,000 people each; animated in steps
+function simSweep(animate) {
+  const [, se, sp] = sPar(), id = ++sweepId, K = 25;
+  sweep = [];
+  let k = 0;
+  const step = () => {
+    if (id !== sweepId) return;
+    for (let j = 0; j < (animate ? 2 : K) && k < K; j++, k++) {
+      const p = Math.pow(10, -4 + k / (K - 1) * (4 + Math.log10(0.5))), r = simulate(100000, p, se, sp);
+      if (r.tp + r.fp) sweep.push([p, r.tp / (r.tp + r.fp)]);
+    }
+    drawSim();
+    if (k < K) requestAnimationFrame(step); else $('#s-sweep').disabled = false;
+  };
+  $('#s-sweep').disabled = true;
+  step();
+}
+let sTimer;
+[s.prev, s.sens, s.spec].forEach(el => el.addEventListener('input', () => {
+  simLabels(); simPoint = null; if (el !== s.prev) sweep = []; simText(); drawSim();
+  clearTimeout(sTimer); sTimer = setTimeout(() => { simRun(); if (el !== s.prev || !sweep.length) simSweep(false); }, 120);
+}));
+s.n.addEventListener('change', simRun);
+$('#s-run').addEventListener('click', simRun);
+$('#s-sweep').addEventListener('click', () => simSweep(!REDUCE));
+function simLabels() {
+  $('#s-prev-v').textContent = prevTxt(PREV3[+s.prev.value]);
+  $('#s-sens-v').textContent = accTxt(s.sens.value);
+  $('#s-spec-v').textContent = accTxt(s.spec.value);
+}
+function simText() {
+  const [p, se, sp] = sPar();
+  $('#s-marks').innerHTML = [0.001, 0.01, 0.1, 0.5].map(q => '<div><b>' + pp(post(q, se, sp)) + '</b><span>' + L('при ', 'at ') + prevTxt(q) + '</span></div>').join('');
+  $('#s-t').textContent = pp(post(p, se, sp));
+  if (simPoint) {
+    const pos = simPoint.tp + simPoint.fp;
+    $('#s-k').textContent = L('Симуляція · ' + fmt(simPoint.N) + ' ' + plu(simPoint.N, 'людина', 'людини', 'людей') + ', поширеність ' + prevTxt(p), 'Simulation · ' + fmt(simPoint.N) + ' people, prevalence ' + prevTxt(p));
+    $('#s-v').textContent = pos ? pp(simPoint.tp / pos) : '–';
+    $('#s-s').textContent = L('хворих ' + fmt(simPoint.tp) + ' з ' + fmt(pos) + ' позитивних · хибнопозитивних ' + fmt(simPoint.fp),
+      fmt(simPoint.tp) + ' ill of ' + fmt(pos) + ' positives · ' + fmt(simPoint.fp) + ' false positives');
+  } else { $('#s-k').textContent = L('Симуляція', 'Simulation'); $('#s-v').textContent = '…'; $('#s-s').textContent = ''; }
+}
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W) return null;
+  c.width = W * dpr; c.height = H * dpr;
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+function drawSim() {
+  const S = setupCanvas(chart); if (!S) return;
+  const { ctx, W, H } = S, l = 42, r = 14, t = 12, b = 44;
+  const LMAX = Math.log10(0.5);
+  const x = p => l + (Math.log10(p) + 4) / (LMAX + 4) * (W - l - r), y = v => t + (1 - v) * (H - t - b);
+  const [p, se, sp] = sPar();
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1;
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .25, .5, .75, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.fillText(v * 100 + '%', l - 8, y(v)); });
+  ctx.textBaseline = 'top';
+  const ticks = [0.0001, 0.001, 0.01, 0.1, 0.5];
+  ticks.forEach((q, i) => { ctx.textAlign = i === 0 ? 'left' : i === ticks.length - 1 ? 'right' : 'center'; ctx.fillText(prevTxt(q), x(q), H - b + 8); });
+  ctx.textAlign = 'center';
+  ctx.fillText(L('частка хворих (логарифмічна шкала)', 'share who are ill (log scale)'), l + (W - l - r) / 2, H - b + 24);
+  // intuition: the sensitivity
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = tok('--muted'); ctx.beginPath(); ctx.moveTo(l, y(se)); ctx.lineTo(W - r, y(se)); ctx.stroke(); ctx.setLineDash([]);
+  // theory
+  ctx.strokeStyle = tok('--day'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let i = 0; i <= 200; i++) { const q = Math.pow(10, -4 + i / 200 * (LMAX + 4)), px = x(q), py = y(post(q, se, sp)); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+  ctx.stroke();
+  ctx.fillStyle = tok('--hit');
+  sweep.forEach(([q, v]) => { ctx.beginPath(); ctx.arc(x(q), y(v), 3, 0, 7); ctx.fill(); });
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 1; ctx.globalAlpha = .35; ctx.beginPath(); ctx.moveTo(x(p), t); ctx.lineTo(x(p), H - b); ctx.stroke(); ctx.globalAlpha = 1;
+  if (simPoint && simPoint.tp + simPoint.fp) { ctx.fillStyle = tok('--hit'); ctx.beginPath(); ctx.arc(x(p), y(simPoint.tp / (simPoint.tp + simPoint.fp)), 6, 0, 7); ctx.fill(); }
+  ctx.fillStyle = tok('--day'); ctx.beginPath(); ctx.arc(x(p), y(post(p, se, sp)), 4, 0, 7); ctx.fill();
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+  ctx.fillText(L('хворих серед позитивних', 'ill among positives'), l + 6, t + 14);
+}
+
+/* ---------- round 4: base rate bars ---------- */
+const brIn = $('#br-n');
+brIn.addEventListener('input', brText);
+function brText() {
+  const p = PREV3[+brIn.value], tp = 10000 * p * 0.99, fp = 10000 * (1 - p) * 0.01, mx = Math.max(tp, fp);
+  const num = v => v >= 10 ? fmt(Math.round(v)) : dec(String(Number(v.toFixed(2))));
+  $('#br-v').textContent = prevTxt(p);
+  $('#br-bars').innerHTML = [
+    [L('Хворі, тест +', 'Ill, test +'), tp, 'var(--hit)'],
+    [L('Здорові, тест +', 'Healthy, test +'), fp, 'var(--day)']
+  ].map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1] / mx) + '%"></i></div><span class="mono">' + num(r[1]) + '</span></div>').join('');
+  const ratio = fp / tp;
+  $('#br-txt').innerHTML = L('На 10 000 людей: ' + num(tp) + ' справжніх позитивних і ' + num(fp) + ' хибних. ' +
+      (ratio > 1.05 ? 'Хибних тривог у ' + dec(ratio.toFixed(1)) + ' раза більше. ' : ratio < 0.95 ? 'Справжніх знахідок у ' + dec((1 / ratio).toFixed(1)) + ' раза більше. ' : 'Їх порівну. ') +
+      'Хворих серед позитивних: <b>' + pp(post(p, .99, .99)) + '</b>.',
+    'Per 10,000 people: ' + num(tp) + ' true positives and ' + num(fp) + ' false ones. ' +
+      (ratio > 1.05 ? 'False alarms outnumber them ' + ratio.toFixed(1) + ' to 1. ' : ratio < 0.95 ? 'True finds outnumber false ones ' + (1 / ratio).toFixed(1) + ' to 1. ' : 'They are equal. ') +
+      'Ill among positives: <b>' + pp(post(p, .99, .99)) + '</b>.');
+}
+
+/* ---------- round 5: scenarios ---------- */
+const PRESETS = [
+  { p: 0.01, se: 0.99, sp: 0.99, uk: 'Класика: 1%', en: 'Classic: 1%',
+    t: () => L('Один позитивний тест дає ' + pp(post(.01, .99, .99)) + ', а другий незалежний позитивний тест піднімає шанс до ' + pp(postK(.01, .99, .99, 2)) + '. Тому позитивний результат скринінгу прийнято підтверджувати ще одним аналізом.',
+      'One positive test gives ' + pp(post(.01, .99, .99)) + ', and a second independent positive raises it to ' + pp(postK(.01, .99, .99, 2)) + '. That is why a positive screening result is normally confirmed with another test.') },
+  { p: 0.0001, se: 0.99, sp: 0.99, uk: 'Рідкісна: 1 на 10 000', en: 'Rare: 1 in 10,000',
+    t: () => L('На кожного хворого з позитивним результатом припадає приблизно 101 здоровий з хибнопозитивним, тому шанс після одного тесту ' + pp(post(1e-4, .99, .99)) + '. Навіть два позитивних тести дають лише ' + pp(postK(1e-4, .99, .99, 2)) + '.',
+      'For each ill person who tests positive there are about 101 healthy people with a false positive, so one test gives ' + pp(post(1e-4, .99, .99)) + '. Even two positive tests give only ' + pp(postK(1e-4, .99, .99, 2)) + '.') },
+  { p: 0.001, se: 0.9, sp: 0.95, uk: 'Скринінг рідкісного стану', en: 'Screening for a rare condition',
+    t: () => L('Масова перевірка людей без симптомів: стан рідкісний, тест помірно точний. Після позитивного результату шанс лише ' + pp(post(.001, .9, .95)) + '. Тут позитивний скринінг означає «потрібно дообстежитися», а не діагноз.',
+      'Mass testing of people without symptoms: the condition is rare and the test moderately accurate. A positive result means only ' + pp(post(.001, .9, .95)) + '. Here a positive screen means "needs a follow-up", not a diagnosis.') },
+  { p: 0.3, se: 0.9, sp: 0.95, uk: 'Тест через симптоми', en: 'Tested because of symptoms',
+    t: () => L('Людина прийшла зі скаргами, і лікар підозрює хворобу. Імовірність до тесту вже 30%, тому навіть менш точний тест дає ' + pp(post(.3, .9, .95)) + '. Відповідь змінила базова частота, а не тест.',
+      'The person came in with complaints and the doctor suspects the disease. The chance before the test is already 30%, so even a less accurate test gives ' + pp(post(.3, .9, .95)) + '. The base rate changed the answer, not the test.') },
+  { p: 0.5, se: 0.98, sp: 0.995, uk: 'Спам-фільтр', en: 'Spam filter',
+    t: () => L('Якщо половина пошти є спамом, позначці фільтра можна вірити: ' + pp(post(.5, .98, .995)) + ' позначених листів справді спам. Рідкісною подією тут є звичайний лист у теці «Спам», лише ' + pp(1 - post(.5, .98, .995)) + ' позначених, і саме його легко пропустити.',
+      'If half of all mail is spam, the filter\'s flag is trustworthy: ' + pp(post(.5, .98, .995)) + ' of flagged messages really are spam. The rare event here is a genuine letter in the spam folder, only ' + pp(1 - post(.5, .98, .995)) + ' of flagged mail, and that is the one people miss.') },
+  { p: 0.001, se: 0.95, sp: 0.98, uk: 'Сповіщення про шахрайство', en: 'Fraud alert',
+    t: () => L('Шахрайські лише 0,1% платежів. Система ловить 95% шахрайства й помилково зупиняє 2% чесних платежів, тому найчастіше вона турбує чесних клієнтів: шахрайськими виявляються лише ' + pp(post(.001, .95, .98)) + ' сповіщень.',
+      'Only 0.1% of payments are fraudulent. The system catches 95% of fraud and wrongly stops 2% of honest payments, so it mostly bothers honest customers: only ' + pp(post(.001, .95, .98)) + ' of alerts turn out to be fraud.') }
+];
+let preset = 0;
+function presetText() {
+  const P = PRESETS[preset];
+  $('#presets').innerHTML = PRESETS.map((q, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === preset) + '">' + q[lang] + '</button>').join('');
+  $('#p-par').textContent = L('поширеність ', 'prevalence ') + prevTxt(P.p) + ' · ' + L('чутливість ', 'sensitivity ') + accTxt(100 * P.se) + ' · ' + L('специфічність ', 'specificity ') + accTxt(100 * P.sp);
+  $('#p-0').textContent = prevTxt(P.p);
+  $('#p-1').textContent = pp(post(P.p, P.se, P.sp));
+  $('#p-2').textContent = pp(postK(P.p, P.se, P.sp, 2));
+  $('#p-txt').textContent = P.t();
+  drawLadder();
+}
+$('#presets').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; preset = +b.dataset.i; presetText(); });
+function drawLadder() {
+  const S = setupCanvas($('#ladder')); if (!S) return;
+  const { ctx, W, H } = S, l = 40, r = 8, t = 22, b = 26, P = PRESETS[preset], K = 5;
+  const bw = (W - l - r) / K, y = v => t + (1 - v) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .5, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.fillText(v * 100 + '%', l - 6, y(v)); });
+  for (let k = 0; k < K; k++) {
+    const v = postK(P.p, P.se, P.sp, k), x0 = l + k * bw + bw * 0.18, w = bw * 0.64;
+    ctx.fillStyle = k === 0 ? tok('--muted') : k === 1 ? tok('--hit') : tok('--day');
+    ctx.globalAlpha = k === 0 ? .5 : 1;
+    ctx.fillRect(x0, y(v), w, Math.max(1, y(0) - y(v)));
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = tok('--ink'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.font = '600 ' + (bw < 64 ? 10 : 11) + 'px ' + tok('--f-mono');
+    ctx.fillText(k === 0 ? prevTxt(v) : pp(v), x0 + w / 2, y(v) - 4);
+    ctx.font = '11px ' + tok('--f-mono'); ctx.fillStyle = tok('--muted'); ctx.textBaseline = 'top';
+    ctx.fillText(k === 0 ? L('до тесту', 'before') : k + ' +', x0 + w / 2, H - b + 8);
+  }
+}
+
+/* ---------- round 5: simulated checks ---------- */
+const VARIANTS = [
+  { p: 0.01, k: 1, uk: 'Поширеність 1%, один позитивний тест', en: 'Prevalence 1%, one positive test' },
+  { p: 0.01, k: 2, uk: 'Поширеність 1%, два позитивних тести поспіль', en: 'Prevalence 1%, two positive tests in a row' },
+  { p: 0.0001, k: 1, uk: '1 хворий на 10 000, один позитивний тест', en: '1 ill in 10,000, one positive test' },
+  { p: 0.0001, k: 2, uk: '1 хворий на 10 000, два позитивних тести', en: '1 ill in 10,000, two positive tests' },
+  { p: 0.01, k: 0, neg: true, uk: 'Поширеність 1%, тест негативний, а людина все ж хвора', en: 'Prevalence 1%, negative test, yet the person is ill' }
+];
+const theoryV = v => v.neg ? v.p * 0.01 / (v.p * 0.01 + (1 - v.p) * 0.99) : postK(v.p, .99, .99, v.k);
+const varRes = {};
+function variantsText() {
+  $('#variants').innerHTML = VARIANTS.map((v, i) => '<tr><td>' + v[lang] + '</td><td class="num"><b>' + pp(theoryV(v)) + '</b></td><td><button class="btn ghost" data-i="' + i + '">' + L('Перевірити', 'Check') + '</button></td><td class="res">' +
+    (varRes[i] ? L('симуляція: ', 'simulated: ') + pp(varRes[i].hit / varRes[i].tot) + ' · ' + fmt(varRes[i].hit) + ' / ' + fmt(varRes[i].tot) : '') + '</td></tr>').join('');
+}
+$('#variants').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const i = +b.dataset.i, v = VARIANTS[i];
+  varRes[i] = simK(2000000, v.p, .99, .99, v.k, v.neg); variantsText();
+});
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Парадокс хибнопозитивного тесту', 'The False Positive Paradox');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  guessText(); gText(); simLabels(); simText(); drawSim(); brText(); presetText(); variantsText();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+const redraw = () => { drawSim(); drawLadder(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+gBuild('typ');
+simRun();
+simSweep(false);
+applyLang();
+})();
+</script>

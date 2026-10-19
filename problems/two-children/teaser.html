@@ -1,0 +1,64 @@
+<div class="tz-text">
+  <span class="eyebrow"><span class="uk">Умовна ймовірність · 2 дитини</span><span class="en">Conditional probability · 2 children</span></span>
+  <h2><a href="{{URL}}"><span class="uk">Парадокс двох дітей</span><span class="en">The two-child paradox</span></a></h2>
+  <p class="tz-q uk">У сім'ї двоє дітей, і хоча б одна з них хлопчик. Який шанс, що обидві діти хлопчики? А якщо це хлопчик, народжений у вівторок?</p>
+  <p class="tz-q en">A family has two children, and at least one is a boy. What is the chance both are boys? And what if it is a boy born on a Tuesday?</p>
+  <div class="tz-ans">
+    <div><span><span class="uk">Інтуїція</span><span class="en">Intuition</span></span><b>1/2</b></div>
+    <div class="r"><span><span class="uk">Насправді</span><span class="en">Actually</span></span><b><span class="uk">1/3 і 13/27</span><span class="en">1/3 and 13/27</span></b></div>
+  </div>
+  <p class="tz-d uk">Задача про те, що відповідь залежить від того, як ви отримали інформацію. Навіть день тижня народження змінює шанс.</p>
+  <p class="tz-d en">A puzzle showing that the answer depends on how you got the information. Even the weekday of birth changes the odds.</p>
+  <ul class="tz-inside uk"><li>три фрази, три відповіді</li><li>колода випадкових сімей</li><li>симуляція 100 000 сімей</li><li>сітка 14 × 14</li><li>рідкісні деталі, троє дітей</li></ul>
+  <ul class="tz-inside en"><li>three sentences, three answers</li><li>a deck of random families</li><li>100,000-family simulation</li><li>the 14 × 14 grid</li><li>rare details, three children</li></ul>
+  <a class="tz-cta" href="{{URL}}"><span class="uk">Розібратися з парадоксом двох дітей</span><span class="en">Work through the two-child paradox</span> →</a>
+</div>
+<div class="tz-stage" id="tz-two-children">
+  <span class="tz-try"><span class="uk">Спробуйте тут</span><span class="en">Try it here</span></span>
+  <div class="tc-deck" style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;width:100%;max-width:420px;padding:14px;background:var(--paper);border-radius:18px"></div>
+  <p class="tz-msg" aria-live="polite"></p>
+  <div class="tz-acts"><button type="button" class="tz-btn" data-a="new"></button><button type="button" class="tz-btn" data-a="mode"></button></div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById('tz-two-children');
+  const L = (uk, e) => document.documentElement.dataset.lang === 'en' ? e : uk;
+  const deck = root.querySelector('.tc-deck'), msg = root.querySelector('.tz-msg');
+  const bNew = root.querySelector('[data-a="new"]'), bMode = root.querySelector('[data-a="mode"]');
+  const WD = { uk: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'], en: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'] };
+  const kid = () => ({ b: Math.random() < 0.5, d: Math.floor(Math.random() * 7) });
+  const MODES = [
+    { test: f => f[0].b || f[1].b, exact: '1/3' },
+    { test: f => f.some(c => c.b && c.d === 1), exact: '13/27' }
+  ];
+  let fams = [], mode = 0, tot = [[0, 0], [0, 0]];
+  const pc = x => Math.round(100 * x) + '%';
+  function roll() {
+    fams = Array.from({ length: 30 }, () => [kid(), kid()]);
+    fams.forEach(f => MODES.forEach((m, i) => { if (m.test(f)) { tot[i][0]++; if (f[0].b && f[1].b) tot[i][1]++; } }));
+    draw();
+  }
+  function draw() {
+    const lang = document.documentElement.dataset.lang === 'en' ? 'en' : 'uk', M = MODES[mode];
+    let kept = 0, bb = 0;
+    deck.innerHTML = fams.map(f => {
+      const k = M.test(f), two = f[0].b && f[1].b;
+      if (k) { kept++; if (two) bb++; }
+      const box = 'display:flex;gap:2px;justify-content:center;padding:4px 2px;border-radius:8px;transition:opacity .25s;background:' + (k && two ? 'var(--signal-soft)' : '#fff') + ';border:1.5px solid ' + (k && two ? 'var(--signal)' : 'var(--line)') + ';opacity:' + (k ? 1 : .15);
+      return '<div style="' + box + '">' + f.map(c => '<i style="width:20px;height:20px;display:grid;place-items:center;font-style:normal;font-size:.5rem;font-weight:700;line-height:1;' +
+        (c.b ? 'background:var(--ink);color:#fff;border-radius:5px;' : 'background:#fff;color:var(--ink);border:1.5px solid var(--ink);border-radius:50%;') +
+        (mode === 1 && c.b && c.d === 1 ? 'box-shadow:0 0 0 2px var(--signal);' : '') + '">' + WD[lang][c.d] + '</i>').join('') + '</div>';
+    }).join('');
+    const t = tot[mode];
+    msg.textContent = (mode ? L('Хоча б один хлопчик у вівторок: ', 'At least one Tuesday boy: ') : L('Хоча б один хлопчик: ', 'At least one boy: ')) +
+      L('лишилось ' + kept + ', з них двоє хлопчиків у ' + bb + '. За всі спроби ' + (t[0] ? pc(t[1] / t[0]) : '–') + ', теорія ' + M.exact + '.',
+        kept + ' kept, ' + bb + ' with two boys. All rolls so far ' + (t[0] ? pc(t[1] / t[0]) : '–') + ', theory ' + M.exact + '.');
+    bNew.textContent = L('Нові 30 сімей', 'New 30 families');
+    bMode.textContent = mode ? L('Без вівторка', 'Drop Tuesday') : L('Хлопчик у вівторок', 'Tuesday boy');
+  }
+  bNew.addEventListener('click', roll);
+  bMode.addEventListener('click', () => { mode = 1 - mode; draw(); });
+  document.addEventListener('langchange', draw);
+  roll();
+})();
+</script>
