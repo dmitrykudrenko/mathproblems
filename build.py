@@ -118,6 +118,47 @@ SUBSCRIBE = """<section class="mp-subscribe" id="subscribe">
 </script>"""
 
 
+# Comments on every problem page via giscus (GitHub Discussions of this repo, category Announcements,
+# so only giscus opens new threads). One thread per problem, shared by both languages.
+GISCUS = {"repo": "dmitrykudrenko/mathproblems", "repo_id": "R_kgDOVP1Ehw",
+          "category": "Announcements", "category_id": "DIC_kwDOVP1Eh84DJCIi"}
+DISCUSS_TEXT = {
+    "uk": ("Обговорення", "Що ви думаєте?",
+           "Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub."),
+    "en": ("Discussion", "What do you think?",
+           "Share your own explanation, an objection or a variant of the puzzle. Commenting needs a GitHub account."),
+}
+
+
+def discuss_block(lang, slug):
+    eyebrow, title, text = DISCUSS_TEXT[lang]
+    g = GISCUS
+    return f"""<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">{eyebrow}</span>
+    <h2>{title}</h2>
+    <p>{text}</p>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="{g["repo"]}" data-repo-id="{g["repo_id"]}"
+      data-category="{g["category"]}" data-category-id="{g["category_id"]}"
+      data-mapping="specific" data-term="{slug}" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="{lang}" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>"""
+
+
+def with_discuss(body, lang, slug):
+    """Put the discussion block before the newsletter block (or before the footer)."""
+    i = body.find('<section class="mp-subscribe"')
+    if i == -1:
+        i = body.rfind("<footer")
+    return body[:i] + discuss_block(lang, slug) + "\n\n" + body[i:]
+
+
 def with_subscribe(body, lang):
     """Put the newsletter block right before the last <footer> of the page."""
     i = body.rfind("<footer")
@@ -317,7 +358,7 @@ def build_problem(slug, base):
         h = head(lang, urls, m["title"], m["description"], page_base + f"og-{lang}.png", m["og_alt"], ld, base)
         if "i.ytimg.com" in body:
             h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
-        body = with_subscribe(body, lang)
+        body = with_discuss(with_subscribe(body, lang), lang, slug)
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
                f'</head>\n<body>\n{body.strip()}\n{CLASPO}\n</body>\n</html>\n')
         write(DOCS / slug / LANG_PATH[lang] / "index.html", doc)

@@ -48,6 +48,14 @@ python3 build.py
 2. Додайте тексти задачі в `tools/og.py` і запустіть `python3 tools/og.py`.
 3. `python3 build.py` додасть сторінки, тизер на головну і записи в sitemap.
 
+## Обговорення (giscus)
+
+На кожній сторінці задачі перед розсилкою є блок «Обговорення» на [giscus](https://giscus.app):
+коментарі зберігаються в GitHub Discussions цього репозиторію, категорія Announcements
+(нові теми створює лише giscus). Одна тема на задачу, спільна для обох мов (`data-term` = slug).
+Налаштування — `GISCUS` і `DISCUSS_TEXT` у `build.py`; `giscus.json` дозволяє вбудовування лише
+на dmitrykudrenko.github.io і localhost. Модерація — у вкладці Discussions на GitHub.
+
 ## Розсилка (Claspo)
 
 Перед футером кожної сторінки є блок «Розсилка» з порожнім контейнером `#mp-subscribe`.
