@@ -12,13 +12,19 @@
 ## Структура
 
 ```
+hub/
+  page.html    головна (обидві мови); у <!--PROBLEMS--> збірка вставляє тизери задач
+  meta.json    SEO головної
+  assets/      og-uk.png, og-en.png
 problems/<slug>/
   page.html    сторінка задачі; обидві мови поруч (class="uk" / class="en")
-  meta.json    SEO: about (Wikipedia), title, description, FAQ, картка для каталогу — для кожної мови
-  assets/      og-uk.png, og-en.png (1200×630) та інші файли
+  teaser.html  блок задачі на головній: умова, «інтуїція / насправді», міні-гра
+  meta.json    order, about (Wikipedia), title, description, FAQ, картка — для кожної мови
+  assets/      og-uk.png, og-en.png (1200×630)
+site.css       спільний вигляд усіх сторінок (підключається після стилів сторінки)
+tools/og.py    малює картинки для соцмереж (macOS: qlmanage + sips)
 build.py       збирає сайт у docs/
 docs/          готовий сайт (GitHub Pages публікує з main:/docs)
-favicon.svg
 ```
 
 ## Збірка
@@ -32,14 +38,16 @@ python3 build.py
 
 ## Нова задача
 
-1. Створіть `problems/<slug>/` з `page.html`, `meta.json` і `assets/og-*.png`.
-2. `python3 build.py` додасть її сторінки, картку в каталог і запис у sitemap.
+1. Створіть `problems/<slug>/` з `page.html`, `teaser.html` і `meta.json` (поле `order` задає місце на головній).
+2. Додайте тексти задачі в `tools/og.py` і запустіть `python3 tools/og.py`.
+3. `python3 build.py` додасть сторінки, тизер на головну і записи в sitemap.
 
 ## SEO
 
 - Окрема URL-адреса для кожної мови, у сторінці лише її текст; `hreflang` (uk, en, x-default) і `canonical`.
 - Title, description, H1 з ключовою фразою; Open Graph і Twitter Card з картинкою 1200×630.
-- JSON-LD: `WebPage` + `LearningResource`, `FAQPage`, `BreadcrumbList`; на головній `CollectionPage`.
+- JSON-LD: `WebPage` + `LearningResource`, `FAQPage`, `BreadcrumbList`; на головній `WebSite` + `CollectionPage` з `ItemList` задач.
+- Головна містить унікальний текст про кожну задачу, H2 з її назвою і описові посилання на сторінку задачі.
 - `sitemap.xml` з альтернативними мовами.
 - Мова: обраний вручну мовний варіант зберігається в cookie `mp_lang` на рік. Без cookie перша мова браузера
   uk/ru/be дає українську, en — англійську, інакше вирішує часовий пояс. Боти й прев'ю-краулери не перенаправляються.

@@ -18,6 +18,7 @@ import argparse
 import html
 import json
 import re
+import hashlib
 import shutil
 from datetime import date
 from html.parser import HTMLParser
@@ -26,6 +27,8 @@ from urllib.parse import urlparse
 
 ROOT = Path(__file__).parent
 PROBLEMS = ROOT / "problems"
+HUB = ROOT / "hub"
+SITE_CSS = ROOT / "site.css"
 DOCS = ROOT / "docs"
 DEFAULT_BASE = "https://dmitrykudrenko.github.io/mathproblems/"
 LANGS = ("uk", "en")
@@ -34,8 +37,7 @@ LOCALE = {"uk": "uk_UA", "en": "en_US"}
 SITE_NAME = {"uk": "Математичні задачі", "en": "Math problems"}
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
-         '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800'
-         '&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">')
+         '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">')
 VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
 e = html.escape
 
@@ -160,6 +162,12 @@ def head(lang, urls, title, description, image, image_alt, ld, base):
 <script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>"""
 
 
+def css_link(base):
+    """Shared stylesheet; the content hash in the URL busts caches after every change."""
+    v = hashlib.sha1(SITE_CSS.read_bytes()).hexdigest()[:8]
+    return f'<link rel="stylesheet" href="{base}site.css?v={v}">'
+
+
 def write(path, doc):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(doc, encoding="utf-8")
@@ -219,7 +227,7 @@ def build_problem(slug, base):
         h = head(lang, urls, m["title"], m["description"], page_base + f"og-{lang}.png", m["og_alt"], ld, base)
         if "i.ytimg.com" in body:
             h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
-        doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n{style}\n'
+        doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
                f'</head>\n<body>\n{body.strip()}\n</body>\n</html>\n')
         write(DOCS / slug / LANG_PATH[lang] / "index.html", doc)
     for f in (src_dir / "assets").iterdir():
@@ -228,102 +236,56 @@ def build_problem(slug, base):
     return slug, meta, urls
 
 
-HUB_TEXT = {
-    "uk": {
-        "title": "Математичні задачі, які ламають інтуїцію — інтерактивні пояснення",
-        "description": "Відомі задачі з теорії ймовірностей і математики з інтерактивними іграми, симуляціями та поясненнями українською.",
-        "h1": "Задачі, у яких інтуїція помиляється",
-        "lead": "Кожна задача тут має відповідь, яка здається неправильною. Тому ми не просто пояснюємо її, а даємо зіграти, запустити тисячі симуляцій і подивитися на неї з різних боків.",
-        "open": "Відкрити задачу",
-        "switch": "English",
-    },
-    "en": {
-        "title": "Math Problems That Break Intuition — Interactive Explanations",
-        "description": "Famous probability and math puzzles with interactive games, simulations and step-by-step explanations.",
-        "h1": "Problems where intuition gets it wrong",
-        "lead": "Every problem here has an answer that feels wrong. So instead of just explaining it, we let you play it, run thousands of simulations and look at it from several angles.",
-        "open": "Open the problem",
-        "switch": "Українською",
-    },
-}
-
-HUB_STYLE = """<style>
-:root { --paper:#EDEFF5; --surface:#FFFFFF; --ink:#141A30; --muted:#586079; --line:#D3D8E5; --door:#2A3DD1; --prize:#DB9500;
-  --f-display:"Unbounded","Arial Black",system-ui,sans-serif; --f-body:"Onest","Segoe UI",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace; }
-@media (prefers-color-scheme: dark) { :root { --paper:#0D1020; --surface:#161A2E; --ink:#E8EAF5; --muted:#99A0BB; --line:#283052; --door:#4E62F2; --prize:#F2B438; color-scheme: dark; } }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.55;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-.wrap { max-width: 1080px; margin: 0 auto; padding-block: 18px 64px; }
-.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.brand { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-.top a { color: var(--ink); font-weight: 600; font-size: .9rem; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 10px; text-decoration: none; }
-h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5.5vw, 3.6rem); line-height: 1.1; text-wrap: balance; margin: 56px 0 18px; max-width: 18ch; }
-.lead { color: var(--muted); max-width: 62ch; font-size: 1.08rem; margin: 0 0 40px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 20px; }
-.card { display: grid; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; color: inherit; text-decoration: none; }
-.card img { width: 100%; height: auto; aspect-ratio: 1200 / 630; object-fit: cover; display: block; }
-.card .body { display: grid; gap: 10px; padding: 4px 20px 20px; }
-.card h2 { font-family: var(--f-display); font-size: 1.25rem; margin: 0; }
-.card p { margin: 0; color: var(--muted); }
-.tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.tags span { font-family: var(--f-mono); font-size: .72rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }
-.go { color: var(--door); font-weight: 600; }
-.card:hover { border-color: var(--door); }
-a:focus-visible { outline: 3px solid var(--prize); outline-offset: 3px; }
-</style>"""
-
-
 def build_hub(problems, base):
+    """Catalogue page: hub/page.html with each problem's teaser.html dropped into <!--PROBLEMS-->."""
+    meta = json.loads((HUB / "meta.json").read_text(encoding="utf-8"))
+    src = (HUB / "page.html").read_text(encoding="utf-8")
     urls = {l: base + LANG_PATH[l] for l in LANGS}
+    blocks = []
+    for slug, _, _ in problems:
+        teaser = (PROBLEMS / slug / "teaser.html").read_text(encoding="utf-8")
+        blocks.append(f'<article class="problem" id="{slug}">\n' + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
+    src = src.replace("<!--PROBLEMS-->", "\n".join(blocks))
     for lang in LANGS:
-        t, other = HUB_TEXT[lang], ("en" if lang == "uk" else "uk")
-        cards = []
-        for slug, meta, purls in problems:
-            c = meta[lang]["card"]
-            cards.append(f"""<a class="card" href="{purls[lang]}">
-  <img src="{base}{slug}/og-{lang}.png" alt="{e(meta[lang]["og_alt"])}" width="1200" height="630" loading="lazy">
-  <div class="body"><h2>{e(c["title"])}</h2><p>{e(c["text"])}</p>
-  <div class="tags">{"".join(f"<span>{e(x)}</span>" for x in c["tags"])}</div>
-  <span class="go">{t["open"]} →</span></div>
-</a>""")
+        m, other = meta[lang], ("en" if lang == "uk" else "uk")
+        body = LangStripper(src, other).strip()
+        for slug, _, purls in problems:
+            body = body.replace("{{URL:%s}}" % slug, purls[lang])
+        body = body.replace("{{HOME}}", urls[lang]).replace("{{FIRST}}", problems[0][2][lang])
+        body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
+        body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
+        style = body[:body.index("</style>") + len("</style>")]
+        body = body[len(style):]
         ld = {"@context": "https://schema.org", "@graph": [
-            {"@type": "WebSite", "@id": base + "#site", "name": SITE_NAME[lang], "url": urls[lang], "inLanguage": lang},
-            {"@type": "CollectionPage", "url": urls[lang], "name": t["title"], "description": t["description"], "inLanguage": lang,
-             "mainEntity": {"@type": "ItemList", "itemListElement": [
-                 {"@type": "ListItem", "position": i + 1, "url": p[2][lang], "name": p[1][lang]["card"]["title"]}
+            {"@type": "WebSite", "@id": urls[lang] + "#site", "name": SITE_NAME[lang], "url": urls[lang],
+             "inLanguage": lang, "description": m["description"]},
+            {"@type": "CollectionPage", "@id": urls[lang] + "#page", "url": urls[lang], "name": m["title"],
+             "description": m["description"], "inLanguage": lang, "isPartOf": {"@id": urls[lang] + "#site"},
+             "about": [{"@type": "Thing", **p[1]["about"]} for p in problems],
+             "mainEntity": {"@type": "ItemList", "numberOfItems": len(problems), "itemListElement": [
+                 {"@type": "ListItem", "position": i + 1, "item": {
+                     "@type": "LearningResource", "@id": p[2][lang] + "#page", "url": p[2][lang],
+                     "name": p[1][lang]["card"]["title"], "description": p[1][lang]["description"],
+                     "inLanguage": lang, "isAccessibleForFree": True,
+                     "image": base + p[0] + f"/og-{lang}.png"}}
                  for i, p in enumerate(problems)]}},
         ]}
-        first = problems[0]
-        h = head(lang, urls, t["title"], t["description"], f"{base}{first[0]}/og-{lang}.png", first[1][lang]["og_alt"], ld, base)
-        doc = f"""<!doctype html>
-<html lang="{lang}">
-<head>
-{h}
-{HUB_STYLE}
-</head>
-<body>
-<div class="wrap">
-  <header class="top"><span class="brand">{SITE_NAME[lang]}</span><a href="{urls[other]}" hreflang="{other}" lang="{other}">{t["switch"]}</a></header>
-  <main>
-    <h1>{t["h1"]}</h1>
-    <p class="lead">{t["lead"]}</p>
-    <div class="grid">
-{chr(10).join(cards)}
-    </div>
-  </main>
-</div>
-</body>
-</html>
-"""
+        h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["og_alt"], ld, base)
+        doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
+               f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n</body>\n</html>\n')
         write(DOCS / LANG_PATH[lang] / "index.html", doc)
+    for f in (HUB / "assets").iterdir():
+        if f.suffix == ".png":
+            shutil.copy(f, DOCS / f.name)
     return urls
 
 
 def build(base):
     if DOCS.exists():
         shutil.rmtree(DOCS)
-    problems = [build_problem(p.name, base) for p in sorted(PROBLEMS.iterdir()) if (p / "page.html").exists()]
+    dirs = [p for p in PROBLEMS.iterdir() if (p / "page.html").exists()]
+    dirs.sort(key=lambda p: (json.loads((p / "meta.json").read_text(encoding="utf-8")).get("order", 99), p.name))
+    problems = [build_problem(p.name, base) for p in dirs]
     hub = build_hub(problems, base)
 
     today = date.today().isoformat()
@@ -339,6 +301,7 @@ def build(base):
         + "\n".join(entries) + "\n</urlset>\n", encoding="utf-8")
     (DOCS / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {base}sitemap.xml\n", encoding="utf-8")
     shutil.copy(ROOT / "favicon.svg", DOCS / "favicon.svg")
+    shutil.copy(SITE_CSS, DOCS / "site.css")
     (DOCS / ".nojekyll").write_text("")
     print(f"sitemap.xml ({len(entries)} URLs), robots.txt, favicon.svg")
 
