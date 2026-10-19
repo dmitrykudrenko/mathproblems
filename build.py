@@ -298,6 +298,9 @@ def css_link(base):
 
 
 def write(path, doc):
+    left = re.findall(r"\{\{[A-Z_:a-z0-9-]+\}\}", doc)
+    if left:
+        raise SystemExit(f"{path}: unfilled placeholders {sorted(set(left))}")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(doc, encoding="utf-8")
     print(f"{path.relative_to(DOCS)}  {len(doc) // 1024} KB")
@@ -386,11 +389,11 @@ def build_hub(problems, base):
         body = LangStripper(src, other).strip()
         for slug, _, purls in problems:
             body = body.replace("{{URL:%s}}" % slug, purls[lang])
-        body = body.replace("{{HOME_BASE}}", base).replace("{{HOME}}", urls[lang])
+        body = body.replace("{{HOME_BASE}}", base).replace("{{HOME}}", urls[lang]).replace("{{FIRST}}", problems[0][2][lang])
         if lang == "en":
             body = body.replace('alt="Дмитро Кудренко" data-alt-en="Dmitry Kudrenko"', 'alt="Dmitry Kudrenko"')
         else:
-            body = body.replace(' data-alt-en="Dmitry Kudrenko"', "").replace("{{FIRST}}", problems[0][2][lang])
+            body = body.replace(' data-alt-en="Dmitry Kudrenko"', "")
         body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
         body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
         style = body[:body.index("</style>") + len("</style>")]
