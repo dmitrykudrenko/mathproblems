@@ -44,7 +44,7 @@ def author_ld(lang, base):
     """Schema.org Person for the author; pages point to it by @id."""
     return {"@type": "Person", "@id": base + "#author", "name": AUTHOR_NAME[lang],
             "alternateName": AUTHOR_NAME["en" if lang == "uk" else "uk"], "jobTitle": "Co-founder",
-            "url": base + LANG_PATH[lang] + "#author",
+            "url": base + LANG_PATH[lang] + "#author", "image": base + "author.jpg",
             "worksFor": [{"@type": "Organization", "name": n, "url": u} for n, u in AUTHOR_ORGS]}
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
@@ -268,7 +268,11 @@ def build_hub(problems, base):
         body = LangStripper(src, other).strip()
         for slug, _, purls in problems:
             body = body.replace("{{URL:%s}}" % slug, purls[lang])
-        body = body.replace("{{HOME}}", urls[lang]).replace("{{FIRST}}", problems[0][2][lang])
+        body = body.replace("{{HOME_BASE}}", base).replace("{{HOME}}", urls[lang])
+        if lang == "en":
+            body = body.replace('alt="Дмитро Кудренко" data-alt-en="Dmitry Kudrenko"', 'alt="Dmitry Kudrenko"')
+        else:
+            body = body.replace(' data-alt-en="Dmitry Kudrenko"', "").replace("{{FIRST}}", problems[0][2][lang])
         body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
         body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
         style = body[:body.index("</style>") + len("</style>")]
@@ -294,7 +298,7 @@ def build_hub(problems, base):
                f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n</body>\n</html>\n')
         write(DOCS / LANG_PATH[lang] / "index.html", doc)
     for f in (HUB / "assets").iterdir():
-        if f.suffix == ".png":
+        if f.suffix in {".png", ".jpg"}:
             shutil.copy(f, DOCS / f.name)
     return urls
 
