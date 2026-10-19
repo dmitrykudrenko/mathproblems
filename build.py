@@ -35,6 +35,17 @@ LANGS = ("uk", "en")
 LANG_PATH = {"uk": "", "en": "en/"}
 LOCALE = {"uk": "uk_UA", "en": "en_US"}
 SITE_NAME = {"uk": "Математичні задачі", "en": "Math problems"}
+AUTHOR_NAME = {"uk": "Дмитро Кудренко", "en": "Dmitry Kudrenko"}
+AUTHOR_ORGS = [("Stripo", "https://stripo.email/"), ("Claspo", "https://claspo.io/"), ("Yespo", "https://yespo.io/"),
+               ("Reteno", "https://reteno.com/"), ("eSputnik", "https://esputnik.com/")]
+
+
+def author_ld(lang, base):
+    """Schema.org Person for the author; pages point to it by @id."""
+    return {"@type": "Person", "@id": base + "#author", "name": AUTHOR_NAME[lang],
+            "alternateName": AUTHOR_NAME["en" if lang == "uk" else "uk"], "jobTitle": "Co-founder",
+            "url": base + LANG_PATH[lang] + "#author",
+            "worksFor": [{"@type": "Organization", "name": n, "url": u} for n, u in AUTHOR_ORGS]}
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
          '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">')
@@ -136,6 +147,7 @@ def head(lang, urls, title, description, image, image_alt, ld, base):
 <title>{e(title)}</title>
 <meta name="description" content="{e(description)}">
 <meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="{AUTHOR_NAME[lang]}">
 <link rel="canonical" href="{urls[lang]}">
 <link rel="alternate" hreflang="uk" href="{urls["uk"]}">
 <link rel="alternate" hreflang="en" href="{urls["en"]}">
@@ -207,8 +219,10 @@ def build_problem(slug, base):
                 "image": page_base + f"og-{lang}.png",
                 "dateModified": date.today().isoformat(),
                 "isPartOf": {"@type": "WebSite", "name": SITE_NAME[lang], "url": hub[lang]},
+                "author": {"@id": base + "#author"},
                 ("translationOfWork" if lang == "en" else "workTranslation"): {"@id": urls[other] + "#page"},
             },
+            author_ld(lang, base),
             {
                 "@type": "BreadcrumbList",
                 "itemListElement": [
@@ -261,7 +275,9 @@ def build_hub(problems, base):
         body = body[len(style):]
         ld = {"@context": "https://schema.org", "@graph": [
             {"@type": "WebSite", "@id": urls[lang] + "#site", "name": SITE_NAME[lang], "url": urls[lang],
-             "inLanguage": lang, "description": m["description"]},
+             "inLanguage": lang, "description": m["description"], "author": {"@id": base + "#author"},
+             "creator": {"@id": base + "#author"}},
+            author_ld(lang, base),
             {"@type": "CollectionPage", "@id": urls[lang] + "#page", "url": urls[lang], "name": m["title"],
              "description": m["description"], "inLanguage": lang, "isPartOf": {"@id": urls[lang] + "#site"},
              "about": [{"@type": "Thing", **p[1]["about"]} for p in problems],
