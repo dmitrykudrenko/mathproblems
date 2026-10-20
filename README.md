@@ -2,27 +2,27 @@
 
 Інтерактивні пояснення математичних задач, у яких інтуїція помиляється. Українською та англійською.
 
-Сайт: https://dmitrykudrenko.github.io/mathproblems/
+Сайт: https://mathparadoxes.com/
 
 | Задача | UA | EN |
 |---|---|---|
-| Парадокс Монті Голла | [/monty-hall/](https://dmitrykudrenko.github.io/mathproblems/monty-hall/) | [/monty-hall/en/](https://dmitrykudrenko.github.io/mathproblems/monty-hall/en/) |
-| Задача про ряску в озері | [/duckweed-lake/](https://dmitrykudrenko.github.io/mathproblems/duckweed-lake/) | [/duckweed-lake/en/](https://dmitrykudrenko.github.io/mathproblems/duckweed-lake/en/) |
-| Парадокс днів народження | [/birthday/](https://dmitrykudrenko.github.io/mathproblems/birthday/) | [/birthday/en/](https://dmitrykudrenko.github.io/mathproblems/birthday/en/) |
-| Парадокс хибнопозитивного тесту | [/false-positive/](https://dmitrykudrenko.github.io/mathproblems/false-positive/) | [/false-positive/en/](https://dmitrykudrenko.github.io/mathproblems/false-positive/en/) |
-| Правило 37%: задача про секретаря | [/secretary-problem/](https://dmitrykudrenko.github.io/mathproblems/secretary-problem/) | [/secretary-problem/en/](https://dmitrykudrenko.github.io/mathproblems/secretary-problem/en/) |
-| Парадокс Сімпсона | [/simpson-paradox/](https://dmitrykudrenko.github.io/mathproblems/simpson-paradox/) | [/simpson-paradox/en/](https://dmitrykudrenko.github.io/mathproblems/simpson-paradox/en/) |
-| Парадокс двох дітей | [/two-children/](https://dmitrykudrenko.github.io/mathproblems/two-children/) | [/two-children/en/](https://dmitrykudrenko.github.io/mathproblems/two-children/en/) |
-| Голка Бюффона | [/buffon-needle/](https://dmitrykudrenko.github.io/mathproblems/buffon-needle/) | [/buffon-needle/en/](https://dmitrykudrenko.github.io/mathproblems/buffon-needle/en/) |
-| Парадокс дружби | [/friendship-paradox/](https://dmitrykudrenko.github.io/mathproblems/friendship-paradox/) | [/friendship-paradox/en/](https://dmitrykudrenko.github.io/mathproblems/friendship-paradox/en/) |
-| Мотузка навколо Землі | [/rope-around-earth/](https://dmitrykudrenko.github.io/mathproblems/rope-around-earth/) | [/rope-around-earth/en/](https://dmitrykudrenko.github.io/mathproblems/rope-around-earth/en/) |
-| 100 в'язнів і 100 коробок | [/hundred-prisoners/](https://dmitrykudrenko.github.io/mathproblems/hundred-prisoners/) | [/hundred-prisoners/en/](https://dmitrykudrenko.github.io/mathproblems/hundred-prisoners/en/) |
-| Тест когнітивної рефлексії | [/cognitive-reflection/](https://dmitrykudrenko.github.io/mathproblems/cognitive-reflection/) | [/cognitive-reflection/en/](https://dmitrykudrenko.github.io/mathproblems/cognitive-reflection/en/) |
-| Скільки наліпок на альбом | [/coupon-collector/](https://dmitrykudrenko.github.io/mathproblems/coupon-collector/) | [/coupon-collector/en/](https://dmitrykudrenko.github.io/mathproblems/coupon-collector/en/) |
-| Регресія до середнього | [/regression-to-mean/](https://dmitrykudrenko.github.io/mathproblems/regression-to-mean/) | [/regression-to-mean/en/](https://dmitrykudrenko.github.io/mathproblems/regression-to-mean/en/) |
-| Парадокс двох конвертів | [/two-envelopes/](https://dmitrykudrenko.github.io/mathproblems/two-envelopes/) | [/two-envelopes/en/](https://dmitrykudrenko.github.io/mathproblems/two-envelopes/en/) |
-| Серії в підкиданні монети | [/coin-streaks/](https://dmitrykudrenko.github.io/mathproblems/coin-streaks/) | [/coin-streaks/en/](https://dmitrykudrenko.github.io/mathproblems/coin-streaks/en/) |
-| Парадокс Бертрана | [/bertrand-paradox/](https://dmitrykudrenko.github.io/mathproblems/bertrand-paradox/) | [/bertrand-paradox/en/](https://dmitrykudrenko.github.io/mathproblems/bertrand-paradox/en/) |
+| Парадокс Монті Голла | [/monty-hall/](https://mathparadoxes.com/monty-hall/) | [/monty-hall/en/](https://mathparadoxes.com/monty-hall/en/) |
+| Задача про ряску в озері | [/duckweed-lake/](https://mathparadoxes.com/duckweed-lake/) | [/duckweed-lake/en/](https://mathparadoxes.com/duckweed-lake/en/) |
+| Парадокс днів народження | [/birthday/](https://mathparadoxes.com/birthday/) | [/birthday/en/](https://mathparadoxes.com/birthday/en/) |
+| Парадокс хибнопозитивного тесту | [/false-positive/](https://mathparadoxes.com/false-positive/) | [/false-positive/en/](https://mathparadoxes.com/false-positive/en/) |
+| Правило 37%: задача про секретаря | [/secretary-problem/](https://mathparadoxes.com/secretary-problem/) | [/secretary-problem/en/](https://mathparadoxes.com/secretary-problem/en/) |
+| Парадокс Сімпсона | [/simpson-paradox/](https://mathparadoxes.com/simpson-paradox/) | [/simpson-paradox/en/](https://mathparadoxes.com/simpson-paradox/en/) |
+| Парадокс двох дітей | [/two-children/](https://mathparadoxes.com/two-children/) | [/two-children/en/](https://mathparadoxes.com/two-children/en/) |
+| Голка Бюффона | [/buffon-needle/](https://mathparadoxes.com/buffon-needle/) | [/buffon-needle/en/](https://mathparadoxes.com/buffon-needle/en/) |
+| Парадокс дружби | [/friendship-paradox/](https://mathparadoxes.com/friendship-paradox/) | [/friendship-paradox/en/](https://mathparadoxes.com/friendship-paradox/en/) |
+| Мотузка навколо Землі | [/rope-around-earth/](https://mathparadoxes.com/rope-around-earth/) | [/rope-around-earth/en/](https://mathparadoxes.com/rope-around-earth/en/) |
+| 100 в'язнів і 100 коробок | [/hundred-prisoners/](https://mathparadoxes.com/hundred-prisoners/) | [/hundred-prisoners/en/](https://mathparadoxes.com/hundred-prisoners/en/) |
+| Тест когнітивної рефлексії | [/cognitive-reflection/](https://mathparadoxes.com/cognitive-reflection/) | [/cognitive-reflection/en/](https://mathparadoxes.com/cognitive-reflection/en/) |
+| Скільки наліпок на альбом | [/coupon-collector/](https://mathparadoxes.com/coupon-collector/) | [/coupon-collector/en/](https://mathparadoxes.com/coupon-collector/en/) |
+| Регресія до середнього | [/regression-to-mean/](https://mathparadoxes.com/regression-to-mean/) | [/regression-to-mean/en/](https://mathparadoxes.com/regression-to-mean/en/) |
+| Парадокс двох конвертів | [/two-envelopes/](https://mathparadoxes.com/two-envelopes/) | [/two-envelopes/en/](https://mathparadoxes.com/two-envelopes/en/) |
+| Серії в підкиданні монети | [/coin-streaks/](https://mathparadoxes.com/coin-streaks/) | [/coin-streaks/en/](https://mathparadoxes.com/coin-streaks/en/) |
+| Парадокс Бертрана | [/bertrand-paradox/](https://mathparadoxes.com/bertrand-paradox/) | [/bertrand-paradox/en/](https://mathparadoxes.com/bertrand-paradox/en/) |
 
 ## Структура
 
@@ -48,7 +48,8 @@ docs/          готовий сайт (GitHub Pages публікує з main:/d
 python3 build.py
 ```
 
-Без залежностей, потрібен лише Python 3. Для іншого домену: `python3 build.py --base-url https://example.com/`.
+Без залежностей, потрібен лише Python 3. Сайт живе на https://mathparadoxes.com (файл `docs/CNAME` пише збірка).
+Для іншого домену: `python3 build.py --base-url https://example.com/`.
 Після змін у `problems/` перезберіть сайт і закомітьте `docs/` разом з ними.
 
 ## Нова задача
@@ -63,7 +64,7 @@ python3 build.py
 коментарі зберігаються в GitHub Discussions цього репозиторію, категорія Announcements
 (нові теми створює лише giscus). Одна тема на задачу, спільна для обох мов (`data-term` = slug).
 Налаштування — `GISCUS` і `DISCUSS_TEXT` у `build.py`; `giscus.json` дозволяє вбудовування лише
-на dmitrykudrenko.github.io і localhost. Модерація — у вкладці Discussions на GitHub.
+на mathparadoxes.com, dmitrykudrenko.github.io і localhost. Модерація — у вкладці Discussions на GitHub.
 
 ## Розсилка (Claspo)
 
@@ -86,5 +87,5 @@ Claspo пропустили цього відвідувача), блок хов�
   uk/ru/be дає українську, en — англійську, інакше вирішує часовий пояс. Боти й прев'ю-краулери не перенаправляються.
 - Відео YouTube вантажиться лише після кліку по обкладинці (швидке перше завантаження).
 
-Після публікації: додати сайт у Google Search Console і надіслати `https://dmitrykudrenko.github.io/mathproblems/sitemap.xml`.
+Після публікації: додати сайт у Google Search Console і надіслати `https://mathparadoxes.com/sitemap.xml`.
 `robots.txt` на GitHub Pages для project-сайту не діє (його читають лише з кореня домену), тому sitemap варто надіслати вручну.

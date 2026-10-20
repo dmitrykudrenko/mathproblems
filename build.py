@@ -30,7 +30,8 @@ PROBLEMS = ROOT / "problems"
 HUB = ROOT / "hub"
 SITE_CSS = ROOT / "site.css"
 DOCS = ROOT / "docs"
-DEFAULT_BASE = "https://dmitrykudrenko.github.io/mathproblems/"
+DEFAULT_BASE = "https://mathparadoxes.com/"
+CUSTOM_DOMAIN = "mathparadoxes.com"  # written to docs/CNAME for GitHub Pages
 LANGS = ("uk", "en")
 LANG_PATH = {"uk": "", "en": "en/"}
 LOCALE = {"uk": "uk_UA", "en": "en_US"}
@@ -451,6 +452,8 @@ def build(base, out=None):
     (DOCS / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {base}sitemap.xml\n", encoding="utf-8")
     shutil.copy(ROOT / "favicon.svg", DOCS / "favicon.svg")
     shutil.copy(SITE_CSS, DOCS / "site.css")
+    if CUSTOM_DOMAIN and base == DEFAULT_BASE:
+        (DOCS / "CNAME").write_text(CUSTOM_DOMAIN + "\n")
     (DOCS / ".nojekyll").write_text("")
     print(f"sitemap.xml ({len(entries)} URLs), robots.txt, favicon.svg")
 
