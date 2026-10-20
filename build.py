@@ -253,17 +253,48 @@ LANG_SCRIPT = """<script>
 </script>"""
 
 
+# Answers stay hidden until the visitor guesses or asks for them. Anything with class sp-after shows
+# only inside a [data-spoil] element that has the class solved; sp-before is the other way round.
+# A problem page is <html data-spoil>; on the home page each card is. The choice is remembered per
+# problem in localStorage, so the card and the page agree. Elements with data-solve reveal on click.
+SPOIL_SCRIPT = """<script>
+(function () {
+  var d = document.documentElement, SLUG = %s;
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  window.mpSolve = function () {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new Event("solved"));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]");
+    if (card && card !== d) { card.classList.add("solved"); mark(card.id); } else window.mpSolve();
+  });
+  if (!SLUG) document.addEventListener("DOMContentLoaded", function () {
+    [].forEach.call(document.querySelectorAll("[data-spoil][id]"), function (c) { if (seen(c.id)) c.classList.add("solved"); });
+  });
+})();
+</script>"""
+
+
 def lang_script(lang, urls, base):
     return LANG_SCRIPT % {"path": json.dumps(urlparse(base).path or "/"), "here": json.dumps(lang),
                           "alt": json.dumps({l: urlparse(u).path for l, u in urls.items()})}
 
 
-def head(lang, urls, title, description, image, image_alt, ld, base):
+def head(lang, urls, title, description, image, image_alt, ld, base, slug=None):
     """<head> tags shared by every page. `urls` maps each language to that page's URL."""
     other = "en" if lang == "uk" else "uk"
     return f"""<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 {lang_script(lang, urls, base)}
+{SPOIL_SCRIPT % json.dumps(slug)}
 <title>{e(title)}</title>
 <meta name="description" content="{e(description)}">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -361,11 +392,11 @@ def build_problem(slug, base):
                                 "acceptedAnswer": {"@type": "Answer", "text": f["a"]}} for f in m["faq"]],
             },
         ]}
-        h = head(lang, urls, m["title"], m["description"], page_base + f"og-{lang}.png", m["og_alt"], ld, base)
+        h = head(lang, urls, m["title"], m["description"], page_base + f"og-{lang}.png", m["og_alt"], ld, base, slug)
         if "i.ytimg.com" in body:
             h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
         body = with_discuss(with_subscribe(body, lang), lang, slug)
-        doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
+        doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static data-spoil>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
                f'</head>\n<body>\n{body.strip()}\n{CLASPO}\n</body>\n</html>\n')
         write(DOCS / slug / LANG_PATH[lang] / "index.html", doc)
     for f in (src_dir / "assets").iterdir() if (src_dir / "assets").exists() else []:
@@ -385,7 +416,7 @@ def build_hub(problems, base):
         # the stage on the home page uses the same tint as the problem page itself
         m = re.search(r"--tint:\s*(#[0-9A-Fa-f]{6})", (PROBLEMS / slug / "page.html").read_text(encoding="utf-8"))
         tint = f' style="--tint: {m.group(1)}"' if m else ""
-        blocks.append(f'<article class="problem" id="{slug}"{tint}>\n' + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
+        blocks.append(f'<article class="problem" id="{slug}" data-spoil{tint}>\n' + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
     src = src.replace("<!--PROBLEMS-->", "\n".join(blocks))
     for lang in LANGS:
         m, other = meta[lang], ("en" if lang == "uk" else "uk")

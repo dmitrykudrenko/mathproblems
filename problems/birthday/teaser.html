@@ -3,12 +3,13 @@
   <h2><a href="{{URL}}"><span class="uk">Парадокс днів народження</span><span class="en">The birthday paradox</span></a></h2>
   <p class="tz-q uk">Скільки людей має зібратися в кімнаті, щоб двоє з них, імовірно, народилися в один день?</p>
   <p class="tz-q en">How many people must be in a room before two of them probably share a birthday?</p>
-  <div class="tz-ans">
+  <button type="button" class="tz-reveal sp-before" data-solve><span><span class="uk">Інтуїція і відповідь</span><span class="en">Intuition and answer</span></span><b><span class="uk">Показати відповідь</span><span class="en">Show the answer</span></b></button>
+  <div class="tz-ans sp-after">
     <div><span><span class="uk">Інтуїція</span><span class="en">Intuition</span></span><b><span class="uk">≈ 183 людини</span><span class="en">≈ 183 people</span></b></div>
     <div class="r"><span><span class="uk">Насправді</span><span class="en">Actually</span></span><b><span class="uk">23 людини</span><span class="en">23 people</span></b></div>
   </div>
-  <p class="tz-d uk">Задача про те, як швидко зростає кількість пар. На тій самій ідеї побудована «атака днів народження» на криптографічні хеші.</p>
-  <p class="tz-d en">A puzzle about how fast the number of pairs grows. The same idea powers the "birthday attack" on cryptographic hashes.</p>
+  <p class="tz-d uk">Задача про збіги, у якій інтуїція помиляється в рази. На тій самій ідеї побудована «атака днів народження» на криптографічні хеші.</p>
+  <p class="tz-d en">A puzzle about coincidences where intuition is off many times over. The same idea powers the "birthday attack" on cryptographic hashes.</p>
   <ul class="tz-inside uk"><li>вгадайте відповідь</li><li>кімната на календарі</li><li>симуляція 10 000 кімнат</li><li>п'ять пояснень</li><li>PIN-коди, хеші, трійки</li></ul>
   <ul class="tz-inside en"><li>guess the answer</li><li>a room on a calendar</li><li>10,000-room simulation</li><li>five explanations</li><li>PINs, hashes, triples</li></ul>
   <a class="tz-cta" href="{{URL}}"><span class="uk">Розібратися з парадоксом днів народження</span><span class="en">Work through the birthday paradox</span> →</a>
@@ -27,23 +28,32 @@
   const cal = root.querySelector('.bd-cal'), msg = root.querySelector('.tz-msg'), b = root.querySelector('.tz-btn');
   const cells = [];
   DAYS.forEach(n => { for (let d = 0; d < 31; d++) { const c = document.createElement('i'); if (d >= n) c.className = 'x'; else cells.push(c); cal.appendChild(c); } });
-  let rooms = 0, hits = 0, last = false;
+  let rooms = 0, total = 0, n = 0, phase = 'idle', timer = null;
+  const fast = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   function roll() {
+    if (phase === 'run') return;
     const cnt = new Uint8Array(365);
     cells.forEach(c => c.className = '');
-    for (let i = 0; i < 23; i++) cnt[Math.floor(Math.random() * 365)]++;
-    last = false;
-    cnt.forEach((v, d) => { if (v) { cells[d].className = v > 1 ? 'h' : 'p'; if (v > 1) last = true; } });
-    rooms++; if (last) hits++;
-    text();
+    n = 0; phase = 'run'; b.disabled = true;
+    const step = () => {
+      const d = Math.floor(Math.random() * 365);
+      cnt[d]++; n++;
+      cells[d].className = cnt[d] > 1 ? 'h' : 'p';
+      if (cnt[d] > 1) { phase = 'done'; rooms++; total += n; b.disabled = false; text(); return true; }
+      text(); return false;
+    };
+    if (fast()) { while (!step()); return; }
+    timer = setInterval(() => { if (step()) clearInterval(timer); }, 60);
   }
+  const ukRooms = k => { const a = k % 10, h = k % 100; return a === 1 && h !== 11 ? 'кімнату' : a >= 2 && a <= 4 && (h < 12 || h > 14) ? 'кімнати' : 'кімнат'; };
   function text() {
-    msg.textContent = (last ? L('Є збіг!', 'A match!') : L('Без збігу.', 'No match.')) + ' ' +
-      L('Кімнат зі збігом: ' + hits + ' з ' + rooms + ' (' + Math.round(100 * hits / rooms) + '%).', 'Rooms with a match: ' + hits + ' of ' + rooms + ' (' + Math.round(100 * hits / rooms) + '%).');
-    b.textContent = L('Нова кімната з 23 людей', 'New room of 23 people');
+    if (phase === 'idle') msg.textContent = L('Натисніть «Зібрати кімнату»: люди заходитимуть по одному, доки двоє не виявляться з одним днем народження.', 'Press "Fill a room": people walk in one by one until two of them share a birthday.');
+    else if (phase === 'run') msg.textContent = L('Людей у кімнаті: ' + n, 'People in the room: ' + n);
+    else msg.textContent = L('Є збіг! Людей у кімнаті: ' + n + '. Середнє за ' + rooms + ' ' + ukRooms(rooms) + ': ' + (total / rooms).toFixed(1).replace('.', ',') + '.', 'A match! People in the room: ' + n + '. Average over ' + rooms + ' room' + (rooms === 1 ? '' : 's') + ': ' + (total / rooms).toFixed(1) + '.');
+    b.textContent = L('Зібрати кімнату', 'Fill a room');
   }
   b.addEventListener('click', roll);
   document.addEventListener('langchange', text);
-  roll();
+  text();
 })();
 </script>
