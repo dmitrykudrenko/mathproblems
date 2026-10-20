@@ -34,6 +34,15 @@
   function key(s) { return "mp-solved:" + s; }
   function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
   function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
   if (SLUG && seen(SLUG)) d.classList.add("solved");
   window.mpSolved = function () { return d.classList.contains("solved"); };
   window.mpSolve = function () {
@@ -42,13 +51,33 @@
     document.dispatchEvent(new Event("solved"));
   };
   document.addEventListener("click", function (e) {
-    var b = e.target.closest && e.target.closest("[data-solve]");
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
     if (!b) return;
-    var card = b.closest("[data-spoil][id]");
-    if (card && card !== d) { card.classList.add("solved"); mark(card.id); } else window.mpSolve();
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
   });
-  if (!SLUG) document.addEventListener("DOMContentLoaded", function () {
-    [].forEach.call(document.querySelectorAll("[data-spoil][id]"), function (c) { if (seen(c.id)) c.classList.add("solved"); });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
   });
 })();
 </script>
@@ -117,6 +146,7 @@ h1, h2, h3, p { margin: 0; }
 /* ---------- problems ---------- */
 .list-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; padding-block: 88px 28px; }
 .list-head p { color: var(--muted); max-width: 46ch; }
+.list-side { display: grid; gap: 8px; justify-items: start; }
 .problems { display: grid; gap: 24px; padding-bottom: 40px; }
 .problem { display: grid; grid-template-columns: 1.05fr 1fr; gap: 0; border-radius: 32px; overflow: hidden; background: var(--soft); }
 .problem:nth-child(even) .tz-stage { order: -1; }
@@ -136,6 +166,9 @@ h1, h2, h3, p { margin: 0; }
 .tz-reveal > span { font-size: .74rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 .tz-reveal b { font-weight: 800; font-size: 1.35rem; letter-spacing: -0.02em; }
 .tz-reveal:hover { border-color: var(--ink); }
+.tz-hide { justify-self: start; margin-top: -10px; }
+.hide-all { display: none; }
+.some-solved .hide-all { display: inline-block; }
 .tz-inside { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .tz-inside li { font-size: .82rem; background: var(--paper); border: 1px solid var(--line); padding: 4px 12px; color: var(--ink); }
 .tz-cta { justify-self: start; margin-top: 6px; text-decoration: none; }
@@ -237,7 +270,9 @@ footer a { color: var(--muted); }
   <main id="problems">
     <div class="list-head">
       <h2><span class="uk">Задачі</span></h2>
-      <p><span class="uk">Кожна задача має окрему сторінку: умова, гра, симуляція, п'ять пояснень і ускладнені варіанти.</span></p>
+      <div class="list-side"><p><span class="uk">Кожна задача має окрему сторінку: умова, гра, симуляція, п'ять пояснень і ускладнені варіанти.</span></p>
+        <button type="button" class="sp-skip hide-all" data-unsolve="all"><span class="uk">Сховати всі відповіді</span></button>
+      </div>
     </div>
     <div class="problems">
 <article class="problem" id="monty-hall" data-spoil style="--tint: #EEEAFF">

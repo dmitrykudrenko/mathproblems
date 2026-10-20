@@ -257,12 +257,24 @@ LANG_SCRIPT = """<script>
 # only inside a [data-spoil] element that has the class solved; sp-before is the other way round.
 # A problem page is <html data-spoil>; on the home page each card is. The choice is remembered per
 # problem in localStorage, so the card and the page agree. Elements with data-solve reveal on click.
+# data-unsolve hides the answer again (for showing the site to someone from your own screen): on a page it
+# reloads it clean, on a card it closes that card, data-unsolve="all" forgets every problem. The hide buttons
+# are added here, under the hero buttons of a page and under each card's answer.
 SPOIL_SCRIPT = """<script>
 (function () {
   var d = document.documentElement, SLUG = %s;
   function key(s) { return "mp-solved:" + s; }
   function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
   function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
   if (SLUG && seen(SLUG)) d.classList.add("solved");
   window.mpSolved = function () { return d.classList.contains("solved"); };
   window.mpSolve = function () {
@@ -271,13 +283,33 @@ SPOIL_SCRIPT = """<script>
     document.dispatchEvent(new Event("solved"));
   };
   document.addEventListener("click", function (e) {
-    var b = e.target.closest && e.target.closest("[data-solve]");
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
     if (!b) return;
-    var card = b.closest("[data-spoil][id]");
-    if (card && card !== d) { card.classList.add("solved"); mark(card.id); } else window.mpSolve();
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
   });
-  if (!SLUG) document.addEventListener("DOMContentLoaded", function () {
-    [].forEach.call(document.querySelectorAll("[data-spoil][id]"), function (c) { if (seen(c.id)) c.classList.add("solved"); });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
   });
 })();
 </script>"""
