@@ -35,6 +35,8 @@ CUSTOM_DOMAIN = "mathparadoxes.com"  # written to docs/CNAME for GitHub Pages
 LANGS = ("uk", "en")
 LANG_PATH = {"uk": "", "en": "en/"}
 LOCALE = {"uk": "uk_UA", "en": "en_US"}
+# hreflang x-default: the version for visitors whose language is neither; LANG_SCRIPT sends them to English too
+X_DEFAULT = "en"
 SITE_NAME = {"uk": "Математичні парадокси", "en": "Math paradoxes"}
 # logo mark (three doors, the third one taken); the source files live in brand/
 BRAND_MARK = '<svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>'
@@ -152,6 +154,46 @@ def discuss_block(lang, slug):
       crossorigin="anonymous" async></script>
   </div>
 </section>"""
+
+
+# "More puzzles" block on every problem page: links to related problems so readers (and crawlers)
+# move between pages instead of only back to the catalogue. Cards show the spoiler-free share question.
+RELATED_COUNT = 3
+RELATED_TEXT = {
+    "uk": ("Ще задачі", "Інші парадокси", "Усі задачі"),
+    "en": ("More puzzles", "Other paradoxes", "All puzzles"),
+}
+
+
+def pick_related(slug, metas):
+    """Problems sharing the most tags (ignoring the ubiquitous "симуляція"), then the next ones in site order."""
+    order = [s for s, _ in metas]
+    tags = {s: set(m["uk"]["card"]["tags"]) - {"симуляція"} for s, m in metas}
+    i = order.index(slug)
+    others = order[i + 1:] + order[:i]
+    return sorted(others, key=lambda s: -len(tags[s] & tags[slug]))[:RELATED_COUNT]
+
+
+def related_block(lang, items, hub_url):
+    """`items` is a list of (url, title, question)."""
+    eyebrow, title, all_label = RELATED_TEXT[lang]
+    cards = "\n".join(f'    <a class="mp-related-card" href="{u}"><h3>{e(t)}</h3><p>{e(q)}</p></a>' for u, t, q in items)
+    return f"""<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">{eyebrow}</span>
+    <h2>{title}</h2>
+  </div>
+  <div class="mp-related-grid">
+{cards}
+  </div>
+  <a class="mp-related-all" href="{hub_url}">{all_label} →</a>
+</section>"""
+
+
+def with_related(body, block):
+    """Put the related block before the discussion block."""
+    i = body.find('<section class="mp-discuss"')
+    return body[:i] + block + "\n\n" + body[i:]
 
 
 def with_discuss(body, lang, slug):
@@ -336,7 +378,7 @@ def head(lang, urls, title, description, image, image_alt, ld, base, slug=None, 
 <link rel="canonical" href="{urls[lang]}">
 <link rel="alternate" hreflang="uk" href="{urls["uk"]}">
 <link rel="alternate" hreflang="en" href="{urls["en"]}">
-<link rel="alternate" hreflang="x-default" href="{urls["uk"]}">
+<link rel="alternate" hreflang="x-default" href="{urls[X_DEFAULT]}">
 <meta name="theme-color" content="#2A3DD1">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="{base}favicon.svg" type="image/svg+xml">
@@ -374,9 +416,10 @@ def write(path, doc):
     print(f"{path.relative_to(DOCS)}  {len(doc) // 1024} KB")
 
 
-def build_problem(slug, base):
+def build_problem(slug, base, metas):
     src_dir = PROBLEMS / slug
-    meta = json.loads((src_dir / "meta.json").read_text(encoding="utf-8"))
+    meta = dict(metas)[slug]
+    related = pick_related(slug, metas)
     src = (src_dir / "page.html").read_text(encoding="utf-8")
     rest = src[src.index("<style>"):]
     page_base = base + slug + "/"
@@ -431,6 +474,11 @@ def build_problem(slug, base):
         if "i.ytimg.com" in body:
             h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
         body = with_discuss(with_subscribe(body, lang), lang, slug)
+        items = []
+        for s in related:
+            rm = dict(metas)[s][lang]
+            items.append((base + s + "/" + LANG_PATH[lang], rm["card"]["title"], rm.get("share", {}).get("description", rm["card"]["text"])))
+        body = with_related(body, related_block(lang, items, hub[lang]))
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static data-spoil>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
                f'</head>\n<body>\n{body.strip()}\n{CLASPO}\n</body>\n</html>\n')
         write(DOCS / slug / LANG_PATH[lang] / "index.html", doc)
@@ -494,6 +542,72 @@ def build_hub(problems, base):
     return urls
 
 
+NOT_FOUND_TEXT = {
+    "uk": ("Помилка 404", "Такої сторінки немає", "Можливо, адресу змінено або в ній помилка. Ось задачі, які точно існують:", "На головну"),
+    "en": ("Error 404", "This page does not exist", "The address may have changed or contain a typo. Here are the puzzles that do exist:", "Go to the home page"),
+}
+
+
+def build_404(problems, base):
+    """docs/404.html, which GitHub Pages serves for any missing URL. Both languages are in the page;
+    a /en/ path or an English-first browser shows the English one. Not indexed."""
+    parts = []
+    for lang in LANGS:
+        eyebrow, title, text, home = NOT_FOUND_TEXT[lang]
+        links = "\n".join(f'      <li><a href="{p[2][lang]}">{e(p[1][lang]["card"]["title"])}</a></li>' for p in problems)
+        parts.append(f"""<section class="nf {lang}">
+    <span class="eyebrow">{eyebrow}</span>
+    <h1>{title}</h1>
+    <p class="lead">{text}</p>
+    <ul class="nf-list">
+{links}
+    </ul>
+    <p><a class="btn" href="{base + LANG_PATH[lang]}">{home}</a></p>
+  </section>""")
+    doc = f"""<!doctype html>
+<html lang="uk" data-lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {{
+  var d = document.documentElement, en = /\\/en(\\/|$)/.test(location.pathname);
+  if (!en) {{
+    var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), l = (navigator.languages || [navigator.language || ""])[0] || "";
+    en = m ? m[1] === "en" : !/^(uk|ru|be)/i.test(l);
+  }}
+  if (en) {{ d.lang = "en"; d.dataset.lang = "en"; document.title = "Page not found · {SITE_NAME["en"]}"; }}
+}})();
+</script>
+<title>Сторінку не знайдено · {SITE_NAME["uk"]}</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="{base}favicon.svg" type="image/svg+xml">
+{FONTS}
+{RESET}
+<style>
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk {{ display: none !important; }}
+body {{ padding-inline: max(16px, env(safe-area-inset-left, 0px)); }}
+.wrap {{ max-width: 860px; margin: 0 auto; padding-block: 20px 64px; }}
+.nf {{ display: grid; gap: 18px; margin-top: 48px; }}
+.nf-list {{ list-style: none; padding: 0; margin: 8px 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 24px; }}
+.nf-list a {{ font-weight: 600; }}
+.btn {{ display: inline-block; background: var(--ink); color: #fff; text-decoration: none; border-radius: 999px; padding: 12px 22px; font-weight: 600; }}
+</style>
+{css_link(base)}
+</head>
+<body>
+<div class="wrap">
+  <a class="brand uk" href="{base}">{BRAND_MARK}{SITE_NAME["uk"]}</a>
+  <a class="brand en" href="{base}en/">{BRAND_MARK}{SITE_NAME["en"]}</a>
+  {parts[0]}
+  {parts[1]}
+</div>
+</body>
+</html>
+"""
+    write(DOCS / "404.html", doc)
+
+
 def build(base, out=None):
     global DOCS
     if out:
@@ -502,16 +616,18 @@ def build(base, out=None):
         shutil.rmtree(DOCS)
     # a problem is published only once all three source files exist (lets drafts sit in problems/)
     dirs = [p for p in PROBLEMS.iterdir() if all((p / f).exists() for f in ("page.html", "teaser.html", "meta.json"))]
-    dirs.sort(key=lambda p: (json.loads((p / "meta.json").read_text(encoding="utf-8")).get("order", 99), p.name))
-    problems = [build_problem(p.name, base) for p in dirs]
+    metas = [(p.name, json.loads((p / "meta.json").read_text(encoding="utf-8"))) for p in dirs]
+    metas.sort(key=lambda sm: (sm[1].get("order", 99), sm[0]))
+    problems = [build_problem(s, base, metas) for s, _ in metas]
     hub = build_hub(problems, base)
+    build_404(problems, base)
 
     today = date.today().isoformat()
     entries = []
     for urls in [hub] + [p[2] for p in problems]:
         for lang in LANGS:
             alts = "".join(f'\n    <xhtml:link rel="alternate" hreflang="{h}" href="{urls[h]}"/>' for h in LANGS)
-            alts += f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{urls["uk"]}"/>'
+            alts += f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{urls[X_DEFAULT]}"/>'
             entries.append(f"  <url>\n    <loc>{urls[lang]}</loc>\n    <lastmod>{today}</lastmod>{alts}\n  </url>")
     (DOCS / "sitemap.xml").write_text(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
