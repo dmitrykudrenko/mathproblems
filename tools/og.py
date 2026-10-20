@@ -16,79 +16,80 @@ FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
     "monty-hall": {
-        "uk": (["ПАРАДОКС", "МОНТІ ГОЛЛА"], "Змінювати вибір?", ("50/50", "2/3")),
-        "en": (["THE MONTY", "HALL PROBLEM"], "Should you switch?", ("50/50", "2/3")),
+        "uk": (["ПАРАДОКС", "МОНТІ ГОЛЛА"], "Змінювати вибір?"),
+        "en": (["THE MONTY", "HALL PROBLEM"], "Should you switch?"),
     },
     "birthday": {
-        "uk": (["ПАРАДОКС ДНІВ", "НАРОДЖЕННЯ"], "Скільки людей потрібно?", ("183", "23")),
-        "en": (["THE BIRTHDAY", "PARADOX"], "How many people does it take?", ("183", "23")),
+        "uk": (["ПАРАДОКС ДНІВ", "НАРОДЖЕННЯ"], "Скільки людей потрібно?"),
+        "en": (["THE BIRTHDAY", "PARADOX"], "How many people does it take?"),
     },
     "false-positive": {
-        "uk": (["ПАРАДОКС", "ХИБНОГО ТЕСТУ"], "Тест точний на 99%. Ви хворі?", ("99%", "50%")),
-        "en": (["THE FALSE", "POSITIVE PARADOX"], "The test is 99% accurate. Are you sick?", ("99%", "50%")),
+        "uk": (["ПАРАДОКС", "ХИБНОГО ТЕСТУ"], "Тест точний на 99%. Ви хворі?"),
+        "en": (["THE FALSE", "POSITIVE PARADOX"], "The test is 99% accurate. Are you sick?"),
     },
     "secretary-problem": {
-        "uk": (["ПРАВИЛО 37%"], "Як обрати найкращого з сотні?", ("1%", "37%")),
-        "en": (["THE 37% RULE"], "How to pick the best of a hundred", ("1%", "37%")),
+        "uk": (["ЗАДАЧА ПРО", "СЕКРЕТАРЯ"], "Як обрати найкращого з сотні?"),
+        "en": (["THE SECRETARY", "PROBLEM"], "How to pick the best of a hundred?"),
     },
     "simpson-paradox": {
-        "uk": (["ПАРАДОКС", "СІМПСОНА"], "Краще в кожній групі, гірше загалом", None),
-        "en": (["SIMPSON'S", "PARADOX"], "Better in every group, worse overall", None),
+        "uk": (["ПАРАДОКС", "СІМПСОНА"], "Який метод лікування кращий?"),
+        "en": (["SIMPSON'S", "PARADOX"], "Which treatment is better?"),
     },
     "two-children": {
-        "uk": (["ПАРАДОКС", "ДВОХ ДІТЕЙ"], "Хоча б один хлопчик. Обидва?", ("1/2", "1/3")),
-        "en": (["THE TWO-CHILD", "PARADOX"], "At least one is a boy. Both?", ("1/2", "1/3")),
+        "uk": (["ПАРАДОКС", "ДВОХ ДІТЕЙ"], "Хоча б один хлопчик. Обидва?"),
+        "en": (["THE TWO-CHILD", "PARADOX"], "At least one is a boy. Both?"),
     },
     "buffon-needle": {
-        "uk": (["ГОЛКА", "БЮФФОНА"], "Знайти π, кидаючи сірники", None),
-        "en": (["BUFFON'S", "NEEDLE"], "Find π by dropping matches", None),
+        "uk": (["ГОЛКА", "БЮФФОНА"], "Який шанс, що сірник перетне лінію?"),
+        "en": (["BUFFON'S", "NEEDLE"], "Will a dropped match cross a line?"),
     },
     "friendship-paradox": {
-        "uk": (["ПАРАДОКС", "ДРУЖБИ"], "У ваших друзів більше друзів, ніж у вас", None),
-        "en": (["THE FRIENDSHIP", "PARADOX"], "Your friends have more friends than you", None),
+        "uk": (["ПАРАДОКС", "ДРУЖБИ"], "У кого більше друзів: у вас чи в них?"),
+        "en": (["THE FRIENDSHIP", "PARADOX"], "Who has more friends: you or them?"),
     },
     "duckweed-lake": {
-        "uk": (["РЯСКА", "В ОЗЕРІ"], "1 ряска: 30 днів. 2 ряски: ?", ("15", "29")),
-        "en": (["THE DUCKWEED", "LAKE"], "1 plant: 30 days. 2 plants: ?", ("15", "29")),
+        "uk": (["РЯСКА", "В ОЗЕРІ"], "1 ряска: 30 днів. 2 ряски: ?"),
+        "en": (["THE DUCKWEED", "LAKE"], "1 plant: 30 days. 2 plants: ?"),
     },
     "rope-around-earth": {
-        "uk": (["МОТУЗКА", "НАВКОЛО ЗЕМЛІ"], "+1 метр. Наскільки вона підніметься?", ("1 мм", "16 см")),
-        "en": (["THE ROPE AROUND", "THE EARTH"], "+1 metre. How high does it rise?", ("1 mm", "16 cm")),
+        "uk": (["МОТУЗКА", "НАВКОЛО ЗЕМЛІ"], "+1 метр. Наскільки вона підніметься?"),
+        "en": (["THE ROPE AROUND", "THE EARTH"], "+1 metre. How high does it rise?"),
     },
     "hundred-prisoners": {
-        "uk": (["100 В'ЯЗНІВ"], "Кожен може відкрити 50 коробок", ("≈ 0%", "31%")),
-        "en": (["100 PRISONERS"], "Each may open 50 boxes", ("≈ 0%", "31%")),
+        "uk": (["100 В'ЯЗНІВ"], "Кожен може відкрити 50 коробок"),
+        "en": (["100 PRISONERS"], "Each may open 50 boxes"),
     },
     "cognitive-reflection": {
-        "uk": (["М'ЯЧ І БИТА"], "Разом $1.10. Скільки коштує м'яч?", ("10¢", "5¢")),
-        "en": (["BAT AND BALL"], "$1.10 together. What does the ball cost?", ("10¢", "5¢")),
+        "uk": (["М'ЯЧ І БИТА"], "Разом $1.10. Скільки коштує м'яч?"),
+        "en": (["BAT AND BALL"], "$1.10 together. What does the ball cost?"),
     },
     "coupon-collector": {
-        "uk": (["АЛЬБОМ", "НАЛІПОК"], "50 наліпок. Скільки треба купити?", ("50", "225")),
-        "en": (["THE STICKER", "ALBUM"], "50 stickers. How many to buy?", ("50", "225")),
+        "uk": (["АЛЬБОМ", "НАЛІПОК"], "50 наліпок. Скільки треба купити?"),
+        "en": (["THE STICKER", "ALBUM"], "50 stickers. How many to buy?"),
     },
     "regression-to-mean": {
-        "uk": (["РЕГРЕСІЯ ДО", "СЕРЕДНЬОГО"], "Чому похвала нібито шкодить", None),
-        "en": (["REGRESSION TO", "THE MEAN"], "Why praise seems to backfire", None),
+        "uk": (["РЕГРЕСІЯ ДО", "СЕРЕДНЬОГО"], "Похвала шкодить, а критика допомагає?"),
+        "en": (["REGRESSION TO", "THE MEAN"], "Does praise hurt and criticism help?"),
     },
     "two-envelopes": {
-        "uk": (["ДВА", "КОНВЕРТИ"], "В одному вдвічі більше. Міняти?", None),
-        "en": (["TWO", "ENVELOPES"], "One holds twice the other. Switch?", None),
+        "uk": (["ДВА", "КОНВЕРТИ"], "В одному вдвічі більше. Міняти?"),
+        "en": (["TWO", "ENVELOPES"], "One holds twice the other. Switch?"),
     },
     "coin-streaks": {
-        "uk": (["СЕРІЇ", "МОНЕТИ"], "Найдовша серія зі 100 підкидань", ("3", "7")),
-        "en": (["COIN", "STREAKS"], "Longest streak in 100 flips", ("3", "7")),
+        "uk": (["СЕРІЇ", "МОНЕТИ"], "Найдовша серія зі 100 підкидань?"),
+        "en": (["COIN", "STREAKS"], "The longest streak in 100 flips?"),
     },
     "bertrand-paradox": {
-        "uk": (["ПАРАДОКС", "БЕРТРАНА"], "Три правильні відповіді", None),
-        "en": (["BERTRAND'S", "PARADOX"], "Three right answers", None),
+        "uk": (["ПАРАДОКС", "БЕРТРАНА"], "Який шанс, що випадкова хорда довга?"),
+        "en": (["BERTRAND'S", "PARADOX"], "Is a random chord long?"),
     },
     "hub": {
-        "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється", None),
-        "en": (["MATH", "PARADOXES"], "Puzzles where intuition gets it wrong", None),
+        "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
+        "en": (["MATH", "PARADOXES"], "Puzzles where intuition gets it wrong"),
     },
 }
-LABELS = {"uk": ("інтуїція", "насправді"), "en": ("intuition", "actually")}
+# no answers on the previews: a shared link must not spoil the puzzle, so every problem ends with a question mark slot
+ASK = {"uk": "ваша відповідь", "en": "your answer"}
 
 
 def dots(x, y, w, h):
@@ -133,14 +134,12 @@ def calendar(x, y):
 
 
 def people(x, y):
-    # 10x10 grid: one true positive (filled signal), one false positive (signal ring)
+    # 10x10 grid: two positive results, with no hint which of them is really sick
     out = []
     for r in range(10):
         for c in range(10):
             cx, cy = x + c * 34, y + r * 34
-            if (r, c) == (2, 6):
-                out.append(f'<circle cx="{cx}" cy="{cy}" r="11" fill="{SIGNAL}"/>')
-            elif (r, c) == (7, 2):
+            if (r, c) in ((2, 6), (7, 2)):
                 out.append(f'<circle cx="{cx}" cy="{cy}" r="9.5" fill="#fff" stroke="{SIGNAL}" stroke-width="3"/>')
             else:
                 out.append(f'<circle cx="{cx}" cy="{cy}" r="11" fill="{INK}" fill-opacity=".85"/>')
@@ -152,29 +151,23 @@ def candidates(x, y):
     hs = [rnd.randint(40, 200) for _ in range(20)]
     best_seen = max(hs[:7])
     pick = next(i for i in range(7, 20) if hs[i] > best_seen)
-    out = [f'<line x1="{x + 7 * 19 - 4}" y1="{y - 10}" x2="{x + 7 * 19 - 4}" y2="{y + 215}" stroke="{INK}" stroke-width="2" stroke-dasharray="6 5"/>']
+    # candidates in order of arrival, no cut-off line: the 37% is the answer
+    out = []
     for i, h in enumerate(hs):
-        fill = SIGNAL if i == pick else ("#BDBDBD" if i < 7 else INK)
+        fill = SIGNAL if i == pick else INK
         out.append(f'<rect x="{x + i * 19}" y="{y + 210 - h}" width="13" height="{h}" rx="3" fill="{fill}"/>')
-    out.append(f'<text x="{x + 7 * 19 + 4}" y="{y + 2}" font-family="{FONT}" font-weight="800" font-size="22" fill="{INK}">37%</text>')
     return "".join(out)
 
 
 def simpson(x, y, lang):
-    names = {"uk": ("малі", "великі", "разом"), "en": ("small", "large", "total")}[lang]
-    groups = [("93", "87"), ("73", "69"), ("78", "83")]
+    # only the overall results the visitor picks from; the per-group reversal is the answer
+    names = {"uk": ("метод A", "метод B"), "en": ("method A", "method B")}[lang]
     out = []
-    for g, (a, b) in enumerate(groups):
-        gx = x + g * 120
-        for k, v in enumerate((a, b)):
-            h = int(v) * 2.2
-            fill = INK if k == 0 else SIGNAL
-            if g == 2:
-                fill = SIGNAL if k == 1 else INK
-            out.append(f'<rect x="{gx + k * 42}" y="{y + 220 - h}" width="34" height="{h}" rx="5" fill="{fill}"/>')
-        out.append(f'<text x="{gx + 38}" y="{y + 250}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="18" fill="{MUTED}">{names[g]}</text>')
-        if g == 2:
-            out.append(f'<line x1="{gx - 16}" y1="{y}" x2="{gx - 16}" y2="{y + 222}" stroke="#BDBDBD" stroke-width="2"/>')
+    for k, v in enumerate((78, 83)):
+        bx, h = x + 40 + k * 150, v * 2.4
+        out.append(f'<rect x="{bx}" y="{y + 220 - h}" width="90" height="{h}" rx="8" fill="{INK if k == 0 else SIGNAL}"/>')
+        out.append(f'<text x="{bx + 45}" y="{y + 210 - h}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="26" fill="{INK}">{v}%</text>')
+        out.append(f'<text x="{bx + 45}" y="{y + 252}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="18" fill="{MUTED}">{names[k]}</text>')
     return "".join(out)
 
 
@@ -182,14 +175,11 @@ def kids(x, y):
     out = []
     for i, pair in enumerate(("BB", "BG", "GB", "GG")):
         cx, cy = x + (i % 2) * 180, y + (i // 2) * 150
-        box = SIGNAL if pair == "BB" else INK
-        out.append(f'<rect x="{cx}" y="{cy}" width="160" height="128" rx="18" fill="#fff" stroke="{box}" stroke-width="{4 if pair == "BB" else 0}"/>')
+        out.append(f'<rect x="{cx}" y="{cy}" width="160" height="128" rx="18" fill="#fff"/>')
         for k, ch in enumerate(pair):
             px = cx + 52 + k * 56
             col = INK if ch == "B" else "#BDBDBD"
             out.append(f'<circle cx="{px}" cy="{cy + 46}" r="16" fill="{col}"/><rect x="{px - 18}" y="{cy + 66}" width="36" height="40" rx="12" fill="{col}"/>')
-        if pair == "GG":
-            out.append(f'<line x1="{cx + 14}" y1="{cy + 114}" x2="{cx + 146}" y2="{cy + 14}" stroke="{SIGNAL}" stroke-width="6" stroke-linecap="round"/>')
     return "".join(out)
 
 
@@ -221,9 +211,9 @@ def network(x, y):
     for i in range(0, 11, 3):
         a, b = pts[i], pts[(i + 1) % 11]
         out.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="#BDBDBD" stroke-width="2.5"/>')
-    for p in pts:
-        out.append(f'<circle cx="{p[0]:.1f}" cy="{p[1]:.1f}" r="14" fill="{INK}"/>')
-    out.append(f'<circle cx="{hub[0]}" cy="{hub[1]}" r="30" fill="{SIGNAL}"/>')
+    for i, p in enumerate(pts):
+        out.append(f'<circle cx="{p[0]:.1f}" cy="{p[1]:.1f}" r="14" fill="{SIGNAL if i == 4 else INK}"/>')
+    out.append(f'<circle cx="{hub[0]}" cy="{hub[1]}" r="14" fill="{INK}"/>')
     return "".join(out)
 
 
@@ -233,14 +223,12 @@ def lake(x, y):
     cx, cy, r = x + 190, y + 150, 140
     out = [f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="#fff"/>',
            f'<clipPath id="lake"><circle cx="{cx}" cy="{cy}" r="{r}"/></clipPath><g clip-path="url(#lake)">']
-    # day 29: exactly half the lake is covered, as a ragged patch on the left
-    for _ in range(900):
-        a, d = rnd.random() * 2 * math.pi, r * math.sqrt(rnd.random())
-        px, py = cx + d * math.cos(a), cy + d * math.sin(a)
-        if px < cx + 10 * math.sin(py / 9):
-            out.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="{rnd.uniform(5, 9):.1f}" fill="{INK}" fill-opacity="{rnd.uniform(.75, 1):.2f}"/>')
+    # a few plants on a clean lake; how fast it fills is the puzzle
+    for _ in range(14):
+        a, d = rnd.random() * 2 * math.pi, 28 * math.sqrt(rnd.random())
+        px, py = cx - 30 + d * math.cos(a), cy + 10 + d * math.sin(a)
+        out.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="{rnd.uniform(5, 9):.1f}" fill="{INK}" fill-opacity="{rnd.uniform(.75, 1):.2f}"/>')
     out.append(f'</g><circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{SIGNAL}" stroke-width="5"/>')
-    out.append(f'<text x="{cx}" y="{y + 330}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="24" fill="{INK}">29 → 50%</text>')
     return "".join(out)
 
 
@@ -255,18 +243,17 @@ def extra_visual(kind, x, y, lang="en"):
                 f'<line x1="{cx}" y1="{cy - 120}" x2="{cx}" y2="{cy - 134}" stroke="{SIGNAL}" stroke-width="3"/>',
                 f'<text x="{cx}" y="{cy + 8}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="34" fill="#fff">{"+1 м" if lang == "uk" else "+1 m"}</text>']
     elif kind == "hundred-prisoners":
-        # a permutation drawn as its cycles: no loop longer than half the boxes, so everyone succeeds
-        for (ccx, ccy, rr, n, col) in ((x + 120, y + 110, 80, 14, SIGNAL), (x + 285, y + 95, 58, 9, INK), (x + 255, y + 245, 52, 8, INK), (x + 105, y + 255, 34, 5, INK)):
-            pts = [(ccx + rr * math.cos(2 * math.pi * i / n - math.pi / 2), ccy + rr * math.sin(2 * math.pi * i / n - math.pi / 2)) for i in range(n)]
-            out.append(f'<circle cx="{ccx}" cy="{ccy}" r="{rr}" fill="none" stroke="{col}" stroke-width="3" stroke-opacity=".5"/>')
-            for px, py in pts:
-                out.append(f'<rect x="{px - 11:.1f}" y="{py - 11:.1f}" width="22" height="22" rx="4" fill="{col}"/>')
+        # 100 numbered closed boxes; the loop strategy is the answer, so it is not drawn
+        for i in range(100):
+            px, py = x + 22 + (i % 10) * 34, y + 6 + (i // 10) * 29
+            out.append(f'<rect x="{px}" y="{py}" width="28" height="23" rx="4" fill="{SIGNAL if i == 36 else INK}"/>')
+            out.append(f'<text x="{px + 14}" y="{py + 16}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="11" fill="#fff">{i + 1}</text>')
     elif kind == "cognitive-reflection":
         out += [f'<rect x="{x + 20}" y="{y + 90}" width="300" height="56" rx="10" fill="{INK}"/>',
                 f'<rect x="{x + 320}" y="{y + 90}" width="15" height="56" rx="4" fill="{SIGNAL}"/>',
                 f'<rect x="{x + 20}" y="{y + 170}" width="15" height="56" rx="4" fill="{SIGNAL}"/>',
-                f'<text x="{x + 170}" y="{y + 127}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="26" fill="#fff">$1.00</text>',
-                f'<text x="{x + 50}" y="{y + 207}" font-family="{FONT}" font-weight="800" font-size="24" fill="{INK}">5¢</text>',
+                f'<text x="{x + 170}" y="{y + 127}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="26" fill="#fff">+ $1.00</text>',
+                f'<text x="{x + 50}" y="{y + 207}" font-family="{FONT}" font-weight="800" font-size="24" fill="{SIGNAL}">?</text>',
                 f'<text x="{x + 20}" y="{y + 60}" font-family="{FONT}" font-weight="800" font-size="28" fill="{INK}">$1.10</text>']
     elif kind == "coupon-collector":
         for i in range(50):
@@ -288,11 +275,9 @@ def extra_visual(kind, x, y, lang="en"):
                     f'<text x="{ex + 75}" y="{y + 225}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="40" fill="{col}">{lab}</text>']
     elif kind == "coin-streaks":
         seq = [rnd.random() < .5 for _ in range(60)]
-        seq[23:30] = [True] * 7
         for i, h in enumerate(seq):
             px, py = x + 30 + (i % 10) * 33, y + 30 + (i // 10) * 40
-            run = 23 <= i < 30
-            out.append(f'<circle cx="{px + 13}" cy="{py + 13}" r="13" fill="{SIGNAL if run else (INK if h else "#fff")}" stroke="{INK}" stroke-width="2"/>')
+            out.append(f'<circle cx="{px + 13}" cy="{py + 13}" r="13" fill="{INK if h else "#fff"}" stroke="{INK}" stroke-width="2"/>')
     elif kind == "bertrand-paradox":
         cx, cy, r = x + 190, y + 150, 130
         out += [f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="#fff" stroke="{INK}" stroke-width="4"/>']
@@ -306,20 +291,18 @@ def extra_visual(kind, x, y, lang="en"):
 
 
 def svg(kind, lang):
-    lines, sub, ans = TEXT[kind][lang]
+    lines, sub = TEXT[kind][lang]
     big = min(84, int(590 / (max(len(l) for l in lines) * 0.68)))
     parts = [f'<rect width="1200" height="630" fill="#fff"/>',
              f'<rect x="700" y="40" width="460" height="550" rx="36" fill="{TINT[kind]}"/>', dots(700, 40, 460, 550)]
     for i, l in enumerate(lines):
         parts.append(f'<text x="70" y="{190 + i * (big + 4)}" font-family="{FONT}" font-weight="800" font-size="{big}" letter-spacing="-2" fill="{INK}">{l}</text>')
     parts.append(f'<text x="72" y="{190 + len(lines) * (big + 4) + 18}" font-family="{FONT}" font-weight="500" font-size="32" fill="{MUTED}">{sub}</text>')
-    if ans:
-        lo, hi = LABELS[lang]
+    if kind != "hub":
         y = 500
-        parts.append(f'<text x="72" y="{y}" font-family="{FONT}" font-weight="800" font-size="56" fill="#A3A3A3" text-decoration="line-through">{ans[0]}</text>')
-        parts.append(f'<text x="72" y="{y + 36}" font-family="{FONT}" font-weight="700" font-size="20" fill="{MUTED}">{lo.upper()}</text>')
-        parts.append(f'<text x="300" y="{y}" font-family="{FONT}" font-weight="800" font-size="56" fill="{SIGNAL}">{ans[1]}</text>')
-        parts.append(f'<text x="300" y="{y + 36}" font-family="{FONT}" font-weight="700" font-size="20" fill="{MUTED}">{hi.upper()}</text>')
+        parts.append(f'<rect x="72" y="{y - 62}" width="112" height="78" rx="16" fill="#fff" stroke="{SIGNAL}" stroke-width="3" stroke-dasharray="9 7"/>')
+        parts.append(f'<text x="128" y="{y}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="56" fill="{SIGNAL}">?</text>')
+        parts.append(f'<text x="206" y="{y - 12}" font-family="{FONT}" font-weight="700" font-size="22" fill="{MUTED}">{ASK[lang].upper()}</text>')
     if kind == "monty-hall":
         parts.append(f'<rect x="752" y="150" width="356" height="330" rx="24" fill="none"/>' + doors(760, 240))
     elif kind == "birthday":

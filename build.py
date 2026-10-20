@@ -288,9 +288,11 @@ def lang_script(lang, urls, base):
                           "alt": json.dumps({l: urlparse(u).path for l, u in urls.items()})}
 
 
-def head(lang, urls, title, description, image, image_alt, ld, base, slug=None):
-    """<head> tags shared by every page. `urls` maps each language to that page's URL."""
+def head(lang, urls, title, description, image, image_alt, ld, base, slug=None, share=None):
+    """<head> tags shared by every page. `urls` maps each language to that page's URL.
+    `share` (title, description) replaces them in link previews, so a shared link does not give the answer away."""
     other = "en" if lang == "uk" else "uk"
+    st, sd = share or (title, description)
     return f"""<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 {lang_script(lang, urls, base)}
@@ -308,8 +310,8 @@ def head(lang, urls, title, description, image, image_alt, ld, base, slug=None):
 <link rel="icon" href="{base}favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{SITE_NAME[lang]}">
-<meta property="og:title" content="{e(title)}">
-<meta property="og:description" content="{e(description)}">
+<meta property="og:title" content="{e(st)}">
+<meta property="og:description" content="{e(sd)}">
 <meta property="og:url" content="{urls[lang]}">
 <meta property="og:locale" content="{LOCALE[lang]}">
 <meta property="og:locale:alternate" content="{LOCALE[other]}">
@@ -318,8 +320,8 @@ def head(lang, urls, title, description, image, image_alt, ld, base, slug=None):
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="{e(image_alt)}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{e(title)}">
-<meta name="twitter:description" content="{e(description)}">
+<meta name="twitter:title" content="{e(st)}">
+<meta name="twitter:description" content="{e(sd)}">
 <meta name="twitter:image" content="{image}">
 {FONTS}
 <script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>"""
@@ -392,7 +394,8 @@ def build_problem(slug, base):
                                 "acceptedAnswer": {"@type": "Answer", "text": f["a"]}} for f in m["faq"]],
             },
         ]}
-        h = head(lang, urls, m["title"], m["description"], page_base + f"og-{lang}.png", m["og_alt"], ld, base, slug)
+        h = head(lang, urls, m["title"], m["description"], page_base + f"og-{lang}.png", m["og_alt"], ld, base, slug,
+                 (m["share"]["title"], m["share"]["description"]) if "share" in m else None)
         if "i.ytimg.com" in body:
             h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
         body = with_discuss(with_subscribe(body, lang), lang, slug)
