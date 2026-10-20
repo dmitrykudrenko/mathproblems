@@ -38,7 +38,7 @@ LOCALE = {"uk": "uk_UA", "en": "en_US"}
 SITE_NAME = {"uk": "Математичні парадокси", "en": "Math paradoxes"}
 # logo mark (three doors, the third one taken); the source files live in brand/
 BRAND_MARK = '<svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>'
-AUTHOR_NAME = {"uk": "Дмитро Кудренко", "en": "Dmitry Kudrenko"}
+AUTHOR_NAME = {"uk": "Дмитро Кудренко", "en": "Dmytro Kudrenko"}
 AUTHOR_ORGS = [("Stripo", "https://stripo.email/"), ("Claspo", "https://claspo.io/"), ("Yespo", "https://yespo.io/"),
                ("Reteno", "https://reteno.com/"), ("eSputnik", "https://esputnik.com/")]
 
@@ -428,9 +428,9 @@ def build_hub(problems, base):
             body = body.replace("{{URL:%s}}" % slug, purls[lang])
         body = body.replace("{{HOME_BASE}}", base).replace("{{HOME}}", urls[lang]).replace("{{FIRST}}", problems[0][2][lang])
         if lang == "en":
-            body = body.replace('alt="Дмитро Кудренко" data-alt-en="Dmitry Kudrenko"', 'alt="Dmitry Kudrenko"')
+            body = body.replace('alt="Дмитро Кудренко" data-alt-en="Dmytro Kudrenko"', 'alt="Dmytro Kudrenko"')
         else:
-            body = body.replace(' data-alt-en="Dmitry Kudrenko"', "")
+            body = body.replace(' data-alt-en="Dmytro Kudrenko"', "")
         body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
         body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
         style = body[:body.index("</style>") + len("</style>")]
