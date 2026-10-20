@@ -77,6 +77,12 @@ CLASPO = """<script>
     }(window, document, 'script', '%s');
 </script><script>claspo('init');</script>""" % CLASPO_ID if CLASPO_ID else ""
 
+# Cloudflare Web Analytics beacon on every page, 404 included (set CF_ANALYTICS_TOKEN = "" to turn it off).
+# No cookies, so no consent banner. The site is not proxied by Cloudflare, so the snippet is installed by hand.
+CF_ANALYTICS_TOKEN = "adf9fd3e4773416fb45241d58aea741f"
+CF_ANALYTICS = ("<script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' "
+                "data-cf-beacon='{\"token\": \"%s\"}'></script>" % CF_ANALYTICS_TOKEN) if CF_ANALYTICS_TOKEN else ""
+
 # Newsletter block near the end of every page. The form itself is a Claspo inline widget placed
 # inside #mp-subscribe. Until Claspo puts the form there, the slot shows a short placeholder,
 # which disappears by itself once the form arrives.
@@ -480,7 +486,7 @@ def build_problem(slug, base, metas):
             items.append((base + s + "/" + LANG_PATH[lang], rm["card"]["title"], rm.get("share", {}).get("description", rm["card"]["text"])))
         body = with_related(body, related_block(lang, items, hub[lang]))
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static data-spoil>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
-               f'</head>\n<body>\n{body.strip()}\n{CLASPO}\n</body>\n</html>\n')
+               f'</head>\n<body>\n{body.strip()}\n{CLASPO}\n{CF_ANALYTICS}\n</body>\n</html>\n')
         write(DOCS / slug / LANG_PATH[lang] / "index.html", doc)
     for f in (src_dir / "assets").iterdir() if (src_dir / "assets").exists() else []:
         if f.suffix in {".png", ".jpg", ".svg", ".webp"} and not f.name.startswith("og-src"):
@@ -534,7 +540,7 @@ def build_hub(problems, base):
         h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["og_alt"], ld, base)
         body = with_subscribe(body, lang)
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
-               f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{CLASPO}\n</body>\n</html>\n')
+               f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{CLASPO}\n{CF_ANALYTICS}\n</body>\n</html>\n')
         write(DOCS / LANG_PATH[lang] / "index.html", doc)
     for f in (HUB / "assets").iterdir():
         if f.suffix in {".png", ".jpg"}:
@@ -602,6 +608,7 @@ body {{ padding-inline: max(16px, env(safe-area-inset-left, 0px)); }}
   {parts[0]}
   {parts[1]}
 </div>
+{CF_ANALYTICS}
 </body>
 </html>
 """
