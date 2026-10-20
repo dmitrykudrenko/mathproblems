@@ -38,6 +38,7 @@ problems/<slug>/
   assets/      og-uk.png, og-en.png (1200×630)
 site.css       спільний вигляд усіх сторінок (підключається після стилів сторінки)
 tools/og.py    малює картинки для соцмереж (macOS: qlmanage + sips)
+brand/         логотип: mark.svg (знак), lockup-uk/en(-dark).svg; favicon.svg у корені — той самий знак
 build.py       збирає сайт у docs/
 docs/          готовий сайт (GitHub Pages публікує з main:/docs)
 ```

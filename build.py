@@ -36,6 +36,8 @@ LANGS = ("uk", "en")
 LANG_PATH = {"uk": "", "en": "en/"}
 LOCALE = {"uk": "uk_UA", "en": "en_US"}
 SITE_NAME = {"uk": "Математичні задачі", "en": "Math problems"}
+# logo mark (three doors, the third one taken); the source files live in brand/
+BRAND_MARK = '<svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>'
 AUTHOR_NAME = {"uk": "Дмитро Кудренко", "en": "Dmitry Kudrenko"}
 AUTHOR_ORGS = [("Stripo", "https://stripo.email/"), ("Claspo", "https://claspo.io/"), ("Yespo", "https://yespo.io/"),
                ("Reteno", "https://reteno.com/"), ("eSputnik", "https://esputnik.com/")]
@@ -322,7 +324,7 @@ def build_problem(slug, base):
         body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
         # the brand line becomes a link back to the catalogue
         body = re.sub(r'<span class="brand">.*?</span>',
-                      f'<a class="brand" href="{hub[lang]}" style="text-decoration:none">← {SITE_NAME[lang]}</a>', body, count=1)
+                      f'<a class="brand" href="{hub[lang]}" style="text-decoration:none">{BRAND_MARK}{SITE_NAME[lang]}</a>', body, count=1)
         style = body[:body.index("</style>") + len("</style>")]
         body = body[len(style):]
         ld = {"@context": "https://schema.org", "@graph": [
