@@ -43,6 +43,10 @@ build.py       збирає сайт у docs/
 docs/          готовий сайт (GitHub Pages публікує з main:/docs)
 ```
 
+## Сторінка після підтвердження підписки
+
+`pages/subscribed/` → https://mathparadoxes.com/subscribed/ (англійська: `/subscribed/en/`). Сюди веде посилання «Підтвердити підписку» з листа розсилки. Сторінка не індексується і не потрапляє в sitemap; `picks` у `meta.json` задає три задачі, які вона пропонує.
+
 ## Збірка
 
 ```bash

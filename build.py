@@ -374,7 +374,7 @@ def lang_script(lang, urls, base):
                           "alt": json.dumps({l: urlparse(u).path for l, u in urls.items()})}
 
 
-def head(lang, urls, title, description, image, image_alt, ld, base, slug=None, share=None):
+def head(lang, urls, title, description, image, image_alt, ld, base, slug=None, share=None, robots="index, follow, max-image-preview:large"):
     """<head> tags shared by every page. `urls` maps each language to that page's URL.
     `share` (title, description) replaces them in link previews, so a shared link does not give the answer away."""
     other = "en" if lang == "uk" else "uk"
@@ -385,7 +385,7 @@ def head(lang, urls, title, description, image, image_alt, ld, base, slug=None, 
 {SPOIL_SCRIPT % json.dumps(slug)}
 <title>{e(title)}</title>
 <meta name="description" content="{e(description)}">
-<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="robots" content="{robots}">
 <meta name="author" content="{AUTHOR_NAME[lang]}">
 <link rel="canonical" href="{urls[lang]}">
 <link rel="alternate" hreflang="uk" href="{urls["uk"]}">
@@ -554,6 +554,39 @@ def build_hub(problems, base):
     return urls
 
 
+PAGES = ROOT / "pages"
+
+
+def build_subscribed(problems, base):
+    """docs/subscribed/: where the "confirm your subscription" link of the newsletter leads. Not indexed,
+    not in the sitemap, no Claspo form (the visitor has just subscribed). Suggests three puzzles."""
+    src_dir = PAGES / "subscribed"
+    meta = json.loads((src_dir / "meta.json").read_text(encoding="utf-8"))
+    src = (src_dir / "page.html").read_text(encoding="utf-8")
+    page_base = base + "subscribed/"
+    urls = {l: page_base + LANG_PATH[l] for l in LANGS}
+    home = {l: base + LANG_PATH[l] for l in LANGS}
+    by_slug = {p[0]: p for p in problems}
+    for lang in LANGS:
+        m, other = meta[lang], ("en" if lang == "uk" else "uk")
+        picks = "\n".join(
+            f'      <a class="pick" href="{by_slug[s][2][lang]}"><b>{e(by_slug[s][1][lang]["card"]["title"])}</b>'
+            f'<span>{e(by_slug[s][1][lang]["share"]["description"])}</span>'
+            f'<i>{"Спробувати" if lang == "uk" else "Try it"} →</i></a>'
+            for s in meta["picks"] if s in by_slug)
+        body = LangStripper(src.replace("<!--PICKS-->", picks), other).strip()
+        body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
+        body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
+        body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
+        style = body[:body.index("</style>") + len("</style>")]
+        body = body[len(style):]
+        ld = {"@context": "https://schema.org", "@type": "WebPage", "url": urls[lang], "name": m["title"], "inLanguage": lang}
+        h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["title"], ld, base, robots="noindex")
+        doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
+               f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{CF_ANALYTICS}\n</body>\n</html>\n')
+        write(DOCS / "subscribed" / LANG_PATH[lang] / "index.html", doc)
+
+
 NOT_FOUND_TEXT = {
     "uk": ("Помилка 404", "Такої сторінки немає", "Можливо, адресу змінено або в ній помилка. Ось задачі, які точно існують:", "На головну"),
     "en": ("Error 404", "This page does not exist", "The address may have changed or contain a typo. Here are the puzzles that do exist:", "Go to the home page"),
@@ -634,6 +667,7 @@ def build(base, out=None):
     problems = [build_problem(s, base, metas) for s, _ in metas]
     hub = build_hub(problems, base)
     build_404(problems, base)
+    build_subscribed(problems, base)
 
     today = date.today().isoformat()
     entries = []
