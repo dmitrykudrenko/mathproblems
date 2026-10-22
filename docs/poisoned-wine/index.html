@@ -1,0 +1,1479 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/poisoned-wine/", "en": "/poisoned-wine/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "poisoned-wine";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  window.mpSolve = function () {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new Event("solved"));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<title>Отруєне вино і 10 щурів: задача зі співбесіди про двійковий код</title>
+<meta name="description" content="1000 пляшок, одна отруєна, один раунд дегустації. Досить 10 щурів, бо 2¹⁰ = 1024. Зламайте стратегію, симуляція, код Геммінга й аналізи Дорфмана.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/poisoned-wine/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/poisoned-wine/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/poisoned-wine/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/poisoned-wine/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Отруєне вино і щури">
+<meta property="og:description" content="З 1000 пляшок вина одна отруєна, а перевірити щурами можна лише за один раунд. Скільки щурів потрібно, щоб напевно знайти отруєну пляшку?">
+<meta property="og:url" content="https://mathparadoxes.com/poisoned-wine/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/poisoned-wine/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Винний льох із рядами пляшок і щури біля них. Одна пляшка з 1000 отруєна: скільки щурів потрібно, щоб її знайти?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Отруєне вино і щури">
+<meta name="twitter:description" content="З 1000 пляшок вина одна отруєна, а перевірити щурами можна лише за один раунд. Скільки щурів потрібно, щоб напевно знайти отруєну пляшку?">
+<meta name="twitter:image" content="https://mathparadoxes.com/poisoned-wine/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/poisoned-wine/#page", "url": "https://mathparadoxes.com/poisoned-wine/", "name": "Отруєне вино і 10 щурів: задача зі співбесіди про двійковий код", "description": "1000 пляшок, одна отруєна, один раунд дегустації. Досить 10 щурів, бо 2¹⁰ = 1024. Зламайте стратегію, симуляція, код Геммінга й аналізи Дорфмана.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "beginner", "about": {"@type": "Thing", "name": "Group testing", "sameAs": "https://en.wikipedia.org/wiki/Group_testing"}, "image": "https://mathparadoxes.com/poisoned-wine/og-uk.png", "dateModified": "2026-10-22", "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "workTranslation": {"@id": "https://mathparadoxes.com/poisoned-wine/en/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "Отруєне вино і щури", "item": "https://mathparadoxes.com/poisoned-wine/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/poisoned-wine/#faq", "inLanguage": "uk", "mainEntity": [{"@type": "Question", "name": "Скільки щурів потрібно, щоб знайти одну отруєну пляшку з 1000?", "acceptedAnswer": {"@type": "Answer", "text": "Десять. Пронумеруйте пляшки у двійковій системі, і нехай щур k п'є з тих пляшок, у номері яких k-та двійкова цифра дорівнює 1. Через добу мертві щури складуть номер отруєної пляшки: 10 щурів дають 2¹⁰ = 1024 різні результати."}}, {"@type": "Question", "name": "Чому 9 щурів не вистачить?", "acceptedAnswer": {"@type": "Answer", "text": "Кожен щур або живий, або мертвий, тож 9 щурів дають щонайбільше 2⁹ = 512 різних результатів. Пляшок 1000, тому за будь-якої стратегії дві пляшки дадуть однаковий результат, і їх не розрізнити."}}, {"@type": "Question", "name": "Що зміниться, якщо можна провести два раунди дегустації?", "acceptedAnswer": {"@type": "Answer", "text": "Тоді щур має три долі: помер після першого раунду, після другого або вижив. Номери записують у трійковій системі, і досить 7 щурів, бо 3⁶ = 729 < 1000 ≤ 3⁷ = 2187."}}, {"@type": "Question", "name": "Де ця ідея працює насправді?", "acceptedAnswer": {"@type": "Answer", "text": "У груповому тестуванні: 1943 року Роберт Дорфман запропонував змішувати кров кількох людей в один аналіз. За 1% хворих групи по 11 дають близько 0,196 тесту на людину, тобто приблизно на 80% менше. 2020 року в Ізраїлі показали, що ПЛР-тест на коронавірус знаходить один позитивний зразок у суміші з 64."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the birthday page. A wine rack, a row of rats and the tasting lines between them are this problem's signature objects. */
+:root {
+  --tint: #F3E3EA;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal canvas { height: 320px; border-radius: 14px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 2.6em; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=number] { font: inherit; font-family: var(--f-mono); font-weight: 600; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); width: 120px; max-width: 100%; }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--day); }
+.ctl output { font-family: var(--f-mono); font-weight: 600; color: var(--ink); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+.big.day { color: var(--day); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--hit); }
+.msg .bad, .verdict .bad { color: var(--loss); font-weight: 600; }
+
+/* ---------- rats and bottles ---------- */
+.rats { display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: flex-end; }
+.rat { display: inline-grid; justify-items: center; gap: 2px; font-family: var(--f-mono); font-size: .68rem; color: var(--muted); min-width: 34px; }
+.rat svg { width: 34px; height: 26px; display: block; }
+.rat b { font-weight: 600; color: var(--ink); }
+.rat.dead b { color: var(--muted); font-weight: 400; }
+.rat.flip { cursor: pointer; border: 1px dashed var(--line); border-radius: 8px; padding: 3px 2px; background: var(--surface); }
+.rat.flip.lie { border: 2px solid var(--loss); }
+.bits { display: flex; flex-wrap: wrap; gap: 4px; font-family: var(--f-mono); }
+.bits span { display: inline-grid; justify-items: center; min-width: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 4px 2px; font-size: .95rem; font-weight: 600; }
+.bits span small { font-size: .62rem; color: var(--muted); font-weight: 400; }
+.bits span.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.bits span.on small { color: var(--paper); opacity: .8; }
+.bpick { display: flex; flex-wrap: wrap; gap: 6px; }
+.bpick button { width: 38px; height: 44px; border-radius: 10px 10px 8px 8px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; font-family: var(--f-mono); font-weight: 600; font-size: .85rem; position: relative; }
+.bpick button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.guess .val { font-family: var(--f-display); font-weight: 800; font-size: 3.4rem; color: var(--day); line-height: 1; }
+.guess input[type=range] { width: 100%; accent-color: var(--day); }
+.guess input[type=number] { font: inherit; font-family: var(--f-mono); font-weight: 600; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); width: 120px; }
+.scale { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: .72rem; color: var(--muted); }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 140px 1fr 56px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+
+/* ---------- strategy game ---------- */
+.room { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.str-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+table.str { border-collapse: separate; border-spacing: 3px; }
+.str th { font-family: var(--f-mono); font-size: .66rem; font-weight: 600; color: var(--muted); text-align: center; padding: 0; min-width: 24px; border-radius: 6px; }
+.str th.rh { text-align: right; padding-right: 2px; white-space: nowrap; }
+.str th.rh svg { width: 26px; height: 20px; vertical-align: middle; }
+.str td { padding: 0; }
+.str td button { width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: block; padding: 0; }
+.str td button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); }
+.str .clash, .str th.clash { box-shadow: 0 0 0 2px var(--loss); }
+.str th.clash { color: var(--loss); }
+.str .pois, .str th.pois { box-shadow: 0 0 0 2px var(--ink); }
+.str th.pois { color: var(--ink); }
+.str tfoot th { padding-top: 2px; }
+.stat { font-family: var(--f-mono); font-size: .84rem; color: var(--muted); }
+.verdict { border-radius: 12px; padding: 12px 14px; background: var(--paper); display: grid; gap: 8px; }
+.verdict b { font-weight: 600; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.6rem; }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .84rem; color: var(--muted); }
+.formula { font-family: var(--f-mono); font-size: .92rem; background: var(--paper); border-radius: 10px; padding: 14px 16px; overflow-x: auto; line-height: 1.9; white-space: nowrap; }
+.formula em { font-style: normal; color: var(--hit); font-weight: 600; }
+.qs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: .9rem; }
+.qs li { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: flex; gap: 10px; align-items: center; }
+.qs li svg { width: 30px; height: 22px; flex: none; }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.layer { font-family: var(--f-display); font-weight: 800; font-size: 1.2rem; margin-top: 18px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.tbl-wrap { overflow-x: auto; }
+table.t { border-collapse: collapse; width: 100%; font-size: .9rem; }
+.t th, .t td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.t th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+.t td.num, .t th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+.t tr.hl td { font-weight: 600; }
+.t tr.hl td.num:last-child { color: var(--hit); }
+.ovl { font-family: var(--f-mono); font-size: .82rem; line-height: 1.7; overflow-x: auto; white-space: nowrap; background: var(--paper); border-radius: 10px; padding: 10px 12px; }
+.ovl b { font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips span { font-family: var(--f-mono); font-size: .8rem; border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+.chips span.me { border-color: var(--ink); font-weight: 600; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 100px 1fr 48px; }
+  .vs { grid-template-columns: 1fr; }
+  .t th, .t td { padding: 8px 5px; }
+  .hero-cal canvas { height: 260px; }
+  .rat { min-width: 30px; }
+  .rat svg { width: 30px; height: 23px; }
+  .bits span { min-width: 28px; font-size: .85rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=dc0cd822">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/poisoned-wine/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/poisoned-wine/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <h1 class="uk"><span class="kw">Отруєне вино</span> 1000 пляшок, одна з них отруєна. <span class="q sp-before">Скільки щурів потрібно?</span><span class="q sp-after">Лише 10.</span></h1>
+    
+    <p class="lead uk sp-before">Через добу в короля бенкет. У льоху 1000 пляшок вина, і рівно одна з них отруєна. Отрута діє повільно: щур, який випив хоч краплю, помирає приблизно через 20 годин, не раніше. Тож перевірити вино встигнете лише раз: усі щури п'ють одночасно, а потім ви чекаєте. Кожен щур може скуштувати скільки завгодно пляшок. Скільки щурів потрібно, щоб напевно знайти отруєну пляшку?</p>
+    <p class="lead uk sp-after">Здається, що треба по щуру на пляшку, тобто 999. Але кожен щур відповідає на одне питання «так чи ні», а 10 таких відповідей розрізняють 2¹⁰ = 1024 варіанти. Запишіть номери пляшок у двійковій системі, і мертві щури самі складуть номер отруєної.</p>
+    
+    
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="uk">10 щурів</b><span><span class="uk">досить для 1000 пляшок</span></span></div>
+      <div class="odd"><b>2¹⁰ = 1024</b><span><span class="uk">різні результати дегустації</span></span></div>
+      <div class="odd"><b>999</b><span><span class="uk">щурів, якщо по одному на пляшку</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="uk">Умова</b></a>
+      <a href="#guess"><span>1</span><b class="uk">Вгадайте</b></a>
+      <a href="#game"><span>2</span><b class="uk">Зламайте стратегію</b></a>
+      <a href="#sim"><span>3</span><b class="uk">100 000 отруєнь</b></a>
+      <a href="#why"><span>4</span><b class="uk">Чому так</b></a>
+      <a href="#more"><span>5</span><b class="uk">Масштабуємо</b></a>
+      <a href="#facts"><span>★</span><b class="uk" style="font-weight:inherit">Цікаві факти</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span></span>
+    <h2><span class="uk">Тисяча пляшок, одна доба, один раунд</span></h2>
+    <p class="lead uk">Ця задача часто трапляється у збірках головоломок для співбесід програмістів і аналітиків. За нею стоїть ціла галузь математики, групове тестування, і та сама ідея, на якій тримається будь-який цифровий код.</p>
+    
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Пляшки</span></h3>
+        <p class="uk">У льоху 1000 пляшок, пронумерованих від 1 до 1000. Рівно одна отруєна. На вигляд, запах і смак вони однакові.</p>
+        </div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Отрута</span></h3>
+        <p class="uk">Навіть крихітна крапля смертельна, але діє повільно: щур помирає приблизно через 20 годин, не раніше. До бенкету 24 години, тож другої спроби не буде.</p>
+        </div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Щури</span></h3>
+        <p class="uk">Кожному щуру можна дати по краплі з будь-якого набору пляшок: з однієї, з десяти, з п'ятисот. Щур, який не випив отрути, лишається живим.</p>
+        </div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Результат</span></h3>
+        <p class="uk">Усі щури п'ють одночасно. Через 20 годин ви бачите, хто з них живий, а хто мертвий, і за цим маєте назвати отруєну пляшку. Не вгадати, а знати напевно.</p>
+        </div></li>
+      <li><span class="n">5</span><div><h3><span class="uk">Питання</span></h3>
+        <p class="uk">Яка найменша кількість щурів гарантує, що ви знайдете отруєну пляшку?</p>
+        </div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span></span>
+        <p class="q"><span class="uk">«По щуру на пляшку: 999 щурів, а останню пляшку можна не перевіряти»</span></p>
+        <p class="uk">Дехто економить і каже «500» або «приблизно 100». Насправді досить 10 щурів, а 9 не вистачить за жодної стратегії. Хитрість у тому, що кожен щур п'є з багатьох пляшок, і важливо, яка саме компанія щурів помре.</p>
+        
+      </div>
+      <div class="card">
+        <h3><span class="uk">Припущення</span></h3>
+        <ul class="rules uk">
+          <li>Краплі крихітні, тож щур може скуштувати хоч усі пляшки, а будь-яка кількість отрути смертельна.</li>
+          <li>Щури помирають лише від отрути і всі однаково на неї реагують.</li>
+          <li>Раунд один: усі щури п'ють одночасно, і до бенкету ви вже нічого не встигнете перевірити.</li>
+          <li>Результат кожного щура тільки «живий» або «мертвий», без проміжних станів.</li>
+          <li>Потрібна гарантія: стратегія має спрацювати, хоч яка пляшка отруєна.</li>
+        </ul>
+        
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span></span>
+    <h2><span class="uk">Скільки щурів знайдуть отруєну пляшку?</span></h2>
+    <p class="lead uk">1000 пляшок, одна отруєна, один раунд дегустації. Зафіксуйте найменшу кількість щурів, яка, на вашу думку, гарантує успіх.</p>
+    
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <label for="guess-n" class="note"><span class="uk">Найменша кількість щурів</span></label>
+      <div class="val mono" id="guess-v">100</div>
+      <input type="range" id="guess-n" min="0" max="27" value="18" aria-describedby="guess-v">
+      <div class="scale"><span>1</span><span>10</span><span>100</span><span>1000</span></div>
+      <label class="ctl" for="guess-t"><span><span class="uk">Або введіть число</span></span><input type="number" id="guess-t" min="1" max="1000" step="1" value="100"></label>
+      <div class="actions"><button class="btn pri" id="guess-go"><span class="uk">Перевірити</span></button></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться розбір вашої відповіді.</p>
+      
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 2: break the strategy -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span></span>
+    <h2><span class="uk">Придумайте стратегію, а сторінка спробує її зламати</span></h2>
+    <p class="lead uk">Візьмемо льох поменше. У таблиці рядок відповідає щуру, стовпець пляшці. Клацніть клітинку, і щур питиме з цієї пляшки. Коли стратегія готова, натисніть «Зламати стратегію»: сторінка шукатиме дві пляшки, після яких помруть ті самі щури. Якщо такі є, ви їх не розрізните.</p>
+    
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="controls" style="margin:0">
+        <div class="ctl"><span><span class="uk">Пляшок</span></span><div class="presets" id="g-n"></div></div>
+        <div class="ctl"><span><span class="uk">Щурів</span></span><div class="presets" id="g-m"></div></div>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" id="g-one" type="button"><span class="uk">Щур на пляшку</span></button>
+        <button class="btn ghost" id="g-bin" type="button"><span class="uk">Двійкова</span></button>
+        <button class="btn ghost" id="g-rnd" type="button"><span class="uk">Навмання</span></button>
+        <button class="btn ghost" id="g-clr" type="button"><span class="uk">Очистити</span></button>
+      </div>
+      <div class="str-wrap"><table class="str" id="g-tbl"></table></div>
+      <p class="stat" id="g-stat"></p>
+      <div class="actions">
+        <button class="btn hit" id="g-break" type="button"><span class="uk">Зламати стратегію</span></button>
+        <button class="btn pri" id="g-pois" type="button"><span class="uk">Отруїти випадкову пляшку</span></button>
+      </div>
+    </div>
+    <div class="card" style="display:grid;gap:14px;align-content:start">
+      <h3><span class="uk">Вердикт</span></h3>
+      <div class="verdict" id="g-verdict" aria-live="polite"></div>
+      <h3><span class="uk">Дегустація</span></h3>
+      <div class="rats" id="g-rats" aria-hidden="true"></div>
+      <p class="msg" id="g-msg" aria-live="polite"></p>
+      <p class="note" id="g-hint"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span></span>
+    <h2><span class="uk">Три стратегії, 100 000 отруєнь на кожну точку</span></h2>
+    <p class="lead uk">Порівняймо, як часто стратегія називає правильну пляшку залежно від кількості щурів. Якщо кілька пляшок дали однаковий результат, ви обираєте одну з них навмання. Лінії показують точну ймовірність, точки показують частку успіхів у симуляції.</p>
+    
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="sim-n"><span><span class="uk">Пляшок</span>: <output id="sim-nv">1000</output></span><input type="range" id="sim-n" min="0" max="20" value="20"></label>
+      <button class="btn pri" id="sim-run"><span class="uk">Запустити ще раз</span></button>
+      <span class="note" id="sim-prog"></span>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="sim-cv" style="height:320px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--hit)"><b class="uk">двійкова</b></span>
+          <span style="--c:var(--ink)"><b class="uk">кожен п'є з кожної пляшки з шансом 1/2</b></span>
+          <span style="--c:var(--muted)"><b class="uk">щур на пляшку</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile" style="--c:var(--hit)"><div class="k"><span class="uk">Двійкова стратегія: 100% починаючи з</span></div><div class="v mono" id="t-bin">–</div><div class="s" id="t-bins"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Випадкова: 99% успіхів починаючи з</span></div><div class="v mono" id="t-rnd">–</div><div class="s" id="t-rnds"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Щур на пляшку: 100% лише з</span></div><div class="v mono" id="t-one">–</div><div class="s" id="t-ones"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Найбільше відхилення симуляції від точного</span></div><div class="v mono" id="t-dev">–</div><div class="s" id="t-devs"></div></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:12px"><span class="uk">Вісь щурів логарифмічна, щоб на одному графіку вмістилися і 10, і 999. Випадкову стратегію генеруємо заново після кожних N/5 отруєнь (N означає кількість пляшок): кожен щур п'є з кожної пляшки з імовірністю 1/2.</span></p>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · П'ять пояснень</span></span>
+    <h2><span class="uk">Чому 10 щурів досить, а 9 ні</span></h2>
+    <p class="lead uk">Головне тут не скільки пляшок перевірити, а скільки різних результатів можуть дати щури. Ось п'ять способів це побачити.</p>
+    
+  </div>
+  <div class="why-grid">
+    <div class="card">
+      <span class="kicker"><span class="uk">Щур як питання</span></span>
+      <h3><span class="uk">Кожен щур відповідає «так» чи «ні»</span></h3>
+      <ul class="qs" id="q-list"></ul>
+      <p class="uk">Даючи щуру краплі з певного набору пляшок, ви питаєте: «Отрута в цьому наборі?» Мертвий щур означає «так», живий означає «ні». Це одна відповідь із двох можливих, тобто один біт. 10 щурів дають 10 відповідей одночасно.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Двійковий запис</span></span>
+      <h3><span class="uk">Мертві щури складають номер пляшки</span></h3>
+      <label class="ctl" for="bn-in"><span><span class="uk">Отруєна пляшка</span></span><input type="number" id="bn-in" min="1" max="1000" value="613"></label>
+      <div class="bits" id="bn-bits"></div>
+      <div class="rats" id="bn-rats" aria-hidden="true"></div>
+      <p id="bn-txt"></p>
+      <p class="uk">Дайте щурам ваги 1, 2, 4, …, 512. Щур із вагою 2<sup>k</sup> п'є з тих пляшок, у двійковому записі номера яких у розряді 2<sup>k</sup> стоїть 1. Тоді помруть саме ті щури, чиї ваги складаються в номер отруєної пляшки.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Нижня межа</span></span>
+      <h3><span class="uk">9 щурів дають лише 512 результатів</span></h3>
+      <div class="tbl-wrap"><table class="t" id="lb-tbl"></table></div>
+      <p class="uk">Кожен щур буває живим або мертвим, тож m щурів дають щонайбільше 2<sup>m</sup> різних результатів. Якщо пляшок більше, ніж результатів, дві пляшки неминуче дадуть однаковий результат: це принцип Діріхле, «кроликів більше, ніж кліток». З 9 щурами результатів 512, а пляшок 1000, тож жодна стратегія з 9 щурів не гарантує успіху.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Марнування інформації</span></span>
+      <h3><span class="uk">Чому «щур на пляшку» такий дорогий</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">Щур на пляшку</span></span><b class="mono">1000</b><span><span class="uk">результатів використано з 2<sup>999</sup> можливих</span></span></div>
+        <div><span><span class="uk">Двійкова</span></span><b class="mono">1000</b><span><span class="uk">результатів з 1024 можливих</span></span></div>
+      </div>
+      <p class="uk">Коли кожен щур п'є лише з однієї пляшки, помирає щонайбільше один щур. 999 щурів могли б дати 2<sup>999</sup> різних результатів, а це число з 301 цифри, проте стратегія використовує лише 1000 із них: «помер щур № k» або «ніхто не помер». Майже кожен щур майже напевно скаже «ні», і його відповідь майже нічого не повідомляє.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Інформація за Шенноном</span></span>
+      <h3><span class="uk">Щоб обрати 1 з 1000, потрібно близько 10 бітів</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">Щур, що помирає з шансом 1/1000</span></span><b class="mono" id="sh-a">0,011</b><span><span class="uk">біта на щура</span></span></div>
+        <div><span><span class="uk">Щур, що помирає з шансом ≈ 1/2</span></span><b class="mono">≈ 1</b><span><span class="uk">біт на щура</span></span></div>
+      </div>
+      <p class="uk">Клод Шеннон 1948 року запропонував міряти інформацію тим, наскільки відповідь зменшує невизначеність. Відповідь на питання, де «так» і «ні» однаково ймовірні, дає рівно 1 біт, а відповідь, яку ви майже напевно передбачите, дає майже нуль. Щоб вибрати одну пляшку з 1000, потрібно log₂ 1000 ≈ 9,97 біта. У двійковій стратегії кожен щур помирає приблизно в половині випадків (від 489 до 500 пляшок з 1000), тож дає майже повний біт, і 10 щурів якраз вистачає.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span></span>
+      <h3><span class="uk">Двійковий розклад і логарифм</span></h3>
+      <div class="formula">
+        n = b<sub>10</sub>·2⁹ + b<sub>9</sub>·2⁸ + … + b<sub>2</sub>·2¹ + b<sub>1</sub>·2⁰, &nbsp; b<sub>k</sub> ∈ {0, 1} &nbsp;→&nbsp; <span class="uk">щур k помирає ⇔ b<sub>k</sub> = 1</span><br>
+        <span class="uk">Межа</span>: 2<sup>m</sup> ≥ N &nbsp;⇔&nbsp; m ≥ ⌈log₂ N⌉; &nbsp; ⌈log₂ 1000⌉ = ⌈9,966…⌉ = <em>10</em> &nbsp; (2⁹ = 512 &lt; 1000 ≤ 1024 = 2¹⁰)<br>
+        613 = 512 + 64 + 32 + 4 + 1 = 1001100101₂ &nbsp;→&nbsp; <span class="uk">помирають щури 10, 7, 6, 3, 1</span><br>
+        <span class="uk">Ніхто не помер</span> → 0000000000₂ = 0: <span class="uk">такого номера немає, тож цей результат лишається вільним</span>
+      </div>
+      <p class="uk">Двійкова стратегія не лише досягає межі, а й не потребує жодних обчислень під час дегустації: розклад щурам можна написати заздалегідь, а відповідь прочитати як число. З N пляшками досить ⌈log₂ N⌉ щурів, і менше не можна.</p>
+      
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Масштабуємо</span></span>
+    <h2><span class="uk">Більше раундів, дві отрути, щур, що помиляється</span></h2>
+    <p class="lead uk">Задача з щурами відкриває двері в три світи. У математиці вона росте в теорію кодів. У логіці стає грою «20 питань». А на практиці той самий прийом економить мільйони аналізів крові і допомагає програмістам шукати помилки.</p>
+    
+  </div>
+  <div class="esc">
+    <p class="layer"><span class="uk">Математика</span></p>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Якщо раундів кілька: щур має більше відповідей</span></h3>
+        <div class="controls" style="margin:0">
+          <label class="ctl" for="r-r"><span><span class="uk">Раундів</span>: <output id="r-rv">2</output></span><input type="range" id="r-r" min="1" max="5" value="2"></label>
+          <div class="ctl"><span><span class="uk">Пляшок</span></span><div class="presets" id="r-n"></div></div>
+        </div>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Потрібно щурів</span></span><b class="big hit mono" id="r-m" style="font-size:2.2rem">–</b></div>
+          <div><span class="k"><span class="uk">Результатів у щура</span></span><b class="big mono" id="r-b" style="font-size:2.2rem">–</b></div>
+        </div>
+        <p class="ovl" id="r-f"></p>
+        <label class="ctl" for="r-in"><span><span class="uk">Отруєна пляшка</span></span><input type="number" id="r-in" min="1" max="1000" value="613"></label>
+        <div class="rats" id="r-rats" aria-hidden="true"></div>
+        <p class="note" id="r-txt"></p>
+        <div class="actions"><button class="btn ghost" id="r-run" type="button"><span class="uk">Перевірити на 10 000 випадкових пляшках</span></button></div>
+        <p class="note" id="r-sim"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Від двійкової до трійкової</span></span>
+        <h3><span class="uk">Два раунди: 7 щурів замість 10</span></h3>
+        <p class="uk">Нехай отрута вбиває за 10 годин. Тоді за добу вміщуються два раунди: перший на початку, другий через 10 годин, а результати видно до 20-ї години. Тепер щур має три можливі долі: помер після першого раунду, помер після другого або вижив. Запишіть номер пляшки в трійковій системі: цифра 1 означає «щур п'є з цієї пляшки в першому раунді», 2 означає «у другому», 0 означає «не п'є взагалі».</p>
+        
+        <p class="uk">З m щурами результатів 3<sup>m</sup>. 3⁶ = 729 замало для 1000 пляшок, а 3⁷ = 2187 досить, тож потрібно 7 щурів. Загалом з r раундами кожен щур дає r + 1 результат, і потрібно ⌈log<sub>r+1</sub> N⌉ щурів. Щур, що загинув у першому раунді, у другому вже не п'є, але це не заважає: його цифра вже відома.</p>
+        
+        <div class="tbl-wrap"><table class="t" id="r-tbl"></table></div>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Дві отруєні пляшки: двійкова стратегія ламається</span></h3>
+        <p class="note"><span class="uk">8 пляшок, 3 щури, двійкова стратегія. Оберіть дві отруєні пляшки.</span></p>
+        <div class="bpick" id="d-pick"></div>
+        <div class="rats" id="d-rats" aria-hidden="true"></div>
+        <p class="msg" id="d-msg" aria-live="polite"></p>
+        <div class="chips" id="d-chips"></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Групове тестування</span></span>
+        <h3><span class="uk">Нижня межа: 19 щурів для 1000 пляшок</span></h3>
+        <p class="uk">Коли отруєних пляшок дві, щур помирає, якщо скуштував хоча б одну з них. Двійкові номери тут підводять: результат показує лише, на яких місцях хоча б в одного з двох номерів стоїть 1, а це не визначає пару однозначно.</p>
+        
+        <p class="uk">Пар із 1000 пляшок C(1000, 2) = 499 500. Результатів має бути не менше, ніж пар, а 2¹⁸ = 262 144 замало, тоді як 2¹⁹ = 524 288 уже досить, тож потрібно щонайменше 19 щурів. Це лише нижня межа, і досягти її непросто. Для 8 пляшок межа дорівнює 5 (28 пар, 2⁵ = 32), а повний перебір усіх стратегій показує, що насправді потрібно 6 щурів.</p>
+        
+        <p class="uk">Так задача про щурів перетворюється на групове тестування: як перевірити багато зразків малою кількістю об'єднаних тестів, коли «поганих» може бути кілька.</p>
+        
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Щур, що помиляється: код Геммінга</span></h3>
+        <p class="note"><span class="uk">16 пляшок, 7 щурів. Оберіть отруєну пляшку, а потім клацніть будь-якого щура, щоб він «збрехав»: помер без причини або вижив попри отруту.</span></p>
+        <div class="bpick" id="h-pick"></div>
+        <div class="rats" id="h-rats"></div>
+        <div class="ovl" id="h-ovl"></div>
+        <p class="msg" id="h-msg" aria-live="polite"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Коди, що виправляють помилки</span></span>
+        <h3><span class="uk">Три зайві щури ловлять будь-яку одну брехню</span></h3>
+        <p class="uk">Для 16 пляшок вистачає 4 щурів, але якщо один із них може «збрехати», результат уже не довіряєш. Наївний захист: потроїти кожного щура і вірити більшості, це 12 щурів. Річард Геммінг 1950 року знайшов кращий спосіб: 4 щури несуть номер пляшки, а ще 3 перевіряють парність різних груп. Разом 7.</p>
+        
+        <p class="uk">Чому саме 7? Кожна пляшка має «займати» 8 результатів: чесний і 7 варіантів, де збрехав один із щурів. 16 · 8 = 128 = 2⁷, тож 7 щурів досить упритул, без жодного зайвого результату. Три перевірки утворюють «синдром»: трицифрове двійкове число, яке прямо називає номер щура, що збрехав.</p>
+        
+      </div>
+    </div>
+
+    <p class="layer"><span class="uk">Логіка</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Задумайте число від 1 до 1000</span></h3>
+        <p class="note"><span class="uk">Сторінка вгадає його щонайбільше за 10 питань «так чи ні».</span></p>
+        <p class="msg" id="q-msg" aria-live="polite"></p>
+        <div class="actions">
+          <button class="btn pri" id="q-yes" type="button"><span class="uk">Так</span></button>
+          <button class="btn pri" id="q-no" type="button"><span class="uk">Ні</span></button>
+          <button class="btn ghost" id="q-new" type="button"><span class="uk">Почати знову</span></button>
+        </div>
+        <div class="chips" id="q-log"></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Відповіді як біти</span></span>
+        <h3><span class="uk">«20 питань» і двійковий пошук</span></h3>
+        <p class="uk">У грі «20 питань» один гравець задумує предмет, а інші вгадують його питаннями «так чи ні». Якщо кожне питання ділить варіанти навпіл, 20 питань розрізняють 2²⁰ = 1 048 576 предметів. Програмісти називають це двійковим пошуком.</p>
+        
+        <p class="uk">Є важлива різниця. У грі ви обираєте наступне питання, знаючи попередні відповіді. Щури ж відповідають усі одразу, і питання треба скласти заздалегідь. Дивно, але для однієї отруєної пляшки це нічого не коштує: в обох випадках потрібно 10 питань. Різниця лише в часі: 10 раундів по 20 годин проти одного.</p>
+        
+      </div>
+    </div>
+
+    <p class="layer"><span class="uk">Практика</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Об'єднані аналізи крові за Дорфманом</span></h3>
+        <label class="ctl" for="p-p"><span><span class="uk">Частка хворих</span>: <output id="p-pv">1%</output></span><input type="range" id="p-p" min="0" max="13" value="3"></label>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Найкраща група</span></span><b class="big mono" id="p-k" style="font-size:2rem">–</b></div>
+          <div><span class="k"><span class="uk">Тестів на людину</span></span><b class="big mono" id="p-c" style="font-size:2rem">–</b></div>
+          <div><span class="k"><span class="uk">Економія</span></span><b class="big hit mono" id="p-s" style="font-size:2rem">–</b></div>
+        </div>
+        <canvas id="p-cv" style="height:200px"></canvas>
+        <p class="note" id="p-txt"></p>
+        <div class="actions"><button class="btn ghost" id="p-run" type="button"><span class="uk">Симулювати 100 000 людей</span></button></div>
+        <p class="note" id="p-sim"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Від щурів до лабораторій</span></span>
+        <h3><span class="uk">Змішайте зразки, а перевіряйте лише підозрілі групи</span></h3>
+        <p class="uk">1943 року економіст і статистик Роберт Дорфман запропонував перевіряти чоловіків, яких призивали до армії США, на сифіліс так: змішати кров k людей і зробити один аналіз. Якщо він негативний, усі k здорові. Якщо позитивний, кожного з групи перевіряють окремо. Тоді на людину припадає 1/k + 1 − (1 − p)<sup>k</sup> тестів, де p означає частку хворих.</p>
+        
+        <p class="uk">Для сифілісу тоді ідею так і не застосували: за даними книжки Ду і Хвана з групового тестування, аналіз Вассермана втрачав точність, коли змішували вісім-дев'ять зразків. Зате 2020 року, під час пандемії COVID-19, Техніон і лікарня Рамбам в Ізраїлі показали, що ПЛР-тест знаходить один позитивний зразок у суміші з 32 чи 64.</p>
+        
+        <p class="uk">А програмісти щодня шукають «отруєну пляшку» командою git bisect: вона знаходить коміт, що зламав програму, двійковим пошуком. Серед 1000 комітів на це йде близько 10 кроків, тільки кожен крок залежить від попереднього, як у грі «20 питань».</p>
+        
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span></span>
+    <h2><span class="uk">Що розповісти друзям</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1943</span>
+        <h3><span class="uk">Народження групового тестування</span></h3>
+        <p class="uk">Роберт Дорфман описав ідею об'єднаних аналізів у короткій статті «The Detection of Defective Members of Large Populations» в «Annals of Mathematical Statistics». Пізніше він став професором економіки в Гарварді.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1948</span>
+        <h3><span class="uk">Слово «біт»</span></h3>
+        <p class="uk">Скорочення «bit» від «binary digit» придумав Джон Тьюкі в службовій записці Bell Labs 9 січня 1947 року. Друком слово вперше вжив Клод Шеннон 1948 року в статті «A Mathematical Theory of Communication».</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1950</span>
+        <h3><span class="uk">Код Геммінга</span></h3>
+        <p class="uk">Річард Геммінг працював у Bell Labs, і його дратував зчитувач перфокарт, який раз у раз помилявся. Так з'явився код (7,4): 4 біти даних, 3 перевірні, і будь-яка одна помилка виправляється.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">1 048 576</span></span>
+        <h3><span class="uk">Двадцять питань</span></h3>
+        <p class="uk">Гра «20 питань» відома щонайменше з XVIII століття, а в 1940-х у США стала популярною радіовікториною. Якщо кожне питання ділить варіанти навпіл, 20 питань розрізняють 2²⁰ предметів.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">64</span>
+        <h3><span class="uk">Один позитивний серед 64</span></h3>
+        <p class="uk">У березні 2020 року дослідники Техніону й лікарні Рамбам повідомили, що об'єднаний ПЛР-тест виявив коронавірус у суміші 64 зразків, серед яких позитивним був лише один. Окремо перевіряли тільки зразки з позитивних сумішей.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">≈ 10</span>
+        <h3><span class="uk">Кроків git bisect</span></h3>
+        <p class="uk">У документації git є приклад: «Bisecting: 675 revisions left to test after this (roughly 10 steps)». Це той самий двійковий пошук: кожна відповідь «добре» чи «погано» відсікає половину комітів.</p>
+        
+      </article>
+  </div>
+</section>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const solved = () => !window.mpSolved || mpSolved();
+const TAU = Math.PI * 2;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const plural = (k, one, few, many) => {
+  const a = k % 10, b = k % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+const ratsW = n => L(plural(n, 'щур', 'щури', 'щурів'), n === 1 ? 'rat' : 'rats');
+const bottlesW = n => L(plural(n, 'пляшка', 'пляшки', 'пляшок'), n === 1 ? 'bottle' : 'bottles');
+const SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+const sup = k => String(k).split('').map(d => SUP[+d]).join('');
+const listJoin = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + L(' і ', ' and ') + a[a.length - 1];
+
+/* ---------- maths ---------- */
+// smallest m with b^m >= n, in integers
+function needRats(n, b) { let m = 0, p = 1; while (p < n) { p *= b; m++; } return m; }
+// exact success when you name one bottle, picking at random among bottles with the same outcome
+const exOne = (N, m) => Math.min(1, (m + 1) / N);
+const exBin = (N, m) => Math.min(1, 2 ** m / N);
+const exRnd = (N, m) => { const q = 2 ** -m; return Math.min(1, (1 - Math.pow(1 - q, N)) / (N * q)); };
+// chance that the poisoned bottle's random code is unique, i.e. found with no guessing
+const exUniq = (N, m) => Math.pow(1 - 2 ** -m, N - 1);
+const H2 = p => p <= 0 || p >= 1 ? 0 : -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p));
+const digits = (n, b, len) => { const d = []; while (n) { d.push(n % b); n = Math.floor(n / b); } while (d.length < len) d.push(0); return d; }; // least significant first
+
+/* ---------- drawing helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+// a rat facing right, centred at (x, y), body length about s; a dead rat lies on its back
+function drawRat(ctx, x, y, s, dead, col) {
+  const sur = tok('--surface') || '#fff';
+  ctx.save(); ctx.translate(x, y); if (dead) ctx.scale(1, -1);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineCap = 'round';
+  ctx.lineWidth = Math.max(1.2, s * .05);
+  ctx.beginPath(); ctx.moveTo(-s * .42, s * .08); ctx.bezierCurveTo(-s * .8, s * .14, -s * .9, -s * .05, -s * .78, -s * .25); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-s * .18, s * .22); ctx.lineTo(-s * .2, s * .36); ctx.moveTo(s * .16, s * .22); ctx.lineTo(s * .18, s * .36); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0, 0, s * .46, s * .27, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(s * .44, -s * .06, s * .24, s * .17, -.25, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(s * .34, -s * .25, s * .12, 0, TAU); ctx.fill();
+  ctx.fillStyle = sur; ctx.strokeStyle = sur;
+  ctx.beginPath(); ctx.arc(s * .34, -s * .25, s * .055, 0, TAU); ctx.fill();
+  if (dead) { const e = s * .045, ex = s * .5, ey = -s * .1; ctx.lineWidth = Math.max(1, s * .035); ctx.beginPath(); ctx.moveTo(ex - e, ey - e); ctx.lineTo(ex + e, ey + e); ctx.moveTo(ex + e, ey - e); ctx.lineTo(ex - e, ey + e); ctx.stroke(); }
+  else { ctx.beginPath(); ctx.arc(s * .5, -s * .1, s * .04, 0, TAU); ctx.fill(); }
+  ctx.restore();
+}
+// the same rat as inline SVG
+function ratSVG(dead) {
+  const c = dead ? 'var(--muted)' : 'var(--ink)', s = 'var(--surface)';
+  const eye = dead ? '<path d="M30.6 13.2l2.4 2.4M33 13.2l-2.4 2.4" stroke="' + s + '" stroke-width="1.1"/>' : '<circle cx="31.8" cy="14.3" r="1.1" fill="' + s + '"/>';
+  const g = '<path d="M9 17.5C4.5 18.5 3 15.5 4 12" fill="none" stroke="' + c + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<path d="M15 21v4M22 21v4" stroke="' + c + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<ellipse cx="18.5" cy="16.5" rx="10" ry="6" fill="' + c + '"/><ellipse cx="28.5" cy="15" rx="5.6" ry="4" fill="' + c + '" transform="rotate(-14 28.5 15)"/>' +
+    '<circle cx="26" cy="10.6" r="2.8" fill="' + c + '"/><circle cx="26" cy="10.6" r="1.3" fill="' + s + '"/>' + eye;
+  return '<svg viewBox="0 0 38 28" aria-hidden="true">' + (dead ? '<g transform="translate(0 30) scale(1 -1)">' + g + '</g>' : g) + '</svg>';
+}
+function ratHTML(dead, label, extra = '') { return '<span class="rat' + (dead ? ' dead' : '') + extra + '">' + ratSVG(dead) + '<b>' + label + '</b></span>'; }
+function drawBottle(ctx, x, y, w, h, fill, stroke) {
+  const nw = w * .36, nh = h * .3;
+  ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(x + (w - nw) / 2, y); ctx.lineTo(x + (w + nw) / 2, y); ctx.lineTo(x + (w + nw) / 2, y + nh);
+  ctx.quadraticCurveTo(x + w, y + nh + h * .06, x + w, y + nh + h * .18);
+  ctx.lineTo(x + w, y + h - 2); ctx.quadraticCurveTo(x + w, y + h, x + w - 2, y + h);
+  ctx.lineTo(x + 2, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - 2);
+  ctx.lineTo(x, y + nh + h * .18); ctx.quadraticCurveTo(x, y + nh + h * .06, x + (w - nw) / 2, y + nh);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+}
+
+/* ---------- hero: the cellar ---------- */
+const hero = { t0: performance.now(), raf: 0, visible: true, nums: [613, 1000, 7, 512, 389, 777, 64, 950, 233, 1, 845, 300] };
+for (let i = 0; i < 24; i++) hero.nums.push(1 + Math.floor(Math.random() * 1000));
+let heroCapText = '';
+function heroDraw(now) {
+  const st = setupCanvas($('#hero-cv')); if (!st) return;
+  const { ctx, W, H } = st, ok = solved();
+  const ink = tok('--ink'), muted = tok('--muted'), hit = tok('--hit'), cell = tok('--cell'), line = tok('--line'), sur = tok('--surface') || '#fff';
+  const t = reduce() ? 2.6 : ((now || performance.now()) - hero.t0) / 1000;
+  ctx.fillStyle = sur; rr(ctx, 0, 0, W, H, 14); ctx.fill();
+  // the rack
+  const cols = W < 420 ? 10 : 14, rows = 4, x0 = 14, x1 = W - 14, y0 = 14, y1 = H * .52;
+  const bw = (x1 - x0) / cols, bh = (y1 - y0) / rows;
+  const cyc = 4.2, k = Math.floor(t / cyc), ph = t - k * cyc;
+  const n = hero.nums[k % hero.nums.length], slot = (n * 7) % (cols * rows);
+  const glint = Math.floor(t * 5) % (cols * rows);
+  for (let r = 0; r < rows; r++) {
+    const sy = y0 + (r + 1) * bh;
+    ctx.strokeStyle = muted; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0 - 6, sy + 1); ctx.lineTo(x1 + 6, sy + 1); ctx.stroke();
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c, w = bw * .5, h = bh * .8, x = x0 + c * bw + (bw - w) / 2, y = sy - h;
+      let fill = cell;
+      if (ok && i === slot) fill = hit;
+      else if (!ok && !reduce() && i === glint) fill = line;
+      drawBottle(ctx, x, y, w, h, fill, ink);
+    }
+  }
+  ctx.font = '600 11px ' + tok('--f-mono'); ctx.fillStyle = muted; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  ctx.fillText(L('… і ще ', '… and ') + fmt(1000 - cols * rows) + L(' пляшок', ' more bottles'), x1, y1 + 8);
+  // the rats
+  const floorY = H * .86;
+  ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(8, floorY + 16); ctx.lineTo(W - 8, floorY + 16); ctx.stroke();
+  if (!ok) {
+    const s = Math.min(70, W * .16);
+    drawRat(ctx, W / 2 - s * .1, floorY - 6, s, false, ink);
+    ctx.font = '800 ' + Math.round(s * .5) + 'px ' + tok('--f-display'); ctx.fillStyle = ink; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('× ?', W / 2 + s * .78, floorY - 8);
+    const cap = L('Одна з 1000 пляшок отруєна. Щури п\'ють одночасно, результат видно через 20 годин. Скільки щурів потрібно, щоб напевно знайти отруту?', 'One of 1,000 bottles is poisoned. The rats drink at the same time, and the result shows 20 hours later. How many rats do you need to find the poison for sure?');
+    if (cap !== heroCapText) { heroCapText = cap; $('#hero-cap').textContent = cap; }
+    return;
+  }
+  const slotW = (W - 24) / 10, s = Math.min(40, slotW * .78);
+  const bx = x0 + (slot % cols) * bw + bw / 2, by = y0 + (Math.floor(slot / cols) + 1) * bh - bh * .4;
+  const dying = [];
+  for (let j = 0; j < 10; j++) {
+    const kk = 9 - j, bit = (n >> kk) & 1, cx = 12 + slotW * (j + .5), dead = bit && ph > 1.7;
+    if (bit) dying.push(kk);
+    if (bit && ph > .2) {
+      const a = Math.min(1, (ph - .2) / .9);
+      ctx.strokeStyle = hit; ctx.globalAlpha = dead ? .35 : .8; ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.moveTo(cx, floorY - s * .35); ctx.lineTo(cx + (bx - cx) * a, floorY - s * .35 + (by - floorY + s * .35) * a); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    drawRat(ctx, cx, floorY - 2, s, dead, dead ? muted : ink);
+    ctx.font = (dead ? '700 ' : '400 ') + (W < 420 ? 9 : 10) + 'px ' + tok('--f-mono'); ctx.fillStyle = dead ? ink : muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(String(2 ** kk), cx, floorY + 20);
+  }
+  // the poisoned bottle's tag
+  ctx.font = '700 12px ' + tok('--f-mono'); const tw = ctx.measureText(String(n)).width + 10;
+  const tx = Math.min(W - tw - 4, Math.max(4, bx - tw / 2)), ty = Math.max(2, by - bh * .62 - 18);
+  ctx.fillStyle = hit; rr(ctx, tx, ty, tw, 17, 5); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(n), tx + tw / 2, ty + 9);
+  const ws = dying.map(kk => fmt(2 ** kk));
+  const cap = ph > 1.7
+    ? (ws.length === 1 ? L('Отруєна пляшка ' + n + '. Помер лише щур із вагою ' + ws[0] + '.', 'Poisoned bottle ' + n + '. Only the rat with weight ' + ws[0] + ' died.')
+      : L('Отруєна пляшка ' + n + '. Померли щури з вагами ' + ws.join(' + ') + ' = ' + n + '.', 'Poisoned bottle ' + n + '. The rats with weights ' + ws.join(' + ') + ' = ' + n + ' died.'))
+    : L('Щур із вагою 2ᵏ п\'є з пляшок, у двійковому номері яких на k-му місці стоїть 1. Лінії ведуть до отруєної пляшки.', 'The rat with weight 2ᵏ drinks from bottles with a 1 in place k of their binary number. Lines lead to the poisoned bottle.');
+  if (cap !== heroCapText) { heroCapText = cap; $('#hero-cap').textContent = cap; }
+}
+function heroLoop(now) { heroDraw(now); if (!reduce() && hero.visible) hero.raf = requestAnimationFrame(heroLoop); else hero.raf = 0; }
+function heroStart() {
+  if (hero.raf) cancelAnimationFrame(hero.raf);
+  hero.raf = 0;
+  if (reduce()) { heroDraw(); return; }
+  hero.raf = requestAnimationFrame(heroLoop);
+}
+if ('IntersectionObserver' in window) new IntersectionObserver(es => {
+  hero.visible = es[0].isIntersecting;
+  if (hero.visible && !hero.raf && !reduce()) hero.raf = requestAnimationFrame(heroLoop);
+}).observe($('#hero-cv'));
+
+/* ---------- round 1: guess ---------- */
+// 1, 10, 100 and 1000 sit at equal steps, matching the scale under the slider
+const GV = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100, 150, 200, 250, 300, 400, 500, 700, 999, 1000];
+const guessIn = $('#guess-n'), guessT = $('#guess-t');
+guessIn.max = GV.length - 1; guessIn.value = GV.indexOf(100);
+let guessed = null;
+const guessVal = () => Math.max(1, Math.min(1000, Math.round(+guessT.value) || 1));
+guessIn.addEventListener('input', () => { const v = GV[+guessIn.value]; guessT.value = v; $('#guess-v').textContent = fmt(v); });
+guessT.addEventListener('input', () => {
+  const v = guessVal(); let bi = 0;
+  GV.forEach((g, i) => { if (Math.abs(Math.log(g) - Math.log(v)) < Math.abs(Math.log(GV[bi]) - Math.log(v))) bi = i; });
+  guessIn.value = bi; $('#guess-v').textContent = fmt(v);
+});
+$('#guess-go').addEventListener('click', () => { guessed = guessVal(); guessText(); window.mpSolve && mpSolve(); });
+function guessText() {
+  if (guessed === null) return;
+  const g = guessed;
+  let verdict;
+  if (g < 10) verdict = L(g + ' ' + ratsW(g) + (g === 1 ? ' дає' : ' дають') + ' щонайбільше 2' + sup(g) + ' = ' + fmt(2 ** g) + ' ' + plural(2 ** g, 'різний результат', 'різні результати', 'різних результатів') + ', а пляшок 1000. Хоч як розподіляйте краплі, якісь дві пляшки дадуть однаковий результат, і ви їх не розрізните. Потрібно 10.',
+    g + ' ' + ratsW(g) + (g === 1 ? ' gives' : ' give') + ' at most 2' + sup(g) + ' = ' + fmt(2 ** g) + ' different outcomes, and there are 1,000 bottles. However you hand out the drops, some two bottles give the same outcome, and you cannot tell them apart. You need 10.');
+  else if (g === 10) verdict = L('Влучно. 10 щурів дають 1024 різні результати, і цього досить для 1000 пляшок.', 'Spot on. 10 rats give 1,024 different outcomes, which is enough for 1,000 bottles.');
+  else if (g <= 20) verdict = L('Близько, але можна обійтися 10 щурами: вони дають 1024 різні результати, а пляшок лише 1000.', 'Close, but 10 rats will do: they give 1,024 different outcomes, and there are only 1,000 bottles.');
+  else if (g < 500) verdict = L('Значно більше, ніж треба. Досить 10 щурів, якщо кожен п\'є з багатьох пляшок.', 'Far more than needed. 10 rats are enough if each one drinks from many bottles.');
+  else verdict = L('Так відповідає більшість: «по щуру на пляшку». Але щур може пити з багатьох пляшок, і тоді досить 10.', 'That is what most people say: "one rat per bottle". But a rat can drink from many bottles, and then 10 are enough.');
+  const lg = v => Math.log10(v) / 3;
+  const rows = [[L('Ваша відповідь', 'Your answer'), g, 'var(--day)'], [L('Інтуїція «щур на пляшку»', 'Intuition "one per bottle"'), 999, 'var(--muted)'], [L('Насправді', 'Actually'), 10, 'var(--hit)']];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">' + L('10 щурів', '10 rats') + '</p>' +
+    '<p>' + verdict + '</p><div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + Math.max(2, 100 * lg(r[1])) + '%"></i></div><span class="mono">' + fmt(r[1]) + '</span></div>').join('') + '</div>' +
+    '<p class="note">' + L('Смуги в логарифмічному масштабі: 1, 10, 100, 1000 стоять на однакових відстанях.', 'Bars on a log scale: 1, 10, 100, 1000 are equally spaced.') + '</p>' +
+    '<div class="tbl-wrap"><table class="t"><thead><tr><th>' + L('Щурів', 'Rats') + '</th><th class="num">' + L('Різних результатів', 'Different outcomes') + '</th><th class="num">' + L('Вистачить на 1000?', 'Enough for 1,000?') + '</th></tr></thead><tbody>' +
+    [8, 9, 10, 11].map(m => '<tr' + (m === 10 ? ' class="hl"' : '') + '><td class="num" style="text-align:left">' + m + '</td><td class="num">2' + sup(m) + ' = ' + fmt(2 ** m) + '</td><td class="num">' + (2 ** m >= 1000 ? L('так', 'yes') : L('ні', 'no')) + '</td></tr>').join('') + '</tbody></table></div>' +
+    '<p>' + L('Ідея: пронумеруйте пляшки у двійковій системі, а щур k нехай п\'є з тих пляшок, у яких k-та двійкова цифра дорівнює 1. Мертві щури складуть номер отруєної пляшки. Спробуйте це в раунді 2.', 'The idea: number the bottles in binary, and let rat k drink from the bottles whose k-th binary digit is 1. The dead rats spell out the poisoned bottle\'s number. Try it in round 2.') + '</p>';
+}
+
+/* ---------- round 2: design a strategy, the page breaks it ---------- */
+const NS = [8, 16, 32], MS = [1, 2, 3, 4, 5, 6, 7, 8];
+const g = { N: 16, m: 4, mask: [], preset: 'one', res: null, pois: null };
+function gPreset(p) {
+  g.preset = p; const full = (1 << g.m) - 1;
+  g.mask = Array.from({ length: g.N }, (_, b) => {
+    if (p === 'one') return b < g.m ? 1 << b : 0;
+    if (p === 'bin') return (b + 1) & full;
+    if (p === 'rnd') return Math.floor(Math.random() * (full + 1));
+    return 0;
+  });
+  g.res = null; g.pois = null;
+}
+const isBinary = () => g.N <= 2 ** g.m && g.mask.every((v, b) => v === ((b + 1) & ((1 << g.m) - 1)));
+function gClasses() { const cl = new Map(); g.mask.forEach((v, b) => { if (!cl.has(v)) cl.set(v, []); cl.get(v).push(b); }); return cl; }
+function gBreak() {
+  const cl = gClasses(), groups = [...cl.values()].filter(a => a.length > 1);
+  if (!groups.length) { g.res = { ok: true }; return; }
+  groups.sort((a, b) => b.length - a.length || a[0] - b[0]);
+  g.res = { ok: false, pair: groups[0].slice(0, 2), groups: groups.length, worst: groups[0].length, k: cl.size };
+}
+const ratNames = mask => { const a = []; for (let r = 0; r < g.m; r++) if (mask >> r & 1) a.push(r + 1); return a; };
+function gText() {
+  $('#g-n').innerHTML = NS.map(n => '<button type="button" data-n="' + n + '" aria-pressed="' + (n === g.N) + '">' + n + '</button>').join('');
+  $('#g-m').innerHTML = MS.map(m => '<button type="button" data-m="' + m + '" aria-pressed="' + (m === g.m) + '">' + m + '</button>').join('');
+  const clash = g.res && !g.res.ok ? g.res.pair : [], pb = g.pois ? g.pois.b : -1;
+  const colCls = b => clash.includes(b) ? 'clash' : b === pb ? 'pois' : '';
+  let h = '<thead><tr><th class="rh"></th>' + g.mask.map((_, b) => '<th class="' + colCls(b) + '">' + (b + 1) + '</th>').join('') + '</tr></thead><tbody>';
+  for (let r = 0; r < g.m; r++) {
+    h += '<tr><th class="rh">' + ratSVG(false) + (r + 1) + '</th>' + g.mask.map((v, b) => {
+      const on = (v >> r) & 1;
+      return '<td class="' + colCls(b) + '"><button type="button" data-r="' + r + '" data-b="' + b + '" aria-pressed="' + !!on + '" aria-label="' + L('Щур ' + (r + 1) + ', пляшка ' + (b + 1), 'Rat ' + (r + 1) + ', bottle ' + (b + 1)) + '"></button></td>';
+    }).join('') + '</tr>';
+  }
+  $('#g-tbl').innerHTML = h + '</tbody>';
+  const k = gClasses().size;
+  $('#g-stat').textContent = L('Різних результатів у вашій стратегії: ' + k + ' на ' + g.N + ' ' + bottlesW(g.N) + '.', 'Different outcomes in your strategy: ' + k + ' for ' + g.N + ' bottles.') +
+    (solved() ? L(' Щурів ' + g.m + ', тож можливих результатів ' + (2 ** g.m) + '.', ' With ' + g.m + ' ' + ratsW(g.m) + ' there are ' + (2 ** g.m) + ' possible outcomes.') : '');
+  // verdict
+  let v;
+  if (!g.res) v = '<p class="note">' + L('Натисніть «Зламати стратегію», і сторінка пошукає дві пляшки, які ваша стратегія не розрізняє.', 'Press "Break my strategy" and the page will look for two bottles your strategy cannot tell apart.') + '</p>';
+  else if (g.res.ok) v = '<p><b>' + L('Зламати не вдалося.', 'Could not break it.') + '</b> ' + L('Кожна з ' + g.N + ' пляшок дає свій результат, тож за мертвими щурами ви завжди назвете отруєну. Щурів: ' + g.m + '.', 'Each of the ' + g.N + ' bottles gives its own outcome, so the dead rats always name the poisoned one. Rats used: ' + g.m + '.') + '</p>' +
+    (g.m > needRats(g.N, 2) && solved() ? '<p class="note">' + L('А чи можна обійтися меншою кількістю? Для ' + g.N + ' пляшок потрібно лише ' + needRats(g.N, 2) + ' ' + ratsW(needRats(g.N, 2)) + '.', 'Could you do with fewer? For ' + g.N + ' bottles ' + needRats(g.N, 2) + ' rats are enough.') + '</p>' : '');
+  else {
+    const [a, b] = g.res.pair, rs = ratNames(g.mask[a]);
+    const who = rs.length ? L('помруть щури ' + listJoin(rs), 'rats ' + listJoin(rs) + ' die') : L('не помре жоден щур', 'no rat dies');
+    v = '<p><span class="bad">' + L('Зламано.', 'Broken.') + '</span> ' + L('Пляшки ' + (a + 1) + ' і ' + (b + 1) + ' дають однаковий результат: в обох випадках ' + who + '. Якщо отруєна одна з них, ви не знатимете яка.', 'Bottles ' + (a + 1) + ' and ' + (b + 1) + ' give the same outcome: either way, ' + who + '. If one of them is poisoned, you will not know which.') + '</p>' +
+      '<p class="note">' + L('Груп пляшок з однаковим результатом: ' + g.res.groups + '. Найбільша містить ' + g.res.worst + ' ' + bottlesW(g.res.worst) + '.', 'Groups of bottles sharing an outcome: ' + g.res.groups + '. The largest holds ' + g.res.worst + ' bottles.') + '</p>' +
+      (solved() && g.N > 2 ** g.m ? '<p class="note">' + L('З ' + g.m + ' ' + (g.m === 1 ? 'щуром' : 'щурами') + ' можливих результатів лише ' + 2 ** g.m + ', а пляшок ' + g.N + ', тож тут програє будь-яка стратегія.', 'With ' + g.m + ' ' + ratsW(g.m) + ' there are only ' + 2 ** g.m + ' possible outcomes for ' + g.N + ' bottles, so every strategy loses here.') + '</p>' : '');
+  }
+  $('#g-verdict').innerHTML = v;
+  // the tasting
+  if (!g.pois) {
+    $('#g-rats').innerHTML = Array.from({ length: g.m }, (_, r) => ratHTML(false, r + 1)).join('');
+    $('#g-msg').textContent = L('Натисніть «Отруїти випадкову пляшку», щоб побачити, які щури помруть.', 'Press "Poison a random bottle" to see which rats die.');
+  } else {
+    const { b } = g.pois, d = g.mask[b], cand = g.mask.map((v, i) => v === d ? i : -1).filter(i => i >= 0);
+    $('#g-rats').innerHTML = Array.from({ length: g.m }, (_, r) => ratHTML((d >> r) & 1, r + 1)).join('');
+    const rs = ratNames(d);
+    let m = L('Отруєна пляшка ' + (b + 1) + '. ', 'Bottle ' + (b + 1) + ' is poisoned. ') + (rs.length ? L((rs.length === 1 ? 'Помер щур ' : 'Померли щури ') + listJoin(rs) + '. ', (rs.length === 1 ? 'Rat ' : 'Rats ') + listJoin(rs) + ' died. ') : L('Жоден щур не помер. ', 'No rat died. '));
+    if (cand.length === 1) {
+      if (isBinary()) {
+        const ws = rs.map(r => 2 ** (r - 1));
+        m += rs.length > 1 ? L('Додайте ваги мертвих щурів: ', 'Add up the dead rats\' weights: ') + ws.join(' + ') + ' = <b>' + (b + 1) + '</b>.'
+          : rs.length ? L('Вага мертвого щура ' + ws[0] + ', отже, отруєна пляшка <b>' + (b + 1) + '</b>.', 'The dead rat\'s weight is ' + ws[0] + ', so the poisoned bottle is <b>' + (b + 1) + '</b>.') : L('Нульова сума означає останню пляшку, <b>' + g.N + '</b>.', 'A sum of zero means the last bottle, <b>' + g.N + '</b>.');
+      } else m += L('Такий результат дає лише пляшка ' + (b + 1) + ': знайдено.', 'Only bottle ' + (b + 1) + ' gives this outcome: found.');
+    } else m += L('Такий самий результат дають пляшки ' + listJoin(cand.map(i => i + 1)) + '. Доведеться вгадувати, шанс 1/' + cand.length + '.', 'Bottles ' + listJoin(cand.map(i => i + 1)) + ' give the same outcome. You would have to guess, with chance 1/' + cand.length + '.');
+    $('#g-msg').innerHTML = m;
+  }
+  $('#g-hint').textContent = isBinary()
+    ? L('Двійкова стратегія: щур r п\'є з пляшок, у двійковому номері яких на r-му місці справа стоїть 1. Ваги щурів 1, 2, 4, 8, …', 'Binary strategy: rat r drinks from bottles with a 1 in place r from the right of their binary number. The rats\' weights are 1, 2, 4, 8, …') +
+      (g.N === 2 ** g.m ? L(' Останні ' + g.m + ' ' + plural(g.m, 'двійкова цифра', 'двійкові цифри', 'двійкових цифр') + ' номера ' + g.N + ' нульові, тож якщо ніхто не помер, отруєна пляшка ' + g.N + '.', ' The last ' + g.m + ' binary digits of ' + g.N + ' are all zeros, so if nobody dies, bottle ' + g.N + ' is poisoned.') : '')
+    : L('Порада: щоб пляшки розрізнялися, кожен стовпець має бути не схожим на жоден інший. Зокрема, порожнім може бути лише один стовпець.', 'Tip: to tell bottles apart, every column must differ from every other one. In particular, only one column may be empty.');
+}
+$('#g-tbl').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  g.mask[+b.dataset.b] ^= 1 << +b.dataset.r; g.preset = 'custom'; g.res = null; g.pois = null; gText();
+});
+$('#g-n').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; g.N = +b.dataset.n; gPreset(g.preset === 'custom' ? 'one' : g.preset); gText(); });
+$('#g-m').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return; g.m = +b.dataset.m;
+  if (g.preset === 'custom') { const full = (1 << g.m) - 1; g.mask = g.mask.map(v => v & full); g.res = null; g.pois = null; } else gPreset(g.preset);
+  gText();
+});
+$('#g-one').addEventListener('click', () => { gPreset('one'); gText(); });
+$('#g-bin').addEventListener('click', () => { gPreset('bin'); gText(); });
+$('#g-rnd').addEventListener('click', () => { gPreset('rnd'); gText(); });
+$('#g-clr').addEventListener('click', () => { gPreset('clr'); gText(); });
+$('#g-break').addEventListener('click', () => { gBreak(); g.pois = null; gText(); });
+$('#g-pois').addEventListener('click', () => { g.pois = { b: Math.floor(Math.random() * g.N) }; gText(); });
+
+/* ---------- round 3: three strategies, simulated ---------- */
+const SIM_NS = [10, 12, 16, 20, 25, 32, 40, 50, 64, 80, 100, 128, 150, 200, 256, 300, 400, 500, 600, 800, 1000];
+const SIM_R = 100000, RMAX = 40;
+let simN = 1000, sim = null, simGen = 0, simTimer = 0;
+const xMax = N => Math.max(N - 1, RMAX);
+function simPoints(N) {
+  const base = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 24, 28, 32, 40, 60, 100, 150, 250, 400, 600, 800, N - 2, N - 1];
+  const pts = [...new Set(base)].filter(m => m >= 1 && m <= xMax(N)).sort((a, b) => a - b);
+  const jobs = [];
+  pts.forEach(m => { if (m <= RMAX) { jobs.push(['bin', m]); jobs.push(['rnd', m]); } jobs.push(['one', m]); });
+  return jobs;
+}
+// a random code of m bits, exact up to 52 bits
+const rcode = m => m <= 26 ? Math.floor(Math.random() * 2 ** m) : Math.floor(Math.random() * 2 ** 26) + 2 ** 26 * Math.floor(Math.random() * 2 ** (m - 26));
+function codesFor(strat, N, m) {
+  const c = new Float64Array(N);
+  for (let b = 0; b < N; b++) c[b] = strat === 'one' ? (b < m ? b + 1 : 0) : strat === 'bin' ? (m >= 31 ? b + 1 : (b + 1) % 2 ** m) : rcode(m);
+  return c;
+}
+// R poisonings: the rats show the poisoned bottle's code, you pick at random among the bottles with that code
+function simJob(strat, N, m, R) {
+  let ok = 0;
+  const per = strat === 'rnd' ? Math.max(1, Math.round(N / 5)) : R;
+  for (let done = 0; done < R; done += per) {
+    const c = codesFor(strat, N, m), cnt = new Map();
+    for (let b = 0; b < N; b++) cnt.set(c[b], (cnt.get(c[b]) || 0) + 1);
+    for (let t = 0; t < per; t++) { const b = Math.floor(Math.random() * N), k = cnt.get(c[b]); if (k === 1 || Math.random() * k < 1) ok++; }
+  }
+  return ok / R;
+}
+function simRun() {
+  const gen = ++simGen, N = simN, jobs = simPoints(N);
+  sim = { N, res: { one: [], bin: [], rnd: [] }, done: 0, total: jobs.length };
+  $('#sim-run').disabled = true;
+  let j = 0;
+  (function chunk() {
+    if (gen !== simGen) return;
+    const t0 = performance.now();
+    while (j < jobs.length && performance.now() - t0 < 35) {
+      const [s, m] = jobs[j++];
+      sim.res[s].push([m, simJob(s, N, m, SIM_R)]);
+      sim.done = j;
+    }
+    simDraw(); simText();
+    if (j < jobs.length) setTimeout(chunk, 0); else $('#sim-run').disabled = false;
+  })();
+}
+function simDraw() {
+  const st = setupCanvas($('#sim-cv')); if (!st) return;
+  const { ctx, W, H } = st, N = simN, XM = xMax(N), l = 40, r = 12, t = 14, b = 30;
+  const x = m => l + Math.log(m) / Math.log(XM) * (W - l - r), y = p => t + (1 - p) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .25, .5, .75, 1].forEach(p => { ctx.beginPath(); ctx.moveTo(l, y(p)); ctx.lineTo(W - r, y(p)); ctx.stroke(); ctx.fillText(Math.round(p * 100) + '%', l - 6, y(p)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].filter(v => v <= XM).forEach(v => { ctx.beginPath(); ctx.moveTo(x(v), H - b); ctx.lineTo(x(v), H - b + 4); ctx.stroke(); ctx.fillText(v, x(v), H - b + 7); });
+  ctx.textAlign = 'right'; ctx.fillText(L('щурів', 'rats'), W - r, H - b - 14);
+  const cols = { bin: tok('--hit'), rnd: tok('--ink'), one: tok('--muted') }, F = { bin: exBin, rnd: exRnd, one: exOne };
+  ['one', 'rnd', 'bin'].forEach(s => {
+    const top = s === 'one' ? XM : Math.min(RMAX, XM);
+    ctx.strokeStyle = cols[s]; ctx.lineWidth = s === 'bin' ? 2.5 : 2; if (s === 'rnd') ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    for (let m = 1; m <= top; m += m < 60 ? 1 : Math.ceil(m / 60)) { const px = x(m), py = y(F[s](N, m)); m === 1 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); }
+    ctx.lineTo(x(top), y(F[s](N, top)));
+    ctx.stroke(); ctx.setLineDash([]);
+  });
+  if (sim && sim.N === N) ['one', 'rnd', 'bin'].forEach(s => sim.res[s].forEach(([m, p]) => {
+    ctx.fillStyle = cols[s]; ctx.beginPath(); ctx.arc(x(m), y(p), s === 'bin' ? 4 : 3.4, 0, TAU); ctx.fill();
+  }));
+  const mb = needRats(N, 2);
+  ctx.strokeStyle = cols.bin; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x(mb), t); ctx.lineTo(x(mb), H - b); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = cols.bin; ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText('m = ' + mb, x(mb) + 5, t + 2);
+}
+function simText() {
+  const N = simN, mb = needRats(N, 2);
+  let m99 = 1; while (exRnd(N, m99) < .99) m99++;
+  $('#t-bin').textContent = L(mb + ' щурів', mb + ' rats');
+  $('#t-bins').textContent = L('2' + sup(mb) + ' = ' + fmt(2 ** mb) + ' ≥ ' + fmt(N) + ' ' + bottlesW(N), '2' + sup(mb) + ' = ' + fmt(2 ** mb) + ' ≥ ' + fmt(N) + ' bottles');
+  $('#t-rnd').textContent = L(m99 + ' щурів', m99 + ' rats');
+  $('#t-rnds').textContent = L('з ' + mb + ' щурами: ' + pct(exRnd(N, mb)) + ', а без вгадування лише ' + pct(exUniq(N, mb)), 'with ' + mb + ' rats: ' + pct(exRnd(N, mb)) + ', and only ' + pct(exUniq(N, mb)) + ' without guessing');
+  $('#t-one').textContent = L((N - 1) + ' щурів', (N - 1) + ' rats');
+  $('#t-ones').textContent = L('з ' + mb + ' щурами: ' + pct(exOne(N, mb)), 'with ' + mb + ' rats: ' + pct(exOne(N, mb)));
+  let dev = 0, at = '';
+  if (sim && sim.N === N) ['one', 'rnd', 'bin'].forEach(s => sim.res[s].forEach(([m, p]) => { const F = s === 'one' ? exOne : s === 'bin' ? exBin : exRnd, d = Math.abs(p - F(N, m)); if (d > dev) { dev = d; at = m; } }));
+  $('#t-dev').textContent = sim && sim.done ? dec((100 * dev).toFixed(2)) + L(' в. п.', ' pp') : '–';
+  $('#t-devs').textContent = sim && sim.done ? L('при m = ' + at + '. Для 100 000 отруєнь типова похибка однієї точки близько 0,15 в. п., а найбільша з усіх точок зазвичай не перевищує 0,5 в. п.', 'at m = ' + at + '. With 100,000 poisonings a single point is typically off by about 0.15 pp, and the largest gap over all points rarely exceeds 0.5 pp.') : '';
+  $('#sim-prog').textContent = sim && sim.done < sim.total ? L('Рахуємо: ' + sim.done + ' з ' + sim.total + ' точок…', 'Working: ' + sim.done + ' of ' + sim.total + ' points…') : sim ? L('Готово: ' + fmt(sim.total * SIM_R) + ' отруєнь.', 'Done: ' + fmt(sim.total * SIM_R) + ' poisonings.') : '';
+}
+$('#sim-n').max = SIM_NS.length - 1;
+$('#sim-n').addEventListener('input', () => { simN = SIM_NS[+$('#sim-n').value]; $('#sim-nv').textContent = fmt(simN); simGen++; sim = null; simDraw(); simText(); clearTimeout(simTimer); simTimer = setTimeout(simRun, 250); });
+$('#sim-run').addEventListener('click', simRun);
+
+/* ---------- round 4: rats as questions ---------- */
+function qText() {
+  const qs = [[L('Щур 1 п\'є з пляшок 1, 3, 5, 7, …', 'Rat 1 drinks from bottles 1, 3, 5, 7, …'), L('«Номер непарний?»', '"Is the number odd?"')],
+    [L('Щур 2 п\'є з 2, 3, 6, 7, 10, 11, …', 'Rat 2 drinks from 2, 3, 6, 7, 10, 11, …'), L('«Друга двійкова цифра 1?»', '"Is the second binary digit 1?"')],
+    [L('Щур 10 п\'є з 512–1000', 'Rat 10 drinks from 512–1000'), L('«Номер не менший за 512?»', '"Is the number at least 512?"')]];
+  $('#q-list').innerHTML = qs.map(q => '<li>' + ratSVG(false) + '<span>' + q[0] + '<br><b>' + q[1] + '</b></span></li>').join('');
+}
+// binary digits of a bottle number
+function bnText() {
+  const n = Math.max(1, Math.min(1000, Math.round(+$('#bn-in').value) || 1));
+  const d = digits(n, 2, 10);
+  $('#bn-bits').innerHTML = d.slice().reverse().map((v, i) => '<span class="' + (v ? 'on' : '') + '">' + v + '<small>' + 2 ** (9 - i) + '</small></span>').join('');
+  $('#bn-rats').innerHTML = d.slice().reverse().map((v, i) => ratHTML(v, 10 - i)).join('');
+  const dead = []; d.forEach((v, k) => { if (v) dead.push(k); });
+  const dn = dead.slice().reverse().map(k => k + 1), al = 10 - dead.length;
+  $('#bn-txt').innerHTML = L('Пляшка ' + n + ' = ' + dead.slice().reverse().map(k => 2 ** k).join(' + ') + '. ' + (dn.length === 1 ? 'Помирає лише щур ' + dn[0] : 'Помирають щури ' + listJoin(dn)) + ', ' + (al === 1 ? 'а ще один лишається живим.' : 'інші ' + al + ' лишаються живими.'),
+    'Bottle ' + n + ' = ' + dead.slice().reverse().map(k => 2 ** k).join(' + ') + '. ' + (dn.length === 1 ? 'Only rat ' + dn[0] + ' dies' : 'Rats ' + listJoin(dn) + ' die') + ', ' + (al === 1 ? 'and the other one stays alive.' : 'the other ' + al + ' stay alive.'));
+}
+$('#bn-in').addEventListener('input', bnText);
+function lbText() {
+  $('#lb-tbl').innerHTML = '<thead><tr><th>' + L('Щурів', 'Rats') + ' m</th><th class="num">2<sup>m</sup></th><th class="num">' + L('Пляшок, які можна розрізнити', 'Bottles you can tell apart') + '</th></tr></thead><tbody>' +
+    [1, 2, 3, 8, 9, 10].map(m => '<tr' + (m === 10 ? ' class="hl"' : '') + '><td class="num" style="text-align:left">' + m + '</td><td class="num">' + fmt(2 ** m) + '</td><td class="num">' + (m === 10 ? L('1024 ≥ 1000', '1,024 ≥ 1,000') : L('до ', 'up to ') + fmt(2 ** m)) + '</td></tr>').join('') + '</tbody>';
+  $('#sh-a').textContent = dec(H2(1 / 1000).toFixed(3));
+}
+
+/* ---------- round 5: rounds ---------- */
+const RN = [100, 1000, 10000, 1000000];
+let rN = 1000;
+function rText() {
+  const r = +$('#r-r').value, b = r + 1, m = needRats(rN, b);
+  $('#r-rv').textContent = r;
+  $('#r-n').innerHTML = RN.map(n => '<button type="button" data-n="' + n + '" aria-pressed="' + (n === rN) + '">' + fmt(n) + '</button>').join('');
+  $('#r-m').textContent = m; $('#r-b').textContent = b;
+  $('#r-f').innerHTML = b + sup(m - 1) + ' = ' + fmt(b ** (m - 1)) + ' &lt; ' + fmt(rN) + ' ≤ ' + fmt(b ** m) + ' = ' + b + sup(m) + ' &nbsp;→&nbsp; <b>' + m + ' ' + ratsW(m) + '</b>';
+  const inp = $('#r-in'); inp.max = rN;
+  const n = Math.max(1, Math.min(rN, Math.round(+inp.value) || 1));
+  const d = digits(n, b, m);
+  $('#r-rats').innerHTML = d.slice().reverse().map((v, i) => ratHTML(v > 0, v ? L('р.', 'r.') + v : '–')).join('');
+  $('#r-txt').textContent = L('Пляшка ' + n + ' у системі з основою ' + b + ': ' + d.slice().reverse().join('') + '. Під кожним щуром раунд, після якого він помре (– означає, що виживе). Цифри, прочитані зліва направо, дають номер пляшки.',
+    'Bottle ' + n + ' in base ' + b + ': ' + d.slice().reverse().join('') + '. Under each rat is the round after which it dies (– means it survives). Read left to right, the digits give the bottle number.');
+  $('#r-tbl').innerHTML = '<thead><tr><th>' + L('Раундів', 'Rounds') + '</th><th class="num">' + L('Результатів у щура', 'Outcomes per rat') + '</th><th class="num">' + L('Щурів на ', 'Rats for ') + fmt(rN) + '</th></tr></thead><tbody>' +
+    [1, 2, 3, 4, 5].map(k => '<tr' + (k === r ? ' class="hl"' : '') + '><td class="num" style="text-align:left">' + k + '</td><td class="num">' + (k + 1) + '</td><td class="num">' + needRats(rN, k + 1) + '</td></tr>').join('') + '</tbody>';
+}
+function rRun() {
+  const r = +$('#r-r').value, b = r + 1, m = needRats(rN, b), R = 10000;
+  let ok = 0;
+  for (let i = 0; i < R; i++) {
+    const n = 1 + Math.floor(Math.random() * rN);
+    // each rat k drinks bottle n in round d_k (0 = never); it dies after the first round in which it drank poison
+    const fate = digits(n, b, m);
+    let back = 0; for (let k = m - 1; k >= 0; k--) back = back * b + fate[k];
+    if (back === n) ok++;
+  }
+  $('#r-sim').textContent = L('Із 10 000 випадкових отруєнь пляшку правильно прочитано за долями щурів у ' + pct(ok / R) + ' випадків.', 'In 10,000 random poisonings the bottle was read correctly from the rats\' fates in ' + pct(ok / R) + ' of cases.');
+}
+$('#r-r').addEventListener('input', () => { $('#r-sim').textContent = ''; rText(); });
+$('#r-in').addEventListener('input', rText);
+$('#r-n').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rN = +b.dataset.n; if (+$('#r-in').value > rN) $('#r-in').value = rN; $('#r-sim').textContent = ''; rText(); });
+$('#r-run').addEventListener('click', rRun);
+
+/* ---------- round 5: two poisoned bottles ---------- */
+let dSel = [1, 6];
+const code8 = n => n % 8; // bottle 8 is 000
+function dText() {
+  $('#d-pick').innerHTML = Array.from({ length: 8 }, (_, i) => '<button type="button" data-b="' + (i + 1) + '" aria-pressed="' + dSel.includes(i + 1) + '">' + (i + 1) + '</button>').join('');
+  if (dSel.length < 2) {
+    $('#d-rats').innerHTML = [3, 2, 1].map(r => ratHTML(false, r)).join('');
+    $('#d-msg').textContent = L('Оберіть ще одну пляшку.', 'Pick one more bottle.'); $('#d-chips').innerHTML = ''; return;
+  }
+  const o = code8(dSel[0]) | code8(dSel[1]);
+  $('#d-rats').innerHTML = [3, 2, 1].map(r => ratHTML((o >> (r - 1)) & 1, r)).join('');
+  const same = [];
+  for (let a = 1; a <= 8; a++) for (let b = a + 1; b <= 8; b++) if ((code8(a) | code8(b)) === o) same.push([a, b]);
+  const rs = [1, 2, 3].filter(r => (o >> (r - 1)) & 1);
+  $('#d-msg').innerHTML = (rs.length ? L((rs.length === 1 ? 'Помер щур ' : 'Померли щури ') + listJoin(rs) + '. ', (rs.length === 1 ? 'Rat ' : 'Rats ') + listJoin(rs) + ' died. ') : L('Жоден щур не помер. ', 'No rat died. ')) +
+    (same.length === 1 ? L('Цю пару видно однозначно, але це щасливий виняток.', 'This pair shows up unambiguously, but that is a lucky exception.') : L('Такий самий результат дають ' + same.length + ' ' + plural(same.length, 'пара', 'різні пари', 'різних пар') + ':', 'The same outcome comes from ' + same.length + ' different pairs:'));
+  $('#d-chips').innerHTML = same.length > 1 ? same.map(([a, b]) => '<span class="' + (a === Math.min(...dSel) && b === Math.max(...dSel) ? 'me' : '') + '">' + a + ' + ' + b + '</span>').join('') : '';
+}
+$('#d-pick').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return; const n = +b.dataset.b;
+  if (dSel.includes(n)) dSel = dSel.filter(v => v !== n); else { dSel.push(n); if (dSel.length > 2) dSel.shift(); }
+  dText();
+});
+
+/* ---------- round 5: Hamming (7,4) ---------- */
+let hB = 11, hLie = 3;
+// positions 1..7; parity rats at 1, 2, 4, data rats at 3, 5, 6, 7 carry bottle − 1
+function hEncode(n) {
+  const d = n - 1, c = Array(8).fill(0);
+  [3, 5, 6, 7].forEach((p, i) => { c[p] = (d >> i) & 1; });
+  [1, 2, 4].forEach(p => { let s = 0; for (let q = 1; q <= 7; q++) if (q !== p && (q & p)) s ^= c[q]; c[p] = s; });
+  return c;
+}
+function hText() {
+  $('#h-pick').innerHTML = Array.from({ length: 16 }, (_, i) => '<button type="button" data-b="' + (i + 1) + '" aria-pressed="' + (i + 1 === hB) + '">' + (i + 1) + '</button>').join('');
+  const c = hEncode(hB), got = c.slice(); if (hLie) got[hLie] ^= 1;
+  let syn = 0; for (let q = 1; q <= 7; q++) if (got[q]) syn ^= q;
+  const fix = got.slice(); if (syn) fix[syn] ^= 1;
+  let d = 0; [3, 5, 6, 7].forEach((p, i) => { d |= fix[p] << i; });
+  $('#h-rats').innerHTML = [1, 2, 3, 4, 5, 6, 7].map(p => '<span class="rat flip' + (got[p] ? ' dead' : '') + (p === hLie ? ' lie' : '') + '" data-p="' + p + '" role="button" tabindex="0" aria-label="' + L('Щур ' + p, 'Rat ' + p) + '">' + ratSVG(got[p]) + '<b>' + p + ([1, 2, 4].includes(p) ? '✓' : '') + '</b></span>').join('');
+  const bits = a => [7, 6, 5, 4, 3, 2, 1].map(p => a[p]).join('');
+  $('#h-ovl').innerHTML = L('Чесний результат (щури 7…1): ', 'Honest outcome (rats 7…1): ') + bits(c) + '<br>' + L('Побачили: ', 'Observed: ') + bits(got) + '<br>' +
+    L('Синдром: XOR номерів мертвих щурів = ', 'Syndrome: XOR of the dead rats\' numbers = ') + syn.toString(2).padStart(3, '0') + '₂ = <b>' + syn + '</b>';
+  $('#h-msg').innerHTML = (syn ? L('Синдром ' + syn + ': збрехав щур ' + syn + '. Виправляємо його результат', 'Syndrome ' + syn + ': rat ' + syn + ' lied. Correct its outcome') : L('Синдром 0: усі щури сказали правду', 'Syndrome 0: every rat told the truth')) +
+    L(', і дані щурів 7, 6, 5, 3 дають ', ', and the data rats 7, 6, 5, 3 give ') + (d + 1 === hB ? '<b>' : '') + L('пляшку ' + (d + 1), 'bottle ' + (d + 1)) + (d + 1 === hB ? '</b>' : '') + '. ' +
+    L('Клацніть щура, щоб змінити, хто бреше; клацніть того самого ще раз, щоб усі були чесні.', 'Click a rat to change who lies; click the same one again to make everyone honest.');
+}
+$('#h-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; hB = +b.dataset.b; hText(); });
+const hFlip = e => { const r = e.target.closest('.rat'); if (!r) return; const p = +r.dataset.p; hLie = hLie === p ? 0 : p; hText(); };
+$('#h-rats').addEventListener('click', hFlip);
+$('#h-rats').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hFlip(e); setTimeout(() => { const el = $('#h-rats .lie') || $('#h-rats .rat'); el && el.focus(); }, 0); } });
+
+/* ---------- round 5: binary search ---------- */
+const q = { lo: 1, hi: 1000, n: 0, log: [] };
+function qMid() { return Math.floor((q.lo + q.hi - 1) / 2); }
+function qTextS() {
+  if (q.lo === q.hi) $('#q-msg').innerHTML = L('Ваше число <b>' + q.lo + '</b>. Питань: ' + q.n + '.', 'Your number is <b>' + q.lo + '</b>. Questions: ' + q.n + '.');
+  else $('#q-msg').textContent = L('Питання ' + (q.n + 1) + ': ваше число більше за ' + qMid() + '?', 'Question ' + (q.n + 1) + ': is your number greater than ' + qMid() + '?');
+  $('#q-yes').disabled = $('#q-no').disabled = q.lo === q.hi;
+  $('#q-log').innerHTML = q.log.map(([m, a]) => '<span>&gt; ' + m + '? ' + (a ? L('так', 'yes') : L('ні', 'no')) + '</span>').join('');
+}
+function qAns(yes) { if (q.lo === q.hi) return; const m = qMid(); q.log.push([m, yes]); q.n++; if (yes) q.lo = m + 1; else q.hi = m; qTextS(); }
+$('#q-yes').addEventListener('click', () => qAns(true));
+$('#q-no').addEventListener('click', () => qAns(false));
+$('#q-new').addEventListener('click', () => { q.lo = 1; q.hi = 1000; q.n = 0; q.log = []; qTextS(); });
+
+/* ---------- round 5: Dorfman pooling ---------- */
+const PV = [.001, .002, .005, .01, .02, .03, .05, .07, .1, .15, .2, .25, .3, .35];
+const dCost = (p, k) => k === 1 ? 1 : 1 / k + 1 - Math.pow(1 - p, k);
+function dBest(p) { let bk = 1, bc = 1; for (let k = 2; k <= 100; k++) { const c = dCost(p, k); if (c < bc - 1e-12) { bc = c; bk = k; } } return [bk, bc]; }
+let pSim = null;
+const pFmt = p => dec(String(+(100 * p).toFixed(1))) + '%';
+function pText() {
+  const p = PV[+$('#p-p').value], [k, c] = dBest(p);
+  $('#p-pv').textContent = pFmt(p);
+  $('#p-k').textContent = k === 1 ? '1' : k;
+  $('#p-c').textContent = dec(c.toFixed(3));
+  $('#p-s').textContent = pct(1 - c, 0);
+  $('#p-txt').textContent = k === 1
+    ? L('Коли хворих стільки, об\'єднувати вже невигідно: дешевше перевірити кожного. Для схеми Дорфмана межа приблизно 31%.', 'With this many infected people, pooling no longer pays: it is cheaper to test everyone. For Dorfman\'s scheme the threshold is about 31%.')
+    : L('Групи по ' + k + ': спершу ' + dec((1 / k).toFixed(3)) + ' тесту на людину на суміші, потім у ' + pct(1 - Math.pow(1 - p, k)) + ' груп кожного перевіряють окремо. Крива показує вартість для кожного розміру групи.', 'Groups of ' + k + ': first ' + dec((1 / k).toFixed(3)) + ' tests per person on the pools, then in ' + pct(1 - Math.pow(1 - p, k)) + ' of groups everyone is retested. The curve shows the cost for every group size.');
+  $('#p-sim').textContent = pSim && pSim.p === p ? L('100 000 людей, групи по ' + pSim.k + ': ' + fmt(pSim.tests) + ' ' + plural(pSim.tests, 'тест', 'тести', 'тестів') + ', тобто ' + dec((pSim.tests / 1e5).toFixed(3)) + ' на людину (точно ' + dec(c.toFixed(3)) + ').', '100,000 people, groups of ' + pSim.k + ': ' + fmt(pSim.tests) + ' tests, or ' + dec((pSim.tests / 1e5).toFixed(3)) + ' per person (exact ' + dec(c.toFixed(3)) + ').') : '';
+  pDraw();
+}
+function pDraw() {
+  const st = setupCanvas($('#p-cv')); if (!st) return;
+  const { ctx, W, H } = st, p = PV[+$('#p-p').value], [bk] = dBest(p), KM = 40, l = 34, r = 10, t = 10, b = 24;
+  const x = k => l + (k - 1) / (KM - 1) * (W - l - r), y = c => t + (1 - Math.min(c, 1.2) / 1.2) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .5, 1].forEach(c => { ctx.beginPath(); ctx.moveTo(l, y(c)); ctx.lineTo(W - r, y(c)); ctx.stroke(); ctx.fillText(dec(c.toFixed(1)), l - 6, y(c)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [1, 10, 20, 30, 40].forEach(k => ctx.fillText(k, x(k), H - b + 6));
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2; ctx.beginPath();
+  for (let k = 1; k <= KM; k++) k === 1 ? ctx.moveTo(x(k), y(dCost(p, k))) : ctx.lineTo(x(k), y(dCost(p, k)));
+  ctx.stroke();
+  ctx.fillStyle = tok('--hit'); ctx.beginPath(); ctx.arc(x(bk), y(dCost(p, bk)), 5, 0, TAU); ctx.fill();
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(L('тестів на людину · розмір групи', 'tests per person · group size'), l + 4, 0);
+}
+function pRun() {
+  const p = PV[+$('#p-p').value], [k] = dBest(p), N = 100000;
+  let tests = 0;
+  if (k === 1) tests = N;
+  else for (let i = 0; i < N; i += k) { const sz = Math.min(k, N - i); let pos = false; for (let j = 0; j < sz; j++) if (Math.random() < p) pos = true; tests += 1 + (pos ? sz : 0); }
+  pSim = { p, k, tests }; pText();
+}
+$('#p-p').max = PV.length - 1;
+$('#p-p').addEventListener('input', () => { pSim = null; pText(); });
+$('#p-run').addEventListener('click', pRun);
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Отруєне вино і 10 щурів', 'The Poisoned Wine and 10 Rats');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  heroCapText = ''; heroDraw(); guessText(); gText(); simDraw(); simText(); qText(); bnText(); lbText(); rText(); dText(); hText(); qTextS(); pText();
+  $('#sim-nv').textContent = fmt(simN);
+  $('#guess-v').textContent = fmt(guessVal());
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang || lang; applyLang(); });
+document.addEventListener('solved', () => { heroCapText = ''; heroDraw(); gText(); });
+const redraw = () => { heroDraw(); simDraw(); pDraw(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state: everything filled ---------- */
+gPreset('one'); gBreak(); g.pois = { b: 9 };
+$('#sim-n').value = SIM_NS.indexOf(1000);
+applyLang();
+heroStart();
+pRun();
+setTimeout(simRun, 30);
+})();
+</script>
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">Ще задачі</span>
+    <h2>Інші парадокси</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/two-envelopes/"><h3>Парадокс двох конвертів</h3><p>В одному конверті вдвічі більше грошей, ніж в іншому. Ви взяли один. Чи варто його обміняти?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/monty-hall/"><h3>Парадокс Монті Голла</h3><p>Ви на телешоу й обрали одні з трьох дверей. Ведучий, який знає, де авто, відчиняє інші двері з козою й пропонує змінити вибір. Змінювати?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/duckweed-lake/"><h3>Задача про ряску в озері</h3><p>Ряска щодня подвоюється, і одна рослина вкриває озеро за 30 днів. За скільки днів упораються дві рослини?</p></a>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/">Усі задачі →</a>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Обговорення</span>
+    <h2>Що ви думаєте?</h2>
+    <p>Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub.</p>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="poisoned-wine" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="uk" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Розсилка</span>
+    <h2>Нові задачі, пояснення й обговорення</h2>
+    <p>Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">Форма підписки з'явиться тут найближчим часом.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'uk' }); claspo('init');</script>
+<script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "adf9fd3e4773416fb45241d58aea741f"}'></script>
+</body>
+</html>

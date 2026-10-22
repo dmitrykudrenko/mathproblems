@@ -28,6 +28,7 @@
 | Задача про німецькі танки | [/german-tank-problem/](https://mathparadoxes.com/german-tank-problem/) | [/german-tank-problem/en/](https://mathparadoxes.com/german-tank-problem/en/) |
 | Санкт-Петербурзький парадокс | [/st-petersburg-paradox/](https://mathparadoxes.com/st-petersburg-paradox/) | [/st-petersburg-paradox/en/](https://mathparadoxes.com/st-petersburg-paradox/en/) |
 | Закон Бенфорда | [/benford-law/](https://mathparadoxes.com/benford-law/) | [/benford-law/en/](https://mathparadoxes.com/benford-law/en/) |
+| Отруєне вино і щури | [/poisoned-wine/](https://mathparadoxes.com/poisoned-wine/) | [/poisoned-wine/en/](https://mathparadoxes.com/poisoned-wine/en/) |
 
 ## Структура
 
