@@ -25,7 +25,7 @@ TEXT = {
     },
     "false-positive": {
         "uk": (["ПАРАДОКС", "ХИБНОГО ТЕСТУ"], "Тест точний на 99%. Ви хворі?"),
-        "en": (["THE FALSE", "POSITIVE PARADOX"], "The test is 99% accurate. Are you sick?"),
+        "en": (["THE FALSE", "POSITIVE PARADOX"], "The test is 99% accurate. Are you ill?"),
     },
     "secretary-problem": {
         "uk": (["ЗАДАЧА ПРО", "СЕКРЕТАРЯ"], "Як обрати найкращого з сотні?"),
@@ -48,7 +48,7 @@ TEXT = {
         "en": (["THE FRIENDSHIP", "PARADOX"], "Who has more friends: you or them?"),
     },
     "duckweed-lake": {
-        "uk": (["РЯСКА", "В ОЗЕРІ"], "1 ряска: 30 днів. 2 ряски: ?"),
+        "uk": (["РЯСКА", "В ОЗЕРІ"], "1 рослина: 30 днів. 2 рослини: ?"),
         "en": (["THE DUCKWEED", "LAKE"], "1 plant: 30 days. 2 plants: ?"),
     },
     "rope-around-earth": {
@@ -56,12 +56,12 @@ TEXT = {
         "en": (["THE ROPE AROUND", "THE EARTH"], "+1 metre. How high does it rise?"),
     },
     "hundred-prisoners": {
-        "uk": (["100 В'ЯЗНІВ"], "Кожен може відкрити 50 коробок"),
-        "en": (["100 PRISONERS"], "Each may open 50 boxes"),
+        "uk": (["100 В'ЯЗНІВ"], "Кожен може відкрити 50 коробок. Шанс?"),
+        "en": (["100 PRISONERS"], "Each may open 50 boxes. The odds?"),
     },
     "cognitive-reflection": {
-        "uk": (["М'ЯЧ І БИТА"], "Разом $1.10. Скільки коштує м'яч?"),
-        "en": (["BAT AND BALL"], "$1.10 together. What does the ball cost?"),
+        "uk": (["М'ЯЧ І БИТА"], "Разом 1,10 $. Скільки коштує м'яч?"),
+        "en": (["BAT AND BALL"], "$1.10 together. How much is the ball?"),
     },
     "coupon-collector": {
         "uk": (["АЛЬБОМ", "НАЛІПОК"], "50 наліпок. Скільки треба купити?"),
@@ -73,7 +73,7 @@ TEXT = {
     },
     "two-envelopes": {
         "uk": (["ДВА", "КОНВЕРТИ"], "В одному вдвічі більше. Міняти?"),
-        "en": (["TWO", "ENVELOPES"], "One holds twice the other. Switch?"),
+        "en": (["TWO", "ENVELOPES"], "One holds twice as much. Switch?"),
     },
     "coin-streaks": {
         "uk": (["СЕРІЇ", "МОНЕТИ"], "Найдовша серія зі 100 підкидань?"),
@@ -101,7 +101,7 @@ TEXT = {
     },
     "benford-law": {
         "uk": (["ЗАКОН", "БЕНФОРДА"], "Яка частка чисел починається з 1?"),
-        "en": (["BENFORD'S", "LAW"], "How many numbers start with 1?"),
+        "en": (["BENFORD'S", "LAW"], "What share of numbers start with 1?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -272,9 +272,9 @@ def extra_visual(kind, x, y, lang="en"):
         out += [f'<rect x="{x + 20}" y="{y + 90}" width="300" height="56" rx="10" fill="{INK}"/>',
                 f'<rect x="{x + 320}" y="{y + 90}" width="15" height="56" rx="4" fill="{SIGNAL}"/>',
                 f'<rect x="{x + 20}" y="{y + 170}" width="15" height="56" rx="4" fill="{SIGNAL}"/>',
-                f'<text x="{x + 170}" y="{y + 127}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="26" fill="#fff">+ $1.00</text>',
+                f'<text x="{x + 170}" y="{y + 127}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="26" fill="#fff">{"+ 1,00 $" if lang == "uk" else "+ $1.00"}</text>',
                 f'<text x="{x + 50}" y="{y + 207}" font-family="{FONT}" font-weight="800" font-size="24" fill="{SIGNAL}">?</text>',
-                f'<text x="{x + 20}" y="{y + 60}" font-family="{FONT}" font-weight="800" font-size="28" fill="{INK}">$1.10</text>']
+                f'<text x="{x + 20}" y="{y + 60}" font-family="{FONT}" font-weight="800" font-size="28" fill="{INK}">{"1,10 $" if lang == "uk" else "$1.10"}</text>']
     elif kind == "coupon-collector":
         for i in range(50):
             px, py = x + 30 + (i % 10) * 33, y + 40 + (i // 10) * 44

@@ -143,7 +143,7 @@ DISCUSS_TEXT = {
     "uk": ("Обговорення", "Що ви думаєте?",
            "Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub."),
     "en": ("Discussion", "What do you think?",
-           "Share your own explanation, an objection or a variant of the puzzle. Commenting needs a GitHub account."),
+           "Share your own explanation, an objection or a variant of the puzzle. You need a GitHub account to comment."),
 }
 
 
@@ -589,7 +589,7 @@ def build_subscribed(problems, base):
 
 NOT_FOUND_TEXT = {
     "uk": ("Помилка 404", "Такої сторінки немає", "Можливо, адресу змінено або в ній помилка. Ось задачі, які точно існують:", "На головну"),
-    "en": ("Error 404", "This page does not exist", "The address may have changed or contain a typo. Here are the puzzles that do exist:", "Go to the home page"),
+    "en": ("Error 404", "This page does not exist", "The address may have changed, or there may be a typo in it. Here are the puzzles that do exist:", "Go to the home page"),
 }
 
 
