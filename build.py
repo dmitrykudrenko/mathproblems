@@ -202,6 +202,100 @@ def related_block(lang, items, hub_url):
 </section>"""
 
 
+# "What to read" block: 1-3 books that really discuss the problem, listed in meta.json as
+#     "books": [{"id": "kahneman-tfs", "ch": 17}]          (or "where": {"uk": "...", "en": "..."} instead of "ch")
+# Book details live once in books.json; "ua" is the Ukrainian edition, shown first on Ukrainian pages.
+# Only chapter numbers, never chapter titles: a title can give the answer away.
+BOOKS = ROOT / "books.json"
+BOOKS_TEXT = {
+    "uk": ("Що почитати", "Книжки, де є ця задача", "розділ", "англійською"),
+    "en": ("Further reading", "Books that discuss this puzzle", "chapter", None),
+}
+
+
+def load_books():
+    books = json.loads(BOOKS.read_text(encoding="utf-8")) if BOOKS.exists() else {}
+    for k, b in books.items():
+        missing = {"author", "title", "year"} - set(b)
+        if missing:
+            raise SystemExit(f"books.json: {k} lacks {sorted(missing)}")
+    return books
+
+
+def book_refs(slug, meta, books):
+    refs = meta.get("books", [])
+    for r in refs:
+        if r["id"] not in books:
+            raise SystemExit(f"{slug}/meta.json: unknown book {r['id']!r}")
+    return refs
+
+
+def book_view(lang, ref, b):
+    """(title, author, edition line, where, url, is_translation) for one book on a page in `lang`."""
+    ua = b.get("ua") if lang == "uk" else None
+    if "where" in ref:
+        where = ref["where"][lang]
+    elif "ch" in ref:
+        where = f'{BOOKS_TEXT[lang][2]} {ref["ch"]}'
+    else:
+        where = ""
+    if ua:
+        return ua["title"], b["author"][lang], f'{ua["publisher"]}, {ua["year"]}', where, ua.get("url"), True
+    edition = str(b["year"]) + (f", {BOOKS_TEXT[lang][3]}" if BOOKS_TEXT[lang][3] else "")
+    return b["title"], b["author"][lang], edition, where, b.get("url"), False
+
+
+def books_block(lang, refs, books):
+    if not refs:
+        return ""
+    eyebrow, title = BOOKS_TEXT[lang][:2]
+    views = [book_view(lang, r, books[r["id"]]) for r in refs]
+    views.sort(key=lambda v: not v[5])  # translated books first; sort is stable
+    cards = []
+    for t, a, ed, where, url, _ in views:
+        tag, href = ("a", f' href="{e(url)}" rel="noopener" target="_blank"') if url else ("div", "")
+        meta = " · ".join(e(x) for x in (ed, where) if x)
+        cards.append(f'    <{tag} class="mp-book"{href}><h3>{e(t)}</h3><p class="mp-book-author">{e(a)}</p>'
+                     f'<p class="mp-book-meta">{meta}</p></{tag}>')
+    return f"""<section class="mp-books" id="books">
+  <div class="mp-related-head">
+    <span class="eyebrow">{eyebrow}</span>
+    <h2>{title}</h2>
+  </div>
+  <div class="mp-books-grid">
+{chr(10).join(cards)}
+  </div>
+</section>"""
+
+
+def books_ld(lang, refs, books):
+    """schema.org Book entries for the page's `citation`: the edition the reader sees."""
+    out = []
+    for r in refs:
+        b = books[r["id"]]
+        ua = b.get("ua") if lang == "uk" else None
+        ed = ua or b
+        item = {"@type": "Book", "name": ed["title"], "author": [{"@type": "Person", "name": n} for n in b["author"][lang].split(", ")],
+                "datePublished": str(ed["year"])}
+        if ed.get("isbn"):
+            item["isbn"] = ed["isbn"]
+        if ua:
+            item["publisher"] = {"@type": "Organization", "name": ua["publisher"]}
+            item["translationOfWork"] = {"@type": "Book", "name": b["title"], "datePublished": str(b["year"])}
+        out.append(item)
+    return out
+
+
+def with_books(body, block):
+    """Put the reading block before the related problems (or before the discussion)."""
+    if not block:
+        return body
+    i = body.find('<section class="mp-related"')
+    if i == -1:
+        i = body.find('<section class="mp-discuss"')
+    return body[:i] + block + "\n\n" + body[i:]
+
+
 def with_related(body, block):
     """Put the related block before the discussion block."""
     i = body.find('<section class="mp-discuss"')
@@ -428,10 +522,11 @@ def write(path, doc):
     print(f"{path.relative_to(DOCS)}  {len(doc) // 1024} KB")
 
 
-def build_problem(slug, base, metas):
+def build_problem(slug, base, metas, books):
     src_dir = PROBLEMS / slug
     meta = dict(metas)[slug]
     related = pick_related(slug, metas)
+    refs = book_refs(slug, meta, books)
     src = (src_dir / "page.html").read_text(encoding="utf-8")
     rest = src[src.index("<style>"):]
     page_base = base + slug + "/"
@@ -463,6 +558,7 @@ def build_problem(slug, base, metas):
                 "dateModified": date.today().isoformat(),
                 "isPartOf": {"@type": "WebSite", "name": SITE_NAME[lang], "url": hub[lang]},
                 "author": {"@id": base + "#author"},
+                **({"citation": books_ld(lang, refs, books)} if refs else {}),
                 ("translationOfWork" if lang == "en" else "workTranslation"): {"@id": urls[other] + "#page"},
             },
             author_ld(lang, base),
@@ -491,6 +587,7 @@ def build_problem(slug, base, metas):
             rm = dict(metas)[s][lang]
             items.append((base + s + "/" + LANG_PATH[lang], rm["card"]["title"], rm.get("share", {}).get("description", rm["card"]["text"])))
         body = with_related(body, related_block(lang, items, hub[lang]))
+        body = with_books(body, books_block(lang, refs, books))
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static data-spoil>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
                f'</head>\n<body>\n{body.strip()}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
         write(DOCS / slug / LANG_PATH[lang] / "index.html", doc)
@@ -664,7 +761,8 @@ def build(base, out=None):
     dirs = [p for p in PROBLEMS.iterdir() if all((p / f).exists() for f in ("page.html", "teaser.html", "meta.json"))]
     metas = [(p.name, json.loads((p / "meta.json").read_text(encoding="utf-8"))) for p in dirs]
     metas.sort(key=lambda sm: (sm[1].get("order", 99), sm[0]))
-    problems = [build_problem(s, base, metas) for s, _ in metas]
+    books = load_books()
+    problems = [build_problem(s, base, metas, books) for s, _ in metas]
     hub = build_hub(problems, base)
     build_404(problems, base)
     build_subscribed(problems, base)
