@@ -1,0 +1,1357 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/penney-game/", "en": "/penney-game/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "penney-game";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  window.mpSolve = function () {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new Event("solved"));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<title>Гра Пенні: чому в монетку виграє той, хто обирає другим</title>
+<meta name="description" content="Гра Пенні: ви обрали ООО, суперник РОО. Його шанс 7/8, і на будь-яку трійку є відповідь, що виграє з шансом щонайменше 2/3. Гра, симуляція і формула Конвея.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/penney-game/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/penney-game/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/penney-game/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/penney-game/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Гра Пенні">
+<meta property="og:description" content="Ви обрали трійку ООО, суперник обрав РОО. Монету підкидають, доки одна з трійок не випаде поспіль. Який шанс суперника?">
+<meta property="og:url" content="https://mathparadoxes.com/penney-game/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/penney-game/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Кидки монети, орли й решки, і дві трійки ООО та РОО. Гра Пенні: чия трійка випаде першою?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Гра Пенні">
+<meta name="twitter:description" content="Ви обрали трійку ООО, суперник обрав РОО. Монету підкидають, доки одна з трійок не випаде поспіль. Який шанс суперника?">
+<meta name="twitter:image" content="https://mathparadoxes.com/penney-game/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/penney-game/#page", "url": "https://mathparadoxes.com/penney-game/", "name": "Гра Пенні: чому в монетку виграє той, хто обирає другим", "description": "Гра Пенні: ви обрали ООО, суперник РОО. Його шанс 7/8, і на будь-яку трійку є відповідь, що виграє з шансом щонайменше 2/3. Гра, симуляція і формула Конвея.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "beginner", "about": {"@type": "Thing", "name": "Penney's game", "sameAs": "https://en.wikipedia.org/wiki/Penney%27s_game"}, "image": "https://mathparadoxes.com/penney-game/og-uk.png", "dateModified": "2026-10-22", "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "workTranslation": {"@id": "https://mathparadoxes.com/penney-game/en/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "Гра Пенні", "item": "https://mathparadoxes.com/penney-game/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/penney-game/#faq", "inLanguage": "uk", "mainEntity": [{"@type": "Question", "name": "Що таке гра Пенні?", "acceptedAnswer": {"@type": "Answer", "text": "Два гравці обирають по трійці результатів монети, наприклад ООО і РОО. Монету підкидають, доки одна з трійок не випаде поспіль, і виграє її власник. Перший гравець обирає, другий бачить його вибір і обирає свою трійку."}}, {"@type": "Question", "name": "Чому РОО виграє в ООО з шансом 7/8?", "acceptedAnswer": {"@type": "Answer", "text": "ООО може виграти, лише якщо перші три кидки ООО, а це шанс 1/8. Інакше перед першою появою ООО стоїть решка, і решка з двома орлами після неї вже утворює РОО на кидок раніше."}}, {"@type": "Question", "name": "Як обирати трійку другим гравцем?", "acceptedAnswer": {"@type": "Answer", "text": "Візьміть символ, протилежний до середнього символу суперника, а за ним перші два символи суперника. Проти ООО це РОО, проти ОРО це ООР. Така відповідь виграє з шансом від 2/3 до 7/8."}}, {"@type": "Question", "name": "Як порахувати шанси будь-яких двох комбінацій?", "acceptedAnswer": {"@type": "Answer", "text": "Формулою провідних чисел Конвея. Для пари A і B рахують двійкові числа перекриттів A·A, A·B, B·B, B·A, і шанси, що B випаде раніше, дорівнюють (A·A − A·B) : (B·B − B·A). Для ООО і РОО це 7 : 1."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the birthday page. A stream of coin flips with two three-flip patterns racing to appear first is this problem's signature object. */
+:root {
+  --tint: #FBE9E1;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal canvas { height: 300px; border-radius: 14px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 2.6em; }
+
+/* ---------- coins ---------- */
+.coins { display: flex; flex-wrap: wrap; gap: 5px; min-height: 40px; align-content: flex-start; padding: 10px; background: var(--paper); border-radius: 12px; }
+.coin { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-family: var(--f-mono); font-weight: 600; font-size: .8rem; border: 2px solid var(--ink); background: var(--ink); color: var(--surface); flex: none; }
+.coin.t { background: var(--surface); color: var(--ink); }
+.coin.me { box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--ink); }
+.coin.cp { box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--hit); }
+.coin.new { animation: pop .3s ease-out; }
+@keyframes pop { 0% { transform: scale(1.6); } 100% { transform: scale(1); } }
+.pat { font-family: var(--f-mono); font-weight: 600; letter-spacing: .14em; }
+.pats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.pats button { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 10px 4px; cursor: pointer; font-family: var(--f-mono); font-weight: 600; letter-spacing: .14em; font-size: .95rem; }
+.pats button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.pats button.cpu { border-color: var(--hit); color: var(--hit); }
+.pats button:disabled { cursor: default; }
+.vsrow { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+.vsrow > div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; min-width: 0; }
+.vsrow .k { font-size: .78rem; color: var(--muted); }
+.vsrow b { font-family: var(--f-mono); font-size: 1.4rem; letter-spacing: .14em; }
+.vsrow .cpb b { color: var(--hit); }
+.vsrow .s { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); }
+.vsrow > span { font-family: var(--f-mono); color: var(--muted); font-size: .85rem; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=text] { font: inherit; font-family: var(--f-mono); font-weight: 600; letter-spacing: .12em; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); width: 190px; max-width: 100%; text-transform: uppercase; }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+.big.day { color: var(--day); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.steps .coins { background: transparent; padding: 4px 0 0; }
+.steps .coin { width: 26px; height: 26px; font-size: .74rem; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.guess .val { font-family: var(--f-display); font-weight: 800; font-size: 3.4rem; color: var(--day); line-height: 1; }
+.guess input[type=range] { width: 100%; accent-color: var(--day); }
+.scale { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: .72rem; color: var(--muted); }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 130px 1fr 64px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+.replies { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.replies span { font-family: var(--f-mono); font-size: .82rem; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; display: flex; justify-content: space-between; gap: 6px; }
+.replies span b { letter-spacing: .1em; font-weight: 600; }
+.replies span i { font-style: normal; color: var(--hit); font-weight: 600; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.status { display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.8rem; font-weight: 800; }
+.status .mm b { color: var(--hit); }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--hit); }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.hist { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+.hist i { width: 12px; height: 12px; border-radius: 3px; background: var(--ink); }
+.hist i.c { background: var(--hit); }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.mx-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table.mx { border-collapse: separate; border-spacing: 3px; width: 100%; min-width: 330px; table-layout: fixed; }
+.mx th { font-family: var(--f-mono); font-size: .68rem; font-weight: 600; color: var(--muted); letter-spacing: .06em; padding: 2px 0; text-align: center; }
+.mx th.rh { text-align: right; padding-right: 4px; width: 40px; }
+.mx td { font-family: var(--f-mono); font-size: .7rem; text-align: center; padding: 6px 0; border-radius: 6px; line-height: 1.25; background: color-mix(in srgb, var(--ink) var(--a, 0%), var(--surface)); }
+.mx td.d { background: transparent; color: var(--line); }
+.mx td.best { box-shadow: inset 0 0 0 2px var(--hit); color: var(--hit); font-weight: 600; }
+.mx td small { display: block; font-size: .62rem; color: var(--muted); }
+.mx td.best small { color: var(--hit); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.6rem; }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .84rem; color: var(--muted); }
+.cyc { width: 100%; max-width: 320px; height: auto; justify-self: center; }
+.cyc rect { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+.cyc text { font-family: var(--f-mono); font-size: 15px; font-weight: 600; fill: var(--ink); letter-spacing: 2px; }
+.cyc .p { font-size: 13px; fill: var(--hit); letter-spacing: 0; }
+.cyc path { fill: none; stroke: var(--muted); stroke-width: 2; }
+.cyc .ah { fill: var(--muted); stroke: none; }
+.build { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-family: var(--f-mono); font-size: .9rem; }
+.build span { border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+.build span.x { border-color: var(--hit); color: var(--hit); font-weight: 600; }
+.formula { font-family: var(--f-mono); font-size: .92rem; background: var(--paper); border-radius: 10px; padding: 14px 16px; overflow-x: auto; line-height: 1.9; white-space: nowrap; }
+.formula em { font-style: normal; color: var(--hit); font-weight: 600; }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.tbl-wrap { overflow-x: auto; }
+table.t { border-collapse: collapse; width: 100%; font-size: .9rem; }
+.t th, .t td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.t th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+.t td.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+.t td.pat { white-space: nowrap; }
+.t td.hl { color: var(--hit); font-weight: 600; }
+.res { font-family: var(--f-mono); font-size: .82rem; color: var(--muted); white-space: nowrap; }
+.ovl { font-family: var(--f-mono); font-size: .82rem; line-height: 1.7; overflow-x: auto; white-space: nowrap; background: var(--paper); border-radius: 10px; padding: 10px 12px; }
+.ovl b { color: var(--hit); font-weight: 600; }
+.deck { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 3px; }
+.deck i { font-style: normal; aspect-ratio: 3 / 4; border-radius: 4px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: .8rem; background: var(--surface); color: var(--ink); }
+.deck i.r { color: var(--loss); }
+.deck i.a { background: var(--cell); border-color: var(--ink); }
+.deck i.b { background: var(--hit-soft); border-color: var(--hit); }
+.deck i.e { opacity: .45; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 96px 1fr 56px; }
+  .vs { grid-template-columns: 1fr; }
+  .coin { width: 26px; height: 26px; font-size: .72rem; }
+  .pats button { font-size: .85rem; letter-spacing: .08em; }
+  .vsrow b { font-size: 1.15rem; }
+  .t th, .t td { padding: 8px 5px; }
+  .hero-cal canvas { height: 250px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=dc0cd822">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/penney-game/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/penney-game/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <h1 class="uk"><span class="kw">Гра Пенні</span> ООО проти РОО. <span class="q sp-before">Який шанс у РОО?</span><span class="q sp-after">7 з 8.</span></h1>
+    
+    <p class="lead uk sp-before">Кожен гравець обирає трійку кидків монети, наприклад «орел, орел, орел». Монету підкидають, доки одна з трійок не випаде поспіль. Ви обираєте першим, суперник бачить ваш вибір. Який у нього шанс виграти? Зафіксуйте відповідь, а потім перевірте її у грі проти комп'ютера і на мільйоні симульованих партій.</p>
+    <p class="lead uk sp-after">Кожен гравець обирає трійку кидків монети. Монету підкидають, доки одна з трійок не випаде поспіль. Здається, що всі трійки рівні, бо кожна має шанс 1/8. Але РОО випереджає ООО в 7 партіях з 8, і так само для будь-якої вашої трійки суперник знайде відповідь, що виграє щонайменше у 2 випадках з 3.</p>
+    
+    
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b><span class="uk">87,5%</span></b><span><span class="uk">РОО проти ООО</span></span></div>
+      <div class="odd"><b>≥ 2/3</b><span><span class="uk">шанс другого гравця за будь-якого вибору</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="uk">Умова</b></a>
+      <a href="#guess"><span>1</span><b class="uk">Вгадайте</b></a>
+      <a href="#game"><span>2</span><b class="uk">Зіграйте з комп'ютером</b></a>
+      <a href="#sim"><span>3</span><b class="uk">Усі 56 пар</b></a>
+      <a href="#why"><span>4</span><b class="uk">Чому так</b></a>
+      <a href="#more"><span>5</span><b class="uk">Довші трійки й карти</b></a>
+      <a href="#facts"><span>★</span><b class="uk" style="font-weight:inherit">Цікаві факти</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span></span>
+    <h2><span class="uk">Дві трійки, одна монета</span></h2>
+    <p class="lead uk">Цю гру описав Волтер Пенні 1969 року в «Journal of Recreational Mathematics». Правила вміщуються в три рядки, і їх легко зіграти з другом за п'ять хвилин.</p>
+    
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Монета</span></h3>
+        <p class="uk">Монета чесна: орел (О) і решка (Р) випадають з однаковим шансом 1/2, і кидки не залежать один від одного.</p>
+        </div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Трійки</span></h3>
+        <p class="uk">Трійкою назвемо три результати поспіль у певному порядку. Їх усього вісім: ООО, ООР, ОРО, ОРР, РОО, РОР, РРО, РРР. Будь-які три кидки поспіль дають кожну з них з шансом 1/8.</p>
+        </div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Вибір</span></h3>
+        <p class="uk">Ви обираєте трійку першим. Суперник бачить ваш вибір і обирає іншу трійку.</p>
+        </div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Гра</span></h3>
+        <p class="uk">Монету підкидають знову і знову. Виграє той, чия трійка першою з'явиться як три останні кидки. Наприклад, ви обрали ООО, суперник РОО, і випало так:</p>
+        
+        <div class="coins" id="ex-coins" aria-hidden="true"></div>
+        <p class="uk">Після п'ятого кидка останні три дали РОО, і суперник виграв.</p>
+        </div></li>
+      <li><span class="n">5</span><div><h3><span class="uk">Питання</span></h3>
+        <p class="uk">Ви обрали ООО, суперник РОО. Який шанс, що виграє суперник?</p>
+        </div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span></span>
+        <p class="q"><span class="uk">«Кожна трійка має шанс 1/8, тож це 50 на 50»</span></p>
+        <p class="uk">Насправді РОО виграє в 7 партіях з 8. Однакова ймовірність трійки у фіксованих трьох кидках нічого не каже про те, яка трійка з'явиться першою. Ба більше, у цій грі немає найкращої трійки: на кожну знайдеться сильніша.</p>
+        
+      </div>
+      <div class="card">
+        <h3><span class="uk">Припущення</span></h3>
+        <ul class="rules uk">
+          <li>Монета чесна, кидки незалежні.</li>
+          <li>Трійки гравців різні.</li>
+          <li>Вікно ковзає: трійку шукають у кожних трьох сусідніх кидках, а не блоками по три.</li>
+          <li>Підкидають, доки хтось не виграє. Гра закінчується з імовірністю 1, нічиїх немає.</li>
+        </ul>
+        
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span></span>
+    <h2><span class="uk">ООО проти РОО: який шанс суперника?</span></h2>
+    <p class="lead uk">Ви обрали ООО, суперник обрав РОО. Зафіксуйте, з яким шансом, на вашу думку, виграє суперник.</p>
+    
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <label for="guess-n" class="note"><span class="uk">Шанс, що першою випаде РОО</span></label>
+      <div class="val mono" id="guess-v">50%</div>
+      <input type="range" id="guess-n" min="0" max="100" value="50">
+      <div class="scale"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+      <div class="actions"><button class="btn pri" id="guess-go"><span class="uk">Перевірити</span></button></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться розбір вашої відповіді.</p>
+      
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span></span>
+    <h2><span class="uk">Зіграйте проти комп'ютера</span></h2>
+    <p class="lead uk">Оберіть трійку, і комп'ютер відповість своєю. Підкидайте монету по одному разу, догравайте партію до кінця або зіграйте 100 партій одразу. Потім поміняйтеся ролями: нехай комп'ютер обирає першим, а ви спробуйте його обіграти.</p>
+    
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="presets" id="g-mode"></div>
+      <div>
+        <p class="note" id="g-pick-lab" style="margin-bottom:8px"></p>
+        <div class="pats" id="g-pats"></div>
+      </div>
+      <div class="vsrow">
+        <div><span class="k"><span class="uk">Ви</span></span><b id="g-me">–</b><span class="s" id="g-me-s"></span></div>
+        <span>vs</span>
+        <div class="cpb"><span class="k"><span class="uk">Комп'ютер</span></span><b id="g-cp">–</b><span class="s" id="g-cp-s"></span></div>
+      </div>
+      <div class="coins" id="g-coins" aria-hidden="true"></div>
+      <p class="msg" id="g-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn pri" id="g-flip" type="button"><span class="uk">Підкинути</span></button>
+        <button class="btn pri" id="g-end" type="button"><span class="uk">Дограти до кінця</span></button>
+        <button class="btn hit" id="g-100" type="button"><span class="uk">Зіграти 100 партій</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="uk">Рахунок</span></h3>
+      <div class="status" style="margin-top:12px">
+        <div><span class="k"><span class="uk">Партій</span></span><b class="mono" id="s-n">0</b></div>
+        <div><span class="k"><span class="uk">Ваші перемоги</span></span><b class="mono" id="s-me">0</b></div>
+        <div class="mm"><span class="k"><span class="uk">Комп'ютера</span></span><b class="mono" id="s-cp">0</b></div>
+      </div>
+      <p class="note" id="s-txt" style="margin-top:12px"></p>
+      <div class="hist" id="s-hist" aria-hidden="true"></div>
+      <p class="note" id="s-hint" style="margin-top:14px"></p>
+      <div class="actions" style="margin-top:14px"><button class="btn ghost" id="s-reset" type="button"><span class="uk">Скинути рахунок</span></button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span></span>
+    <h2><span class="uk">Усі 56 пар трійок, по 20 000 партій</span></h2>
+    <p class="lead uk">У рядку стоїть трійка першого гравця, у стовпці трійка другого. У клітинці шанс, що першою випаде трійка зі стовпця: точний дріб і результат симуляції. Що темніша клітинка, то вищий шанс. Рамкою позначено найкращу відповідь другого гравця.</p>
+    
+  </div>
+  <div class="card">
+    <div class="controls">
+      <button class="btn pri" id="sim-run"><span class="uk">Запустити ще раз</span></button>
+      <span class="note" id="sim-prog"></span>
+    </div>
+    <div class="sim-grid">
+      <div class="mx-wrap"><table class="mx" id="mx"></table></div>
+      <div class="tiles">
+        <div class="tile" style="--c:var(--hit)"><div class="k"><span class="uk">Найгірший випадок для другого гравця</span></div><div class="v mono">2/3</div><div class="s" id="sim-min"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Найбільше відхилення симуляції від точного</span></div><div class="v mono" id="sim-dev">–</div><div class="s" id="sim-devs"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Партій зіграно</span></div><div class="v mono" id="sim-n">–</div><div class="s" id="sim-ns"></div></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:12px"><span class="uk">Клітинки на перетині трійки з собою порожні. Шанс першого гравця дорівнює 1 мінус число в клітинці.</span></p>
+  </div>
+  <div class="card" style="margin-top:20px">
+    <h3><span class="uk">Скільки кидків чекати на кожну трійку</span></h3>
+    <p class="note" style="margin:6px 0 12px"><span class="uk">Тепер без суперника: монету підкидають, доки трійка не з'явиться. Стовпчики показують точне середнє, точки показують середнє 20 000 симульованих очікувань для кожної трійки.</span></p>
+    <canvas id="wait-cv" style="height:260px"></canvas>
+    <div class="legend">
+      <span style="--c:var(--cell)"><b class="uk">точне середнє</b></span>
+      <span style="--c:var(--ink)"><b class="uk">симуляція</b></span>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · П'ять пояснень</span></span>
+    <h2><span class="uk">Чому другий гравець завжди сильніший</span></h2>
+    <p class="lead uk">Трійки рівні, якщо дивитися на три фіксовані кидки. Але в грі важливо інше: як трійки накладаються одна на одну й самі на себе. Ось п'ять способів це побачити.</p>
+    
+  </div>
+  <div class="why-grid">
+    <div class="card">
+      <span class="kicker"><span class="uk">ООО проти РОО</span></span>
+      <h3><span class="uk">ООО виграє лише з самого початку</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">Перші три кидки ООО</span></span><b class="mono">1/8</b><span><span class="uk">єдиний шанс для ООО</span></span></div>
+        <div class="bb"><span><span class="uk">Будь-що інше</span></span><b class="mono">7/8</b><span><span class="uk">виграє РОО</span></span></div>
+      </div>
+      <p class="uk">Якщо серед перших трьох кидків є решка, то перед першою появою ООО обов'язково стоїть решка. Ця решка разом із двома орлами після неї вже утворює РОО, причому на кидок раніше. Тож щойно випала перша решка, ООО програла остаточно.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Рівні в середньому, не рівні першими</span></span>
+      <h3><span class="uk">Трійки з'являються однаково часто, але по-різному</span></h3>
+      <p id="clump-txt"></p>
+      <div class="actions"><button class="btn ghost" id="clump-go" type="button"><span class="uk">Підкинути ще 1000 разів</span></button></div>
+      <p class="uk">У 1000 кидках є 998 вікон по три, і кожна трійка в середньому трапляється 998/8 ≈ 124,75 раза. Але ООО ходить купками: ОООО містить її двічі, ООООО тричі. Коли появи злипаються, між купками лишаються довші проміжки, і на першу появу доводиться чекати довше.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Час очікування</span></span>
+      <h3><span class="uk">ООО чекають 14 кидків, ООР лише 8</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">ООО: невдача відкидає назад</span></span><b class="mono">14</b><span><span class="uk">кидків у середньому</span></span></div>
+        <div><span><span class="uk">ООР: зайвий орел не шкодить</span></span><b class="mono">8</b><span><span class="uk">кидків у середньому</span></span></div>
+      </div>
+      <p class="uk">Уявіть, що вже випало ОО. Для ООР третій орел нічого не псує: ви знову маєте ОО і чекаєте решку. Для ООО решка на цьому місці зводить усе нанівець, і треба починати з нуля. На трійки, що накладаються самі на себе, доводиться чекати довше.</p>
+      
+      <p class="note uk">Але час очікування не вирішує дуель. ООО і ООР грають 50 на 50, хоч їх чекають 14 і 8 кидків: обидві починаються з ОО, і після першого ОО все вирішує наступний кидок.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Камінь, ножиці, папір</span></span>
+      <h3><span class="uk">Найкращої трійки немає</span></h3>
+      <svg class="cyc uk" viewBox="0 0 320 250" role="img" aria-label="РОО → ООР → ОРР → РРО → РОО">
+        <defs><marker id="ah-uk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+        <rect x="20" y="20" width="84" height="36" rx="10"/><text x="62" y="44" text-anchor="middle">РОО</text>
+        <rect x="216" y="20" width="84" height="36" rx="10"/><text x="258" y="44" text-anchor="middle">ООР</text>
+        <rect x="216" y="194" width="84" height="36" rx="10"/><text x="258" y="218" text-anchor="middle">ОРР</text>
+        <rect x="20" y="194" width="84" height="36" rx="10"/><text x="62" y="218" text-anchor="middle">РРО</text>
+        <path d="M108,38 L210,38" marker-end="url(#ah-uk)"/><text class="p" x="160" y="30" text-anchor="middle">3/4</text>
+        <path d="M258,60 L258,188" marker-end="url(#ah-uk)"/><text class="p" x="268" y="128">2/3</text>
+        <path d="M212,212 L110,212" marker-end="url(#ah-uk)"/><text class="p" x="160" y="204" text-anchor="middle">3/4</text>
+        <path d="M62,190 L62,62" marker-end="url(#ah-uk)"/><text class="p" x="72" y="128">2/3</text>
+      </svg>
+      
+      <p class="uk">Стрілка веде від переможця до переможеного, число показує шанс переможця. РОО б'є ООР, ООР б'є ОРР, ОРР б'є РРО, а РРО б'є РОО. Коло замикається, як у грі «камінь, ножиці, папір». Таке відношення називають нетранзитивним: з «А сильніше за Б» і «Б сильніше за В» не випливає «А сильніше за В».</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Правило другого гравця</span></span>
+      <h3><span class="uk">Протилежне до середнього, потім перші два</span></h3>
+      <div class="pats" id="rule-pats"></div>
+      <div class="build" id="rule-build"></div>
+      <p id="rule-txt"></p>
+      <p class="uk">Відповідь закінчується тими двома кидками, з яких починається трійка суперника. Тому вона майже завжди «підстерігає» його трійку: щоб суперник завершив свою, спершу мають випасти її перші два кидки, а перед ними часто вже стоїть потрібний вам перший символ. Перший символ беруть протилежним до середнього, щоб відповідь сама себе не перекривала й не чекала зайвого.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span></span>
+      <h3><span class="uk">Провідні числа Конвея</span></h3>
+      <div class="formula">
+        A·B: <span class="uk">для кожного k = n, …, 1 пишемо 1, якщо останні k символів A збігаються з першими k символами B, інакше 0; читаємо як двійкове число</span><br>
+        <span class="uk">Шанси, що B випаде раніше за A</span> = (A·A − A·B) : (B·B − B·A)<br>
+        A = <span class="uk">ООО</span>, B = <span class="uk">РОО</span>: &nbsp;A·A = 111₂ = 7, &nbsp;A·B = 000₂ = 0, &nbsp;B·B = 100₂ = 4, &nbsp;B·A = 011₂ = 3<br>
+        (7 − 0) : (4 − 3) = 7 : 1 &nbsp;→&nbsp; P(B <span class="uk">першою</span>) = <em>7/8</em><br>
+        <span class="uk">Середній час очікування</span> E[T<sub>A</sub>] = 2 · (A·A): &nbsp;<span class="uk">ООО</span> 2 · 7 = 14, &nbsp;<span class="uk">ОРО</span> 2 · 101₂ = 10, &nbsp;<span class="uk">ООР</span> 2 · 100₂ = 8
+      </div>
+      <p class="uk">Джон Конвей знайшов цю формулу й назвав її алгоритмом провідних чисел, але доведення не опублікував. Доведення з'явилися згодом, зокрема в Гібаса й Одлизка (1981) і в Шуо-Єнь Роберта Лі (1980), через мартингали. Формула працює для комбінацій будь-якої довжини, якщо жодна не міститься в іншій. За нею сторінка рахує всі точні числа в таблиці раунду 3, а симуляція їх перевіряє.</p>
+      
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 5: escalation -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Ускладнюємо</span></span>
+    <h2><span class="uk">Двійки, четвірки, будь-які комбінації і колода карт</span></h2>
+    <p class="lead uk">Що буде, якщо грати двома чи чотирма кидками? Як порахувати дуель будь-яких двох комбінацій? І чи працює фокус, коли замість монети беруть колоду карт?</p>
+    
+  </div>
+  <div class="esc">
+    <div class="card">
+      <h3><span class="uk">Найкращі відповіді для інших довжин</span></h3>
+      <div class="presets" id="len-pick" style="margin-top:12px"></div>
+      <p class="note" id="len-txt" style="margin:12px 0"></p>
+      <div class="tbl-wrap">
+        <table class="t">
+          <thead><tr><th><span class="uk">Перший</span></th><th><span class="uk">Найкраща відповідь</span></th><th style="text-align:right"><span class="uk">Точно</span></th><th style="text-align:right"><span class="uk">Симуляція</span></th></tr></thead>
+          <tbody id="len-body"></tbody>
+        </table>
+      </div>
+      <div class="actions" style="margin-top:12px"><button class="btn ghost" id="len-run" type="button"><span class="uk">Перевірити: по 20 000 партій</span></button></div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Дуель будь-яких двох комбінацій</span></h3>
+        <p class="note"><span class="uk">Наберіть комбінації літерами О і Р (або H і T), до 12 символів. Довжини можуть різнитися, але одна комбінація не має містити іншу.</span></p>
+        <div class="presets" id="duel-pre"></div>
+        <div class="controls" style="margin:0">
+          <label class="ctl" for="duel-a"><span><span class="uk">Перший гравець, A</span></span><input type="text" id="duel-a" maxlength="12" spellcheck="false" autocomplete="off"></label>
+          <label class="ctl" for="duel-b"><span><span class="uk">Другий гравець, B</span></span><input type="text" id="duel-b" maxlength="12" spellcheck="false" autocomplete="off"></label>
+        </div>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Шанс B, точно</span></span><b class="big hit mono" id="duel-p" style="font-size:1.6rem">–</b></div>
+          <div><span class="k"><span class="uk">Симуляція</span></span><b class="big mono" id="duel-s" style="font-size:1.6rem">–</b></div>
+        </div>
+        <div class="ovl" id="duel-ovl"></div>
+        <div class="actions"><button class="btn pri" id="duel-run" type="button"><span class="uk">Симулювати 10 000 дуелей</span></button></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Скільки чекати на комбінацію</span></span>
+        <h3><span class="uk">Час очікування рахують за самоперекриттями</span></h3>
+        <p class="uk">Для кожного k, за якого перші k символів комбінації збігаються з останніми k, додаємо 2<sup>k</sup>. Сума дорівнює середній кількості кидків до першої появи. Комбінація довжини n без самоперекриттів чекає 2<sup>n</sup> кидків, а n однакових символів поспіль чекають найдовше: 2<sup>n+1</sup> − 2.</p>
+        
+        <div class="tile"><div class="k"><span class="uk">Середній час очікування A</span></div><div class="v mono" id="wait-a">–</div><div class="s" id="wait-as"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Середній час очікування B</span></div><div class="v mono" id="wait-b">–</div><div class="s" id="wait-bs"></div></div>
+        <p class="note"><span class="uk">Для четвірок перший гравець найкраще захищається комбінацією ОРОО (або РОРР): суперник отримує щонайбільше 9/14. Дж. Чірік довів 1992 року, що для довжини k ≥ 4 найкраща комбінація така: О, потім k−3 разів Р, потім ОО, і тоді шанси другого гравця (2<sup>k−1</sup> + 1) : (2<sup>k−2</sup> + 1).</span></p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Те саме з колодою карт</span></h3>
+        <div class="presets" id="deck-pre"></div>
+        <div class="deck" id="deck" aria-hidden="true"></div>
+        <div class="result-row">
+          <div><span class="k" id="deck-la"></span><b class="big mono" id="deck-a" style="font-size:1.6rem">0</b></div>
+          <div><span class="k" id="deck-lb"></span><b class="big hit mono" id="deck-b" style="font-size:1.6rem">0</b></div>
+        </div>
+        <p class="msg" id="deck-msg" aria-live="polite"></p>
+        <div class="actions">
+          <button class="btn pri" id="deck-deal" type="button"><span class="uk">Перетасувати й роздати</span></button>
+          <button class="btn hit" id="deck-sim" type="button"><span class="uk">10 000 колод</span></button>
+        </div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Гра Гамбла й Нісіями</span></span>
+        <h3><span class="uk">Червоні й чорні замість орла й решки</span></h3>
+        <p class="uk">Стів Гамбл і Ютака Нісіяма 2010 року запропонували грати колодою з 52 карт: 26 червоних (♥) і 26 чорних (♠). Карти відкривають по одній. Щойно випала чиясь трійка, її власник забирає всі відкриті карти, і пошук починається заново. Виграє той, хто зібрав більше таких «взяток».</p>
+        
+        <div class="tbl-wrap">
+          <table class="t">
+            <thead><tr><th><span class="uk">Перший</span></th><th><span class="uk">Другий</span></th><th style="text-align:right"><span class="uk">Виграє 1-й</span></th><th style="text-align:right"><span class="uk">Виграє 2-й</span></th><th style="text-align:right"><span class="uk">Нічия</span></th></tr></thead>
+            <tbody id="deck-tbl"></tbody>
+          </table>
+        </div>
+        <p class="note"><span class="uk">Числа точні: ми порахували їх перебором усіх станів колоди. Вони збігаються з симуляцією, наведеною у Вікіпедії. Колода посилює перевагу другого гравця, бо взяток багато, а виграє той, хто частіше буває першим.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span></span>
+    <h2><span class="uk">Що розповісти друзям</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1969</span>
+        <h3><span class="uk">Задача 95 «Penney-Ante»</span></h3>
+        <p class="uk">Волтер Пенні опублікував гру як задачу № 95 у другому томі «Journal of Recreational Mathematics», на сторінці 241.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1974</span>
+        <h3><span class="uk">Колонка Мартіна Ґарднера</span></h3>
+        <p class="uk">У жовтневому номері Scientific American за 1974 рік Мартін Ґарднер присвятив колонку «Mathematical Games» парадоксам нетранзитивних відношень. Там він розповів широкому читачеві і про гру Пенні, і про провідні числа Конвея.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">7 : 1</span>
+        <h3><span class="uk">Формула без доведення</span></h3>
+        <p class="uk">Джон Конвей придумав спосіб рахувати шанси будь-якої пари комбінацій через двійкові «провідні числа», але не довів його. Строгі доведення з'явилися на початку 1980-х.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">2/3</span>
+        <h3><span class="uk">Кості Ефрона</span></h3>
+        <p class="uk">Статистик Бредлі Ефрон придумав чотири кості з такими гранями: 4, 4, 4, 4, 0, 0; шість трійок; 6, 6, 2, 2, 2, 2; 5, 5, 5, 1, 1, 1. Кожна наступна кість програє попередній з шансом 2/3, а перша програє останній. Той самий принцип: хто обирає другим, той виграє.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">14 · 8</span>
+        <h3><span class="uk">Довше чекати не означає програти</span></h3>
+        <p class="uk">На ООО в середньому чекають 14 кидків, на ООР лише 8. Проте в дуелі вони рівні, 50 на 50. А серед четвірок буває й навпаки: ОРРО, на яку чекають у середньому 18 кидків, випереджає РРОО (16 кидків) з шансом 7/12. Хто перший, вирішують перекриття, а не середні часи.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">99,49%</span></span>
+        <h3><span class="uk">Майже гарантована перемога з картами</span></h3>
+        <p class="uk">У картковій версії Гамбла й Нісіями другий гравець із ♥♠♠ проти ♠♠♠ виграє 99,49% партій, а програє лише 0,11%. З монетою його шанс був 7/8. Колода перетворює перевагу на майже певну перемогу.</p>
+        
+      </article>
+  </div>
+</section>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const solved = () => !window.mpSolved || mpSolved();
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const plural = (k, one, few, many) => {
+  const a = k % 10, b = k % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+const gamesW = n => L(plural(n, 'партії', 'партій', 'партій'), n === 1 ? 'game' : 'games');
+const flipsW = n => L(plural(n, 'кидок', 'кидки', 'кидків'), n === 1 ? 'flip' : 'flips');
+
+/* ---------- maths ---------- */
+// patterns are stored as strings of H and T; shown as О/Р in Ukrainian
+const show = s => lang === 'en' ? s : s.replace(/H/g, 'О').replace(/T/g, 'Р');
+const P3 = ['HHH', 'HHT', 'HTH', 'HTT', 'THH', 'THT', 'TTH', 'TTT'];
+const allOf = n => Array.from({ length: 1 << n }, (_, i) => Array.from({ length: n }, (_, j) => (i >> (n - 1 - j)) & 1 ? 'T' : 'H').join(''));
+// Conway's correlation A·B: bit k-1 is set when the last k symbols of A equal the first k symbols of B
+function corr(a, b) { let s = 0; for (let k = 1; k <= Math.min(a.length, b.length); k++) if (a.slice(-k) === b.slice(0, k)) s += 2 ** (k - 1); return s; }
+const bin = (a, b) => { const n = Math.min(a.length, b.length); let s = ''; for (let k = n; k >= 1; k--) s += a.slice(-k) === b.slice(0, k) ? '1' : '0'; return s; };
+// chance that b appears before a, as [numerator, denominator] in lowest terms
+function odds(a, b) { const x = corr(a, a) - corr(a, b), y = corr(b, b) - corr(b, a); return [y === 0 ? 1 : x, y === 0 ? 1 : x + y]; }
+const gcd = (a, b) => b ? gcd(b, a % b) : a;
+function frac(a, b) { const [x, y] = odds(a, b), g = gcd(x, y); return [x / g, y / g]; }
+const pB = (a, b) => { const [x, y] = odds(a, b); return x / y; };
+const fracS = (a, b) => { const [x, y] = frac(a, b); return x + '/' + y; };
+const waitOf = a => 2 * corr(a, a);
+function bestReply(a, list) { let bb = null, bp = -1; list.forEach(b => { if (b === a) return; const p = pB(a, b); if (p > bp + 1e-12) { bp = p; bb = b; } }); return bb; }
+const opp = c => c === 'H' ? 'T' : 'H';
+const rule3 = a => opp(a[1]) + a[0] + a[1];
+
+// fast random bits, 30 per Math.random call
+let rbuf = 0, rleft = 0;
+const bit = () => { if (!rleft) { rbuf = (Math.random() * 1073741824) | 0; rleft = 30; } rleft--; const b = rbuf & 1; rbuf >>>= 1; return b; };
+const toInt = s => [...s].reduce((v, c) => v * 2 + (c === 'H' ? 1 : 0), 0);
+// one game: returns 1 if b appears first, 0 if a does; flips counted in duelFlips
+let duelFlips = 0;
+function duelBits(va, ka, vb, kb) {
+  const ma = (1 << ka) - 1, mb = (1 << kb) - 1, mk = (1 << Math.max(ka, kb)) - 1;
+  let w = 0, n = 0;
+  for (;;) {
+    w = ((w << 1) | bit()) & mk; n++;
+    if (n >= ka && (w & ma) === va) { duelFlips += n; return 0; }
+    if (n >= kb && (w & mb) === vb) { duelFlips += n; return 1; }
+  }
+}
+const duel = (a, b) => duelBits(toInt(a), a.length, toInt(b), b.length);
+function waitSim(va, k) { const m = (1 << k) - 1; let w = 0, n = 0; for (;;) { w = ((w << 1) | bit()) & m; n++; if (n >= k && w === va) return n; } }
+const coin = () => Math.random() < 0.5 ? 'H' : 'T';
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+// coins in HTML: seq is a string, mark = { from, len, who } outlines the winning triple
+function coinsHTML(seq, mark, fresh) {
+  return [...seq].map((c, i) => {
+    let cl = 'coin' + (c === 'T' ? ' t' : '');
+    if (mark && i >= mark.from && i < mark.from + mark.len) cl += mark.who === 'cp' ? ' cp' : ' me';
+    if (i === fresh) cl += ' new';
+    return '<i class="' + cl + '">' + show(c) + '</i>';
+  }).join('');
+}
+
+/* ---------- hero: HHH and THH race, game after game ---------- */
+const HA = 'HHH', HB = 'THH';
+const hero = { games: [], cur: '', pause: 0, timer: null, a: 0, b: 0 };
+function heroCheck(s) { if (s.endsWith(HA)) return 'a'; if (s.endsWith(HB)) return 'b'; return null; }
+// before the guess the hero shows plain flips: finished games would show who wins
+hero.free = Array.from({ length: 6 }, () => Array.from({ length: 9 }, coin).join(''));
+function heroStep() {
+  if (!solved()) {
+    const last = hero.free[hero.free.length - 1];
+    if (last.length < 9) hero.free[hero.free.length - 1] = last + coin(); else { hero.free.push(coin()); if (hero.free.length > 6) hero.free.shift(); }
+    heroDraw(); return;
+  }
+  if (hero.pause) { hero.pause--; if (!hero.pause) hero.cur = ''; heroDraw(); return; }
+  hero.cur += coin();
+  const w = heroCheck(hero.cur);
+  if (w) { hero.games.push({ s: hero.cur, w }); if (w === 'a') hero.a++; else hero.b++; if (hero.games.length > 5) hero.games.shift(); hero.pause = 4; }
+  heroDraw();
+}
+function heroPlayOne() { let s = ''; for (;;) { s += coin(); const w = heroCheck(s); if (w) { if (w === 'a') hero.a++; else hero.b++; return { s, w }; } } }
+function heroDraw() {
+  const st = setupCanvas($('#hero-cv')); if (!st) return;
+  const { ctx, W, H } = st, rows = 6, COLS = 9;
+  ctx.fillStyle = tok('--surface') || '#fff'; ctx.fillRect(0, 0, W, H);
+  const lab = 64, rH = H / rows, d = Math.min((W - lab - 16) / COLS - 9, rH - 14), r = d / 2;
+  const list = solved() ? hero.games.slice() : hero.free.map(f => ({ s: f, w: null, free: true }));
+  if (solved() && !hero.pause) list.push({ s: hero.cur, w: null });
+  const show6 = list.slice(-rows), ink = tok('--ink'), sur = tok('--surface') || '#fff', hit = tok('--hit'), muted = tok('--muted');
+  show6.forEach((g, ri) => {
+    const cy = rH * ri + rH / 2, s = g.s, start = Math.max(0, s.length - COLS), vis = s.slice(start);
+    ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    if (g.w) {
+      const win = g.w === 'b' ? HB : HA;
+      ctx.fillStyle = solved() ? (g.w === 'b' ? hit : ink) : muted;
+      ctx.fillText(show(win), 10, cy);
+    } else if (!g.free) { ctx.fillStyle = muted; ctx.fillText('…', 10, cy); }
+    if (start > 0) { ctx.fillStyle = muted; ctx.fillText('…', lab - 14, cy); }
+    [...vis].forEach((c, i) => {
+      const cx = lab + i * (d + 9) + r;
+      const inWin = g.w && i >= vis.length - 3;
+      if (inWin) {
+        ctx.strokeStyle = solved() && g.w === 'b' ? hit : ink; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(cx, cy, r + 3.5, 0, 7); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7);
+      ctx.fillStyle = c === 'H' ? ink : sur; ctx.fill(); ctx.strokeStyle = ink; ctx.lineWidth = 1.6; ctx.stroke();
+      ctx.fillStyle = c === 'H' ? sur : ink; ctx.textAlign = 'center'; ctx.font = '600 ' + Math.max(9, Math.round(d * .42)) + 'px ' + tok('--f-mono');
+      ctx.fillText(show(c), cx, cy + 1);
+    });
+    ctx.strokeStyle = tok('--line'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(8, rH * (ri + 1)); ctx.lineTo(W - 8, rH * (ri + 1)); if (ri < rows - 1) ctx.stroke();
+  });
+  const n = hero.a + hero.b;
+  $('#hero-cap').textContent = !solved()
+    ? L('Ви: ООО. Суперник: РОО. Монету підкидають, доки одна з трійок не випаде поспіль. Який шанс суперника виграти?', 'You: HHH. Opponent: THH. The coin is flipped until one of the patterns comes up in a row. What are your opponent\'s odds?')
+    : L('Партій: ' + fmt(n) + ' · ООО: ' + fmt(hero.a) + ' · РОО: ' + fmt(hero.b) + (n ? ' (' + pct(hero.b / n, 0) + ')' : '') + ' · точно 7/8 = 87,5%', 'Games: ' + fmt(n) + ' · HHH: ' + fmt(hero.a) + ' · THH: ' + fmt(hero.b) + (n ? ' (' + pct(hero.b / n, 0) + ')' : '') + ' · exact 7/8 = 87.5%');
+}
+function heroStart() {
+  clearInterval(hero.timer);
+  for (let i = 0; i < 5; i++) hero.games.push(heroPlayOne());
+  if (reduce()) { heroDraw(); return; }
+  heroDraw();
+  hero.timer = setInterval(heroStep, 380);
+}
+
+/* ---------- puzzle example ---------- */
+function exText() { $('#ex-coins').innerHTML = coinsHTML('HTTHH', { from: 2, len: 3, who: 'me' }); }
+
+/* ---------- round 1: guess ---------- */
+const guessIn = $('#guess-n');
+let guessed = null;
+guessIn.addEventListener('input', () => { $('#guess-v').textContent = guessIn.value + '%'; });
+$('#guess-go').addEventListener('click', () => { guessed = +guessIn.value / 100; guessText(); window.mpSolve && mpSolve(); });
+document.addEventListener('solved', () => { heroDraw(); gameText(); });
+function guessText() {
+  if (guessed === null) return;
+  const g = guessed, ex = 7 / 8, off = Math.abs(g - ex);
+  const verdict = off <= 0.03
+    ? L('Влучно. РОО справді випереджає ООО в 7 партіях з 8.', 'Spot on. THH really does beat HHH in 7 games out of 8.')
+    : g <= 0.55
+      ? L('Більшість відповідає так само: «трійки рівні, отже, 50 на 50». Насправді суперник виграє в 7 партіях з 8.', 'Most people answer the same way: "the patterns are equal, so 50/50". In fact your opponent wins 7 games out of 8.')
+      : g < ex
+        ? L('Ви відчули перевагу суперника, але вона ще більша: 7 з 8.', 'You sensed the opponent\'s edge, but it is even bigger: 7 in 8.')
+        : L('Забагато. Шанс суперника 7/8: ООО все ж виграє, якщо перші три кидки дадуть ООО.', 'Too high. The opponent\'s chance is 7/8: HHH still wins if the first three flips are HHH.');
+  const rows = [[L('Ваша відповідь', 'Your answer'), g, 'var(--day)'], [L('Інтуїція «50 на 50»', 'Intuition "50/50"'), .5, 'var(--muted)'], [L('Насправді', 'Actually'), ex, 'var(--hit)']];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">7/8 = ' + pct(ex) + '</p>' +
+    '<p>' + verdict + '</p><div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + pct(r[1], r[1] === ex ? 1 : 0) + '</span></div>').join('') + '</div>' +
+    '<p>' + L('І це не особливість однієї пари. Хоч яку трійку ви оберете, суперник знайде відповідь, що виграє з шансом щонайменше 2/3:', 'And it is not a quirk of one pair. Whatever pattern you choose, your opponent has a reply that wins with chance at least 2/3:') + '</p>' +
+    '<div class="replies">' + P3.map(a => { const b = bestReply(a, P3); return '<span><b>' + show(a) + ' → ' + show(b) + '</b><i>' + fracS(a, b) + '</i></span>'; }).join('') + '</div>' +
+    '<p class="note">' + L('Ліворуч ваша трійка, праворуч найкраща відповідь суперника і її шанс. Чому так, пояснює раунд 4.', 'Left: your pattern; right: the opponent\'s best reply and its chance. Round 4 explains why.') + '</p>';
+}
+
+/* ---------- round 2: game ---------- */
+const game = { mode: 0, me: 'HHT', cp: 'THH', seq: '', over: null, timer: null, n: 0, wMe: 0, wCp: 0, hist: [], fresh: -1 };
+function gameNewCpu() { game.cp = P3[Math.floor(Math.random() * 8)]; if (game.me === game.cp) game.me = null; }
+function gameCheck() {
+  const s = game.seq, first = game.mode === 0 ? game.me : game.cp, second = game.mode === 0 ? game.cp : game.me;
+  if (s.endsWith(first)) return game.mode === 0 ? 'me' : 'cp';
+  if (s.endsWith(second)) return game.mode === 0 ? 'cp' : 'me';
+  return null;
+}
+function gameRecord(w) {
+  game.n++; if (w === 'me') game.wMe++; else game.wCp++;
+  game.hist.push(w); if (game.hist.length > 100) game.hist.shift();
+}
+function gameFlip() {
+  if (!game.me) return;
+  if (game.over) { game.seq = ''; game.over = null; }
+  game.seq += coin(); game.fresh = game.seq.length - 1;
+  const w = gameCheck(); if (w) { game.over = w; gameRecord(w); }
+  gameText();
+}
+function gameStop() { clearInterval(game.timer); game.timer = null; }
+function gameToEnd() {
+  if (!game.me || game.timer) return;
+  if (game.over) { game.seq = ''; game.over = null; }
+  if (reduce()) { while (!game.over) gameFlip(); return; }
+  game.timer = setInterval(() => { gameFlip(); if (game.over) gameStop(); }, 140);
+}
+function game100() {
+  if (!game.me) return;
+  gameStop();
+  for (let i = 0; i < 100; i++) { game.seq = ''; game.over = null; while (!game.over) { game.seq += coin(); const w = gameCheck(); if (w) { game.over = w; gameRecord(w); } } }
+  game.fresh = -1; gameText();
+}
+function pickMe(p) {
+  if (game.timer) gameStop();
+  if (game.mode === 0) { game.me = p; game.cp = bestReply(p, P3); }
+  else { if (p === game.cp) return; game.me = p; }
+  game.seq = ''; game.over = null; game.fresh = -1; gameText();
+}
+function gameText() {
+  $('#g-mode').innerHTML = [L('Ви обираєте першим', 'You choose first'), L('Ви обираєте другим', 'You choose second')].map((t, i) => '<button type="button" data-m="' + i + '" aria-pressed="' + (i === game.mode) + '">' + t + '</button>').join('');
+  $('#g-pick-lab').textContent = game.mode === 0
+    ? L('Оберіть свою трійку. Комп\'ютер побачить її і відповість.', 'Pick your pattern. The computer will see it and reply.')
+    : L('Комп\'ютер уже обрав (пурпурова рамка). Оберіть свою трійку, щоб його обіграти.', 'The computer has chosen (magenta outline). Pick your pattern to beat it.');
+  $('#g-pats').innerHTML = P3.map(p => '<button type="button" data-p="' + p + '" aria-pressed="' + (p === game.me) + '"' + (p === game.cp ? ' class="cpu"' : '') + (game.mode === 1 && p === game.cp ? ' disabled' : '') + '>' + show(p) + '</button>').join('');
+  $('#g-me').textContent = game.me ? show(game.me) : '–';
+  $('#g-cp').textContent = game.cp ? show(game.cp) : '–';
+  const pMe = game.me ? (game.mode === 0 ? 1 - pB(game.me, game.cp) : pB(game.cp, game.me)) : null;
+  const ok = solved();
+  $('#g-me-s').textContent = pMe === null ? '' : L('шанс ', 'chance ') + (ok ? pct(pMe) : '?');
+  $('#g-cp-s').textContent = pMe === null ? '' : L('шанс ', 'chance ') + (ok ? pct(1 - pMe) : '?');
+  const s = game.seq, w = game.over;
+  const mark = w ? { from: s.length - 3, len: 3, who: w } : null;
+  $('#g-coins').innerHTML = coinsHTML(s, mark, game.fresh);
+  let msg;
+  if (!game.me) msg = L('Оберіть трійку, щоб почати.', 'Pick a pattern to start.');
+  else if (!s) msg = L('Натисніть «Підкинути» або «Дограти до кінця».', 'Press "Flip" or "Play to the end".');
+  else if (!w) msg = L('Кидків: ' + s.length + '. Останні три: ' + show(s.slice(-3)) + '. Гра триває.', 'Flips: ' + s.length + '. Last three: ' + show(s.slice(-3)) + '. Still going.');
+  else msg = (w === 'me'
+    ? L('<b>Ви виграли!</b> ' + show(game.me) + ' випала першою, на ' + s.length + '-му кидку.', '<b>You win!</b> ' + show(game.me) + ' came first, on flip ' + s.length + '.')
+    : L('Виграв комп\'ютер: <b>' + show(game.cp) + '</b> випала першою, на ' + s.length + '-му кидку.', 'The computer wins: <b>' + show(game.cp) + '</b> came first, on flip ' + s.length + '.')) + ' ' + L('Наступне натискання почне нову партію.', 'The next press starts a new game.');
+  $('#g-msg').innerHTML = msg;
+  $('#s-n').textContent = fmt(game.n); $('#s-me').textContent = fmt(game.wMe); $('#s-cp').textContent = fmt(game.wCp);
+  $('#s-txt').textContent = game.n
+    ? L('Комп\'ютер виграв ' + pct(game.wCp / game.n, 0) + ' з ' + fmt(game.n) + ' ' + gamesW(game.n) + '. Квадратики нижче показують останні партії: пурпурові виграв комп\'ютер.', 'The computer won ' + pct(game.wCp / game.n, 0) + ' of ' + fmt(game.n) + ' ' + gamesW(game.n) + '. The squares below are the latest games: magenta ones went to the computer.')
+    : L('Партій ще не було.', 'No games yet.');
+  $('#s-hist').innerHTML = game.hist.map(h => '<i class="' + (h === 'cp' ? 'c' : '') + '"></i>').join('');
+  let hint = '';
+  if (game.mode === 0) hint = ok ? L('Комп\'ютер завжди відповідає найкращою трійкою. Його шанс щонайменше 2/3, хоч що ви оберете. Спробуйте помінятися ролями.', 'The computer always replies with the best pattern. Its chance is at least 2/3 whatever you pick. Try swapping roles.')
+    : L('Шанси гравців з\'являться після раунду 1.', 'The players\' odds will appear after round 1.');
+  else if (game.n && ok) hint = L('Підказка: візьміть протилежне до середнього символу комп\'ютера, а за ним його перші два. Проти ' + show(game.cp) + ' це ' + show(rule3(game.cp)) + ', шанс ' + fracS(game.cp, rule3(game.cp)) + '.', 'Hint: take the opposite of the computer\'s middle symbol, followed by its first two. Against ' + show(game.cp) + ' that is ' + show(rule3(game.cp)) + ', with chance ' + fracS(game.cp, rule3(game.cp)) + '.');
+  else hint = L('Тепер перевага у вас, якщо знайдете правильну відповідь. Після першої партії тут з\'явиться підказка.', 'Now the edge is yours, if you find the right reply. A hint appears here after the first game.');
+  $('#s-hint').textContent = hint;
+  $('#g-flip').disabled = $('#g-end').disabled = $('#g-100').disabled = !game.me;
+}
+$('#g-mode').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const m = +b.dataset.m; if (m === game.mode) return;
+  gameStop(); game.mode = m; game.seq = ''; game.over = null; game.n = game.wMe = game.wCp = 0; game.hist = [];
+  if (m === 1) { gameNewCpu(); game.me = null; } else { game.me = 'HHT'; game.cp = bestReply('HHT', P3); }
+  gameText();
+});
+$('#g-pats').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; pickMe(b.dataset.p); });
+$('#g-flip').addEventListener('click', () => { gameStop(); gameFlip(); });
+$('#g-end').addEventListener('click', gameToEnd);
+$('#g-100').addEventListener('click', game100);
+$('#s-reset').addEventListener('click', () => { gameStop(); game.n = game.wMe = game.wCp = 0; game.hist = []; game.seq = ''; game.over = null; if (game.mode === 1) { gameNewCpu(); game.me = null; } gameText(); });
+
+/* ---------- round 3: the 8 × 8 matrix ---------- */
+const SIM_N = 20000;
+let mx = null, mxBusy = false;
+function mxRun() {
+  if (mxBusy) return;
+  mxBusy = true; $('#sim-run').disabled = true;
+  mx = { win: P3.map(() => new Float64Array(8)), rows: 0, games: 0, flips: 0 };
+  let r = 0;
+  (function chunk() {
+    const t0 = performance.now();
+    while (r < 8 && performance.now() - t0 < 40) {
+      const a = P3[r], va = toInt(a);
+      duelFlips = 0;
+      P3.forEach((b, c) => { if (c === r) return; const vb = toInt(b); let w = 0; for (let i = 0; i < SIM_N; i++) w += duelBits(va, 3, vb, 3); mx.win[r][c] = w / SIM_N; mx.games += SIM_N; });
+      mx.flips += duelFlips; r++; mx.rows = r;
+    }
+    mxText();
+    if (r < 8) setTimeout(chunk, 0); else { mxBusy = false; $('#sim-run').disabled = false; waitRun(); }
+  })();
+}
+function mxText() {
+  const head = '<tr><th class="rh"></th>' + P3.map(p => '<th>' + show(p) + '</th>').join('') + '</tr>';
+  const body = P3.map((a, r) => {
+    const best = bestReply(a, P3);
+    return '<tr><th class="rh">' + show(a) + '</th>' + P3.map((b, c) => {
+      if (b === a) return '<td class="d">·</td>';
+      const p = pB(a, b), done = mx && r < mx.rows;
+      return '<td class="' + (b === best ? 'best' : '') + '" style="--a:' + Math.round(p * 34) + '%">' + fracS(a, b) + '<small>' + (done ? dec((100 * mx.win[r][c]).toFixed(1)) : '…') + '</small></td>';
+    }).join('') + '</tr>';
+  }).join('');
+  $('#mx').innerHTML = '<thead>' + head + '</thead><tbody>' + body + '</tbody>';
+  $('#sim-min').textContent = L('найкраща відповідь на ОРО, ОРР, РОО чи РОР', 'the best reply to HTH, HTT, THH or THT');
+  if (!mx) return;
+  let dev = 0, at = '';
+  for (let r = 0; r < mx.rows; r++) P3.forEach((b, c) => { if (c === r) return; const d = Math.abs(mx.win[r][c] - pB(P3[r], b)); if (d > dev) { dev = d; at = show(P3[r]) + ' / ' + show(b); } });
+  $('#sim-dev').textContent = mx.rows ? dec((100 * dev).toFixed(2)) + L(' в. п.', ' pp') : '–';
+  $('#sim-devs').textContent = mx.rows ? L('у парі ', 'in the pair ') + at + L('. Для 20 000 партій типове відхилення клітинки близько 0,3 в. п., а найбільше з 56 зазвичай не перевищує 1,2 в. п.', '. With 20,000 games a cell is typically off by about 0.3 pp, and the largest of 56 gaps rarely exceeds 1.2 pp.') : '';
+  $('#sim-n').textContent = fmt(mx.games);
+  $('#sim-ns').textContent = L(fmt(mx.flips) + ' ' + flipsW(mx.flips) + ' монети', fmt(mx.flips) + ' coin flips');
+  $('#sim-prog').textContent = mx.rows < 8 ? L('Рахуємо: рядок ' + mx.rows + ' з 8…', 'Working: row ' + mx.rows + ' of 8…') : L('Готово: у кожній клітинці 20 000 партій.', 'Done: 20,000 games in every cell.');
+}
+$('#sim-run').addEventListener('click', mxRun);
+
+// mean waiting time, exact vs simulated
+let waitRes = null;
+function waitRun() {
+  const R = 20000;
+  waitRes = P3.map(p => { const v = toInt(p); let s = 0; for (let i = 0; i < R; i++) s += waitSim(v, 3); return s / R; });
+  drawWait();
+}
+function drawWait() {
+  const st = setupCanvas($('#wait-cv')); if (!st) return;
+  const { ctx, W, H } = st, l = 34, r = 10, t = 16, b = 30, YM = 16;
+  const bw = (W - l - r) / 8, y = v => t + (1 - v / YM) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let v = 0; v <= YM; v += 4) { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.fillText(v, l - 6, y(v)); }
+  P3.forEach((p, i) => {
+    const cx = l + (i + .5) * bw, e = waitOf(p);
+    ctx.fillStyle = tok('--cell'); ctx.fillRect(cx - bw * .32, y(e), bw * .64, y(0) - y(e));
+    ctx.fillStyle = tok('--ink'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.font = '600 12px ' + tok('--f-mono');
+    ctx.fillText(e, cx, y(e) - 4);
+    ctx.font = (W < 420 ? '600 9px ' : '600 11px ') + tok('--f-mono'); ctx.textBaseline = 'top'; ctx.fillStyle = tok('--muted');
+    ctx.fillText(show(p), cx, H - b + 8);
+    if (waitRes) { ctx.fillStyle = tok('--ink'); ctx.beginPath(); ctx.arc(cx, y(waitRes[i]), 4.5, 0, 7); ctx.fill(); }
+  });
+  ctx.font = '11px ' + tok('--f-mono'); ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(L('кидків до першої появи', 'flips until first appearance'), l + 4, 0);
+  if (waitRes && W >= 480) {
+    ctx.textAlign = 'right';
+    ctx.fillText(L('симуляція ООО: ', 'simulated HHH: ') + dec(waitRes[0].toFixed(2)), W - r, 0);
+  }
+}
+
+/* ---------- round 4: clumps ---------- */
+let clump = null;
+function clumpRun() {
+  let s = ''; for (let i = 0; i < 1000; i++) s += coin();
+  const count = p => { let c = 0, first = -1, groups = 0, prev = -9; for (let i = 0; i + 3 <= s.length; i++) if (s.substr(i, 3) === p) { c++; if (first < 0) first = i + 3; if (i - prev > 3) groups++; prev = i; } return { c, first, groups }; };
+  clump = { a: count('HHH'), b: count('HHT') };
+  clumpText();
+}
+function clumpText() {
+  if (!clump) return;
+  const { a, b } = clump;
+  $('#clump-txt').innerHTML = L('У щойно підкинутих 1000 кидках ООО трапилася <b>' + a.c + '</b> ' + plural(a.c, 'раз', 'рази', 'разів') + ', але лише в ' + a.groups + ' ' + plural(a.groups, 'окремому місці', 'окремих місцях', 'окремих місцях') + '; уперше на ' + a.first + '-му кидку. ООР трапилася <b>' + b.c + '</b> ' + plural(b.c, 'раз', 'рази', 'разів') + ', щоразу окремо; уперше на ' + b.first + '-му кидку.',
+    'In the 1,000 flips just made, HHH appeared <b>' + a.c + '</b> times, but in only ' + a.groups + ' separate places; first at flip ' + a.first + '. HHT appeared <b>' + b.c + '</b> times, always separately; first at flip ' + b.first + '.');
+}
+$('#clump-go').addEventListener('click', clumpRun);
+
+/* ---------- round 4: the rule ---------- */
+let ruleA = 'HHH';
+function ruleText() {
+  $('#rule-pats').innerHTML = P3.map(p => '<button type="button" data-p="' + p + '" aria-pressed="' + (p === ruleA) + '">' + show(p) + '</button>').join('');
+  const a = ruleA, b = rule3(a);
+  $('#rule-build').innerHTML = '<span>' + show(a) + '</span> → <span class="x">' + show(b[0]) + '</span> + <span>' + show(a.slice(0, 2)) + '</span> = <span class="x">' + show(b) + '</span>';
+  $('#rule-txt').innerHTML = L('Середній символ трійки ' + show(a) + ' це ' + show(a[1]) + ', тож відповідь починається з ' + show(b[0]) + '. Далі йдуть перші два символи суперника: ' + show(a.slice(0, 2)) + '. Відповідь <b>' + show(b) + '</b> виграє з шансом ' + fracS(a, b) + '.',
+    'The middle symbol of ' + a + ' is ' + a[1] + ', so the reply starts with ' + b[0] + '. Then come the opponent\'s first two symbols: ' + a.slice(0, 2) + '. The reply <b>' + b + '</b> wins with chance ' + fracS(a, b) + '.');
+}
+$('#rule-pats').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ruleA = b.dataset.p; ruleText(); });
+
+/* ---------- round 5: other lengths ---------- */
+let lenK = 2; const lenSim = {};
+function lenText() {
+  $('#len-pick').innerHTML = [2, 3, 4].map(k => '<button type="button" data-k="' + k + '" aria-pressed="' + (k === lenK) + '">' + L(k + ' ' + flipsW(k), k + ' flips') + '</button>').join('');
+  const P = allOf(lenK);
+  $('#len-txt').textContent = [
+    L('З двома кидками перевага другого гравця лише часткова. Проти ОО і РР є відповідь з шансом 3/4, але проти ОР чи РО найкраще, що можна зробити, це 50 на 50. Тож першому гравцю досить обрати ОР або РО.', 'With two flips the second player\'s edge is only partial. Against HH and TT there is a reply with chance 3/4, but against HT or TH the best possible is 50/50. So the first player just picks HT or TH.'),
+    L('Трійки з раундів 1–4: на кожну знайдеться відповідь з шансом щонайменше 2/3, а правило «протилежне до середнього, потім перші два» щоразу дає найкращу.', 'The patterns from rounds 1–4: every one has a reply with chance at least 2/3, and the rule "opposite of the middle, then the first two" always gives the best one.'),
+    L('З чотирма кидками другий гравець так само має перевагу, від 9/14 до 15/16. Найкраща відповідь завжди складається з одного символу і перших трьох символів суперника, але правило «протилежне до другого» тепер іноді помиляється, наприклад для ООРО.', 'With four flips the second player still has the edge, from 9/14 to 15/16. The best reply is always one symbol followed by the opponent\'s first three, but the "opposite of the second" rule now sometimes fails, for example for HHTH.')
+  ][lenK - 2];
+  $('#len-body').innerHTML = P.map(a => {
+    const b = bestReply(a, P), p = pB(a, b), key = lenK + a, sv = lenSim[key];
+    return '<tr><td class="pat">' + show(a) + '</td><td class="pat' + (p > .5 ? ' hl' : '') + '">' + show(b) + '</td><td class="num">' + fracS(a, b) + ' · ' + pct(p) + '</td><td class="num res">' + (sv === undefined ? '–' : pct(sv)) + '</td></tr>';
+  }).join('');
+}
+function lenRun() {
+  const P = allOf(lenK), R = 20000;
+  P.forEach(a => { const b = bestReply(a, P); let w = 0; for (let i = 0; i < R; i++) w += duel(a, b); lenSim[lenK + a] = w / R; });
+  lenText();
+}
+$('#len-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; lenK = +b.dataset.k; lenRun(); });
+$('#len-run').addEventListener('click', lenRun);
+
+/* ---------- round 5: any duel ---------- */
+const DUELS = [['HHH', 'THH'], ['HTH', 'HHT'], ['HTHH', 'THTH'], ['HHHH', 'THHH'], ['TTHH', 'HTTH'], ['HH', 'TTTT']];
+const parse = s => [...s.toUpperCase()].map(c => /[HОO]/.test(c) ? 'H' : /[TРP]/.test(c) ? 'T' : '').join('');
+let duelSimRes = null;
+function duelGet() { return [parse($('#duel-a').value).slice(0, 12), parse($('#duel-b').value).slice(0, 12)]; }
+function duelText() {
+  $('#duel-pre').innerHTML = DUELS.map(([a, b], i) => '<button type="button" data-i="' + i + '">' + show(a) + ' · ' + show(b) + '</button>').join('');
+  const [a, b] = duelGet();
+  const waitLine = (p, el, sl) => {
+    if (!p) { $(el).textContent = '–'; $(sl).textContent = ''; return; }
+    const parts = []; for (let k = p.length; k >= 1; k--) if (p.slice(-k) === p.slice(0, k)) parts.push('2' + sup(k));
+    $(el).textContent = fmt(waitOf(p)) + ' ' + flipsW(waitOf(p));
+    $(sl).textContent = show(p) + ': ' + parts.join(' + ') + ' = ' + fmt(waitOf(p));
+  };
+  waitLine(a, '#wait-a', '#wait-as'); waitLine(b, '#wait-b', '#wait-bs');
+  let err = '';
+  if (!a || !b) err = L('Наберіть обидві комбінації.', 'Type both patterns.');
+  else if (a === b) err = L('Комбінації мають бути різними.', 'The patterns must differ.');
+  else if (a.includes(b) || b.includes(a)) err = L('Одна комбінація містить іншу, тож коротша завжди з\'явиться не пізніше.', 'One pattern contains the other, so the shorter one never comes later.');
+  $('#duel-run').disabled = !!err;
+  if (err) { $('#duel-p').textContent = '–'; $('#duel-s').textContent = '–'; $('#duel-ovl').textContent = err; return; }
+  const [x, y] = frac(a, b), AA = corr(a, a), AB = corr(a, b), BB = corr(b, b), BA = corr(b, a);
+  $('#duel-p').textContent = x + '/' + y + ' = ' + pct(x / y);
+  $('#duel-s').textContent = duelSimRes && duelSimRes.a === a && duelSimRes.b === b ? pct(duelSimRes.p) : '–';
+  $('#duel-ovl').innerHTML = 'A·A = ' + bin(a, a) + '₂ = ' + AA + ' &nbsp; A·B = ' + bin(a, b) + '₂ = ' + AB + '<br>B·B = ' + bin(b, b) + '₂ = ' + BB + ' &nbsp; B·A = ' + bin(b, a) + '₂ = ' + BA +
+    '<br>' + L('Шанси B : A', 'Odds B : A') + ' = (' + AA + ' − ' + AB + ') : (' + BB + ' − ' + BA + ') = <b>' + (AA - AB) + ' : ' + (BB - BA) + '</b>';
+}
+const SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+const sup = k => String(k).split('').map(d => SUP[+d]).join('');
+function duelRun() {
+  const [a, b] = duelGet(); if ($('#duel-run').disabled) return;
+  // keep the run small for slow patterns: about 4 million flips at most
+  const avg = Math.min(waitOf(a), waitOf(b)), R = Math.max(500, Math.min(10000, Math.floor(4e6 / avg)));
+  let w = 0; for (let i = 0; i < R; i++) w += duel(a, b);
+  duelSimRes = { a, b, p: w / R, R };
+  duelText();
+}
+$('#duel-pre').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const [x, y] = DUELS[+b.dataset.i]; $('#duel-a').value = show(x); $('#duel-b').value = show(y); duelSimRes = null; duelRun(); });
+['#duel-a', '#duel-b'].forEach(s => $(s).addEventListener('input', () => { duelSimRes = null; duelText(); }));
+$('#duel-run').addEventListener('click', duelRun);
+
+/* ---------- round 5: cards ---------- */
+// exact results for 26 red and 26 black cards, computed by dynamic programming over the deck (first wins, second wins, draw)
+const DECK = [['BBB', 'RBB', .0011, .9949, .0040], ['BBR', 'RBB', .0262, .9354, .0384], ['BRB', 'BBR', .1161, .8011, .0828], ['BRR', 'BBR', .0518, .8829, .0653]];
+const suit = s => [...s].map(c => c === 'R' ? '♥' : '♠').join('');
+let deckSel = 0, deckLast = null, deckSim = null;
+function deckDeal() {
+  const d = Array(26).fill('R').concat(Array(26).fill('B'));
+  for (let i = d.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; }
+  const [A, B] = DECK[deckSel], owner = Array(52).fill(''); let w = '', start = 0, ta = 0, tb = 0;
+  d.forEach((c, i) => {
+    w += c;
+    if (w.length >= 3 && (w.endsWith(A) || w.endsWith(B))) { const who = w.endsWith(A) ? 'a' : 'b'; for (let k = start; k <= i; k++) owner[k] = who; if (who === 'a') ta++; else tb++; w = ''; start = i + 1; }
+  });
+  return { d, owner, ta, tb };
+}
+function deckText() {
+  const [A, B] = DECK[deckSel];
+  $('#deck-pre').innerHTML = DECK.map((r, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === deckSel) + '">' + suit(r[0]) + ' · ' + suit(r[1]) + '</button>').join('');
+  $('#deck-la').textContent = L('Взяток у першого, ', 'Tricks for the first, ') + suit(A);
+  $('#deck-lb').textContent = L('Взяток у другого, ', 'Tricks for the second, ') + suit(B);
+  const g = deckLast;
+  $('#deck').innerHTML = g ? g.d.map((c, i) => '<i class="' + (c === 'R' ? 'r ' : '') + (g.owner[i] === 'a' ? 'a' : g.owner[i] === 'b' ? 'b' : 'e') + '">' + (c === 'R' ? '♥' : '♠') + '</i>').join('') : '';
+  $('#deck-a').textContent = g ? g.ta : 0; $('#deck-b').textContent = g ? g.tb : 0;
+  let m = g ? (g.tb > g.ta ? L('Виграв другий гравець.', 'The second player wins.') : g.ta > g.tb ? L('Виграв перший гравець.', 'The first player wins.') : L('Нічия.', 'A draw.')) + ' ' + L('Сірі карти забрав перший, рожеві другий, бліді лишилися без власника в кінці колоди.', 'Grey cards went to the first player, pink to the second; faded ones were left over at the end of the deck.') : '';
+  if (deckSim && deckSim.i === deckSel) m += ' ' + L('10 000 колод: перший ' + pct(deckSim.a) + ', другий ' + pct(deckSim.b) + ', нічия ' + pct(deckSim.d) + '.', '10,000 decks: first ' + pct(deckSim.a) + ', second ' + pct(deckSim.b) + ', draw ' + pct(deckSim.d) + '.');
+  $('#deck-msg').textContent = m;
+  $('#deck-tbl').innerHTML = DECK.map((r, i) => '<tr' + (i === deckSel ? ' style="background:var(--paper)"' : '') + '><td class="pat">' + suit(r[0]) + '</td><td class="pat">' + suit(r[1]) + '</td><td class="num">' + pct(r[2], 2) + '</td><td class="num" style="color:var(--hit);font-weight:600">' + pct(r[3], 2) + '</td><td class="num">' + pct(r[4], 2) + '</td></tr>').join('');
+}
+$('#deck-pre').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; deckSel = +b.dataset.i; deckLast = deckDeal(); deckText(); });
+$('#deck-deal').addEventListener('click', () => { deckLast = deckDeal(); deckText(); });
+$('#deck-sim').addEventListener('click', () => { let a = 0, b = 0, d = 0; for (let i = 0; i < 10000; i++) { const g = deckDeal(); if (g.ta > g.tb) a++; else if (g.tb > g.ta) b++; else d++; } deckSim = { i: deckSel, a: a / 1e4, b: b / 1e4, d: d / 1e4 }; deckText(); });
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Гра Пенні', 'Penney\'s Game');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  ['#duel-a', '#duel-b'].forEach(s => { const v = parse($(s).value); $(s).value = show(v); });
+  heroDraw(); exText(); guessText(); gameText(); mxText(); drawWait(); clumpText(); ruleText(); lenText(); duelText(); deckText();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+const redraw = () => { heroDraw(); drawWait(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state: everything filled ---------- */
+game.cp = bestReply(game.me, P3);
+clumpRun();
+$('#duel-a').value = 'HHH'; $('#duel-b').value = 'THH';
+deckLast = deckDeal();
+applyLang();
+heroStart();
+setTimeout(() => { mxRun(); lenRun(); duelRun(); }, 30);
+})();
+</script>
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">Ще задачі</span>
+    <h2>Інші парадокси</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/monty-hall/"><h3>Парадокс Монті Голла</h3><p>Ви на телешоу й обрали одні з трьох дверей. Ведучий, який знає, де авто, відчиняє інші двері з козою й пропонує змінити вибір. Змінювати?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/inspection-paradox/"><h3>Парадокс автобуса</h3><p>Автобус ходить у середньому раз на 10 хвилин, але без розкладу. Ви приходите на зупинку в довільний момент. Скільки в середньому чекатимете?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/st-petersburg-paradox/"><h3>Санкт-Петербурзький парадокс</h3><p>Монету підкидають до першої решки, банк стартує з $2 і подвоюється з кожним орлом. Скільки в середньому дає така гра?</p></a>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/">Усі задачі →</a>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Обговорення</span>
+    <h2>Що ви думаєте?</h2>
+    <p>Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub.</p>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="penney-game" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="uk" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Розсилка</span>
+    <h2>Нові задачі, пояснення й обговорення</h2>
+    <p>Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">Форма підписки з'явиться тут найближчим часом.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'uk' }); claspo('init');</script>
+<script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "adf9fd3e4773416fb45241d58aea741f"}'></script>
+</body>
+</html>

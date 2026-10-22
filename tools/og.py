@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -82,6 +82,26 @@ TEXT = {
     "bertrand-paradox": {
         "uk": (["ПАРАДОКС", "БЕРТРАНА"], "Який шанс, що випадкова хорда довга?"),
         "en": (["BERTRAND'S", "PARADOX"], "Is a random chord long?"),
+    },
+    "penney-game": {
+        "uk": (["ГРА", "ПЕННІ"], "ООО проти РОО: хто виграє?"),
+        "en": (["PENNEY'S", "GAME"], "HHH against THH: who wins?"),
+    },
+    "inspection-paradox": {
+        "uk": (["ПАРАДОКС", "АВТОБУСА"], "Автобус раз на 10 хв. Скільки чекати?"),
+        "en": (["THE BUS", "PARADOX"], "A bus every 10 min. Your wait?"),
+    },
+    "german-tank-problem": {
+        "uk": (["НІМЕЦЬКІ", "ТАНКИ"], "Номери 4, 10, 15, 60. Скільки танків?"),
+        "en": (["THE GERMAN", "TANK PROBLEM"], "Serials 4, 10, 15, 60. How many?"),
+    },
+    "st-petersburg-paradox": {
+        "uk": (["САНКТ-", "ПЕТЕРБУРЗЬКИЙ", "ПАРАДОКС"], "Скільки варто заплатити за гру?"),
+        "en": (["ST. PETERSBURG", "PARADOX"], "How much would you pay to play?"),
+    },
+    "benford-law": {
+        "uk": (["ЗАКОН", "БЕНФОРДА"], "Яка частка чисел починається з 1?"),
+        "en": (["BENFORD'S", "LAW"], "How many numbers start with 1?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -287,6 +307,55 @@ def extra_visual(kind, x, y, lang="en"):
             a, b = rnd.random() * 2 * math.pi, rnd.random() * 2 * math.pi
             long_ = abs(math.sin((a - b) / 2)) * 2 * r > r * math.sqrt(3)
             out.append(f'<line x1="{cx + r * math.cos(a):.1f}" y1="{cy + r * math.sin(a):.1f}" x2="{cx + r * math.cos(b):.1f}" y2="{cy + r * math.sin(b):.1f}" stroke="{SIGNAL if long_ else "#9A9A9A"}" stroke-width="3"/>')
+    elif kind == "penney-game":
+        # the two picks side by side and a run of flips; who wins is the answer, so nothing is marked
+        pat = {"uk": ("ООО", "РОО"), "en": ("HHH", "THH")}[lang]
+        for i, p in enumerate(pat):
+            bx = x + 30 + i * 180
+            out += [f'<rect x="{bx}" y="{y + 20}" width="150" height="90" rx="14" fill="{INK}"/>',
+                    f'<text x="{bx + 75}" y="{y + 80}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="44" letter-spacing="4" fill="#fff">{p}</text>']
+        side = {"uk": ("О", "Р"), "en": ("H", "T")}[lang]
+        for i in range(30):
+            h = rnd.random() < .5
+            px, py = x + 30 + (i % 10) * 33, y + 150 + (i // 10) * 40
+            out += [f'<circle cx="{px + 13}" cy="{py + 13}" r="14" fill="{INK if h else "#fff"}" stroke="{INK}" stroke-width="2"/>',
+                    f'<text x="{px + 13}" y="{py + 19}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="15" fill="{"#fff" if h else INK}">{side[0 if h else 1]}</text>']
+    elif kind == "inspection-paradox":
+        # a road with irregular buses and one waiting passenger; the wait is the answer
+        out.append(f'<rect x="{x + 10}" y="{y + 40}" width="360" height="220" rx="16" fill="#fff"/>')
+        out.append(f'<line x1="{x + 30}" y1="{y + 150}" x2="{x + 350}" y2="{y + 150}" stroke="#BDBDBD" stroke-width="4" stroke-linecap="round"/>')
+        for t in (24, 70, 160, 205, 330):
+            out += [f'<rect x="{x + 20 + t - 14}" y="{y + 108}" width="28" height="30" rx="6" fill="{INK}"/>',
+                    f'<rect x="{x + 20 + t - 9}" y="{y + 114}" width="18" height="9" rx="2" fill="#fff"/>']
+        px = x + 290
+        out += [f'<circle cx="{px}" cy="{y + 180}" r="9" fill="{INK}"/>', f'<rect x="{px - 9}" y="{y + 192}" width="18" height="30" rx="7" fill="{INK}"/>',
+                f'<text x="{px + 22}" y="{y + 210}" font-family="{FONT}" font-weight="800" font-size="30" fill="{SIGNAL}">?</text>']
+    elif kind == "german-tank-problem":
+        # four captured serial plates and the unknown total
+        for i, n in enumerate((4, 10, 15, 60)):
+            px, py = x + 30 + (i % 2) * 170, y + 20 + (i // 2) * 100
+            out += [f'<rect x="{px}" y="{py}" width="150" height="76" rx="10" fill="{INK}"/>',
+                    f'<text x="{px + 75}" y="{py + 52}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="40" fill="#fff">№ {n}</text>']
+        out += [f'<rect x="{x + 30}" y="{y + 225}" width="320" height="76" rx="10" fill="#fff" stroke="{INK}" stroke-width="3" stroke-dasharray="9 7"/>',
+                f'<text x="{x + 190}" y="{y + 277}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="40" fill="{INK}">N = ?</text>']
+    elif kind == "st-petersburg-paradox":
+        # the payout ladder: the price of the game is the question
+        side = {"uk": ("О", "Р"), "en": ("H", "T")}[lang]
+        for k in range(1, 6):
+            py = y + 10 + (k - 1) * 58
+            for j in range(k):
+                h = j < k - 1
+                cx = x + 30 + j * 34
+                out += [f'<circle cx="{cx + 14}" cy="{py + 24}" r="14" fill="{INK if h else "#fff"}" stroke="{INK}" stroke-width="2"/>',
+                        f'<text x="{cx + 14}" y="{py + 30}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="15" fill="{"#fff" if h else INK}">{side[0 if h else 1]}</text>']
+            out.append(f'<text x="{x + 360}" y="{py + 34}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="30" fill="{INK}">${2 ** k}</text>')
+    elif kind == "benford-law":
+        # powers of two, first digit in bold; how often it is 1 is the answer
+        nums = [2 ** n for n in range(1, 25)]
+        for i, v in enumerate(nums):
+            s = str(v)
+            px, py = x + 20 + (i % 3) * 125, y + 30 + (i // 3) * 36
+            out.append(f'<text x="{px}" y="{py}" font-family="{FONT}" font-size="26" fill="{MUTED}"><tspan font-weight="800" fill="{INK}">{s[0]}</tspan>{s[1:]}</text>')
     return "".join(out)
 
 
@@ -318,7 +387,8 @@ def svg(kind, lang):
     elif kind == "buffon-needle":
         parts.append(needles(740, 165))
     elif kind in ("rope-around-earth", "hundred-prisoners", "cognitive-reflection", "coupon-collector",
-                  "regression-to-mean", "two-envelopes", "coin-streaks", "bertrand-paradox"):
+                  "regression-to-mean", "two-envelopes", "coin-streaks", "bertrand-paradox", "penney-game",
+                  "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))

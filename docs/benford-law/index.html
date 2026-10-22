@@ -1,0 +1,1363 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/benford-law/", "en": "/benford-law/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "benford-law";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  window.mpSolve = function () {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new Event("solved"));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<title>Закон Бенфорда: чому 30% чисел починаються з одиниці</title>
+<meta name="description" content="Закон Бенфорда: з 1000 степенів двійки 301 починається з 1 і лише 45 з 9. Чому перша цифра 1 трапляється у 30% випадків. Гра, симуляція і формула.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/benford-law/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/benford-law/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/benford-law/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/benford-law/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Закон Бенфорда">
+<meta property="og:description" content="Візьміть степені двійки від 2 до 2^1000. Яка частка з них починається з цифри 1?">
+<meta property="og:url" content="https://mathparadoxes.com/benford-law/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/benford-law/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Степені двійки 2, 4, 8, 16, 32 і дев&#x27;ять можливих перших цифр. Закон Бенфорда: яка частка чисел починається з одиниці?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Закон Бенфорда">
+<meta name="twitter:description" content="Візьміть степені двійки від 2 до 2^1000. Яка частка з них починається з цифри 1?">
+<meta name="twitter:image" content="https://mathparadoxes.com/benford-law/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/benford-law/#page", "url": "https://mathparadoxes.com/benford-law/", "name": "Закон Бенфорда: чому 30% чисел починаються з одиниці", "description": "Закон Бенфорда: з 1000 степенів двійки 301 починається з 1 і лише 45 з 9. Чому перша цифра 1 трапляється у 30% випадків. Гра, симуляція і формула.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "beginner", "about": {"@type": "Thing", "name": "Benford's law", "sameAs": "https://en.wikipedia.org/wiki/Benford%27s_law"}, "image": "https://mathparadoxes.com/benford-law/og-uk.png", "dateModified": "2026-10-22", "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "workTranslation": {"@id": "https://mathparadoxes.com/benford-law/en/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "Закон Бенфорда", "item": "https://mathparadoxes.com/benford-law/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/benford-law/#faq", "inLanguage": "uk", "mainEntity": [{"@type": "Question", "name": "Що таке закон Бенфорда?", "acceptedAnswer": {"@type": "Answer", "text": "Це правило про перші цифри чисел, розкиданих на багато порядків величини. Перша цифра d трапляється з імовірністю log10(1 + 1/d): одиниця приблизно в 30,1% випадків, двійка в 17,6%, а дев'ятка лише в 4,6%."}}, {"@type": "Question", "name": "Чому з одиниці починається 30% чисел, а не 11%?", "acceptedAnswer": {"@type": "Answer", "text": "Такі числа ростуть множенням. На логарифмічній шкалі відрізок від 1 до 2 займає log10 2 ≈ 30,1% шляху від 1 до 10, а від 9 до 10 лише 4,6%. Сума на вкладі під 7% річних росте від 1000 до 2000 понад 10 років, а від 9000 до 10 000 лише 1,6 року."}}, {"@type": "Question", "name": "Для яких даних закон Бенфорда виконується?", "acceptedAnswer": {"@type": "Answer", "text": "Для степенів двійки, чисел Фібоначчі, факторіалів, сум зі складними відсотками і добутків багатьох випадкових чисел. Він не діє для даних у вузькому діапазоні чи призначених чисел: зросту, віку, номерів телефонів, цін на кшталт 9,99 або рівномірно розподілених чисел від 1 до 999."}}, {"@type": "Question", "name": "Чи доводить відхилення від закону Бенфорда шахрайство?", "acceptedAnswer": {"@type": "Answer", "text": "Ні. Аудитори використовують закон як фільтр: помітне відхилення в даних, де закон зазвичай діє, є приводом перевірити записи. Але багато чесних даних закону не підкоряються, а обізнаний фальсифікатор може його дотриматися."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the Bertrand page. A ruler from 1 to 10 on a log scale, with the "1" zone taking 30% of it, is this problem's signature object. */
+:root {
+  --tint: #E0ECF6;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 2.6em; }
+#hero-cv { height: 360px; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl select { font: inherit; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.ctl input[type=range] { width: 200px; max-width: 100%; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+.big.day { color: var(--day); }
+canvas { display: block; width: 100%; }
+canvas.chart { height: 190px; }
+canvas.chart.sm { height: 150px; }
+canvas.ruler { height: 92px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+.firsts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.firsts span { font-family: var(--f-mono); font-size: .86rem; border: 1px solid var(--line); border-radius: 8px; padding: 2px 8px; background: var(--surface); }
+.firsts b { font-weight: 800; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.guess .val { font-family: var(--f-display); font-weight: 800; font-size: 3.4rem; color: var(--day); line-height: 1; }
+.guess input[type=range] { width: 100%; accent-color: var(--day); }
+.scale { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: .72rem; color: var(--muted); }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 150px 1fr 64px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+.ben9 { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; text-align: center; }
+.ben9 div { border: 1px solid var(--line); border-radius: 8px; padding: 4px 0; background: var(--surface); }
+.ben9 b { display: block; font-family: var(--f-mono); font-size: .95rem; }
+.ben9 span { font-family: var(--f-mono); font-size: .68rem; color: var(--muted); }
+.ben9 div:first-child b, .ben9 div:first-child span { color: var(--hit); }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: start; }
+.room + .room { margin-top: 20px; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.status { display: flex; gap: 22px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; }
+.status .mm b { color: var(--hit); }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--hit); }
+.players { display: grid; gap: 4px; font-family: var(--f-mono); font-size: .84rem; }
+.players div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dashed var(--line); padding-block: 2px; }
+.players b { font-weight: 800; }
+
+/* ---------- simulation ---------- */
+.sim5 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.sim5 > div { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.sim5 h3 { font-size: .95rem; }
+.sim5 .s { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.geo { width: 100%; height: auto; }
+.geo text { font-family: var(--f-mono); font-size: 12px; fill: var(--ink); }
+.geo .z { fill: var(--surface); stroke: var(--line); }
+.geo .z1 { fill: var(--hit-soft); stroke: var(--hit); }
+.geo .t1 { fill: var(--hit); font-weight: 700; }
+.geo .m { fill: var(--muted); }
+.geo .bar0 { fill: var(--ink); opacity: .28; }
+.geo .bar1 { fill: var(--hit); }
+.formula { font-family: var(--f-mono); font-size: .92rem; background: var(--paper); border-radius: 10px; padding: 14px 16px; overflow-x: auto; line-height: 1.9; white-space: nowrap; }
+.formula em { font-style: normal; color: var(--hit); font-weight: 600; }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.two > div { display: grid; gap: 6px; min-width: 0; }
+.two h3 { font-size: .9rem; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+td.num.hot { color: var(--hit); font-weight: 600; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .sim5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 560px) {
+  .sim5, .two { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 96px 1fr 56px; }
+  td, th { padding: 8px 6px; }
+  #hero-cv { height: 300px; }
+  .ben9 b { font-size: .8rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=dc0cd822">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/benford-law/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/benford-law/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <h1 class="uk"><span class="kw">Закон Бенфорда</span> 2, 4, 8, 16, 32… <span class="q sp-before">Скільки з них починаються з 1?</span><span class="q sp-after">Майже третина починається з 1.</span></h1>
+    
+    <p class="lead uk sp-before">Візьміть степені двійки від 2 до 2<sup>1000</sup> і подивіться лише на першу цифру кожного числа. Яка частка з них починається з одиниці? Зафіксуйте свою відповідь, а потім перевірте її на банківському вкладі й на мільйоні добутків і прочитайте пояснення.</p>
+    <p class="lead uk sp-after">Візьміть степені двійки від 2 до 2<sup>1000</sup> і подивіться на першу цифру. З одиниці починається 301 число з 1000, тобто 30%, а з дев'ятки лише 4,5%. Так само поводяться сума на вкладі під відсотки, числа Фібоначчі й добутки випадкових чисел. Це закон Бенфорда: P(d) = log<sub>10</sub>(1 + 1/d).</p>
+    
+    
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd"><b class="uk">11,1%</b><span><span class="uk">якби всі цифри були рівноймовірні</span></span></div>
+      <div class="odd hit"><b class="uk">30,1%</b><span><span class="uk">починаються з 1 насправді</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="uk">Умова</b></a>
+      <a href="#guess"><span>1</span><b class="uk">Вгадайте</b></a>
+      <a href="#game"><span>2</span><b class="uk">Виростіть гроші</b></a>
+      <a href="#sim"><span>3</span><b class="uk">П'ять наборів чисел</b></a>
+      <a href="#why"><span>4</span><b class="uk">Чому так</b></a>
+      <a href="#more"><span>5</span><b class="uk">Масштаб, друга цифра, системи числення</b></a>
+      <a href="#facts"><span>★</span><b class="uk" style="font-weight:inherit">Цікаві факти</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span></span>
+    <h2><span class="uk">Тисяча чисел і їхні перші цифри</span></h2>
+    <p class="lead uk">Тут немає жодних таємничих даних. Усі числа на сторінці згенеровано за простими правилами: подвоєння, складні відсотки, числа Фібоначчі, добутки випадкових чисел. Тож кожен результат можна перевірити самостійно.</p>
+    
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Числа</span></h3>
+        <p class="uk">Починаємо з 2 і щоразу подвоюємо: 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024 і так далі, аж до 2<sup>1000</sup>. Останнє число має 302 цифри. Усього маємо 1000 чисел.</p>
+        </div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Перша цифра</span></h3>
+        <p class="uk">Від кожного числа беремо лише першу цифру зліва: у 16 це 1, у 512 це 5, у 1024 знову 1. Нуль першою цифрою бути не може, тож варіантів дев'ять: від 1 до 9.</p>
+        
+        <div class="firsts" aria-label="2, 4, 8, 16, 32, 64, 128, 256, 512, 1024"><span><b>2</b></span><span><b>4</b></span><span><b>8</b></span><span><b>1</b>6</span><span><b>3</b>2</span><span><b>6</b>4</span><span><b>1</b>28</span><span><b>2</b>56</span><span><b>5</b>12</span><span><b>1</b>024</span></div></div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Не лише степені двійки</span></h3>
+        <p class="uk">Те саме питання можна поставити про суму на вкладі, що росте на 7% щороку, або про добуток кількох випадкових чисел від 1 до 10. Ми перевіримо всі ці набори в раунді 3.</p>
+        </div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span></h3>
+        <p class="uk">Яка частка з 1000 степенів двійки починається з цифри 1?</p>
+        </div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span></span>
+        <p class="q"><span class="uk">«Цифр дев'ять, отже кожній дістається по 1/9, приблизно 11%»</span></p>
+        <p class="uk sp-after">Насправді одиниць майже втричі більше: 30,1%. А дев'ятка стоїть першою лише в 4,5% чисел. Цифри не рівноймовірні, і перевага одиниці не випадкова.</p>
+        
+      </div>
+      <div class="card">
+        <h3><span class="uk">Що важливо знати</span></h3>
+        <ul class="rules uk">
+          <li>Рахуємо всі 1000 чисел від 2<sup>1</sup> до 2<sup>1000</sup>, без пропусків.</li>
+          <li>Числа точні, без округлень: комп'ютер уміє працювати з цілими числами будь-якої довжини.</li>
+          <li>Закон Бенфорда діє не для всіх даних. Для яких діє, а для яких ні, розберемо в раундах 3 і 4.</li>
+        </ul>
+        
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span></span>
+    <h2><span class="uk">Яка частка починається з одиниці?</span></h2>
+    <p class="lead uk sp-before">Зафіксуйте свою відповідь, перш ніж читати далі.</p>
+    <p class="lead uk sp-after">Зафіксуйте свою відповідь, перш ніж читати далі. Потім порівняйте її з точним підрахунком.</p>
+    
+    
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <label for="guess-n" class="note"><span class="uk">Ваша відповідь: частка степенів двійки, що починаються з 1</span></label>
+      <div class="val mono" id="guess-v">20%</div>
+      <input type="range" id="guess-n" min="0" max="50" value="20">
+      <div class="scale"><span>0%</span><span>10%</span><span>20%</span><span>30%</span><span>40%</span><span>50%</span></div>
+      <div class="actions"><button class="btn pri" id="guess-go"><span class="uk">Перевірити</span></button></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться розбір вашої відповіді.</p>
+      
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Виростіть гроші</span></span>
+    <h2><span class="uk">Вклад під відсотки і лінійка від 1 до 10</span></h2>
+    <p class="lead uk">Покладіть гроші під відсотки й дивіться, як рік за роком змінюється перша цифра суми. Лінійка під графіком показує, де сума зараз у межах свого порядку: між 1000 і 10&nbsp;000, між 10&nbsp;000 і 100&nbsp;000 і так далі. Відстані на лінійці логарифмічні: множення на те саме число завжди зсуває позначку на той самий крок.</p>
+    
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="controls" style="margin:0">
+        <label class="ctl" for="g-start"><span class="uk">Початкова сума</span>
+          <select id="g-start">
+            <option value="100">100</option>
+            <option value="1000" selected>1000</option>
+            <option value="5000">5000</option>
+            <option value="70000">70&nbsp;000</option>
+          </select>
+        </label>
+        <label class="ctl" for="g-rate"><span><span class="uk">Приріст за рік:</span> <b class="mono" id="g-rate-v"></b></span>
+          <input type="range" id="g-rate" min="1" max="50" value="7">
+        </label>
+      </div>
+      <canvas class="chart" id="g-hist"></canvas>
+      <canvas class="ruler" id="g-ruler"></canvas>
+      <div class="status">
+        <div><span class="k"><span class="uk">Рік</span></span><b class="mono" id="g-y">0</b></div>
+        <div><span class="k"><span class="uk">Сума</span></span><b class="mono" id="g-bal">–</b></div>
+        <div class="mm"><span class="k"><span class="uk">Років з першою цифрою 1</span></span><b class="mono" id="g-one">–</b></div>
+      </div>
+      <p class="msg" id="g-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn pri" id="g-play"></button>
+        <button class="btn pri" data-y="10">+10 <span class="uk">років</span></button>
+        <button class="btn pri" data-y="100">+100 <span class="uk">років</span></button>
+        <button class="btn ghost" id="g-reset"><span class="uk">Почати знову</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="uk">Як читати лінійку</span></h3>
+      <p class="note" style="margin-top:8px"><span class="uk">Лінійка ділиться на дев'ять зон за першою цифрою суми. Зона «1» тягнеться від 1 до 2, тобто до подвоєння. Зона «9» тягнеться від 9 до 10, а це лише +11%. Тому зона «1» займає 30% лінійки, а зона «9» лише 4,6%.</span></p>
+      <p class="note" style="margin-top:10px"><span class="uk">Сума щороку множиться на те саме число, тож позначка щороку робить однаковий крок праворуч. Дійшовши до 10, вона перескакує на початок наступного порядку, і перша цифра знову стає 1. Сірі точки показують кроки останніх років.</span></p>
+      <p class="note" style="margin-top:10px"><span class="uk">Гістограма рахує всі роки від нуля. Стовпчики показують частку років з кожною першою цифрою, чорні точки показують закон Бенфорда. За малого відсотка форма Бенфорда з'являється не одразу: сумі треба пройти кілька повних порядків. Ріст за складними відсотками лежить і в основі задачі про <a href="../duckweed-lake/">ряску в озері</a>.</span></p>
+    </div>
+  </div>
+
+  <div class="room">
+    <div class="card stage">
+      <h3><span class="uk">Множимо випадкові числа</span></h3>
+      <canvas class="chart" id="m-hist"></canvas>
+      <div class="status">
+        <div><span class="k"><span class="uk">Множень</span></span><b class="mono" id="m-k">0</b></div>
+        <div class="mm"><span class="k"><span class="uk">Починаються з 1</span></span><b class="mono" id="m-one">–</b></div>
+        <div><span class="k"><span class="uk">Точно для цього кроку</span></span><b class="mono" id="m-ex">–</b></div>
+      </div>
+      <p class="msg" id="m-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn pri" id="m-step"><span class="uk">Помножити всі числа</span></button>
+        <button class="btn ghost" id="m-reset"><span class="uk">Почати знову</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="uk">1000 гравців</span></h3>
+      <p class="note" style="margin:8px 0 12px"><span class="uk">Кожен із 1000 гравців починає з числа 1. З кожним натисканням кожен гравець множить своє число на власне випадкове число від 1 до 10, рівномірно розподілене. Гістограма показує перші цифри всіх 1000 чисел. Ось п'ять гравців:</span></p>
+      <div class="players" id="m-players"></div>
+      <p class="note" style="margin-top:12px"><span class="uk">Після першого множення числа рівномірні від 1 до 10, і кожна цифра має шанс 1/9. Уже після трьох множень частка одиниць близька до 30%. «Точно» означає точний розподіл добутку стількох рівномірних чисел, порахований формулою з раунду 4.</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span></span>
+    <h2><span class="uk">Чотири набори за Бенфордом і один проти</span></h2>
+    <p class="lead uk">Перші три набори точні: комп'ютер рахує кожне число повністю, з усіма цифрами. Четвертий набір змодельовано, бо добутки випадкові. П'ятий набір показує, що закон працює не завжди.</p>
+    
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="sim-r"><span class="uk">Добутків у симуляції</span>
+        <select id="sim-r">
+          <option value="10000">10&nbsp;000</option>
+          <option value="100000" selected>100&nbsp;000</option>
+          <option value="1000000">1&nbsp;000&nbsp;000</option>
+        </select>
+      </label>
+      <button class="btn pri" id="sim-run"><span class="uk">Запустити ще раз</span></button>
+    </div>
+    <div class="sim5">
+      <div>
+        <h3><span class="uk">Степені двійки, 2<sup>1</sup>…2<sup>1000</sup></span></h3>
+        <canvas class="chart sm" id="ds-0"></canvas>
+        <p class="s" id="dt-0"></p>
+      </div>
+      <div>
+        <h3><span class="uk">Числа Фібоначчі, F<sub>1</sub>…F<sub>1000</sub></span></h3>
+        <canvas class="chart sm" id="ds-1"></canvas>
+        <p class="s" id="dt-1"></p>
+      </div>
+      <div>
+        <h3><span class="uk">100 грн під 7% річних, 1000 років</span></h3>
+        <canvas class="chart sm" id="ds-2"></canvas>
+        <p class="s" id="dt-2"></p>
+      </div>
+      <div>
+        <h3><span class="uk">Добуток 10 випадкових чисел від 1 до 10</span></h3>
+        <canvas class="chart sm" id="ds-3"></canvas>
+        <p class="s" id="dt-3"></p>
+      </div>
+      <div>
+        <h3><span class="uk">Контрприклад: цілі числа від 1 до 999</span></h3>
+        <canvas class="chart sm" id="ds-4"></canvas>
+        <p class="s" id="dt-4"></p>
+      </div>
+      <div class="tiles">
+        <div class="tile" style="--c:var(--hit)"><div class="k"><span class="uk">Закон Бенфорда для цифри 1</span></div><div class="v">log<sub>10</sub> 2</div><div class="s"><span class="uk">= 0,30103 ≈ 30,1%</span></div></div>
+        <div class="tile"><div class="k"><span class="uk">Рівні цифри</span></div><div class="v">1/9</div><div class="s"><span class="uk">≈ 11,1% для кожної</span></div></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span style="--c:var(--hit)"><b class="uk">частка чисел, що починаються з 1</b></span>
+      <span style="--c:rgba(20,26,48,.3)"><b class="uk">частка для цифр 2–9</b></span>
+      <span style="--c:var(--ink)"><b class="uk">точки: закон Бенфорда</b></span>
+    </div>
+    <h3 style="margin:24px 0 12px"><span class="uk">Набори порівняно із законом Бенфорда</span></h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th><span class="uk">Набір</span></th><th style="text-align:right"><span class="uk">З цифри 1</span></th><th style="text-align:right"><span class="uk">Найбільше відхилення</span></th></tr></thead>
+        <tbody id="sim-tbl"></tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:10px"><span class="uk">Найбільше відхилення: найбільша з дев'яти різниць між часткою в наборі й законом Бенфорда, у відсоткових пунктах. Для добутку 10 рівномірних чисел точний розподіл відрізняється від закону Бенфорда менш ніж на 0,01 пункту, тож відхилення в симуляції є лише випадковим шумом.</span></p>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Пояснення</span></span>
+    <h2><span class="uk">Чому одиниця попереду</span></h2>
+    <p class="lead uk">Ключ до закону в тому, що такі числа ростуть множенням, а не додаванням. А для множення природна шкала логарифмічна.</p>
+    
+  </div>
+  <div class="why-grid">
+    <div class="card">
+      <span class="kicker"><span class="uk">1 · Логарифмічна шкала</span></span>
+      <h3><span class="uk">Від 1 до 2 займає 30% шляху до 10</span></h3>
+      <svg class="geo" viewBox="0 0 320 70" role="img" aria-label="log scale 1 to 10">
+        <g id="why-ruler"></g>
+      </svg>
+      <p class="uk">Розмітимо відрізок від 1 до 10 так, щоб множення на 10 займало всю довжину. Тоді точка x стоїть на відстані log<sub>10</sub> x від початку. Зона першої цифри 1 тягнеться від 1 до 2, і її довжина log<sub>10</sub> 2 ≈ 0,301. Зона цифри 9, від 9 до 10, має довжину log<sub>10</sub>(10/9) ≈ 0,046.</p>
+      
+      <p class="uk">Якщо числа розкидані рівномірно саме на такій лінійці, частка кожної цифри дорівнює довжині її зони. Це і є закон Бенфорда.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">2 · Ріст затримується на одиниці</span></span>
+      <h3><span class="uk">Від 1000 до 2000 довго, від 9000 до 10&nbsp;000 швидко</span></h3>
+      <svg class="geo" viewBox="0 0 320 96" role="img" aria-label="years per first digit at 7%">
+        <g id="why-years"></g>
+      </svg>
+      <p class="uk">Під 7% річних 1000 гривень виростають до 2000 за 10,2 року: увесь цей час сума починається з 1. А від 9000 до 10&nbsp;000 треба лише +11%, на це йде 1,6 року. Повний порядок, від 1000 до 10&nbsp;000, триває 34 роки, і з них 10,2 року (30%) сума починається з одиниці.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">3 · Зміна одиниць виміру</span></span>
+      <h3><span class="uk">Помножте все на 3, і закон лишиться</span></h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Перша цифра</span></th><th style="text-align:right">1</th><th style="text-align:right">2</th><th style="text-align:right">3</th><th style="text-align:right">9</th></tr></thead>
+          <tbody>
+            <tr><td>2<sup>n</sup></td><td class="num hot">301</td><td class="num">176</td><td class="num">125</td><td class="num">45</td></tr>
+            <tr><td>3 · 2<sup>n</sup></td><td class="num hot">301</td><td class="num">176</td><td class="num">125</td><td class="num">46</td></tr>
+            <tr><td><span class="uk">1…999</span></td><td class="num">111</td><td class="num">111</td><td class="num">111</td><td class="num">111</td></tr>
+            <tr><td><span class="uk">3 · (1…999)</span></td><td class="num">369</td><td class="num">369</td><td class="num">39</td><td class="num">39</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="uk">Уявіть, що закон перших цифр існує для цін. Тоді він не може залежати від валюти: перерахунок з гривень в іншу валюту множить усі ціни на те саме число. Рівномірні числа від 1 до 999 після множення на 3 перестають бути рівномірними. А набір за Бенфордом лишається майже незмінним, бо множення лише зсуває всі точки на лінійці на один крок, і рівномірний розподіл на колі від цього не змінюється.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">4 · Добутки</span></span>
+      <h3><span class="uk">Логарифми додаються і розмазуються</span></h3>
+      <p class="uk">Логарифм добутку дорівнює сумі логарифмів. На лінійці від 1 до 10 кожне множення додає випадковий крок, а коли позначка виходить за 10, вона перескакує на початок. Кілька випадкових кроків по колу дають майже рівномірне положення. Частка одиниць для добутку 1, 2, 3 і 10 рівномірних чисел від 1 до 10: 11,1%, 24,1%, 30,1% і 30,10%.</p>
+      
+      <p class="uk">Сума великої кількості випадкових величин дає нормальний розподіл. Тому сума випадкових чисел, на відміну від добутку, розподілу Бенфорда не дає: вона зосереджена в одному вузькому діапазоні.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">5 · Де закон не діє</span></span>
+      <h3><span class="uk">Вузькі діапазони й призначені числа</span></h3>
+      <p class="uk">Закону потрібні числа, розкидані на кілька порядків величини. Його не варто чекати від зросту дорослих (майже всі від 1,5 до 2 метрів), віку, оцінок, номерів телефонів, номерів квартир чи цін на кшталт 9,99. Рівномірні числа від 1 до 999 з раунду 3 дають кожній цифрі рівно 111 чисел, тобто 11,1%.</p>
+      
+      <p class="uk">І навпаки: широкий діапазон ще не гарантія. Усі степені десяти починаються з 1. Степені двійки, записані у вісімковій системі, починаються лише з 1, 2 або 4. Це видно в раунді 5.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Чому саме степені двійки</span></span>
+      <h3><span class="uk">log<sub>10</sub> 2 є ірраціональним</span></h3>
+      <p class="uk">Кожне подвоєння зсуває позначку на лінійці на log<sub>10</sub> 2 ≈ 0,30103. Якби цей крок був дробом p/q, позначка через q кроків повернулася б на те саме місце і ходила б по колу з q точок. Але log<sub>10</sub> 2 ірраціональний: 2<sup>a</sup> ніколи не дорівнює 10<sup>b</sup>. Тоді за теоремою Вейля про рівномірний розподіл позначки рівномірно вкривають коло, і частка кроків у зоні «1» прямує до 0,30103.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span></span>
+      <h3><span class="uk">Перша цифра залежить лише від дробової частини логарифма</span></h3>
+      <div class="formula">
+        <span class="uk">перша цифра</span> x = d &nbsp;⇔&nbsp; {log<sub>10</sub> x} ∈ [log<sub>10</sub> d, log<sub>10</sub>(d + 1)) &nbsp;&nbsp;<span class="uk">де</span> {·} <span class="uk">дробова частина</span><br>
+        P(d) = log<sub>10</sub>(d + 1) − log<sub>10</sub> d = log<sub>10</sub>(1 + 1/d) &nbsp;→&nbsp; P(1) = log<sub>10</sub> 2 = <em><span class="uk">30,10%</span></em>, &nbsp;P(9) = log<sub>10</sub>(10/9) = <span class="uk">4,58%</span><br>
+        <span class="uk">Перші дві цифри</span>: P(12) = log<sub>10</sub>(1 + 1/12) ≈ <span class="uk">3,48%</span>, &nbsp;P(99) = log<sub>10</sub>(100/99) ≈ <span class="uk">0,44%</span><br>
+        <span class="uk">Друга цифра</span>: P₂(k) = Σ<sub>d=1…9</sub> log<sub>10</sub>(1 + 1/(10d + k)) &nbsp;→&nbsp; P₂(0) ≈ <span class="uk">11,97%</span>, &nbsp;P₂(9) ≈ <span class="uk">8,50%</span><br>
+        <span class="uk">Система числення з основою</span> b: P(d) = log<sub>b</sub>(1 + 1/d), &nbsp;d = 1…b − 1<br>
+        <span class="uk">Добуток k рівномірних чисел з [1, 10]</span>: E[e<sup>2πin·log<sub>10</sub>U</sup>] = ln 10 / (ln 10 + 2πin) &nbsp;→&nbsp; <span class="uk">коефіцієнти</span> (ln 10 / (ln 10 + 2πin))<sup>k</sup> → 0
+      </div>
+      <p class="uk">Остання формула пояснює раунд 2: відхилення від закону Бенфорда для добутку k чисел визначають коефіцієнти Фур'є, а вони за модулем дорівнюють (ln 10 / √(ln²10 + 4π²n²))<sup>k</sup>, тобто для n = 1 приблизно 0,34<sup>k</sup>. Кожне нове множення зменшує відхилення приблизно втричі.</p>
+      
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 5: variants -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Ускладнюємо</span></span>
+    <h2><span class="uk">Масштаб, друга цифра й інші системи числення</span></h2>
+    <p class="lead uk">Перевірте три властивості закону: стійкість до зміни масштабу, закон для другої цифри і закон для систем числення з іншою основою.</p>
+    
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Помножте весь набір на число</span></h3>
+        <div class="presets" id="sc-pick"></div>
+        <div class="controls" style="margin:0">
+          <label class="ctl" for="sc-c"><span><span class="uk">Множник:</span> × <b class="mono" id="sc-v"></b></span>
+            <input type="range" id="sc-c" min="0" max="1000" value="0">
+          </label>
+        </div>
+        <div class="two">
+          <div><h3><span class="uk">Степені двійки × c</span></h3><canvas class="chart sm" id="sc-a"></canvas><p class="note mono" id="sc-at"></p></div>
+          <div><h3><span class="uk">Числа 1…999 × c</span></h3><canvas class="chart sm" id="sc-b"></canvas><p class="note mono" id="sc-bt"></p></div>
+        </div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Інваріантність масштабу</span></span>
+        <h3><span class="uk">Закон не знає, у чому вимірюють</span></h3>
+        <p class="uk">Пересуньте повзунок. Ліва гістограма майже не рухається за будь-якого множника: перша цифра 1 лишається близько 30%. Права стрибає: за множника ×2 з одиниці починаються подвоєні числа від 5 до 9, від 50 до 99 і від 500 до 999. Це 555 чисел з 999, тобто 55,6%.</p>
+        
+        <p class="uk">Можна довести й зворотне: якщо розподіл перших цифр не змінюється від множення на будь-яке число, то це обов'язково закон Бенфорда. Саме тому він з'являється там, де дані не прив'язані до одиниць виміру.</p>
+        
+        <p class="note"><span class="uk">Підрахунок точний: множник має два знаки після коми, тож c = m/100, і перша цифра 2<sup>n</sup> · c та сама, що в цілого числа 2<sup>n</sup> · m.</span></p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Друга цифра</span></h3>
+        <div class="presets" id="d2-pick"></div>
+        <canvas class="chart" id="d2-cv"></canvas>
+        <p class="note mono" id="d2-t"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Закон для другої цифри</span></span>
+        <h3><span class="uk">Друга цифра майже рівномірна</span></h3>
+        <p class="uk">Друга цифра вже може бути нулем, тож варіантів десять. Нуль трохи частіший (11,97%), дев'ятка трохи рідша (8,50%), але різниця значно менша, ніж для першої цифри. Для третьої й наступних цифр розподіл ще швидше наближається до рівних 10%.</p>
+        
+        <p class="uk">Точки показують закон, стовпчики показують підрахунок для чисел від 10 і більше: таких 997 степенів двійки (від 2<sup>4</sup> = 16), 994 числа Фібоначчі (від F<sub>7</sub> = 13) і 1000 сум на вкладі.</p>
+        
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Інші системи числення</span></h3>
+        <div class="presets" id="bs-pick"></div>
+        <div class="controls" style="margin:0">
+          <label class="ctl" for="bs-b"><span><span class="uk">Основа системи:</span> <b class="mono" id="bs-v"></b></span>
+            <input type="range" id="bs-b" min="2" max="16" value="8">
+          </label>
+        </div>
+        <canvas class="chart" id="bs-cv"></canvas>
+        <p class="note mono" id="bs-t"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Основа b</span></span>
+        <h3><span class="uk">Та сама лінійка, інша довжина</span></h3>
+        <p class="uk">У системі з основою b перша цифра d має частку log<sub>b</sub>(1 + 1/d). У вісімковій системі одиниця отримує 1/3, у шістнадцятковій 1/4. У двійковій усі числа починаються з 1, тож закон там правильний, але порожній.</p>
+        
+        <p class="uk">Оберіть степені двійки й основу 8. Крок кожного подвоєння на лінійці дорівнює log<sub>8</sub> 2 = 1/3, раціональному числу. Позначка ходить по трьох точках, і числа починаються лише з 1, 2 або 4. Те саме в основах 4 і 16. Числа Фібоначчі не потрапляють у таку пастку за жодної основи.</p>
+        
+      </div>
+    </div>
+
+    <div class="card esc-text">
+      <span class="kicker"><span class="uk">Аудит і перевірка даних</span></span>
+      <h3><span class="uk">Привід придивитися, а не доказ</span></h3>
+      <p class="uk">Аудитори використовують закон Бенфорда як грубий фільтр. Якщо в наборі даних, де закон зазвичай виконується, перші цифри помітно відхиляються від нього, частину записів варто перевірити вручну. Найвідоміший прихильник цього підходу, бухгалтер-дослідник Марк Нігріні, описав його у книжці «Benford's Law: Applications for Forensic Accounting, Auditing, and Fraud Detection» (2012).</p>
+      
+      <p class="uk">Але відхилення саме по собі нічого не доводить. Багато чесних даних закону не підкоряються: вузькі діапазони, призначені номери, ціни з порогами на кшталт 9,99. А той, хто підробляє дані й знає про закон, може його дотриматися. Тому відхилення є лише приводом поставити питання.</p>
+      
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span></span>
+    <h2><span class="uk">Що розповісти друзям</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1881</span>
+        <h3><span class="uk">Затерті сторінки</span></h3>
+        <p class="uk">Астроном Саймон Ньюкомб помітив, що в таблицях логарифмів перші сторінки, з числами на 1, затерті значно більше за інші. 1881 року він опублікував в «American Journal of Mathematics» нотатку з правилом: перша цифра N трапляється з імовірністю log(N + 1) − log N.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">20&nbsp;229</span></span>
+        <h3><span class="uk">Спостережень Бенфорда</span></h3>
+        <p class="uk">Фізик Френк Бенфорд 1938 року перевірив закон на 20&nbsp;229 числах з 20 різних джерел: площі 335 річок, 3259 чисельностей населення США, 104 фізичні сталі, 1800 молекулярних мас, 418 показників смертності та інші. Стаття вийшла під назвою «The Law of Anomalous Numbers».</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">57 років</span></span>
+        <h3><span class="uk">Закон Стіглера</span></h3>
+        <p class="uk">Ньюкомб описав закон на 57 років раніше, але назвали його на честь Бенфорда. Це приклад закону Стіглера: наукові відкриття часто називають не на честь того, хто зробив їх першим.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1995</span>
+        <h3><span class="uk">Пояснення Гілла</span></h3>
+        <p class="uk">Математик Теодор Гілл 1995 року довів, що закон виникає, коли змішують дані з багатьох різних розподілів: спершу навмання обирають розподіл, потім число з нього. Того ж року він показав, що інваріантність щодо зміни основи системи числення теж веде до закону Бенфорда.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">2<sup>n</sup> · F<sub>n</sub> · n!</span>
+        <h3><span class="uk">Послідовності, що точно підкоряються закону</span></h3>
+        <p class="uk">Для деяких нескінченних послідовностей закон Бенфорда доведено строго: для чисел Фібоначчі, факторіалів, степенів двійки і степенів майже будь-якого числа k. Умова для степенів: log<sub>10</sub> k має бути ірраціональним. Степені 10 чи 100 цієї умови не виконують.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">2020</span>
+        <h3><span class="uk">Невдала перевірка виборів</span></h3>
+        <p class="uk">Після виборів у США 2020 року закон Бенфорда застосовували до результатів на окремих дільницях у Чикаго, Мілвокі та інших містах. Це було помилкою: кількість голосів на дільниці рідко виходить за межі від кількох десятків до кількох тисяч, а в такому вузькому діапазоні закон і не мав би виконуватися.</p>
+        
+      </article>
+  </div>
+</section>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? s : s.replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const pp = (p, d = 1) => dec((100 * p).toFixed(d)) + L(' п.п.', ' pts');
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const plural = (k, one, few, many) => {
+  const a = k % 10, b = k % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+const yearW = k => lang === 'en' ? (k === 1 ? 'year' : 'years') : plural(k, 'рік', 'роки', 'років');
+const numW = k => lang === 'en' ? (k === 1 ? 'number' : 'numbers') : plural(k, 'число', 'числа', 'чисел');
+const sup = n => String(n).replace(/./g, c => '⁰¹²³⁴⁵⁶⁷⁸⁹⁻'['0123456789-'.indexOf(c)] || c);
+
+/* ---------- maths ---------- */
+const LG = Math.log10;
+const BEN = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => LG(1 + 1 / d));
+const BEN2 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(k => { let s = 0; for (let d = 1; d <= 9; d++) s += LG(1 + 1 / (10 * d + k)); return s; });
+const benB = b => Array.from({ length: b - 1 }, (_, i) => Math.log(1 + 1 / (i + 1)) / Math.log(b));
+// exact big integers: 2^1..2^1000, F1..F1000, 3^1..3^1000
+const POW2 = [], FIB = [], POW3 = [];
+{ let p = 1n, q = 1n, a = 1n, b = 1n;
+  for (let n = 1; n <= 1000; n++) { p *= 2n; q *= 3n; POW2.push(p); POW3.push(q); FIB.push(a); [a, b] = [b, a + b]; } }
+const POW2S = POW2.map(x => x.toString()), FIBS = FIB.map(x => x.toString());
+let GROWS = null;                        // 100 · 1.07^n for n = 0…999: the digits are those of 107^n
+function growStrings() {
+  if (GROWS) return GROWS;
+  GROWS = []; let g = 1n;
+  for (let n = 0; n < 1000; n++) { GROWS.push(g.toString()); g *= 107n; }
+  return GROWS;
+}
+function countFirst(strs) { const c = Array(9).fill(0); strs.forEach(s => c[s.charCodeAt(0) - 49]++); return c; }
+function countSecond(strs) { const c = Array(10).fill(0); strs.forEach(s => { if (s.length > 1) c[s.charCodeAt(1) - 48]++; }); return c; }
+const shares = c => { const t = c.reduce((a, b) => a + b, 0) || 1; return c.map(x => x / t); };
+const maxGap = (s, ref) => Math.max(...s.map((x, i) => Math.abs(x - ref[i])));
+// first digit from a base-10 logarithm
+function digitOfLog(l) { const f = l - Math.floor(l); return Math.min(9, Math.max(1, Math.floor(Math.pow(10, f) + 1e-12))); }
+// exact first-digit distribution of a product of k uniform numbers on [1, 10], by Fourier series on the circle
+function prodExact(k) {
+  if (k === 0) return [1, 0, 0, 0, 0, 0, 0, 0, 0];
+  if (k === 1) return Array(9).fill(1 / 9);
+  const LN = Math.log(10), out = [];
+  for (let d = 1; d <= 9; d++) {
+    const a = LG(d), b = LG(d + 1); let s = b - a;
+    for (let n = 1; n < 20000; n++) {
+      // c = (LN / (LN + 2πin))^k as modulus and argument
+      const w = 2 * Math.PI * n, mod = Math.pow(LN / Math.hypot(LN, w), k), arg = -k * Math.atan2(w, LN);
+      if (mod < 1e-12) break;
+      // 2·Re[c · (e^{-iwb} − e^{-iwa}) / (−iw)] = −2·mod·Im[e^{i(arg−wb)} − e^{i(arg−wa)}] / w
+      const im = Math.sin(arg - w * b) - Math.sin(arg - w * a);
+      s -= 2 * mod * im / w;
+    }
+    out.push(s);
+  }
+  return out;
+}
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+// bar chart of shares; ref = dots of the law; hi = index of the bar shown in magenta (−1 for none)
+function bars(cv, vals, { ref = null, labels = null, hi = 0, top = null } = {}) {
+  const s = setupCanvas(cv); if (!s) return;
+  const { ctx, W, H } = s, n = vals.length, l = 34, r = 6, t = 10, b = 20;
+  const all = vals.concat(ref || []);
+  let ym = Math.max(top || 0, Math.max(.1, ...all) * (top ? 1.04 : 1.12));
+  const step = ym > .6 ? .2 : ym > .3 ? .1 : .05;
+  ym = Math.ceil(ym / step - 1e-9) * step;
+  const y = v => t + (1 - Math.min(v, ym) / ym) * (H - t - b), bw = (W - l - r) / n, x = i => l + i * bw;
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let v = 0; v <= ym + 1e-9; v += step) { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.fillText(Math.round(v * 100) + '%', l - 5, y(v)); }
+  const ink = tok('--ink'), hit = tok('--hit');
+  vals.forEach((v, i) => {
+    ctx.fillStyle = i === hi ? hit : ink; ctx.globalAlpha = i === hi ? 1 : .28;
+    const w = Math.max(2, bw * .64);
+    ctx.fillRect(x(i) + (bw - w) / 2, y(v), w, y(0) - y(v));
+  });
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  vals.forEach((v, i) => ctx.fillText(labels ? labels[i] : String(i + 1), x(i) + bw / 2, H - b + 5));
+  if (ref) {
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.2; ctx.beginPath();
+    ref.forEach((v, i) => { const px = x(i) + bw / 2; i ? ctx.lineTo(px, y(v)) : ctx.moveTo(px, y(v)); }); ctx.stroke();
+    ctx.fillStyle = ink;
+    ref.forEach((v, i) => { ctx.beginPath(); ctx.arc(x(i) + bw / 2, y(v), 3.2, 0, 2 * Math.PI); ctx.fill(); });
+  }
+}
+// the log ruler from 1 to 10 with the nine digit zones; marks = positions in [0, 1)
+function ruler(cv, marks, cur) {
+  const s = setupCanvas(cv); if (!s) return;
+  const { ctx, W, H } = s, l = 8, r = 8, top = 26, h = 34, X = f => l + f * (W - l - r);
+  const ink = tok('--ink'), hit = tok('--hit'), soft = tok('--hit-soft'), line = tok('--line'), surf = tok('--surface') || '#fff';
+  for (let d = 1; d <= 9; d++) {
+    const a = X(LG(d)), b = X(LG(d + 1));
+    ctx.fillStyle = d === 1 ? soft : surf; ctx.fillRect(a, top, b - a, h);
+    ctx.strokeStyle = d === 1 ? hit : line; ctx.lineWidth = 1; ctx.strokeRect(a + .5, top + .5, b - a - 1, h - 1);
+    ctx.fillStyle = d === 1 ? hit : ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = (d === 1 ? '700 ' : '') + (b - a < 22 ? 10 : 13) + 'px ' + tok('--f-mono');
+    ctx.fillText(String(d), (a + b) / 2, top + h / 2);
+  }
+  ctx.font = '10px ' + tok('--f-mono'); ctx.fillStyle = tok('--muted'); ctx.textBaseline = 'top';
+  ctx.textAlign = 'left'; ctx.fillText('1', l, top + h + 4);
+  ctx.textAlign = 'right'; ctx.fillText('10', W - r, top + h + 4);
+  ctx.textAlign = 'center'; ctx.fillText('2', X(LG(2)), top + h + 4); ctx.fillText('5', X(LG(5)), top + h + 4);
+  ctx.fillStyle = ink;
+  marks.forEach((f, i) => { ctx.globalAlpha = .12 + .4 * (i + 1) / marks.length; ctx.beginPath(); ctx.arc(X(f), top - 8, 2.8, 0, 2 * Math.PI); ctx.fill(); });
+  ctx.globalAlpha = 1;
+  if (cur !== undefined && cur !== null) {
+    const px = X(cur);
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.moveTo(px, top + 2); ctx.lineTo(px - 7, top - 12); ctx.lineTo(px + 7, top - 12); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, top); ctx.lineTo(px, top + h); ctx.stroke();
+  }
+}
+const group = s => s.replace(/\B(?=(\d{3})+(?!\d))/g, lang === 'en' ? ',' : ' ');
+// a big number written compactly: 1.27 × 10^30 style, with the leading digit kept exact
+function sci(digits, sig = 3) {
+  const e = digits.length - 1;
+  if (e < 6) return group(digits);
+  return dec(digits[0] + '.' + digits.slice(1, sig)) + ' × 10' + sup(e);
+}
+// a balance from its base-10 logarithm
+function money(l) {
+  if (l < 9) return fmt(Math.round(Math.pow(10, l)));
+  const e = Math.floor(l), m = Math.pow(10, l - e);
+  let ms = m.toFixed(2); if (ms === '10.00') { ms = '9.99'; }
+  return dec(ms) + ' × 10' + sup(e);
+}
+
+/* ---------- hero: powers of two run past, their first digits light up ---------- */
+const hero = { n: 0, c: Array(9).fill(0), timer: null };
+function heroAdvance() {
+  if (hero.n >= 1000) { hero.n = 0; hero.c = Array(9).fill(0); }
+  hero.c[POW2S[hero.n].charCodeAt(0) - 49]++; hero.n++;
+}
+function heroDraw() {
+  const s = setupCanvas($('#hero-cv')); if (!s) return;
+  const { ctx, W, H } = s, solved = !window.mpSolved || mpSolved();
+  const ink = tok('--ink'), hit = tok('--hit'), mut = tok('--muted'), mono = tok('--f-mono');
+  const rows = 7, rh = 28, x0 = 12;
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i < rows; i++) {
+    const k = hero.n - i; if (k < 1) break;
+    const str = POW2S[k - 1], y = 18 + i * rh;
+    ctx.globalAlpha = 1 - i * .12;
+    ctx.font = '600 14px ' + mono; ctx.fillStyle = mut; ctx.textAlign = 'left';
+    const lab = '2' + sup(k) + ' =';
+    ctx.fillText(lab, x0, y);
+    const lx = x0 + Math.max(72, ctx.measureText(lab).width + 10);
+    ctx.font = '800 19px ' + mono; ctx.fillStyle = solved && str[0] === '1' ? hit : ink;
+    ctx.fillText(str[0], lx, y);
+    const fx = lx + ctx.measureText(str[0]).width + 1;
+    ctx.font = '16px ' + mono; ctx.fillStyle = ink;
+    const tail = str.length > 9 ? ' ' + L('(' + str.length + ' ' + plural(str.length, 'цифра', 'цифри', 'цифр') + ')', '(' + str.length + ' digits)') : '';
+    let body = str.slice(1), room = W - fx - 10 - ctx.measureText(tail).width;
+    if (ctx.measureText(body).width > room) { while (body.length && ctx.measureText(body + '…').width > room) body = body.slice(0, -1); body += '…'; }
+    ctx.fillText(body, fx, y);
+    ctx.fillStyle = mut; ctx.font = '12px ' + mono; ctx.fillText(tail, fx + ctx.measureText(body).width + 4, y);
+  }
+  ctx.globalAlpha = 1;
+  // bottom: nine digit slots
+  const top = 18 + rows * rh, l = 8, r = 8, bw = (W - l - r) / 9, base = H - 22, cur = hero.n ? POW2S[hero.n - 1].charCodeAt(0) - 49 : -1;
+  if (solved) {
+    const tot = hero.n || 1, sh = hero.c.map(c => c / tot), ym = .4, y = v => base - Math.min(v, ym) / ym * (base - top - 6);
+    for (let i = 0; i < 9; i++) {
+      ctx.fillStyle = i === 0 ? hit : ink; ctx.globalAlpha = i === 0 ? 1 : (i === cur ? .6 : .28);
+      ctx.fillRect(l + i * bw + bw * .18, y(sh[i]), bw * .64, base - y(sh[i]));
+    }
+    ctx.globalAlpha = 1; ctx.fillStyle = ink;
+    BEN.forEach((v, i) => { ctx.beginPath(); ctx.arc(l + i * bw + bw / 2, y(v), 3, 0, 2 * Math.PI); ctx.fill(); });
+  } else {
+    const bh = Math.min(64, base - top - 10), by = base - bh - 4;
+    for (let i = 0; i < 9; i++) {
+      const bx = l + i * bw + bw * .12, bwid = bw * .76;
+      ctx.fillStyle = i === cur ? ink : (tok('--surface') || '#fff'); ctx.fillRect(bx, by, bwid, bh);
+      ctx.strokeStyle = ink; ctx.globalAlpha = i === cur ? 1 : .25; ctx.lineWidth = i === cur ? 2.5 : 1;
+      ctx.strokeRect(bx, by, bwid, bh); ctx.globalAlpha = 1;
+      if (i === cur) { ctx.fillStyle = tok('--surface') || '#fff'; ctx.font = '800 22px ' + mono; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), bx + bwid / 2, by + bh / 2); }
+    }
+  }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.font = '600 13px ' + mono;
+  for (let i = 0; i < 9; i++) { ctx.fillStyle = solved && i === 0 ? hit : ink; ctx.fillText(String(i + 1), l + i * bw + bw / 2, base + 5); }
+  if (!solved) {
+    $('#hero-cap').textContent = L('Степені двійки одна за одною. Рамка показує першу цифру. Яка частка з 1000 чисел починається з 1?', 'Powers of two, one after another. The frame shows the first digit. What share of the 1,000 numbers start with 1?');
+    return;
+  }
+  $('#hero-cap').textContent = L('2¹…2' + sup(hero.n) + ': з одиниці ' + hero.c[0] + ' з ' + hero.n + ' (' + pct(hero.c[0] / (hero.n || 1)) + '). Точки: закон Бенфорда.', '2¹…2' + sup(hero.n) + ': ' + hero.c[0] + ' of ' + hero.n + ' start with 1 (' + pct(hero.c[0] / (hero.n || 1)) + '). Dots: Benford\'s law.');
+}
+function heroStart() {
+  clearInterval(hero.timer);
+  if (reduce()) { hero.n = 0; hero.c = Array(9).fill(0); for (let i = 0; i < 1000; i++) heroAdvance(); heroDraw(); return; }
+  for (let i = 0; i < 6; i++) heroAdvance();
+  heroDraw();
+  hero.timer = setInterval(() => { const k = !window.mpSolved || mpSolved() ? 4 : 1; for (let i = 0; i < k; i++) heroAdvance(); heroDraw(); }, 420);
+}
+
+/* ---------- round 1: guess ---------- */
+const guessIn = $('#guess-n');
+let guessed = null;
+guessIn.addEventListener('input', () => { $('#guess-v').textContent = guessIn.value + '%'; });
+$('#guess-go').addEventListener('click', () => { guessed = +guessIn.value / 100; guessText(); window.mpSolve && mpSolve(); });
+document.addEventListener('solved', heroDraw);
+const C2 = countFirst(POW2S);
+function guessText() {
+  if (guessed === null) return;
+  const g = guessed, truth = C2[0] / 1000;
+  let verdict;
+  if (Math.abs(g - truth) <= .03) verdict = L('Влучно. Ви вгадали відповідь, яку більшість людей не очікує.', 'Spot on. You found the answer most people do not expect.');
+  else if (g <= .14) verdict = L('Ви обрали рівні шанси для всіх цифр. Так думає більшість, але насправді одиниць майже втричі більше.', 'You went with equal chances for every digit. Most people do, but in fact there are almost three times as many 1s.');
+  else if (g < truth) verdict = L('Ви відчули, що одиниця частіша, але недооцінили, наскільки.', 'You sensed that 1 is more common, but underestimated by how much.');
+  else verdict = L('Ви переоцінили одиницю. Вона попереду, але не настільки.', 'You overestimated 1. It leads, but not by that much.');
+  const rows = [[L('Ваша відповідь', 'Your answer'), g, 'var(--day)'], [L('Рівні цифри, 1/9', 'Equal digits, 1/9'), 1 / 9, 'var(--muted)'], [L('Степені двійки', 'Powers of two'), truth, 'var(--hit)']];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">' + pct(truth) + '</p>' +
+    '<p>' + L('З одиниці починається рівно ' + C2[0] + ' степінь двійки з 1000. ', 'Exactly ' + C2[0] + ' of the 1,000 powers of two start with 1. ') + verdict + '</p>' +
+    '<div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1] / .5) + '%"></i></div><span class="mono">' + pct(r[1]) + '</span></div>').join('') + '</div>' +
+    '<p class="note">' + L('Шкала смуг від 0 до 50%. Закон Бенфорда для всіх дев\'яти цифр:', 'The bars run from 0 to 50%. Benford\'s law for all nine digits:') + '</p>' +
+    '<div class="ben9">' + BEN.map((p, i) => '<div><b>' + (i + 1) + '</b><span>' + dec((100 * p).toFixed(1)) + '</span></div>').join('') + '</div>';
+}
+
+/* ---------- round 2: grow your money ---------- */
+const grow = { start: 1000, r: 7, y: 0, l: 3, c: Array(9).fill(0), trail: [], timer: null };
+function growReset(prefill = 0) {
+  growStop();
+  grow.start = +$('#g-start').value; grow.r = +$('#g-rate').value;
+  grow.y = 0; grow.l = LG(grow.start); grow.c = Array(9).fill(0); grow.trail = [];
+  grow.c[digitOfLog(grow.l) - 1]++; grow.trail.push(grow.l - Math.floor(grow.l));
+  growStep(prefill);
+}
+function growStep(k) {
+  const step = LG(1 + grow.r / 100);
+  for (let i = 0; i < k; i++) {
+    grow.y++; grow.l += step;
+    grow.c[digitOfLog(grow.l) - 1]++;
+    grow.trail.push(grow.l - Math.floor(grow.l));
+  }
+  if (grow.trail.length > 12) grow.trail.splice(0, grow.trail.length - 12);
+  growDraw(); growText();
+}
+function growDraw() {
+  bars($('#g-hist'), shares(grow.c), { ref: BEN, hi: 0, top: .4 });
+  ruler($('#g-ruler'), grow.trail.slice(0, -1), grow.l - Math.floor(grow.l));
+}
+function growText() {
+  const tot = grow.y + 1, d = digitOfLog(grow.l), q = Math.log(1 + grow.r / 100);
+  $('#g-rate-v').textContent = grow.r + '%';
+  $('#g-y').textContent = fmt(grow.y);
+  $('#g-bal').textContent = money(grow.l);
+  $('#g-one').textContent = fmt(grow.c[0]) + ' / ' + fmt(tot);
+  const two = Math.log(2) / q, nine = Math.log(10 / 9) / q, nd = x => dec(x.toFixed(x < 10 ? 1 : 0));
+  $('#g-msg').innerHTML = L('Зараз сума починається з ' + d + '. ', 'The balance now starts with ' + d + '. ') +
+    L('Під ' + grow.r + '% річних, щоб пройти зону «1» (подвоїтися), треба ' + nd(two) + ' р., а зону «9» (+11%) лише ' + nd(nine) + ' р. ', 'At ' + grow.r + '% a year it takes ' + nd(two) + ' years to cross zone "1" (to double) and only ' + nd(nine) + ' years to cross zone "9" (+11%). ') +
+    L('Частка років з першою цифрою 1: <b>' + pct(grow.c[0] / tot) + '</b>.', 'Share of years with first digit 1: <b>' + pct(grow.c[0] / tot) + '</b>.');
+  $('#g-play').textContent = grow.timer ? L('Пауза', 'Pause') : L('Запустити', 'Play');
+}
+function growStop() { clearInterval(grow.timer); grow.timer = null; }
+$('#g-play').addEventListener('click', () => {
+  if (grow.timer) { growStop(); growText(); return; }
+  if (reduce()) { growStep(50); return; }
+  grow.timer = setInterval(() => growStep(1), 140);
+  growText();
+});
+$$('#game [data-y]').forEach(b => b.addEventListener('click', () => growStep(+b.dataset.y)));
+$('#g-reset').addEventListener('click', () => growReset(0));
+$('#g-start').addEventListener('change', () => growReset(30));
+$('#g-rate').addEventListener('input', () => growReset(30));
+
+/* ---------- round 2: multiply random numbers ---------- */
+const PL = 1000;
+const mult = { k: 0, l: new Float64Array(PL), ex: null };
+function multReset() { mult.k = 0; mult.l = new Float64Array(PL); mult.ex = prodExact(0); multDraw(); multText(); }
+function multStep() {
+  for (let i = 0; i < PL; i++) mult.l[i] += LG(1 + 9 * Math.random());
+  mult.k++; mult.ex = prodExact(mult.k); multDraw(); multText();
+}
+function multCounts() { const c = Array(9).fill(0); for (let i = 0; i < PL; i++) c[digitOfLog(mult.l[i]) - 1]++; return c; }
+function multDraw() { bars($('#m-hist'), shares(multCounts()), { ref: BEN, hi: 0, top: mult.k ? .4 : 1 }); }
+function multVal(l) {
+  if (l < 6) { const v = Math.pow(10, l); return dec(v.toFixed(v < 100 ? 2 : 0)); }
+  const e = Math.floor(l); return dec(Math.pow(10, l - e).toFixed(2)) + ' × 10' + sup(e);
+}
+function multText() {
+  const c = multCounts();
+  $('#m-k').textContent = mult.k;
+  $('#m-one').textContent = pct(c[0] / PL);
+  $('#m-ex').textContent = pct(mult.ex[0], 1);
+  $('#m-players').innerHTML = [0, 1, 2, 3, 4].map(i => { const v = multVal(mult.l[i]); return '<div><span>' + L('Гравець ', 'Player ') + (i + 1) + '</span><span><b>' + v[0] + '</b>' + v.slice(1) + '</span></div>'; }).join('');
+  let msg;
+  if (mult.k === 0) msg = L('Усі гравці починають з 1, тож поки що 100% чисел починаються з одиниці. Помножте.', 'Every player starts at 1, so for now 100% of the numbers start with 1. Multiply.');
+  else if (mult.k === 1) msg = L('Після одного множення числа рівномірні від 1 до 10: кожна цифра близько 11%.', 'After one multiplication the numbers are uniform between 1 and 10: about 11% per digit.');
+  else if (mult.k < 4) msg = L('Числа розходяться на різні порядки величини, і одиниць стає більше.', 'The numbers spread over different orders of magnitude, and the 1s pile up.');
+  else msg = L('Розподіл уже практично збігся із законом Бенфорда. Подальші множення його не змінюють.', 'The distribution has practically settled on Benford\'s law. More multiplications do not change it.');
+  $('#m-msg').innerHTML = msg;
+}
+$('#m-step').addEventListener('click', multStep);
+$('#m-reset').addEventListener('click', multReset);
+
+/* ---------- round 3: five sets ---------- */
+const DS = [
+  { uk: 'Степені двійки', en: 'Powers of two', c: null },
+  { uk: 'Числа Фібоначчі', en: 'Fibonacci numbers', c: null },
+  { uk: 'Вклад під 7%', en: 'Deposit at 7%', c: null },
+  { uk: 'Добуток 10 чисел', en: 'Product of 10 numbers', c: null, sim: true },
+  { uk: 'Цілі 1…999', en: 'Whole numbers 1…999', c: null }
+];
+let simBusy = false;
+function simExact() {
+  DS[0].c = C2;
+  DS[1].c = countFirst(FIBS);
+  DS[2].c = countFirst(growStrings());
+  DS[4].c = countFirst(Array.from({ length: 999 }, (_, i) => String(i + 1)));
+}
+function simRun() {
+  if (simBusy) return;
+  simBusy = true; $('#sim-run').disabled = true;
+  const N = +$('#sim-r').value, c = Array(9).fill(0), CH = 25000;
+  let done = 0;
+  const chunk = () => {
+    const end = Math.min(N, done + CH);
+    for (; done < end; done++) {
+      let l = 0; for (let j = 0; j < 10; j++) l += LG(1 + 9 * Math.random());
+      c[digitOfLog(l) - 1]++;
+    }
+    DS[3].c = c.slice(); DS[3].n = done;
+    simDraw(3); simText();
+    if (done < N) setTimeout(chunk, 0); else { simBusy = false; $('#sim-run').disabled = false; }
+  };
+  chunk();
+}
+function simDraw(only) {
+  DS.forEach((d, i) => { if (!d.c || (only !== undefined && only !== i)) return; bars($('#ds-' + i), shares(d.c), { ref: BEN, hi: i === 4 ? -1 : 0, top: .4 }); });
+}
+function simText() {
+  DS.forEach((d, i) => {
+    if (!d.c) return;
+    const s = shares(d.c), t = d.c.reduce((a, b) => a + b, 0);
+    $('#dt-' + i).textContent = L('з 1: ', 'start with 1: ') + fmt(d.c[0]) + L(' з ', ' of ') + fmt(t) + ' = ' + pct(s[0]) + (d.sim ? L(' · симуляція', ' · simulated') : L(' · точно', ' · exact'));
+  });
+  $('#sim-tbl').innerHTML = DS.filter(d => d.c).map((d, i) => {
+    const s = shares(d.c), bad = d === DS[4];
+    return '<tr><td>' + d[lang] + '</td><td class="num' + (bad ? '' : ' hot') + '">' + pct(s[0]) + '</td><td class="num">' + pp(maxGap(s, BEN)) + '</td></tr>';
+  }).join('') + '<tr><td>' + L('Закон Бенфорда', 'Benford\'s law') + '</td><td class="num hot">' + pct(BEN[0]) + '</td><td class="num">0</td></tr>';
+}
+$('#sim-run').addEventListener('click', simRun);
+$('#sim-r').addEventListener('change', simRun);
+
+/* ---------- round 4: small drawings ---------- */
+function whyDraw() {
+  const NS = 'http://www.w3.org/2000/svg', el = (tag, at, txt) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); if (txt !== undefined) e.textContent = txt; return e; };
+  const g = $('#why-ruler'); g.innerHTML = '';
+  const X = f => 8 + f * 304;
+  for (let d = 1; d <= 9; d++) {
+    const a = X(LG(d)), b = X(LG(d + 1));
+    g.appendChild(el('rect', { x: a, y: 8, width: b - a, height: 28, class: d === 1 ? 'z1' : 'z' }));
+    g.appendChild(el('text', { x: (a + b) / 2, y: 27, 'text-anchor': 'middle', class: d === 1 ? 't1' : '', 'font-size': b - a < 20 ? 9 : 12 }, String(d)));
+  }
+  g.appendChild(el('text', { x: X(LG(2) / 2), y: 54, 'text-anchor': 'middle', class: 't1' }, pct(BEN[0])));
+  g.appendChild(el('text', { x: X(LG(9.5)), y: 54, 'text-anchor': 'end', class: 'm' }, '9: ' + pct(BEN[8])));
+  // years per first digit at 7 %
+  const y = $('#why-years'); y.innerHTML = '';
+  const q = Math.log(1.07), yrs = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => Math.log((d + 1) / d) / q), mx = yrs[0];
+  yrs.forEach((v, i) => {
+    const bx = 8 + i * 34, h = v / mx * 58;
+    y.appendChild(el('rect', { x: bx, y: 68 - h, width: 24, height: h, class: i === 0 ? 'bar1' : 'bar0' }));
+    y.appendChild(el('text', { x: bx + 12, y: 82, 'text-anchor': 'middle', class: i === 0 ? 't1' : '' }, String(i + 1)));
+    y.appendChild(el('text', { x: bx + 12, y: 64 - h, 'text-anchor': 'middle', class: 'm', 'font-size': 10 }, dec(v.toFixed(1))));
+  });
+  y.appendChild(el('text', { x: 312, y: 94, 'text-anchor': 'end', class: 'm', 'font-size': 10 }, L('років із цією першою цифрою, 7% річних', 'years with this first digit, 7% a year')));
+}
+
+/* ---------- round 5: multiply the set by a constant ---------- */
+const SC_PRESETS = [1, 2, 3, 5, 7];
+const UNI = Array.from({ length: 999 }, (_, i) => i + 1);
+let scM = 100;                      // factor × 100
+const cOf = v => Math.round(Math.pow(10, v / 1000) * 100);
+function scRun() {
+  const m = BigInt(scM);
+  const a = countFirst(POW2.map(p => (p * m).toString()));
+  const b = countFirst(UNI.map(x => String(x * scM)));
+  const sa = shares(a), sb = shares(b);
+  bars($('#sc-a'), sa, { ref: BEN, hi: 0, top: .6 });
+  bars($('#sc-b'), sb, { ref: BEN, hi: -1, top: .6 });
+  $('#sc-v').textContent = dec((scM / 100).toFixed(2));
+  $('#sc-at').textContent = L('з 1: ', 'start with 1: ') + pct(sa[0]) + L(' · відхилення ', ' · largest gap ') + pp(maxGap(sa, BEN));
+  $('#sc-bt').textContent = L('з 1: ', 'start with 1: ') + pct(sb[0]) + L(' · відхилення ', ' · largest gap ') + pp(maxGap(sb, BEN));
+  $('#sc-pick').innerHTML = SC_PRESETS.map(c => '<button type="button" data-c="' + c + '" aria-pressed="' + (scM === c * 100) + '">× ' + c + '</button>').join('');
+}
+$('#sc-c').addEventListener('input', e => { scM = cOf(+e.target.value); scRun(); });
+$('#sc-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const c = +b.dataset.c; scM = c * 100; $('#sc-c').value = Math.round(1000 * LG(c)); scRun(); });
+
+/* ---------- round 5: the second digit ---------- */
+let d2 = 0;
+const D2_NAME = { uk: ['Степені двійки', 'Числа Фібоначчі', 'Вклад під 7%'], en: ['Powers of two', 'Fibonacci numbers', 'Deposit at 7%'] };
+function d2Run() {
+  const src = [POW2S, FIBS, growStrings()][d2], c = countSecond(src), s = shares(c), t = c.reduce((a, b) => a + b, 0);
+  bars($('#d2-cv'), s, { ref: BEN2, hi: -1, labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], top: .15 });
+  $('#d2-t').textContent = fmt(t) + ' ' + numW(t) + L(' · друга цифра 0: ', ' · second digit 0: ') + pct(s[0]) + L(' (закон ', ' (law ') + pct(BEN2[0], 2) + ')' + L(' · відхилення ', ' · largest gap ') + pp(maxGap(s, BEN2));
+  $('#d2-pick').innerHTML = D2_NAME[lang].map((t2, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === d2) + '">' + t2 + '</button>').join('');
+}
+$('#d2-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; d2 = +b.dataset.i; d2Run(); });
+
+/* ---------- round 5: other bases ---------- */
+let bsSet = 1;
+const BS_NAME = { uk: ['Степені двійки', 'Числа Фібоначчі', 'Степені трійки'], en: ['Powers of two', 'Fibonacci numbers', 'Powers of three'] };
+function bsRun() {
+  const b = +$('#bs-b').value, src = [POW2, FIB, POW3][bsSet], c = Array(b - 1).fill(0);
+  src.forEach(x => { c[parseInt(x.toString(b)[0], b) - 1]++; });
+  const s = shares(c), ref = benB(b), labels = Array.from({ length: b - 1 }, (_, i) => (i + 1).toString(b).toUpperCase());
+  bars($('#bs-cv'), s, { ref, hi: 0, labels, top: b === 2 ? 1 : .4 });
+  $('#bs-v').textContent = b;
+  const used = c.filter(x => x > 0).length;
+  $('#bs-t').textContent = L('з 1: ', 'start with 1: ') + pct(s[0]) + L(' (закон ', ' (law ') + pct(ref[0]) + ')' + L(' · трапляються ', ' · digits used: ') + used + L(' з ', ' of ') + (b - 1) + L(b === 2 ? ' цифри' : ' цифр', '') + L(' · відхилення ', ' · largest gap ') + pp(maxGap(s, ref));
+  $('#bs-pick').innerHTML = BS_NAME[lang].map((t, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === bsSet) + '">' + t + '</button>').join('');
+}
+$('#bs-b').addEventListener('input', bsRun);
+$('#bs-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; bsSet = +b.dataset.i; bsRun(); });
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Закон Бенфорда', 'Benford\'s Law');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  heroDraw(); guessText(); growText(); multText(); simText(); whyDraw(); scRun(); d2Run(); bsRun();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+const redraw = () => { heroDraw(); growDraw(); multDraw(); simDraw(); scRun(); d2Run(); bsRun(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state: everything filled ---------- */
+growReset(30);
+multReset(); multStep(); multStep();
+simExact();
+applyLang();
+simDraw();
+heroStart();
+setTimeout(simRun, 30);
+})();
+</script>
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">Ще задачі</span>
+    <h2>Інші парадокси</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/duckweed-lake/"><h3>Задача про ряску в озері</h3><p>Ряска щодня подвоюється, і одна рослина вкриває озеро за 30 днів. За скільки днів упораються дві рослини?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/simpson-paradox/"><h3>Парадокс Сімпсона</h3><p>Метод A лікує і малі, і великі камені в нирках краще за метод B. Чи може B бути кращим для всіх пацієнтів разом?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/regression-to-mean/"><h3>Регресія до середнього</h3><p>Після похвали гравці грають гірше, а після критики краще. Чи означає це, що критика працює?</p></a>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/">Усі задачі →</a>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Обговорення</span>
+    <h2>Що ви думаєте?</h2>
+    <p>Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub.</p>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="benford-law" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="uk" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Розсилка</span>
+    <h2>Нові задачі, пояснення й обговорення</h2>
+    <p>Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">Форма підписки з'явиться тут найближчим часом.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'uk' }); claspo('init');</script>
+<script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "adf9fd3e4773416fb45241d58aea741f"}'></script>
+</body>
+</html>

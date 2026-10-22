@@ -1,0 +1,1106 @@
+<title>Санкт-Петербурзький парадокс</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same running order as the birthday page. The row of coins with a doubling pot, ending at the first tails, is this problem's signature object. */
+:root {
+  --tint: #E9E3F3;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 2.6em; }
+
+/* ---------- coins ---------- */
+.coins { display: flex; flex-wrap: wrap; gap: 6px; min-height: 44px; align-items: center; }
+.coins i { width: 38px; height: 38px; border-radius: 50%; display: inline-grid; place-items: center; font-style: normal; font-weight: 700; font-size: .9rem; border: 2px solid var(--ink); background: var(--ink); color: var(--surface); font-family: var(--f-mono); }
+.coins i.t { background: var(--surface); color: var(--ink); }
+.coins i.new { animation: pop .3s ease-out; }
+.coins .pot { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); margin-left: 4px; }
+@keyframes pop { 0% { transform: scale(1.6) rotateY(90deg); } 100% { transform: scale(1) rotateY(0); } }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+.big.day { color: var(--day); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+.paytab { display: grid; gap: 6px; margin-top: 4px; }
+.paytab div { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; font-size: .88rem; }
+.paytab .seq { font-family: var(--f-mono); letter-spacing: .12em; }
+.paytab .p { font-family: var(--f-mono); color: var(--muted); font-size: .8rem; }
+.paytab b { font-family: var(--f-mono); min-width: 52px; text-align: right; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.inf { font-size: clamp(3rem, 9vw, 4.6rem); }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .76rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+td.seq { font-family: var(--f-mono); letter-spacing: .1em; white-space: nowrap; }
+tr.dots td { color: var(--muted); }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.status { display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.7rem; font-weight: 800; }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--ink); }
+.pgroup { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+.two > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips span { font-family: var(--f-mono); font-size: .78rem; border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.5rem; }
+.vs span { font-size: .84rem; color: var(--muted); }
+.formula { font-family: var(--f-mono); font-size: .92rem; background: var(--paper); border-radius: 10px; padding: 14px 16px; overflow-x: auto; line-height: 1.9; white-space: nowrap; }
+.formula em { font-style: normal; color: var(--hit); font-weight: 600; }
+.inline-ctl { display: flex; align-items: center; gap: 10px; font-size: .86rem; color: var(--muted); flex-wrap: wrap; }
+.inline-ctl input[type=range] { width: 180px; max-width: 100%; accent-color: var(--day); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .two, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .vs { grid-template-columns: 1fr; }
+  .coins i { width: 30px; height: 30px; font-size: .78rem; }
+  td, th { padding: 7px 4px; }
+  table { font-size: .8rem; }
+  td.seq { letter-spacing: .02em; }
+  .status { gap: 16px; }
+  .status b { font-size: 1.4rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+<div class="topbar">
+  <span class="brand">Flip until tails · $2 · $4 · $8 · …</span>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <h1 class="uk"><span class="kw">Санкт-Петербурзький парадокс</span> Банк подвоюється до першої решки. <span class="q sp-before">Скільки варта така гра?</span><span class="q sp-after">Середній виграш нескінченний.</span></h1>
+    <h1 class="en"><span class="kw">The St. Petersburg paradox</span> The pot doubles until the first tails. <span class="q sp-before">What is the game worth?</span><span class="q sp-after">The average win is infinite.</span></h1>
+    <p class="lead uk sp-before">Чесну монету підкидають, доки не випаде решка. Банк починається з $2 і подвоюється з кожним орлом. Коли випадає решка, ви забираєте банк. Який виграш у середньому, тобто скільки чесно платити за одну гру? Зафіксуйте відповідь, а потім зіграйте, запустіть мільйони ігор і подивіться, як із цим упоралися Бернуллі.</p>
+    <p class="lead uk sp-after">Чесну монету підкидають до першої решки, банк стартує з $2 і подвоюється з кожним орлом. Математичне сподівання виграшу нескінченне: кожен можливий результат додає до середнього рівно $1, а результатів безліч. Проте ніхто не заплатить за таку гру й $100, і половина ігор приносить лише $2. Тут ви зіграєте самі, запустите мільйони ігор і побачите, як цей парадокс розв'язували Бернуллі, Крамер і Феллер.</p>
+    <p class="lead en sp-before">A fair coin is flipped until it lands tails. The pot starts at $2 and doubles with every heads. When tails comes, you take the pot. What do you win on average? In other words, what is a fair price for one game? Lock in your answer, then play, run millions of games and see how the Bernoullis dealt with it.</p>
+    <p class="lead en sp-after">A fair coin is flipped until the first tails; the pot starts at $2 and doubles with every heads. The expected win is infinite: every possible outcome adds exactly $1 to the average, and there are infinitely many outcomes. Yet nobody would pay even $100 to play, and half the games pay just $2. Here you play yourself, run millions of games and see how Bernoulli, Cramer and Feller tackled the paradox.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b>∞</b><span><span class="uk">математичне сподівання</span><span class="en">expected value</span></span></div>
+      <div class="odd"><b>$2</b><span><span class="uk">виграш у половині ігор</span><span class="en">the win in half the games</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="uk">Умова</b><b class="en">The puzzle</b></a>
+      <a href="#guess"><span>1</span><b class="uk">Вгадайте</b><b class="en">Guess</b></a>
+      <a href="#game"><span>2</span><b class="uk">Зіграйте</b><b class="en">Play</b></a>
+      <a href="#sim"><span>3</span><b class="uk">6 мільйонів ігор</b><b class="en">6 million games</b></a>
+      <a href="#why"><span>4</span><b class="uk">Чому так</b><b class="en">Why it works</b></a>
+      <a href="#more"><span>5</span><b class="uk">Банк, корисність, ціна</b><b class="en">Bank, utility, price</b></a>
+      <a href="#facts"><span>★</span><b class="uk" style="font-weight:inherit">Цікаві факти</b><b class="en" style="font-weight:inherit">Fun facts</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv" style="height:300px"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span><span class="en">The puzzle</span></span>
+    <h2><span class="uk">Казино пропонує гру з монетою</span><span class="en">A casino offers a coin game</span></h2>
+    <p class="lead uk">Правила вміщуються в один рядок, і програти в цій грі неможливо: щонайменше ви отримаєте $2. Питання лише в тому, скільки варто заплатити за вхід.</p>
+    <p class="lead en">The rules fit in one line, and you cannot lose in this game: you get at least $2. The only question is how much it is worth paying to get in.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Монета</span><span class="en">The coin</span></h3>
+        <p class="uk">Монета чесна: орел і решка випадають з однаковим шансом 1/2, кидки незалежні. Її підкидають знову й знову, доки вперше не випаде решка. На цьому гра закінчується.</p>
+        <p class="en">The coin is fair: heads and tails each come up with chance 1/2, and flips are independent. It is flipped again and again until tails comes up for the first time. Then the game ends.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Банк</span><span class="en">The pot</span></h3>
+        <p class="uk">Перед першим кидком у банку $2. Кожен орел подвоює банк: $4, $8, $16 і так далі. Решка зупиняє гру, і ви забираєте все, що в банку.</p>
+        <p class="en">Before the first flip the pot holds $2. Every heads doubles it: $4, $8, $16 and so on. Tails stops the game and you take whatever is in the pot.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Виграш</span><span class="en">The win</span></h3>
+        <p class="uk">Якщо перша решка випала на кидку номер k, ви виграєте 2<sup>k</sup> доларів:</p>
+        <p class="en">If the first tails comes on flip number k, you win 2<sup>k</sup> dollars:</p>
+        <div class="paytab" id="paytab"></div></div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span><span class="en">The question</span></h3>
+        <p class="uk">Який виграш у середньому, якщо грати дуже багато разів? Це число математики називають математичним сподіванням. Його вважають чесною ціною гри: якщо платити саме стільки, ні ви, ні казино в середньому не виграєте.</p>
+        <p class="en">What is the average win if you play very many times? Mathematicians call this number the expected value. It is taken as the fair price of the game: pay exactly that, and on average neither you nor the casino comes out ahead.</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span><span class="en">Intuition says</span></span>
+        <p class="q"><span class="uk">«Кілька доларів, ну хай десять»</span><span class="en">"A few dollars, ten at most"</span></p>
+        <p class="uk">Насправді середній виграш нескінченний. Кожен рядок таблиці зліва додає до нього рівно $1: шанс удвічі менший, зате банк удвічі більший. Рядків безліч, тож сума не має межі. І водночас половина ігор закінчується першим же кидком із виграшем $2.</p>
+        <p class="en">In fact the average win is infinite. Every row of the table on the left adds exactly $1 to it: half the chance, but twice the pot. There are infinitely many rows, so the sum grows without bound. And at the same time half the games end on the very first flip with a win of $2.</p>
+      </div>
+      <div class="card">
+        <h3><span class="uk">Припущення моделі</span><span class="en">Model assumptions</span></h3>
+        <ul class="rules uk">
+          <li>Монета чесна, кидки незалежні.</li>
+          <li>Казино виплачує будь-яку суму, хоч мільярд, хоч трильйон.</li>
+          <li>Чесна ціна гри дорівнює середньому виграшу за дуже багато ігор.</li>
+        </ul>
+        <ul class="rules en">
+          <li>The coin is fair and flips are independent.</li>
+          <li>The casino pays any amount, even a billion or a trillion.</li>
+          <li>The fair price of the game equals the average win over very many games.</li>
+        </ul>
+        <p class="note"><span class="uk">Друге припущення нереалістичне, і саме тут один із ключів до парадоксу. Його розберемо в раундах 4 і 5.</span><span class="en">The second assumption is unrealistic, and that is one of the keys to the paradox. Rounds 4 and 5 take it apart.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="uk">Скільки ця гра дає в середньому?</span><span class="en">What does the game pay on average?</span></h2>
+    <p class="lead uk">Оберіть варіант, перш ніж читати далі. Це середній виграш за одну гру, якщо грати мільйони разів.</p>
+    <p class="lead en">Pick an option before reading on. This is the average win per game if you play millions of times.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <span class="note"><span class="uk">Середній виграш за гру</span><span class="en">Average win per game</span></span>
+      <div class="presets" id="guess-opts" role="group" aria-label="Варіанти / Options"></div>
+      <div class="actions"><button class="btn pri" id="guess-go" disabled><span class="uk">Перевірити</span><span class="en">Check</span></button></div>
+      <p class="note"><span class="uk">Нагадування: решка на 1-му кидку дає $2, на 2-му $4, на 3-му $8, і так далі.</span><span class="en">Reminder: tails on flip 1 pays $2, on flip 2 $4, on flip 3 $8, and so on.</span></p>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться розбір вашої відповіді.</p>
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span><span class="en">Round 2 · Game</span></span>
+    <h2><span class="uk">Заплатіть за вхід і грайте</span><span class="en">Pay the entry fee and play</span></h2>
+    <p class="lead uk">Ви вже зіграли 100 ігор із внеском $20 за кожну. Грайте далі по одній, щоб бачити монети, або сотнями й тисячами, щоб бачити баланс. Змініть внесок і порівняйте: за якої ціни гра починає приносити гроші?</p>
+    <p class="lead en">You have already played 100 games at a $20 fee each. Keep playing one at a time to see the coins, or in hundreds and thousands to see the balance. Change the fee and compare: at what price does the game start paying off?</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="pgroup"><span><span class="uk">Внесок за одну гру</span><span class="en">Entry fee per game</span></span><div class="presets" id="fee-pick"></div></div>
+      <div>
+        <div class="coins" id="g-coins" aria-hidden="true"></div>
+      </div>
+      <div class="status">
+        <div><span class="k"><span class="uk">Ігор</span><span class="en">Games</span></span><b class="mono" id="g-n">0</b></div>
+        <div><span class="k"><span class="uk">Баланс</span><span class="en">Balance</span></span><b class="mono" id="g-bal">0</b></div>
+        <div><span class="k"><span class="uk">Найбільший виграш</span><span class="en">Biggest win</span></span><b class="mono" id="g-best">–</b></div>
+      </div>
+      <p class="msg" id="g-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn pri" id="g-one" type="button"><span class="uk">Зіграти 1 гру</span><span class="en">Play 1 game</span></button>
+        <button class="btn" data-g="100" type="button">+100</button>
+        <button class="btn" data-g="10000" type="button">+10 000</button>
+        <button class="btn ghost" id="g-reset" type="button"><span class="uk">Почати знову</span><span class="en">Start over</span></button>
+      </div>
+    </div>
+    <div class="card" style="display:grid;gap:14px">
+      <h3><span class="uk">Ваш баланс після кожної гри</span><span class="en">Your balance after each game</span></h3>
+      <canvas id="bal-cv" style="height:210px"></canvas>
+      <div class="vs">
+        <div><span><span class="uk">Середній виграш</span><span class="en">Mean win</span></span><b class="mono" id="g-mean">–</b><span id="g-mean-s"></span></div>
+        <div><span><span class="uk">Медіанний виграш</span><span class="en">Median win</span></span><b class="mono" id="g-med">–</b><span id="g-med-s"></span></div>
+      </div>
+      <p class="note" id="g-note"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="uk">Шість гравців, по мільйону ігор кожен</span><span class="en">Six players, a million games each</span></h2>
+    <p class="lead uk">Якби середнє було скінченним, середній виграш гравця після багатьох ігор зупинився б біля нього. Тут він не зупиняється: повзе вгору, а великі виграші час від часу підкидають його стрибком. Вісь ігор логарифмічна.</p>
+    <p class="lead en">If the mean were finite, a player's average win would settle near it after many games. Here it never settles: it creeps upwards, and big wins kick it up now and then. The games axis is logarithmic.</p>
+  </div>
+  <div class="card">
+    <div class="sim-grid">
+      <div>
+        <canvas id="run-cv" style="height:300px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--ink)"><b class="uk">середній виграш кожного з 6 гравців</b><b class="en">average win of each of the 6 players</b></span>
+          <span style="--c:var(--muted)"><b class="uk">log₂ n (пунктир)</b><b class="en">log₂ n (dashed)</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k"><span class="uk">Середнє за 1 000 000 ігор, по гравцях</span><span class="en">Average over 1,000,000 games, per player</span></div><div class="chips" id="run-fin" style="margin-top:8px"></div><div class="s" id="run-fin-s" style="margin-top:6px"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Найбільший виграш серед 6 000 000 ігор</span><span class="en">Biggest win in 6,000,000 games</span></div><div class="v mono" id="run-best">–</div><div class="s" id="run-best-s"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Ігор із виграшем $4 або менше</span><span class="en">Games paying $4 or less</span></div><div class="v mono" id="run-low">–</div><div class="s"><span class="uk">точно 3/4 = 75%</span><span class="en">exactly 3/4 = 75%</span></div></div>
+        <div class="actions"><button class="btn pri" id="run-go" type="button"><span class="uk">Запустити ще раз</span><span class="en">Run again</span></button></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px"><span class="uk">Пунктир log₂ n є наближенням, а не точною кривою: Вільям Феллер показав, що сума виграшів за n ігор, поділена на n · log₂ n, прямує до 1. Типовий гравець у симуляціях іде трохи вище, приблизно на 2–3 долари.</span><span class="en">The dashed log₂ n is an approximation, not an exact curve: William Feller showed that the total win over n games divided by n · log₂ n tends to 1. A typical player in the simulations runs a little above it, by about 2 to 3 dollars.</span></p>
+  </div>
+  <div class="two">
+    <div class="card">
+      <h3><span class="uk">Як часто випадає кожен виграш</span><span class="en">How often each win comes up</span></h3>
+      <p class="note" style="margin:6px 0 12px"><span class="uk">Стовпчики: точний шанс 1/2<sup>k</sup>. Точки: частка у 6 000 000 ігор симуляції. Вертикальна шкала логарифмічна, кожна поділка в 10 разів менша.</span><span class="en">Bars: the exact chance 1/2<sup>k</sup>. Dots: the share in the 6,000,000 simulated games. The vertical scale is logarithmic, each step is 10 times smaller.</span></p>
+      <canvas id="dist-cv" style="height:240px"></canvas>
+      <div class="legend">
+        <span style="--c:color-mix(in srgb, var(--muted) 35%, transparent)"><b class="uk">точний шанс</b><b class="en">exact chance</b></span>
+        <span style="--c:var(--ink)"><b class="uk">симуляція</b><b class="en">simulation</b></span>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="uk">Скільки кожен виграш додає до середнього</span><span class="en">How much each win adds to the average</span></h3>
+      <p class="note" style="margin:6px 0 12px"><span class="uk">Внесок рядка дорівнює шансу, помноженому на виграш. Точно це $1 для кожного k. У симуляції рідкісні виграші або не трапилися зовсім (0), або трапилися раз і додали забагато.</span><span class="en">A row's contribution is its chance times its win. In exact terms it is $1 for every k. In the simulation the rare wins either did not happen at all (0) or happened once and added too much.</span></p>
+      <canvas id="contrib-cv" style="height:240px"></canvas>
+      <div class="legend">
+        <span style="--c:var(--hit)"><b class="uk">точно: $1 на рядок</b><b class="en">exact: $1 per row</b></span>
+        <span style="--c:var(--ink)"><b class="uk">симуляція</b><b class="en">simulation</b></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · П'ять пояснень</span><span class="en">Round 4 · Five explanations</span></span>
+    <h2><span class="uk">Нескінченне середнє, яке ніхто не купить</span><span class="en">An infinite average nobody will buy</span></h2>
+    <p class="lead uk">Розрахунок простий і правильний. Парадокс у тому, що він розходиться з тим, як поводяться розсудливі люди. Ось п'ять способів подивитися, звідки ця розбіжність.</p>
+    <p class="lead en">The calculation is simple and correct. The paradox is that it disagrees with how sensible people behave. Here are five ways to see where the gap comes from.</p>
+  </div>
+  <div class="why-grid">
+    <div class="card">
+      <span class="kicker"><span class="uk">Рядок за рядком</span><span class="en">Row by row</span></span>
+      <h3><span class="uk">Кожен рядок додає рівно $1</span><span class="en">Every row adds exactly $1</span></h3>
+      <div class="inline-ctl"><label for="rows-k"><span class="uk">Враховано рядків:</span><span class="en">Rows counted:</span> <b class="mono" id="rows-v">10</b></label><input type="range" id="rows-k" min="1" max="60" value="10"></div>
+      <p id="rows-txt"></p>
+      <p class="uk">Шанс першої решки на кидку k дорівнює 1/2<sup>k</sup>, а виграш 2<sup>k</sup>. Добуток завжди $1. Перший рядок дає $2 · 1/2, другий $4 · 1/4, десятий $1024 · 1/1024. Середнє дорівнює сумі всіх рядків: 1 + 1 + 1 + … Що більше рядків, то більша сума, і межі немає.</p>
+      <p class="en">The chance that the first tails comes on flip k is 1/2<sup>k</sup>, and the win is 2<sup>k</sup>. The product is always $1. Row one gives $2 · 1/2, row two $4 · 1/4, row ten $1024 · 1/1024. The mean is the sum of all rows: 1 + 1 + 1 + … The more rows, the bigger the sum, with no limit.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Типова гра</span><span class="en">A typical game</span></span>
+      <h3><span class="uk">Середнє тягнуть угору мізерні шанси</span><span class="en">Tiny chances drag the mean up</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">Виграш $4 або менше</span><span class="en">A win of $4 or less</span></span><b class="mono">75%</b><span><span class="uk">три гри з чотирьох</span><span class="en">three games in four</span></span></div>
+        <div><span><span class="uk">Виграш $1024 і більше</span><span class="en">A win of $1024 or more</span></span><b class="mono">1/512</b><span><span class="uk">приблизно 0,2% ігор</span><span class="en">about 0.2% of games</span></span></div>
+      </div>
+      <p class="uk">Половина ігор дає $2, медіанний виграш теж $2. 15 ігор із 16 дають не більше $16. Нескінченність середнього живе в рядках, які майже ніколи не трапляються: шанс виграти мільйон доларів або більше дорівнює 1/524 288, тобто приблизно 2 на мільйон. Людина, яка грає один раз, слушно орієнтується на медіану, а не на середнє.</p>
+      <p class="en">Half the games pay $2, and the median win is $2 too. 15 games in 16 pay $16 or less. The infinity of the mean lives in rows that almost never happen: the chance of winning a million dollars or more is 1/524,288, about 2 in a million. A person who plays once is right to think in medians, not means.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Обмежений банк</span><span class="en">A limited bank</span></span>
+      <h3><span class="uk">Справжнє казино не виплатить трильйон</span><span class="en">A real casino cannot pay a trillion</span></h3>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th><span class="uk">Казино має</span><span class="en">The casino has</span></th><th class="num"><span class="uk">Середній виграш</span><span class="en">Mean win</span></th></tr></thead>
+        <tbody id="bank-tbl"></tbody>
+      </table></div>
+      <p class="uk">Якщо банк перевищує статки казино, гравець отримує лише те, що в казино є. Тоді рядки після певного моменту обрізаються, і середнє стає скінченним. Навіть банк у трильйон доларів дає лише близько $41: кожне тисячократне збільшення статків додає приблизно $10. Ще 1777 року Бюффон підрахував, що після 29 орлів поспіль у всьому Французькому королівстві не вистачило б грошей на виплату.</p>
+      <p class="en">If the pot exceeds what the casino owns, the player gets only what the casino has. Then the rows are cut off past a certain point and the mean becomes finite. Even a trillion-dollar bank gives only about $41: every thousandfold increase in wealth adds roughly $10. Back in 1777 Buffon calculated that after 29 heads in a row there would not be enough money in the whole Kingdom of France to pay out.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Корисність грошей</span><span class="en">The utility of money</span></span>
+      <h3><span class="uk">Другий мільйон радує менше, ніж перший</span><span class="en">The second million pleases less than the first</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">Даніель Бернуллі, логарифм</span><span class="en">Daniel Bernoulli, logarithm</span></span><b class="mono">$4</b><span><span class="uk">гра варта гарантованих $4</span><span class="en">the game feels like a sure $4</span></span></div>
+        <div><span><span class="uk">Габріель Крамер, корінь</span><span class="en">Gabriel Cramer, square root</span></span><b class="mono" id="cramer-v">$5,83</b><span>(√2 + 1)² = 3 + 2√2</span></div>
+      </div>
+      <p class="uk">Даніель Бернуллі запропонував рахувати не долари, а користь від них: подвоєння статків завжди приносить однакову радість, тобто корисність пропорційна логарифму. У такому вимірі середня корисність гри скінченна й дорівнює корисності гарантованих $4. Якщо врахувати статки гравця, людина з $1000 розумно заплатить до $10,95, а мільйонер до $20,87. Крамер ще 1728 року дійшов схожого висновку з квадратним коренем.</p>
+      <p class="en">Daniel Bernoulli proposed counting not dollars but their usefulness: doubling your wealth always brings the same joy, so utility is proportional to the logarithm. Measured that way, the game's mean utility is finite and equals the utility of a sure $4. Taking the player's wealth into account, a person with $1,000 should sensibly pay up to $10.95, and a millionaire up to $20.87. Cramer reached a similar conclusion with the square root as early as 1728.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Багато ігор</span><span class="en">Many games</span></span>
+      <h3><span class="uk">Середнє росте, але дуже повільно</span><span class="en">The average grows, but very slowly</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">1 000 ігор</span><span class="en">1,000 games</span></span><b class="mono">≈ $12–13</b><span><span class="uk">типовий гравець; log₂ 1000 ≈ 10</span><span class="en">a typical player; log₂ 1000 ≈ 10</span></span></div>
+        <div><span><span class="uk">1 000 000 ігор</span><span class="en">1,000,000 games</span></span><b class="mono">≈ $22–23</b><span><span class="uk">типовий гравець; log₂ 10⁶ ≈ 20</span><span class="en">a typical player; log₂ 10⁶ ≈ 20</span></span></div>
+      </div>
+      <p class="uk">Якщо зіграти n ігор, у середньому один раз трапиться виграш близько n доларів, двічі близько n/2, і так далі. Кожен рівень дає приблизно $1 на гру, а рівнів, які встигають трапитися, близько log₂ n. Тому середній виграш за гру росте як log₂ n (типовий гравець іде на 2–3 долари вище): щоб він виріс на $1, ігор треба вдвічі більше. Нескінченність досяжна лише за нескінченну кількість ігор.</p>
+      <p class="en">Play n games and you will typically see one win of about n dollars, two of about n/2, and so on. Each level gives roughly $1 per game, and about log₂ n levels have time to show up. So the average win per game grows like log₂ n (a typical player runs 2 to 3 dollars above it): to raise it by $1 you need twice as many games. Infinity is reached only after infinitely many games.</p>
+      <p class="uk">Схожа пастка з математичним сподіванням є в <a href="../two-envelopes/">парадоксі двох конвертів</a>: там міркування «в середньому вигідно міняти» теж ламається на нескінченних середніх.</p>
+      <p class="en">A similar trap with expected values sits in the <a href="../../two-envelopes/en/">two envelopes paradox</a>: there too the "on average it pays to switch" argument breaks down on infinite means.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span><span class="en">For formula lovers</span></span>
+      <h3><span class="uk">Сподівання, обрізаний ряд і корисність</span><span class="en">The expectation, the truncated series and utility</span></h3>
+      <div class="formula">
+        P(<span class="uk">перша решка на кидку</span><span class="en">first tails on flip</span> k) = 1/2<sup>k</sup>, &nbsp; <span class="uk">виграш</span><span class="en">win</span> X = 2<sup>k</sup><br>
+        E[X] = Σ<sub>k≥1</sub> 2<sup>k</sup> · 2<sup>−k</sup> = 1 + 1 + 1 + … = <em>∞</em><br>
+        <span class="uk">Банк обмежено сумою</span><span class="en">Bank capped at</span> B, L = ⌊log₂ B⌋: &nbsp; E<sub>B</sub> = Σ<sub>k≤L</sub> 1 + B · Σ<sub>k&gt;L</sub> 2<sup>−k</sup> = L + B / 2<sup>L</sup> &nbsp;→&nbsp; B = 10⁶: 19 + <span class="uk">1,91 = 20,91</span><span class="en">1.91 = 20.91</span><br>
+        <span class="uk">Логарифм</span><span class="en">Log utility</span>: E[log₂ X] = Σ k / 2<sup>k</sup> = 2 &nbsp;→&nbsp; CE = 2² = $4<br>
+        <span class="uk">Корінь</span><span class="en">Square root</span>: E[√X] = Σ 2<sup>−k/2</sup> = 1 / (√2 − 1) &nbsp;→&nbsp; CE = (√2 + 1)² = 3 + 2√2 ≈ <span class="uk">$5,83</span><span class="en">$5.83</span><br>
+        <span class="uk">Феллер</span><span class="en">Feller</span>: (X<sub>1</sub> + … + X<sub>n</sub>) / (n · log₂ n) → 1 <span class="uk">за ймовірністю</span><span class="en">in probability</span>
+      </div>
+      <p class="uk">CE означає «гарантований еквівалент»: гарантована сума, яка для гравця така ж приваблива, як і гра. Для звичайних доларів (лінійна корисність) він нескінченний, для логарифма й кореня скінченний, бо великі виграші важать дедалі менше. Формула з банком B пояснює таблицю вище: перші L рядків дають по $1, а всі довші ігри разом приносять B, помножене на шанс до них дожити, 1/2<sup>L</sup>.</p>
+      <p class="en">CE stands for "certainty equivalent": the guaranteed amount the player finds exactly as attractive as the game. For plain dollars (linear utility) it is infinite; for the logarithm and the square root it is finite, because big wins count for less and less. The bank formula explains the table above: the first L rows give $1 each, and all longer games together bring B times the chance of getting that far, 1/2<sup>L</sup>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 5: escalation -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Ускладнюємо</span><span class="en">Round 5 · Going further</span></span>
+    <h2><span class="uk">Банк, корисність і чесна ціна для серії</span><span class="en">The bank, utility and a fair price for a series</span></h2>
+    <p class="lead uk">Три способи зробити нескінченність скінченною: обмежити казино, рахувати корисність замість доларів або питати не про одну гру, а про серію. Кожен результат тут перевіряє симуляція.</p>
+    <p class="lead en">Three ways to make infinity finite: limit the casino, count utility instead of dollars, or ask about a series instead of one game. A simulation checks every result here.</p>
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Скільки має казино?</span><span class="en">How much does the casino have?</span></h3>
+        <div class="presets" id="bank-pick"></div>
+        <label class="ctl" for="bank-r"><span><span class="uk">Статки казино:</span><span class="en">Casino's wealth:</span> <b class="mono" id="bank-v"></b></span>
+          <input type="range" id="bank-r" min="10" max="120" value="60" style="width:100%">
+        </label>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Середній виграш</span><span class="en">Mean win</span></span><b class="big mono" id="bank-e"></b></div>
+          <div><span class="k"><span class="uk">Симуляція, 1 000 000 ігор</span><span class="en">Simulation, 1,000,000 games</span></span><b class="big mono" id="bank-s" style="font-size:1.6rem">–</b></div>
+        </div>
+        <p class="note" id="bank-txt"></p>
+        <div class="actions"><button class="btn pri" id="bank-go" type="button"><span class="uk">Перевірити симуляцією</span><span class="en">Check by simulation</span></button></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Логарифм у ціні</span><span class="en">A logarithm in the price</span></span>
+        <h3><span class="uk">Удесятеро багатше казино, +$3,3</span><span class="en">A casino ten times richer, +$3.3</span></h3>
+        <p class="uk">Обрізання працює як логарифм: середній виграш дорівнює log₂ B плюс приблизно один долар. Збільшення банку вдесятеро додає лише log₂ 10 ≈ 3,3 долара. Щоб чесна ціна дійшла до $100, казино знадобилося б близько 2<sup>99</sup> доларів, а це число з 30 цифр.</p>
+        <p class="en">The cut-off works like a logarithm: the mean win is log₂ B plus about one dollar. Making the bank ten times bigger adds only log₂ 10 ≈ 3.3 dollars. For the fair price to reach $100, the casino would need about 2<sup>99</sup> dollars, a number with 30 digits.</p>
+        <p class="uk">Симуляція з мільйона ігор добре збігається з точною відповіддю для невеликих банків. Для мільярда й більше вона зазвичай показує менше: виграші понад 10 мільйонів трапляються рідше, ніж раз на 8 мільйонів ігор, і їхні долари просто не встигають потрапити у вибірку. Це той самий ефект, що й у раунді 3.</p>
+        <p class="en">A simulation of a million games matches the exact answer well for small banks. For a billion and up it usually shows less: wins above 10 million come up less than once per 8 million games, and their dollars simply do not make it into the sample. It is the same effect as in round 3.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Як ви цінуєте гроші?</span><span class="en">How do you value money?</span></h3>
+        <div class="pgroup"><span><span class="uk">Корисність</span><span class="en">Utility</span></span><div class="presets" id="u-pick"></div></div>
+        <div class="pgroup" id="w-group"><span><span class="uk">Ваші статки до гри</span><span class="en">Your wealth before the game</span></span><div class="presets" id="w-pick"></div></div>
+        <div class="result-row">
+          <div><span class="k" id="u-lab"></span><b class="big mono" id="u-e"></b></div>
+          <div><span class="k"><span class="uk">Симуляція, 1 000 000 ігор</span><span class="en">Simulation, 1,000,000 games</span></span><b class="big mono" id="u-s" style="font-size:1.6rem">–</b></div>
+        </div>
+        <p class="note" id="u-txt"></p>
+        <div class="actions"><button class="btn pri" id="u-go" type="button"><span class="uk">Перевірити симуляцією</span><span class="en">Check by simulation</span></button></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Бернуллі, 1738</span><span class="en">Bernoulli, 1738</span></span>
+        <h3><span class="uk">Ціна залежить від того, хто платить</span><span class="en">The price depends on who pays</span></h3>
+        <p class="uk">Для Бернуллі корисність додаткового долара обернено пропорційна тому, скільки в людини вже є. Звідси логарифм. Тоді питання «скільки заплатити» має відповідь, яка залежить від статків: для бідного гравця навіть $5 за вхід завеликий ризик, а мільйонер спокійно віддасть $20.</p>
+        <p class="en">For Bernoulli the utility of an extra dollar is inversely proportional to how much a person already has. Hence the logarithm. Then "how much to pay" has an answer that depends on wealth: for a poor player even a $5 entry is too risky, while a millionaire can easily pay $20.</p>
+        <p class="uk">Слабке місце такого розв'язку: для будь-якої необмеженої функції корисності можна придумати гру, де виграші ростуть ще швидше, і парадокс повернеться. На це 1934 року вказав Карл Менгер. Наприклад, для логарифма достатньо платити 2 в степені 2<sup>k</sup> доларів.</p>
+        <p class="en">The weak spot of this answer: for any unbounded utility function you can design a game with even faster-growing wins, and the paradox comes back. Karl Menger pointed this out in 1934. For the logarithm, for example, it is enough to pay 2 to the power 2<sup>k</sup> dollars.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Скільки ігор, щоб вийти в плюс?</span><span class="en">How many games to come out ahead?</span></h3>
+        <label class="ctl" for="fee-r"><span><span class="uk">Внесок за гру:</span><span class="en">Fee per game:</span> <b class="mono" id="fee-v"></b></span>
+          <input type="range" id="fee-r" min="4" max="30" value="10" style="width:100%">
+        </label>
+        <canvas id="fee-cv" style="height:240px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--ink)"><b class="uk">частка гравців у плюсі після n ігор (симуляція)</b><b class="en">share of players ahead after n games (simulation)</b></span>
+        </div>
+        <p class="note" id="fee-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Серія замість однієї гри</span><span class="en">A series instead of one game</span></span>
+        <h3><span class="uk">Будь-який внесок окупиться, але не скоро</span><span class="en">Any fee pays off, but not soon</span></h3>
+        <p class="uk">Нескінченне середнє означає ось що: за будь-якого фіксованого внеску частка гравців у плюсі з кількістю ігор прямує до 100%. Але що вищий внесок, то більше терпіння потрібно. Із внеском $10 після 1000 ігор у плюсі близько 4 гравців із 5. Із внеском $20 навіть після мільйона ігор приблизно кожен п'ятий ще в мінусі.</p>
+        <p class="en">An infinite mean means this: for any fixed fee, the share of players who are ahead tends to 100% as the number of games grows. But the higher the fee, the more patience you need. At $10 per game, about 4 players in 5 are ahead after 1,000 games. At $20, even after a million games about one in five is still behind.</p>
+        <p class="uk">Вільям Феллер запропонував дивитися саме на серію: справедливий внесок за n ігор разом близько n · log₂ n доларів, тобто log₂ n за гру. Кожна точка тут означає кілька сотень незалежних серій, і для кожної кількості ігор симуляція рахує, яка частка серій закінчилася в плюсі.</p>
+        <p class="en">William Feller proposed looking at exactly that, the series: a fair total fee for n games is about n · log₂ n dollars, that is log₂ n per game. Each point here is several hundred independent series, and for each number of games the simulation counts what share of them ended ahead.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="uk">Що розповісти друзям</span><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1713</span>
+        <h3><span class="uk">Лист Ніколая Бернуллі</span><span class="en">Nicolaus Bernoulli's letter</span></h3>
+        <p class="uk">Задачу вперше поставив Ніколай Бернуллі в листі до французького математика П'єра Ремона де Монмора від 9 вересня 1713 року. Сам Ніколай пропонував пояснення, що люди просто нехтують дуже малоймовірними подіями.</p>
+        <p class="en">Nicolaus Bernoulli first posed the problem in a letter to the French mathematician Pierre Rémond de Montmort dated 9 September 1713. Nicolaus himself suggested that people simply ignore very unlikely events.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1738</span>
+        <h3><span class="uk">Звідки назва</span><span class="en">Where the name comes from</span></h3>
+        <p class="uk">Двоюрідний брат Ніколая, Даніель Бернуллі, опублікував розв'язок через корисність грошей у «Записках» Петербурзької академії наук (Commentarii Academiae Scientiarum Imperialis Petropolitanae). Звідси й назва парадоксу. Бернуллі писав, що будь-яка розсудлива людина з радістю продала б свій шанс за двадцять дукатів. У його версії банк починався з одного дуката.</p>
+        <p class="en">Nicolaus's cousin Daniel Bernoulli published a solution based on the utility of money in the Commentarii of the St. Petersburg Academy of Sciences (Commentarii Academiae Scientiarum Imperialis Petropolitanae). Hence the paradox's name. Bernoulli wrote that any fairly reasonable man would gladly sell his chance for twenty ducats. In his version the pot started at one ducat.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1728</span>
+        <h3><span class="uk">Крамер був першим</span><span class="en">Cramer got there first</span></h3>
+        <p class="uk">За десять років до Даніеля Бернуллі женевський математик Габріель Крамер у листі до Ніколая Бернуллі запропонував рахувати цінність грошей через квадратний корінь. Він зауважив, що математики оцінюють гроші пропорційно їхній кількості, а розсудливі люди цінують їх за те, що на них можна зробити.</p>
+        <p class="en">Ten years before Daniel Bernoulli, the Geneva mathematician Gabriel Cramer suggested in a letter to Nicolaus Bernoulli that the value of money be measured by a square root. He remarked that mathematicians value money in proportion to its quantity, while sensible people value it by what they can do with it.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2048</span>
+        <h3><span class="uk">Експеримент Бюффона</span><span class="en">Buffon's experiment</span></h3>
+        <p class="uk">Жорж-Луї Леклерк де Бюффон описав 1777 року 2048 зіграних партій. Найдовша гра тривала 9 кидків (таких було 6), а 1061 гра закінчилася першим кидком. У наших доларах це $20 114, або близько $9,82 за гру. У Бюффона перший виграш був 1, а не 2, тому він отримав 10 057 одиниць, близько 4,9 за гру. Це один із перших статистичних експериментів в історії.</p>
+        <p class="en">In 1777 Georges-Louis Leclerc de Buffon described 2,048 real games. The longest lasted 9 flips (there were 6 of those), and 1,061 games ended on the first flip. In our dollars that is $20,114, about $9.82 per game. Buffon's first prize was 1 rather than 2, so he got 10,057 units, about 4.9 per game. It is one of the first statistical experiments in history.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">n · log₂ n</span>
+        <h3><span class="uk">Ціна серії за Феллером</span><span class="en">Feller's price for a series</span></h3>
+        <p class="uk">Вільям Феллер довів закон великих чисел для цієї гри в незвичній формі: сума виграшів за n ігор, поділена на n · log₂ n, прямує до 1. Тож чесний внесок за серію з n ігор близько n · log₂ n. Цікаво, що за такого внеску гравець у симуляціях виграє серію приблизно в 4 випадках із 5, тож казино навряд чи погодилося б на таку ціну.</p>
+        <p class="en">William Feller proved a law of large numbers for this game in an unusual form: the total win over n games divided by n · log₂ n tends to 1. So a fair fee for a series of n games is about n · log₂ n. Curiously, at that fee the player in simulations wins the series about 4 times in 5, so a casino would hardly accept that price.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">$4</span>
+        <h3><span class="uk">Гарантований еквівалент за Бернуллі</span><span class="en">Bernoulli's certainty equivalent</span></h3>
+        <p class="uk">Якщо корисність грошей дорівнює логарифму, середня корисність гри дорівнює log₂ 4 = 2. Отже, без урахування інших статків гра варта гарантованих $4. Людина зі статками $2 мала б позичити $1,35 і заплатити до $3,35, а з $1000 до $10,95.</p>
+        <p class="en">If the utility of money is a logarithm, the game's mean utility is log₂ 4 = 2. So, ignoring other wealth, the game is worth a guaranteed $4. A person with $2 should borrow $1.35 and pay up to $3.35, and one with $1,000 up to $10.95.</p>
+      </article>
+  </div>
+</section>
+
+<footer>
+  <span class="uk">Задачу поставив Ніколай Бернуллі (1713), назву дала стаття Даніеля Бернуллі в «Записках» Петербурзької академії (1738). Розв'язок через квадратний корінь запропонував Габріель Крамер (1728).</span>
+  <span class="en">The problem was posed by Nicolaus Bernoulli (1713), and its name comes from Daniel Bernoulli's paper in the Commentarii of the St. Petersburg Academy (1738). The square-root solution is due to Gabriel Cramer (1728).</span>
+  <span class="mono">E = 1 + 1 + 1 + … = ∞</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA', { maximumFractionDigits: 0 });
+const fmtD = (x, d = 2) => x.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA', { minimumFractionDigits: d, maximumFractionDigits: d });
+const usd = (x, d = 0) => (x < 0 ? '−$' : '$') + (d ? fmtD(Math.abs(x), d) : fmt(Math.abs(Math.round(x))));
+// Ukrainian plural forms: 1 гра, 2 гри, 5 ігор
+const plural = (k, one, few, many) => {
+  const a = k % 10, b = k % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+const gamesW = n => L(plural(n, 'гра', 'гри', 'ігор'), n === 1 ? 'game' : 'games');
+const flipsW = n => L(plural(n, 'кидок', 'кидки', 'кидків'), n === 1 ? 'flip' : 'flips');
+const ordUk = k => k + '-му';
+const ordEn = k => k + (k % 10 === 1 && k % 100 !== 11 ? 'st' : k % 10 === 2 && k % 100 !== 12 ? 'nd' : k % 10 === 3 && k % 100 !== 13 ? 'rd' : 'th');
+const H = () => L('О', 'H'), T = () => L('Р', 'T');
+const seqStr = k => H().repeat(k - 1) + T();
+
+/* ---------- maths ---------- */
+// one game: k = the flip of the first tails, P(k) = 2^-k; the win is 2^k.
+// 32 random bits at once: the number of leading zeros is the number of heads before the first tails.
+const rnd32 = () => (Math.random() * 4294967296) >>> 0;
+function flipK() { const r = rnd32(); if (r) return Math.clz32(r) + 1; let k = 33; while (Math.random() < .5) k++; return k; }
+// exact Binomial(n, 1/2) from bit counts
+function pop(x) { x = x - ((x >>> 1) & 0x55555555); x = (x & 0x33333333) + ((x >>> 2) & 0x33333333); return (((x + (x >>> 4)) & 0x0F0F0F0F) * 0x01010101) >>> 24; }
+function binHalf(n) { let s = 0; while (n >= 32) { s += pop(rnd32()); n -= 32; } if (n > 0) s += pop(rnd32() >>> (32 - n)); return s; }
+// total win of n games, sampled level by level: of the games still running at flip k, Binomial(·, 1/2) continue
+function sumGames(n) { let N = n, k = 1, S = 0; while (N > 0) { const next = binHalf(N); S += (N - next) * 2 ** k; N = next; k++; } return S; }
+// mean win when the casino can pay at most B
+function capped(B) { const Lb = Math.floor(Math.log2(B) + 1e-12); return Lb + B / 2 ** Lb; }
+// the most a log-utility player with wealth w should pay: E ln(w − c + X) = ln w
+function logPrice(w) {
+  const f = c => { let s = 0; for (let k = 1; k <= 200; k++) s += 2 ** -k * Math.log(w - c + 2 ** k); return s - Math.log(w); };
+  let lo = 0, hi = w + 2 - 1e-9; for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2; f(m) > 0 ? lo = m : hi = m; } return lo;
+}
+const SQRT_CE = 3 + 2 * Math.SQRT2;
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, Hh = c.clientHeight;
+  if (!W || !Hh) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(Hh * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, Hh);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H: Hh };
+}
+const shortUsd = v => v >= 1e12 ? '$' + dec((v / 1e12).toFixed(v >= 1e13 ? 0 : 1)) + L(' трлн', 'T') : v >= 1e9 ? '$' + dec((v / 1e9).toFixed(v >= 1e10 ? 0 : 1)) + L(' млрд', 'B') : v >= 1e6 ? '$' + dec((v / 1e6).toFixed(v >= 1e7 ? 0 : 1)) + L(' млн', 'M') : v >= 1e4 ? '$' + Math.round(v / 1e3) + L(' тис.', 'k') : '$' + fmt(v);
+
+/* ---------- hero: games play out one flip at a time ---------- */
+const hero = { k: 0, f: 0, hist: [], timer: null, pause: 0, n: 0, sum: 0, best: 0 };
+function heroNew() { hero.k = flipK(); hero.f = 0; }
+function heroDraw() {
+  const s = setupCanvas($('#hero-cv')); if (!s) return;
+  const { ctx, W, H: Hh } = s, solved = !window.mpSolved || mpSolved();
+  const ink = tok('--ink'), mut = tok('--muted'), surf = tok('--surface') || '#fff', line = tok('--line');
+  // the current game: coins and the pot
+  const shown = hero.f, rad = Math.max(9, Math.min(17, (W - 20) / Math.max(10, shown) / 2 - 2));
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = mut;
+  ctx.fillText(L('Гра ', 'Game ') + (hero.n + 1), 6, 4);
+  for (let i = 0; i < shown; i++) {
+    const per = Math.floor((W - 12) / (2 * rad + 5)), row = Math.floor(i / per), col = i % per;
+    const x = 6 + rad + col * (2 * rad + 5), y = 26 + rad + row * (2 * rad + 6), t = i === hero.k - 1;
+    ctx.beginPath(); ctx.arc(x, y, rad, 0, 7); ctx.fillStyle = t ? surf : ink; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = ink; ctx.stroke();
+    ctx.fillStyle = t ? ink : surf; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '600 ' + Math.round(rad * .9) + 'px ' + tok('--f-mono');
+    ctx.fillText(t ? T() : H(), x, y + 1);
+  }
+  const done = hero.f >= hero.k;
+  const potNow = done ? 2 ** hero.k : 2 ** (hero.f + 1);
+  ctx.font = '800 30px ' + tok('--f-display'); ctx.fillStyle = ink; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText((done ? L('Виграш ', 'Win ') : L('Банк ', 'Pot ')) + '$' + fmt(potNow), 6, 76);
+  // the last games as bars: height = number of flips, label = the win
+  const top = 124, bot = Hh - 22, n = 24, bw = (W - 12) / n, maxK = Math.max(8, ...hero.hist.map(g => g));
+  ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(6, bot + .5); ctx.lineTo(W - 6, bot + .5); ctx.stroke();
+  ctx.font = '10px ' + tok('--f-mono');
+  hero.hist.slice(-n).forEach((k, i) => {
+    const h = (bot - top - 14) * k / maxK, x = 6 + i * bw;
+    ctx.fillStyle = ink; ctx.globalAlpha = .8; ctx.fillRect(x + 2, bot - h, bw - 4, h); ctx.globalAlpha = 1;
+    if (bw > 26 || k >= 5) { ctx.fillStyle = mut; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(shortUsd(2 ** k), x + bw / 2, bot - h - 2); }
+  });
+  ctx.fillStyle = mut; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(L('останні ігри: висота = кількість кидків', 'recent games: height = number of flips'), 6, bot + 6);
+  // caption
+  if (!solved) { $('#hero-cap').textContent = L('Монету підкидають до першої решки, банк подвоюється з кожним орлом. Скільки гравець виграє в середньому?', 'The coin is flipped until the first tails; the pot doubles with every heads. What does the player win on average?'); return; }
+  $('#hero-cap').textContent = hero.n
+    ? L('Зіграно ' + fmt(hero.n) + ' ' + plural(hero.n, 'гру', 'гри', 'ігор') + ' · середній виграш ' + usd(hero.sum / hero.n, 2) + ' · найбільший ' + usd(hero.best) + ' · математичне сподівання ∞', fmt(hero.n) + ' ' + gamesW(hero.n) + ' played · mean win ' + usd(hero.sum / hero.n, 2) + ' · biggest ' + usd(hero.best) + ' · expected value ∞')
+    : L('Математичне сподівання виграшу нескінченне.', 'The expected win is infinite.');
+}
+function heroFinish() { hero.hist.push(hero.k); if (hero.hist.length > 60) hero.hist.shift(); hero.n++; hero.sum += 2 ** hero.k; hero.best = Math.max(hero.best, 2 ** hero.k); }
+function heroStep() {
+  if (hero.pause > 0) { hero.pause--; if (!hero.pause) heroNew(); heroDraw(); return; }
+  hero.f++;
+  if (hero.f >= hero.k) { heroFinish(); hero.pause = 3; }
+  heroDraw();
+}
+function heroStart() {
+  clearInterval(hero.timer);
+  for (let i = 0; i < 18; i++) { heroNew(); hero.f = hero.k; heroFinish(); }
+  heroNew();
+  if (reduce()) { hero.f = hero.k; heroDraw(); return; }
+  hero.f = 0; heroDraw();
+  hero.timer = setInterval(heroStep, 330);
+}
+
+/* ---------- puzzle: the pay table ---------- */
+function payText() {
+  $('#paytab').innerHTML = [1, 2, 3, 4, 5].map(k => '<div><span class="seq">' + seqStr(k) + '</span><span class="p">' + L('шанс ', 'chance ') + '1/' + 2 ** k + '</span><b>$' + 2 ** k + '</b></div>').join('') +
+    '<div><span class="seq">…</span><span class="p">…</span><b>…</b></div>';
+}
+
+/* ---------- round 1: guess ---------- */
+const OPTS = [2, 4, 10, 25, 100, 1000, Infinity];
+let pick = null, guessed = null;
+function optsText() {
+  $('#guess-opts').innerHTML = OPTS.map((v, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (pick === i) + '">' + (v === Infinity ? L('без межі (нескінченність)', 'no limit (infinite)') : '$' + fmt(v)) + '</button>').join('');
+  $('#guess-go').disabled = pick === null;
+}
+$('#guess-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pick = +b.dataset.i; optsText(); });
+$('#guess-go').addEventListener('click', () => { if (pick === null) return; guessed = OPTS[pick]; guessText(); window.mpSolve && mpSolve(); });
+function guessText() {
+  if (guessed === null) return;
+  const g = guessed;
+  const verdict = g === Infinity
+    ? L('Так, і це правильна відповідь. Математичне сподівання цієї гри нескінченне. Дивно інше: чи заплатили б ви за неї хоча б $100?', 'Yes, that is the right answer. The expected value of this game is infinite. The strange part is elsewhere: would you pay even $100 for it?')
+    : L('Насправді середній виграш більший за ' + usd(g) + ', і більший за будь-яке інше число. Таблиця показує чому: кожен рядок додає $1, а рядків безліч.', 'In fact the average win is more than ' + usd(g) + ', and more than any other number. The table shows why: every row adds $1, and there are infinitely many rows.');
+  const rows = [1, 2, 3, 4, 5, 6].map(k => '<tr><td class="seq">' + seqStr(k) + '</td><td class="num">1/' + 2 ** k + '</td><td class="num">$' + 2 ** k + '</td><td class="num">$1</td><td class="num">$' + k + '</td></tr>').join('');
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono inf">∞</p>' +
+    '<p>' + verdict + '</p><div class="tbl-wrap"><table><thead><tr><th>' + L('Кидки', 'Flips') + '</th><th class="num">' + L('Шанс', 'Chance') + '</th><th class="num">' + L('Виграш', 'Win') + '</th><th class="num">' + L('Внесок', 'Adds') + '</th><th class="num">' + L('Разом', 'Total') + '</th></tr></thead><tbody>' + rows +
+    '<tr class="dots"><td colspan="5">' + L('… і так без кінця: 1 + 1 + 1 + … = ∞', '… and so on forever: 1 + 1 + 1 + … = ∞') + '</td></tr></tbody></table></div>' +
+    '<p class="note">' + L('А тепер поворот: половина ігор приносить лише $2, а три чверті не більше $4. У раунді 2 ви переконаєтеся, що грати за $20 ризиковано.', 'Now the twist: half the games pay just $2, and three quarters pay $4 or less. In round 2 you will see that playing at $20 is risky.') + '</p>';
+}
+
+/* ---------- round 2: game ---------- */
+const FEES = [10, 20, 50];
+const G = { fee: 20, n: 0, won: 0, best: 0, cnt: new Float64Array(90), bal: [0], last: 0, busy: false, timer: null, shown: 0 };
+function gAdd(k) { const w = 2 ** k; G.n++; G.won += w; G.cnt[k]++; if (w > G.best) G.best = w; G.bal.push(G.won - G.n * G.fee); G.last = k; }
+function gMany(m) { for (let i = 0; i < m; i++) gAdd(flipK()); G.shown = G.last; }
+function gReset() { clearTimeout(G.timer); G.busy = false; G.n = 0; G.won = 0; G.best = 0; G.cnt = new Float64Array(90); G.bal = [0]; G.last = 0; G.shown = 0; }
+function gMedian() { let c = 0; for (let k = 1; k < 90; k++) { c += G.cnt[k]; if (c * 2 >= G.n) return 2 ** k; } return 0; }
+function coinsHtml(k, upto, fresh) {
+  let h = ''; for (let i = 0; i < upto; i++) { const t = i === k - 1; h += '<i class="' + (t ? 't' : '') + (i === fresh ? ' new' : '') + '">' + (t ? T() : H()) + '</i>'; }
+  const pot = upto >= k ? 2 ** k : 2 ** (upto + 1);
+  return h + '<span class="pot">' + (upto >= k ? L('виграш ', 'win ') : L('банк ', 'pot ')) + '$' + fmt(pot) + '</span>';
+}
+function gText(single) {
+  $('#fee-pick').innerHTML = FEES.map(f => '<button type="button" data-f="' + f + '" aria-pressed="' + (f === G.fee) + '">$' + f + '</button>').join('');
+  $('#g-n').textContent = fmt(G.n);
+  const bal = G.won - G.n * G.fee;
+  $('#g-bal').textContent = usd(bal);
+  $('#g-best').textContent = G.n ? usd(G.best) : '–';
+  $('#g-mean').textContent = G.n ? usd(G.won / G.n, 2) : '–';
+  $('#g-mean-s').textContent = L('тягнуть угору рідкісні великі виграші', 'pulled up by rare big wins');
+  $('#g-med').textContent = G.n ? usd(gMedian()) : '–';
+  $('#g-med-s').textContent = L('половина ігор дала стільки або менше', 'half the games paid this or less');
+  let low = G.cnt[1] + G.cnt[2];
+  $('#g-note').textContent = G.n ? L('Ігор із виграшем $4 або менше: ' + fmt(low) + ' з ' + fmt(G.n) + ' (' + pct(low / G.n) + ', точно 75%). Ігор із виграшем понад внесок $' + G.fee + ': ' + pct(gAbove() / G.n) + ', точно ' + pct(exactAbove(G.fee), 2) + '.',
+    'Games paying $4 or less: ' + fmt(low) + ' of ' + fmt(G.n) + ' (' + pct(low / G.n) + ', exactly 75%). Games paying more than the $' + G.fee + ' fee: ' + pct(gAbove() / G.n) + ', exactly ' + pct(exactAbove(G.fee), 2) + '.') : '';
+  let msg;
+  if (!G.n) msg = L('Ігор ще немає. Натисніть «Зіграти 1 гру».', 'No games yet. Press "Play 1 game".');
+  else if (single) {
+    const k = G.last, w = 2 ** k, d = w - G.fee;
+    msg = L('Перша решка на ' + ordUk(k) + ' кидку: виграш <b>$' + fmt(w) + '</b>. ' + (d >= 0 ? 'Після внеску $' + G.fee + ' ви в плюсі на $' + fmt(d) + '.' : 'Після внеску $' + G.fee + ' ви втратили $' + fmt(-d) + '.'),
+      'First tails on the ' + ordEn(k) + ' flip: you win <b>$' + fmt(w) + '</b>. ' + (d >= 0 ? 'After the $' + G.fee + ' fee you are up $' + fmt(d) + '.' : 'After the $' + G.fee + ' fee you are down $' + fmt(-d) + '.'));
+  } else msg = L('Після ' + fmt(G.n) + ' ' + plural(G.n, 'гри', 'ігор', 'ігор') + ' по $' + G.fee + ' ваш баланс <b>' + usd(bal) + '</b>. ' + (bal >= 0 ? 'Поки що гра окупилася, переважно завдяки кільком великим виграшам.' : 'Більшість ігор приносить менше за внесок, а великі виграші трапляються рідко.'),
+    'After ' + fmt(G.n) + ' ' + gamesW(G.n) + ' at $' + G.fee + ' your balance is <b>' + usd(bal) + '</b>. ' + (bal >= 0 ? 'So far the game has paid off, mostly thanks to a few big wins.' : 'Most games pay less than the fee, and big wins are rare.'));
+  $('#g-msg').innerHTML = msg;
+}
+function gAbove() { let c = 0; for (let k = 1; k < 90; k++) if (2 ** k > G.fee) c += G.cnt[k]; return c; }
+function exactAbove(f) { let k = 1; while (2 ** k <= f) k++; return 2 ** -(k - 1); }
+function gCoins(fresh) { $('#g-coins').innerHTML = G.shown ? coinsHtml(G.shown, G.shown, fresh) : ''; }
+function gOne() {
+  if (G.busy) return;
+  const k = flipK();
+  if (reduce()) { gAdd(k); G.shown = k; $('#g-coins').innerHTML = coinsHtml(k, k, -1); gText(true); gDraw(); return; }
+  G.busy = true; setBusy(true);
+  let i = 0;
+  const step = () => {
+    i++;
+    $('#g-coins').innerHTML = coinsHtml(k, i, i - 1);
+    if (i >= k) { gAdd(k); G.shown = k; G.busy = false; setBusy(false); gText(true); gDraw(); return; }
+    G.timer = setTimeout(step, i > 12 ? 90 : 260);
+  };
+  step();
+}
+function setBusy(b) { $$('#game .actions button').forEach(x => { x.disabled = b; }); }
+function gDraw() {
+  const s = setupCanvas($('#bal-cv')); if (!s) return;
+  const { ctx, W, H: Hh } = s, l = 56, r = 10, t = 10, b = 24, n = G.bal.length - 1;
+  let lo = 0, hi = 0; for (const v of G.bal) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  if (hi - lo < 100) { hi += 50; lo -= 50; }
+  const pad = (hi - lo) * .08; lo -= pad; hi += pad;
+  const x = i => l + (n ? i / n : 0) * (W - l - r), y = v => t + (1 - (v - lo) / (hi - lo)) * (Hh - t - b);
+  const mut = tok('--muted'), ink = tok('--ink');
+  ctx.fillStyle = mut; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [hi - pad, 0, lo + pad].forEach(v => ctx.fillText(usd(v), l - 6, y(v)));
+  ctx.strokeStyle = tok('--line'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(l, y(0)); ctx.lineTo(W - r, y(0)); ctx.stroke();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('0', l, Hh - b + 6); ctx.fillText(fmt(n), W - r - 14, Hh - b + 6);
+  ctx.textAlign = 'center'; ctx.fillText(L('ігор', 'games'), (l + W - r) / 2, Hh - b + 6);
+  if (!n) return;
+  // min/max per pixel column so rare jumps survive downsampling
+  const cols = Math.max(1, Math.floor(W - l - r)), per = n / cols;
+  ctx.strokeStyle = ink; ctx.lineWidth = 1.6; ctx.beginPath();
+  if (per <= 1) { for (let i = 0; i <= n; i++) i ? ctx.lineTo(x(i), y(G.bal[i])) : ctx.moveTo(x(i), y(G.bal[i])); }
+  else for (let c = 0; c < cols; c++) {
+    const a = Math.floor(c * per), z = Math.min(n, Math.floor((c + 1) * per)); let mn = Infinity, mx = -Infinity;
+    for (let i = a; i <= z; i++) { const v = G.bal[i]; if (v < mn) mn = v; if (v > mx) mx = v; }
+    const px = l + c + .5; c ? ctx.lineTo(px, y(G.bal[a])) : ctx.moveTo(px, y(G.bal[a])); ctx.lineTo(px, y(mn)); ctx.lineTo(px, y(mx)); ctx.lineTo(px, y(G.bal[z]));
+  }
+  ctx.stroke();
+}
+$('#g-one').addEventListener('click', gOne);
+$$('#game [data-g]').forEach(b => b.addEventListener('click', () => { if (G.busy) return; gMany(+b.dataset.g); gCoins(-1); gText(false); gDraw(); }));
+$('#g-reset').addEventListener('click', () => { gReset(); gCoins(-1); gText(false); gDraw(); });
+$('#fee-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || G.busy) return; G.fee = +b.dataset.f; gReset(); gMany(100); gCoins(-1); gText(false); gDraw(); });
+
+/* ---------- round 3: six players, a million games each ---------- */
+const RUNS = 6, NG = 1e6, KMAX = 60;
+const CP = []; for (let i = 0; i <= 180; i++) { const v = Math.round(10 ** (i / 30)); if (!CP.length || CP[CP.length - 1] !== v) CP.push(v); }
+let S3 = null, s3busy = false;
+function runSim() {
+  if (s3busy) return; s3busy = true; $('#run-go').disabled = true;
+  S3 = { runs: Array.from({ length: RUNS }, () => ({ avg: [], sum: 0, n: 0, ci: 0 })), cnt: new Float64Array(KMAX + 1), best: 0, total: 0 };
+  let r = 0;
+  (function chunk() {
+    const R = S3.runs[r], t0 = performance.now();
+    while (R.n < NG && performance.now() - t0 < 30) {
+      const end = Math.min(NG, R.n + 20000);
+      for (let i = R.n; i < end; i++) {
+        const k = flipK(), w = 2 ** k; R.sum += w; S3.cnt[Math.min(k, KMAX)]++; if (w > S3.best) S3.best = w;
+        if (i + 1 === CP[R.ci]) { R.avg.push(R.sum / (i + 1)); R.ci++; }
+      }
+      R.n = end;
+    }
+    if (R.n >= NG) { r++; }
+    S3.total = S3.runs.reduce((a, q) => a + q.n, 0);
+    if (r < RUNS) { drawRuns(); drawDist(); drawContrib(); requestAnimationFrame(chunk); }
+    else { s3busy = false; $('#run-go').disabled = false; drawRuns(); drawDist(); drawContrib(); runText(); }
+  })();
+}
+function runText() {
+  if (!S3) return;
+  const done = S3.runs.filter(q => q.n >= NG);
+  $('#run-fin').innerHTML = done.map(q => '<span>' + usd(q.sum / q.n, 2) + '</span>').join('');
+  $('#run-fin-s').textContent = L('log₂ 1 000 000 ≈ 19,93', 'log₂ 1,000,000 ≈ 19.93');
+  $('#run-best').textContent = usd(S3.best);
+  const k = Math.round(Math.log2(S3.best));
+  $('#run-best-s').textContent = L(k + ' ' + flipsW(k) + ', шанс 1/' + fmt(2 ** k) + ' на гру', k + ' flips, chance 1/' + fmt(2 ** k) + ' per game');
+  const tot = S3.total; $('#run-low').textContent = tot ? pct((S3.cnt[1] + S3.cnt[2]) / tot, 2) : '–';
+}
+function drawRuns() {
+  const s = setupCanvas($('#run-cv')); if (!s || !S3) return;
+  const { ctx, W, H: Hh } = s, l = 38, r = 24, t = 12, b = 30, YM = 40;
+  const x = n => l + Math.log10(n) / 6 * (W - l - r), y = v => t + (1 - Math.min(v, YM * 1.02) / YM) * (Hh - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let v = 0; v <= YM; v += 10) { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.fillText('$' + v, l - 6, y(v)); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const ticks = W < 420 ? [1, 100, 1e4, 1e6] : [1, 10, 100, 1e3, 1e4, 1e5, 1e6];
+  ticks.forEach(n => ctx.fillText(n >= 1e6 ? L('1 млн', '1M') : fmt(n), x(n), Hh - b + 6));
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t - 2, W - l - r, Hh - t - b + 2); ctx.clip();
+  ctx.strokeStyle = tok('--muted'); ctx.setLineDash([5, 5]); ctx.lineWidth = 1.5; ctx.beginPath();
+  for (let i = 0; i <= 120; i++) { const n = 10 ** (i / 20); i ? ctx.lineTo(x(n), y(Math.log2(n))) : ctx.moveTo(x(n), y(0)); }
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 1.3; ctx.globalAlpha = .7;
+  S3.runs.forEach(q => { if (!q.avg.length) return; ctx.beginPath(); q.avg.forEach((v, i) => i ? ctx.lineTo(x(CP[i]), y(v)) : ctx.moveTo(x(CP[i]), y(v))); ctx.stroke(); });
+  ctx.globalAlpha = 1; ctx.restore();
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+  ctx.fillText(L('ігор зіграно', 'games played'), W - r, Hh - b - 4);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(L('середній виграш за гру', 'average win per game'), l + 4, t);
+}
+const DK = 24;
+function drawDist() {
+  if (!S3 || !S3.total) return; const s = setupCanvas($('#dist-cv')); if (!s) return;
+  const { ctx, W, H: Hh } = s, l = 40, r = 8, t = 10, b = 26, D = 8; // 10^0 … 10^-8
+  const bw = (W - l - r) / DK, x = k => l + (k - .5) * bw, y = p => t + Math.min(1, -Math.log10(p) / D) * (Hh - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let e = 0; e <= D; e += 2) { ctx.beginPath(); ctx.moveTo(l, y(10 ** -e)); ctx.lineTo(W - r, y(10 ** -e)); ctx.stroke(); ctx.fillText(e ? '10⁻' + '⁰¹²³⁴⁵⁶⁷⁸⁹'[e] : '1', l - 6, y(10 ** -e)); }
+  ctx.fillStyle = tok('--muted'); ctx.globalAlpha = .28;
+  for (let k = 1; k <= DK; k++) { const p = 2 ** -k; ctx.fillRect(x(k) - bw * .38, y(p), bw * .76, Hh - b - y(p)); }
+  ctx.globalAlpha = 1;
+  const tot = S3.total, ink = tok('--ink');
+  for (let k = 1; k <= DK; k++) {
+    const c = S3.cnt[k];
+    ctx.beginPath(); ctx.strokeStyle = ink; ctx.fillStyle = ink; ctx.lineWidth = 1.5;
+    if (c) { ctx.arc(x(k), y(c / tot), 3.5, 0, 7); ctx.fill(); } else { ctx.arc(x(k), Hh - b - 4, 3, 0, 7); ctx.stroke(); }
+  }
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let k = 1; k <= DK; k += (W < 420 ? 4 : 2)) ctx.fillText(k === 1 ? '$2' : '2^' + k, x(k), Hh - b + 6);
+  void tot;
+}
+function drawContrib() {
+  if (!S3 || !S3.total) return; const s = setupCanvas($('#contrib-cv')); if (!s) return;
+  const { ctx, W, H: Hh } = s, l = 34, r = 8, t = 10, b = 26, YM = 3;
+  const bw = (W - l - r) / DK, x = k => l + (k - .5) * bw, y = v => t + (1 - Math.min(v, YM) / YM) * (Hh - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let v = 0; v <= YM; v++) { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.fillText('$' + v, l - 6, y(v)); }
+  ctx.strokeStyle = tok('--hit'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(l, y(1)); ctx.lineTo(W - r, y(1)); ctx.stroke();
+  const tot = S3.total, ink = tok('--ink');
+  for (let k = 1; k <= DK; k++) {
+    const v = S3.cnt[k] / tot * 2 ** k;
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(x(k), y(v), 3.5, 0, 7); ctx.fill();
+    if (v > YM) { ctx.beginPath(); ctx.moveTo(x(k) - 4, y(YM) + 8); ctx.lineTo(x(k) + 4, y(YM) + 8); ctx.lineTo(x(k), y(YM) + 1); ctx.fill(); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(dec(v.toFixed(0)), x(k), y(YM) + 10); }
+  }
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let k = 1; k <= DK; k += (W < 420 ? 4 : 2)) ctx.fillText(k === 1 ? '$2' : '2^' + k, x(k), Hh - b + 6);
+}
+$('#run-go').addEventListener('click', runSim);
+
+/* ---------- round 4: rows and the bank table ---------- */
+const rowsIn = $('#rows-k');
+rowsIn.addEventListener('input', rowsText);
+function rowsText() {
+  const m = +rowsIn.value; $('#rows-v').textContent = m;
+  $('#rows-txt').innerHTML = L('Перші ' + m + ' ' + plural(m, 'рядок', 'рядки', 'рядків') + ' разом дають <b>$' + m + '</b>. Щоб дійти до ' + m + '-го рядка, потрібно ' + (m - 1) + ' ' + plural(m - 1, 'орел', 'орли', 'орлів') + ' поспіль, а шанс на це 1 з ' + fmt(2 ** (m - 1)) + '.',
+    'The first ' + m + ' ' + (m === 1 ? 'row gives' : 'rows give') + ' <b>$' + m + '</b> in total. To reach row ' + m + ' takes ' + (m - 1) + ' heads in a row, a 1 in ' + fmt(2 ** (m - 1)) + ' chance.');
+}
+const BANKS = [[100, '$100', '$100'], [1e3, '$1 000', '$1,000'], [1e6, '$1 млн', '$1 million'], [1e9, '$1 млрд', '$1 billion'], [1e12, '$1 трлн', '$1 trillion']];
+function bankTable() {
+  $('#bank-tbl').innerHTML = BANKS.map(b => '<tr><td>' + L(b[1], b[2]) + '</td><td class="num">' + usd(capped(b[0]), 2) + '</td></tr>').join('');
+  $('#cramer-v').textContent = usd(SQRT_CE, 2);
+}
+
+/* ---------- round 5: the bank slider ---------- */
+const bankR = $('#bank-r');
+let bankSim = null, bankBusy = false;
+const bankB = () => 10 ** (+bankR.value / 10);
+function bankText() {
+  const B = bankB(), Lb = Math.floor(Math.log2(B) + 1e-12), e = capped(B);
+  $('#bank-pick').innerHTML = BANKS.map((b, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (Math.abs(Math.log10(b[0]) * 10 - +bankR.value) < .01) + '">' + L(b[1], b[2]) + '</button>').join('');
+  $('#bank-v').textContent = usd(B);
+  $('#bank-e').textContent = usd(e, 2);
+  $('#bank-s').textContent = bankSim && bankSim.v === +bankR.value ? usd(bankSim.m, 2) : '–';
+  $('#bank-txt').textContent = L('Перші ' + Lb + ' ' + plural(Lb, 'рядок', 'рядки', 'рядків') + ' (виграші до $' + fmt(2 ** Lb) + ') дають по $1. Усі довші ігри платять ' + usd(B) + ' і разом додають ' + usd(B / 2 ** Lb, 2) + '. Усього ' + usd(e, 2) + '.',
+    'The first ' + Lb + ' rows (wins up to $' + fmt(2 ** Lb) + ') give $1 each. All longer games pay ' + usd(B) + ' and together add ' + usd(B / 2 ** Lb, 2) + '. Total ' + usd(e, 2) + '.');
+}
+bankR.addEventListener('input', () => { bankText(); });
+$('#bank-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; bankR.value = Math.round(Math.log10(BANKS[+b.dataset.i][0]) * 10); bankText(); bankRun(); });
+function bankRun() {
+  if (bankBusy) return; bankBusy = true; $('#bank-go').disabled = true;
+  const v = +bankR.value, B = bankB(); let n = 0, s = 0;
+  (function chunk() {
+    const end = Math.min(1e6, n + 200000);
+    for (; n < end; n++) { const w = 2 ** flipK(); s += w < B ? w : B; }
+    if (n < 1e6) setTimeout(chunk, 0); else { bankSim = { v, m: s / 1e6 }; bankBusy = false; $('#bank-go').disabled = false; bankText(); }
+  })();
+}
+$('#bank-go').addEventListener('click', bankRun);
+
+/* ---------- round 5: utility ---------- */
+const UT = [{ uk: 'Долари як є', en: 'Plain dollars' }, { uk: 'Корінь (Крамер)', en: 'Square root (Cramer)' }, { uk: 'Логарифм (Бернуллі)', en: 'Logarithm (Bernoulli)' }];
+const WEALTH = [0, 10, 100, 1000, 1e6, 1e9];
+let ut = 2, wi = 0, uSim = null, uBusy = false;
+function uExact() { if (ut === 0) return Infinity; if (ut === 1) return SQRT_CE; return WEALTH[wi] ? logPrice(WEALTH[wi]) : 4; }
+function uText() {
+  $('#u-pick').innerHTML = UT.map((u, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === ut) + '">' + u[lang] + '</button>').join('');
+  $('#w-group').style.display = ut === 2 ? '' : 'none';
+  $('#w-pick').innerHTML = WEALTH.map((w, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === wi) + '">' + (w ? shortUsd(w) : L('не враховувати', 'ignore it')) + '</button>').join('');
+  const e = uExact(), withW = ut === 2 && WEALTH[wi];
+  $('#u-lab').textContent = withW ? L('Найбільше, що варто заплатити', 'The most worth paying') : L('Гра варта гарантованих', 'The game is worth a sure');
+  $('#u-e').textContent = e === Infinity ? '∞' : usd(e, 2);
+  $('#u-e').classList.toggle('hit', e === Infinity);
+  const key = ut + ':' + wi;
+  $('#u-s').textContent = uSim && uSim.key === key ? (uSim.v === Infinity ? '–' : usd(uSim.v, 2)) : '–';
+  $('#u-txt').textContent = ut === 0
+    ? L('Якщо долар завжди важить однаково, гра варта будь-яких грошей. Симуляція тут нічого не перевірить: середнє з мільйона ігор зазвичай покаже $20–25, і з кожним подвоєнням кількості ігор воно ростиме приблизно на $1.', 'If every dollar weighs the same, the game is worth any amount of money. A simulation cannot confirm that: the mean of a million games usually shows $20–25, and it grows by roughly $1 each time the number of games doubles.')
+    : ut === 1 ? L('Середній корінь виграшу дорівнює 1/(√2 − 1) ≈ 2,414. Гарантована сума з таким самим коренем дорівнює 2,414² ≈ $5,83.', 'The mean square root of the win is 1/(√2 − 1) ≈ 2.414. The sure amount with the same square root is 2.414² ≈ $5.83.')
+    : withW ? L('Гравець зі статками ' + shortUsd(WEALTH[wi]) + ' платить внесок c, якщо середній логарифм його статків після гри не менший, ніж до неї. Межа: c = ' + usd(e, 2) + '.', 'A player with ' + shortUsd(WEALTH[wi]) + ' pays a fee c if the mean logarithm of his wealth after the game is no lower than before. The limit is c = ' + usd(e, 2) + '.')
+      : L('Середній логарифм виграшу: E[log₂ X] = 1/2 · 1 + 1/4 · 2 + 1/8 · 3 + … = 2. Гарантована сума з таким самим логарифмом дорівнює 2² = $4.', 'The mean logarithm of the win: E[log₂ X] = 1/2 · 1 + 1/4 · 2 + 1/8 · 3 + … = 2. The sure amount with the same logarithm is 2² = $4.');
+  $('#u-go').disabled = uBusy || ut === 0;
+}
+$('#u-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ut = +b.dataset.i; uText(); if (ut) uRun(); });
+$('#w-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; wi = +b.dataset.i; uText(); uRun(); });
+function uRun() {
+  if (uBusy || ut === 0) return; uBusy = true; uText();
+  const key = ut + ':' + wi, cnt = new Float64Array(KMAX + 1); let n = 0;
+  (function chunk() {
+    const end = Math.min(1e6, n + 250000);
+    for (; n < end; n++) cnt[Math.min(flipK(), KMAX)]++;
+    if (n < 1e6) { setTimeout(chunk, 0); return; }
+    let v;
+    if (ut === 1) { let s = 0; for (let k = 1; k <= KMAX; k++) s += cnt[k] * 2 ** (k / 2); v = (s / 1e6) ** 2; }
+    else if (!WEALTH[wi]) { let s = 0; for (let k = 1; k <= KMAX; k++) s += cnt[k] * k; v = 2 ** (s / 1e6); }
+    else {
+      const w = WEALTH[wi], f = c => { let s = 0; for (let k = 1; k <= KMAX; k++) if (cnt[k]) s += cnt[k] / 1e6 * Math.log(w - c + 2 ** k); return s - Math.log(w); };
+      let lo = 0, hi = w + 2 - 1e-9; for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2; f(m) > 0 ? lo = m : hi = m; } v = lo;
+    }
+    uSim = { key, v }; uBusy = false; uText();
+  })();
+}
+$('#u-go').addEventListener('click', uRun);
+
+/* ---------- round 5: how many games to come out ahead ---------- */
+const NPTS = [1, 3, 10, 30, 100, 300, 1e3, 3e3, 1e4, 3e4, 1e5, 3e5, 1e6];
+const PLAYERS = n => n >= 3e5 ? 300 : n >= 3e4 ? 600 : 1000;
+const feeR = $('#fee-r');
+let feeRes = [], feeJob = 0;
+function feeRun() {
+  const job = ++feeJob, F = +feeR.value; feeRes = []; let pi = 0, done = 0, ahead = 0;
+  (function chunk() {
+    if (job !== feeJob) return;
+    const t0 = performance.now();
+    while (pi < NPTS.length && performance.now() - t0 < 30) {
+      const n = NPTS[pi], P = PLAYERS(n);
+      if (sumGames(n) > F * n) ahead++;
+      if (++done >= P) { feeRes.push([n, ahead / P, P]); pi++; done = 0; ahead = 0; }
+    }
+    feeDraw(); feeText();
+    if (pi < NPTS.length) setTimeout(chunk, 0);
+  })();
+}
+function feeDraw() {
+  const s = setupCanvas($('#fee-cv')); if (!s) return;
+  const { ctx, W, H: Hh } = s, l = 40, r = 24, t = 10, b = 28;
+  const x = n => l + Math.log10(n) / 6 * (W - l - r), y = p => t + (1 - p) * (Hh - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .25, .5, .75, 1].forEach(p => { ctx.beginPath(); ctx.moveTo(l, y(p)); ctx.lineTo(W - r, y(p)); ctx.stroke(); ctx.fillText(Math.round(p * 100) + '%', l - 6, y(p)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  (W < 420 ? [1, 100, 1e4, 1e6] : [1, 10, 100, 1e3, 1e4, 1e5, 1e6]).forEach(n => ctx.fillText(n >= 1e6 ? L('1 млн', '1M') : fmt(n), x(n), Hh - b + 6));
+  ctx.strokeStyle = tok('--ink'); ctx.fillStyle = tok('--ink'); ctx.lineWidth = 2; ctx.beginPath();
+  feeRes.forEach(([n, p], i) => i ? ctx.lineTo(x(n), y(p)) : ctx.moveTo(x(n), y(p))); ctx.stroke();
+  feeRes.forEach(([n, p]) => { ctx.beginPath(); ctx.arc(x(n), y(p), 3.5, 0, 7); ctx.fill(); });
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(L('ігор у серії', 'games in the series'), W - r, y(0) - 4);
+}
+function feeText() {
+  const F = +feeR.value; $('#fee-v').textContent = '$' + F;
+  const half = feeRes.find(q => q[1] >= .5);
+  const one = exactAbove(F);
+  $('#fee-txt').textContent = (L('Одна гра окупає внесок $' + F + ' з шансом ' + pct(one, 2) + '. ', 'A single game covers the $' + F + ' fee with chance ' + pct(one, 2) + '. ') +
+    (feeRes.length < NPTS.length ? L('Симуляція триває…', 'Simulation running…')
+      : half ? L('Більшість гравців у плюсі приблизно з ' + fmt(half[0]) + ' ' + plural(half[0], 'гри', 'ігор', 'ігор') + ' (за нашою сіткою точок).', 'Most players are ahead from about ' + fmt(half[0]) + ' ' + gamesW(half[0]) + ' on (on our grid of points).')
+        : L('Навіть після мільйона ігор більшість гравців у мінусі. Потрібно ще більше ігор: приблизно вдвічі більше на кожен додатковий долар внеску.', 'Even after a million games most players are behind. You need still more games: roughly twice as many for every extra dollar of fee.')));
+}
+let feeT; feeR.addEventListener('input', () => { feeText(); clearTimeout(feeT); feeT = setTimeout(feeRun, 150); });
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Санкт-Петербурзький парадокс', 'The St. Petersburg Paradox');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  payText(); optsText(); guessText(); gCoins(-1); gText(G.n === 1); gDraw(); heroDraw(); runText(); drawRuns(); drawDist(); drawContrib(); rowsText(); bankTable(); bankText(); uText(); feeText(); feeDraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('solved', heroDraw);
+const redraw = () => { heroDraw(); gDraw(); drawRuns(); drawDist(); drawContrib(); feeDraw(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state: everything filled ---------- */
+gMany(100);
+applyLang();
+heroStart();
+runSim();
+setTimeout(() => { bankRun(); uRun(); feeRun(); }, 60);
+})();
+</script>
