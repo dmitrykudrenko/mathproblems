@@ -208,8 +208,8 @@ def related_block(lang, items, hub_url):
 # Only chapter numbers, never chapter titles: a title can give the answer away.
 BOOKS = ROOT / "books.json"
 BOOKS_TEXT = {
-    "uk": ("Що почитати", "Книжки, де є ця задача", "розділ", "англійською"),
-    "en": ("Further reading", "Books that discuss this puzzle", "chapter", None),
+    "uk": ("Що почитати", "Книжки, де є ця задача", "розділ", "англійською", "Усі книжки"),
+    "en": ("Further reading", "Books that discuss this puzzle", "chapter", None, "All books"),
 }
 
 
@@ -230,25 +230,26 @@ def book_refs(slug, meta, books):
     return refs
 
 
+def ref_where(lang, ref):
+    if "where" in ref:
+        return ref["where"][lang]
+    return f'{BOOKS_TEXT[lang][2]} {ref["ch"]}' if "ch" in ref else ""
+
+
 def book_view(lang, ref, b):
     """(title, author, edition line, where, url, is_translation) for one book on a page in `lang`."""
     ua = b.get("ua") if lang == "uk" else None
-    if "where" in ref:
-        where = ref["where"][lang]
-    elif "ch" in ref:
-        where = f'{BOOKS_TEXT[lang][2]} {ref["ch"]}'
-    else:
-        where = ""
+    where = ref_where(lang, ref)
     if ua:
         return ua["title"], b["author"][lang], f'{ua["publisher"]}, {ua["year"]}', where, ua.get("url"), True
     edition = str(b["year"]) + (f", {BOOKS_TEXT[lang][3]}" if BOOKS_TEXT[lang][3] else "")
     return b["title"], b["author"][lang], edition, where, b.get("url"), False
 
 
-def books_block(lang, refs, books):
+def books_block(lang, refs, books, shelf_url):
     if not refs:
         return ""
-    eyebrow, title = BOOKS_TEXT[lang][:2]
+    eyebrow, title, all_label = BOOKS_TEXT[lang][0], BOOKS_TEXT[lang][1], BOOKS_TEXT[lang][4]
     views = [book_view(lang, r, books[r["id"]]) for r in refs]
     views.sort(key=lambda v: not v[5])  # translated books first; sort is stable
     cards = []
@@ -265,25 +266,27 @@ def books_block(lang, refs, books):
   <div class="mp-books-grid">
 {chr(10).join(cards)}
   </div>
+  <a class="mp-related-all" href="{shelf_url}">{all_label} →</a>
 </section>"""
 
 
+def book_ld(lang, b):
+    """schema.org Book for the edition the reader sees."""
+    ua = b.get("ua") if lang == "uk" else None
+    ed = ua or b
+    item = {"@type": "Book", "name": ed["title"], "author": [{"@type": "Person", "name": n} for n in b["author"][lang].split(", ")],
+            "datePublished": str(ed["year"])}
+    if ed.get("isbn"):
+        item["isbn"] = ed["isbn"]
+    if ua:
+        item["publisher"] = {"@type": "Organization", "name": ua["publisher"]}
+        item["translationOfWork"] = {"@type": "Book", "name": b["title"], "datePublished": str(b["year"])}
+    return item
+
+
 def books_ld(lang, refs, books):
-    """schema.org Book entries for the page's `citation`: the edition the reader sees."""
-    out = []
-    for r in refs:
-        b = books[r["id"]]
-        ua = b.get("ua") if lang == "uk" else None
-        ed = ua or b
-        item = {"@type": "Book", "name": ed["title"], "author": [{"@type": "Person", "name": n} for n in b["author"][lang].split(", ")],
-                "datePublished": str(ed["year"])}
-        if ed.get("isbn"):
-            item["isbn"] = ed["isbn"]
-        if ua:
-            item["publisher"] = {"@type": "Organization", "name": ua["publisher"]}
-            item["translationOfWork"] = {"@type": "Book", "name": b["title"], "datePublished": str(b["year"])}
-        out.append(item)
-    return out
+    """The page's `citation`."""
+    return [book_ld(lang, books[r["id"]]) for r in refs]
 
 
 def with_books(body, block):
@@ -587,7 +590,7 @@ def build_problem(slug, base, metas, books):
             rm = dict(metas)[s][lang]
             items.append((base + s + "/" + LANG_PATH[lang], rm["card"]["title"], rm.get("share", {}).get("description", rm["card"]["text"])))
         body = with_related(body, related_block(lang, items, hub[lang]))
-        body = with_books(body, books_block(lang, refs, books))
+        body = with_books(body, books_block(lang, refs, books, base + "books/" + LANG_PATH[lang]))
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static data-spoil>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
                f'</head>\n<body>\n{body.strip()}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
         write(DOCS / slug / LANG_PATH[lang] / "index.html", doc)
@@ -615,6 +618,7 @@ def build_hub(problems, base):
         body = LangStripper(src, other).strip()
         for slug, _, purls in problems:
             body = body.replace("{{URL:%s}}" % slug, purls[lang])
+        body = body.replace("{{BOOKS}}", base + "books/" + LANG_PATH[lang])
         body = body.replace("{{HOME_BASE}}", base).replace("{{HOME}}", urls[lang]).replace("{{FIRST}}", problems[0][2][lang])
         if lang == "en":
             body = body.replace('alt="Дмитро Кудренко" data-alt-en="Dmytro Kudrenko"', 'alt="Dmytro Kudrenko"')
@@ -682,6 +686,79 @@ def build_subscribed(problems, base):
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
                f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{CF_ANALYTICS}\n</body>\n</html>\n')
         write(DOCS / "subscribed" / LANG_PATH[lang] / "index.html", doc)
+
+
+SHELF_TEXT = {"uk": ("Є українською", "Лише англійською"), "en": (None, None)}
+
+
+def build_books(problems, base, books):
+    """docs/books/: every book from books.json with the puzzles it discusses (title and chapter, no answers).
+    On the Ukrainian page books with a Ukrainian edition form the first group."""
+    src_dir = PAGES / "books"
+    meta = json.loads((src_dir / "meta.json").read_text(encoding="utf-8"))
+    src = (src_dir / "page.html").read_text(encoding="utf-8")
+    page_base = base + "books/"
+    urls = {l: page_base + LANG_PATH[l] for l in LANGS}
+    home = {l: base + LANG_PATH[l] for l in LANGS}
+    cites = {}  # book id -> [(problem, ref)] in site order
+    for p in problems:
+        for r in p[1].get("books", []):
+            cites.setdefault(r["id"], []).append((p, r))
+    unused = set(books) - set(cites)
+    if unused:
+        raise SystemExit(f"books.json: not cited by any problem: {sorted(unused)}")
+    for lang in LANGS:
+        m, other = meta[lang], ("en" if lang == "uk" else "uk")
+        order = sorted(cites, key=lambda k: (-len(cites[k]), books[k]["author"]["en"]))
+        groups = [[k for k in order if books[k].get("ua")], [k for k in order if not books[k].get("ua")]] if lang == "uk" else [order]
+        parts = []
+        for heading, ids in zip(SHELF_TEXT[lang], groups):
+            cards = []
+            for k in ids:
+                b = books[k]
+                ua = b.get("ua") if lang == "uk" else None
+                if ua:
+                    title, meta_line = ua["title"], f'{ua["publisher"]}, {ua["year"]}'
+                    orig = f'<p class="shelf-orig">{e(b["title"])}, {b["year"]}</p>'
+                else:
+                    title, meta_line, orig = b["title"], str(b["year"]), ""
+                items = "\n".join(
+                    f'          <li><a href="{p[2][lang]}">{e(p[1][lang]["card"]["title"])}</a>'
+                    + (f' <span>· {e(ref_where(lang, r))}</span>' if ref_where(lang, r) else "") + "</li>"
+                    for p, r in cites[k])
+                cards.append(f"""      <li class="shelf-book" id="{k}">
+        <h3>{e(title)}</h3>
+        <p class="shelf-author">{e(b["author"][lang])}</p>
+        <p class="shelf-meta">{e(meta_line)}</p>{orig}
+        <ul class="shelf-puzzles">
+{items}
+        </ul>
+      </li>""")
+            head_html = f"\n    <h2>{heading}</h2>" if heading else ""
+            parts.append(f'  <section class="shelf-group">{head_html}\n    <ul class="shelf">\n' + "\n".join(cards) + "\n    </ul>\n  </section>")
+        body = LangStripper(src.replace("<!--SHELF-->", "\n".join(parts)), other).strip()
+        body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
+        body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
+        body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
+        style = body[:body.index("</style>") + len("</style>")]
+        body = body[len(style):]
+        ld = {"@context": "https://schema.org", "@graph": [
+            {"@type": "CollectionPage", "@id": urls[lang] + "#page", "url": urls[lang], "name": m["title"],
+             "description": m["description"], "inLanguage": lang, "author": {"@id": base + "#author"},
+             "isPartOf": {"@type": "WebSite", "name": SITE_NAME[lang], "url": home[lang]},
+             "mainEntity": {"@type": "ItemList", "numberOfItems": len(order), "itemListElement": [
+                 {"@type": "ListItem", "position": i + 1, "item": book_ld(lang, books[k])}
+                 for i, k in enumerate([k for g in groups for k in g])]}},
+            author_ld(lang, base),
+            {"@type": "BreadcrumbList", "itemListElement": [
+                {"@type": "ListItem", "position": 1, "name": SITE_NAME[lang], "item": home[lang]},
+                {"@type": "ListItem", "position": 2, "name": BOOKS_TEXT[lang][0], "item": urls[lang]}]},
+        ]}
+        h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["og_alt"], ld, base)
+        doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
+               f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{CF_ANALYTICS}\n</body>\n</html>\n')
+        write(DOCS / "books" / LANG_PATH[lang] / "index.html", doc)
+    return urls
 
 
 NOT_FOUND_TEXT = {
@@ -766,10 +843,11 @@ def build(base, out=None):
     hub = build_hub(problems, base)
     build_404(problems, base)
     build_subscribed(problems, base)
+    shelf = build_books(problems, base, books)
 
     today = date.today().isoformat()
     entries = []
-    for urls in [hub] + [p[2] for p in problems]:
+    for urls in [hub, shelf] + [p[2] for p in problems]:
         for lang in LANGS:
             alts = "".join(f'\n    <xhtml:link rel="alternate" hreflang="{h}" href="{urls[h]}"/>' for h in LANGS)
             alts += f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{urls[X_DEFAULT]}"/>'
