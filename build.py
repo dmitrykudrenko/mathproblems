@@ -316,8 +316,11 @@ def with_discuss(body, lang, slug):
 
 
 def with_subscribe(body, lang):
-    """Put the newsletter block right before the last <footer> of the page."""
+    """Put the newsletter block right before the last <footer> of the page. Pages without a footer get it
+    before the </div> that closes .wrap (the last one ahead of the page script), so it keeps the page width."""
     i = body.rfind("<footer")
+    if i == -1:
+        i = body.rfind("</div>", 0, body.rfind("\n<script>"))
     return body[:i] + subscribe_block(lang) + "\n\n" + body[i:] if i != -1 else body + subscribe_block(lang)
 
 
