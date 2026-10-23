@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -110,6 +110,34 @@ TEXT = {
     "election-poll": {
         "uk": (["СКІЛЬКИ", "ОПИТАТИ?"], "30 млн виборців, похибка ±3%"),
         "en": (["HOW MANY", "TO POLL?"], "30M voters, a ±3% margin"),
+    },
+    "two-eggs": {
+        "uk": (["ДВА ЯЙЦЯ", "І 100 ПОВЕРХІВ"], "Скільки кидків у найгіршому разі?"),
+        "en": (["TWO EGGS,", "100 FLOORS"], "How many drops in the worst case?"),
+    },
+    "twelve-coins": {
+        "uk": (["12 МОНЕТ", "І ТЕРЕЗИ"], "Одна фальшива. Скільки зважувань?"),
+        "en": (["12 COINS AND", "A BALANCE"], "One is fake. How many weighings?"),
+    },
+    "hats-parity": {
+        "uk": (["КАПЕЛЮХИ", "В РЯД"], "100 людей. Скільки точно вгадають?"),
+        "en": (["HATS", "IN A LINE"], "100 people. How many are sure to win?"),
+    },
+    "pirates-gold": {
+        "uk": (["ПІРАТИ", "І ЗОЛОТО"], "5 піратів, 100 монет. Який поділ?"),
+        "en": (["PIRATES", "AND GOLD"], "5 pirates, 100 coins. What split?"),
+    },
+    "blue-eyed-islanders": {
+        "uk": (["ОСТРІВ", "БЛАКИТНООКИХ"], "Що зміниться після однієї фрази?"),
+        "en": (["THE BLUE-EYED", "ISLANDERS"], "What does one sentence change?"),
+    },
+    "twenty-five-horses": {
+        "uk": (["25 КОНЕЙ,", "5 ДОРІЖОК"], "Скільки забігів, щоб знайти трійку?"),
+        "en": (["25 HORSES,", "5 LANES"], "How many races to find the top 3?"),
+    },
+    "bridge-and-torch": {
+        "uk": (["МІСТ І", "ЛІХТАРИК"], "1, 2, 5, 10 хв. Скільки на всіх?"),
+        "en": (["THE BRIDGE", "AND THE TORCH"], "1, 2, 5, 10 min. How long for all?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -387,6 +415,84 @@ def extra_visual(kind, x, y, lang="en"):
                 fill = (INK if rnd.random() < .52 else "#9A9A9A") if asked else "#D6D6D6"
                 out.append(f'<circle cx="{x + 22 + i * 26}" cy="{y + 14 + j * 26}" r="{8 if asked else 6}" fill="{fill}"/>')
         out.append(f'<text x="{x + 360}" y="{y + 300}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">n = ?</text>')
+    elif kind == "two-eggs":
+        # a tall building with numbered floors and two eggs beside it; the number of drops is the answer
+        bx, bw = x + 40, 150
+        out.append(f'<rect x="{bx}" y="{y}" width="{bw}" height="320" rx="6" fill="{INK}"/>')
+        for i in range(10):
+            fy = y + 8 + i * 31
+            out += [f'<rect x="{bx + 12}" y="{fy}" width="{bw - 24}" height="22" rx="3" fill="#fff" fill-opacity=".85"/>',
+                    f'<text x="{bx - 10}" y="{fy + 17}" text-anchor="end" font-family="{FONT}" font-weight="700" font-size="15" fill="{MUTED}">{100 - i * 10}</text>']
+        out += [f'<line x1="{x + 250}" y1="{y + 30}" x2="{x + 250}" y2="{y + 120}" stroke="{MUTED}" stroke-width="3" stroke-dasharray="6 8"/>',
+                f'<ellipse cx="{x + 250}" cy="{y + 160}" rx="30" ry="40" fill="#fff" stroke="{INK}" stroke-width="4"/>',
+                f'<ellipse cx="{x + 325}" cy="{y + 278}" rx="30" ry="40" fill="#fff" stroke="{INK}" stroke-width="4"/>',
+                f'<text x="{x + 250}" y="{y + 300}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="44" fill="{SIGNAL}">?</text>']
+    elif kind == "twelve-coins":
+        # a balance and twelve numbered coins; the number of weighings is the answer
+        cx = x + 190
+        out += [f'<rect x="{cx - 5}" y="{y + 30}" width="10" height="150" fill="{INK}"/>',
+                f'<rect x="{cx - 60}" y="{y + 176}" width="120" height="12" rx="6" fill="{INK}"/>',
+                f'<rect x="{cx - 150}" y="{y + 26}" width="300" height="8" rx="4" fill="{INK}"/>',
+                f'<path d="M{cx - 190} {y + 100} h 80 l -40 -66 z" fill="none" stroke="{INK}" stroke-width="3"/>',
+                f'<path d="M{cx + 110} {y + 100} h 80 l -40 -66 z" fill="none" stroke="{INK}" stroke-width="3"/>',
+                f'<text x="{cx}" y="{y + 20}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">?</text>']
+        for i in range(12):
+            px, py = x + 40 + (i % 6) * 62, y + 228 + (i // 6) * 58
+            out += [f'<circle cx="{px}" cy="{py}" r="24" fill="#fff" stroke="{INK}" stroke-width="3"/>',
+                    f'<text x="{px}" y="{py + 8}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="20" fill="{INK}">{i + 1}</text>']
+    elif kind == "hats-parity":
+        # a line of people in black and white hats, the last one unsure of their own
+        for i in range(7):
+            px, py = x + 30 + i * 52, y + 120 + i * 18
+            black = rnd.random() < .5
+            out += [f'<circle cx="{px}" cy="{py + 34}" r="17" fill="{MUTED}"/>',
+                    f'<rect x="{px - 18}" y="{py + 54}" width="36" height="60" rx="14" fill="{MUTED}"/>',
+                    f'<path d="M{px - 22} {py + 22} h 44 l -8 -26 h -28 z" fill="{INK if black else "#fff"}" stroke="{INK}" stroke-width="3"/>']
+        out.append(f'<text x="{x + 30}" y="{y + 110}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="36" fill="{SIGNAL}">?</text>')
+    elif kind == "pirates-gold":
+        # five ranked pirates and a chest of 100 coins; the split is the answer
+        for i in range(5):
+            px, py = x + 40 + i * 76, y + 40
+            out += [f'<circle cx="{px}" cy="{py + 40}" r="22" fill="{MUTED}"/>',
+                    f'<path d="M{px - 30} {py + 22} q 30 -30 60 0 z" fill="{INK}"/>',
+                    f'<rect x="{px - 22}" y="{py + 66}" width="44" height="70" rx="14" fill="{MUTED}"/>',
+                    f'<text x="{px}" y="{py + 112}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="22" fill="#fff">{i + 1}</text>']
+        out += [f'<rect x="{x + 110}" y="{y + 210}" width="160" height="96" rx="10" fill="{INK}"/>',
+                f'<rect x="{x + 110}" y="{y + 210}" width="160" height="26" rx="10" fill="#9A9A9A"/>',
+                f'<text x="{x + 190}" y="{y + 285}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="36" fill="#fff">100</text>',
+                f'<text x="{x + 330}" y="{y + 280}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>']
+    elif kind == "blue-eyed-islanders":
+        # a crowd of faces, some blue-eyed and some brown-eyed, nobody knowing their own
+        for j in range(4):
+            for i in range(6):
+                px, py = x + 40 + i * 62, y + 30 + j * 72
+                eye = "#3B7DD8" if rnd.random() < .5 else "#7A4A2A"
+                out += [f'<circle cx="{px}" cy="{py}" r="24" fill="#fff" stroke="{INK}" stroke-width="2"/>',
+                        f'<circle cx="{px - 9}" cy="{py - 3}" r="5" fill="{eye}"/>',
+                        f'<circle cx="{px + 9}" cy="{py - 3}" r="5" fill="{eye}"/>']
+        out.append(f'<text x="{x + 360}" y="{y + 320}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>')
+    elif kind == "twenty-five-horses":
+        # five lanes of five numbered horses; the number of races is the answer
+        for j in range(5):
+            ly = y + 10 + j * 60
+            out.append(f'<rect x="{x + 10}" y="{ly}" width="360" height="50" rx="8" fill="#fff"/>')
+            for i in range(5):
+                px = x + 50 + i * 66
+                out += [f'<circle cx="{px}" cy="{ly + 25}" r="19" fill="{INK}"/>',
+                        f'<text x="{px}" y="{ly + 32}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="16" fill="#fff">{"ABCDE"[j]}{i + 1}</text>']
+        out.append(f'<text x="{x + 360}" y="{y + 340}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">?</text>')
+    elif kind == "bridge-and-torch":
+        # a narrow bridge at night, four walkers with their times and one torch; the total is the answer
+        out += [f'<rect x="{x + 10}" y="{y + 10}" width="360" height="320" rx="14" fill="{INK}"/>',
+                f'<path d="M{x + 30} {y + 200} q 160 -70 320 0" fill="none" stroke="#fff" stroke-width="6"/>',
+                f'<circle cx="{x + 60}" cy="{y + 120}" r="34" fill="#FFD66B" fill-opacity=".35"/>',
+                f'<rect x="{x + 56}" y="{y + 118}" width="8" height="34" fill="#C9A15A"/>',
+                f'<circle cx="{x + 60}" cy="{y + 114}" r="9" fill="#FFD66B"/>']
+        for i, t in enumerate((1, 2, 5, 10)):
+            px = x + 50 + i * 80
+            out += [f'<rect x="{px - 30}" y="{y + 240}" width="60" height="44" rx="10" fill="#fff"/>',
+                    f'<text x="{px}" y="{y + 271}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="22" fill="{INK}">{t}</text>']
+        out.append(f'<text x="{x + 350}" y="{y + 70}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>')
     return "".join(out)
 
 
@@ -419,7 +525,9 @@ def svg(kind, lang):
         parts.append(needles(740, 165))
     elif kind in ("rope-around-earth", "hundred-prisoners", "cognitive-reflection", "coupon-collector",
                   "regression-to-mean", "two-envelopes", "coin-streaks", "bertrand-paradox", "penney-game",
-                  "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine", "election-poll"):
+                  "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine", "election-poll",
+                  "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
+                  "twenty-five-horses", "bridge-and-torch"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
