@@ -87,9 +87,26 @@ def claspo_snippet(lang):
 
 # Cloudflare Web Analytics beacon on every page, 404 included (set CF_ANALYTICS_TOKEN = "" to turn it off).
 # No cookies, so no consent banner. The site is not proxied by Cloudflare, so the snippet is installed by hand.
+# The author's own browsers opt out: open any page once with ?notrack=1 (?notrack=0 undoes it).
+# The flag lives in localStorage, the parameter is removed from the address bar right away.
 CF_ANALYTICS_TOKEN = "adf9fd3e4773416fb45241d58aea741f"
-CF_ANALYTICS = ("<script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' "
-                "data-cf-beacon='{\"token\": \"%s\"}'></script>" % CF_ANALYTICS_TOKEN) if CF_ANALYTICS_TOKEN else ""
+CF_ANALYTICS = """<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "%s"}');
+  document.body.appendChild(s);
+})();</script>""" % CF_ANALYTICS_TOKEN if CF_ANALYTICS_TOKEN else ""
 
 # Newsletter block near the end of every page. The form itself is a Claspo inline widget placed
 # inside #mp-subscribe. Until Claspo puts the form there, the slot shows a short placeholder,
