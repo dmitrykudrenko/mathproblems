@@ -471,6 +471,30 @@ SPOIL_SCRIPT = """<script>
 </script>"""
 
 
+# Formula lines (.fx math, see site.css) wider than their row shrink to fit, down to 70% of their size,
+# so a phone shows the whole line; anything still wider scrolls inside its row. Lines that scripts
+# rewrite are refitted.
+FX_SCRIPT = """<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>"""
+
 def lang_script(lang, urls, base):
     return LANG_SCRIPT % {"path": json.dumps(urlparse(base).path or "/"), "here": json.dumps(lang),
                           "alt": json.dumps({l: urlparse(u).path for l, u in urls.items()})}
@@ -485,6 +509,7 @@ def head(lang, urls, title, description, image, image_alt, ld, base, slug=None, 
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 {lang_script(lang, urls, base)}
 {SPOIL_SCRIPT % json.dumps(slug)}
+{FX_SCRIPT if slug else ""}
 <title>{e(title)}</title>
 <meta name="description" content="{e(description)}">
 <meta name="robots" content="{robots}">
