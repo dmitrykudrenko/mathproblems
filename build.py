@@ -324,6 +324,55 @@ def with_related(body, block):
     return body[:i] + block + "\n\n" + body[i:]
 
 
+# Up to three hints at the end of round 1, from "hints" in meta.json: the visitor opens them one at a time,
+# easy first. They belong to the guess, so they hide once the answer shows (sp-before). How many are open is
+# remembered per problem in localStorage; hiding the answer again (data-unsolve) forgets it too.
+HINT_TEXT = {
+    "uk": ("Підказки", "Важко вирішити? Відкривайте підказки по одній: спочатку легка, далі сильніша.",
+           ("легка", "середня", "сильна"), "Показати підказку %d з %d · %s"),
+    "en": ("Hints", "Hard to decide? Open the hints one at a time: the easy one first, then stronger ones.",
+           ("easy", "medium", "strong"), "Show hint %d of %d · %s"),
+}
+HINTS_SCRIPT = """<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + %s;
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>"""
+
+
+def with_hints(body, lang, slug, hints):
+    """Put the hints block at the end of the round 1 section (id="guess"); pages without one get none."""
+    m = re.search(r'<section class="round" id="guess">', body)
+    if not hints or not m:
+        return body
+    i = body.index("</section>", m.end())
+    kicker, intro, levels, label = HINT_TEXT[lang]
+    texts = hints[lang]
+    labels = [label % (n + 1, len(texts), levels[min(n, len(levels) - 1)]) for n in range(len(texts))]
+    lis = "\n".join(f'    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">{n + 1}</span><p>{t}</p></li>'
+                    for n, t in enumerate(texts))
+    block = (f'  <div class="mp-hints sp-before">\n    <span class="kicker">{kicker}</span>\n    <p class="mp-hints-intro">{intro}</p>\n'
+             f'    <ol class="mp-hints-list">\n{lis}\n    </ol>\n'
+             f'    <button type="button" class="btn ghost mp-hint-next" data-labels="{e(json.dumps(labels, ensure_ascii=False))}">{labels[0]}</button>\n'
+             f'  </div>\n{HINTS_SCRIPT % json.dumps(slug)}\n')
+    return body[:i] + block + body[i:]
+
+
 def with_discuss(body, lang, slug):
     """Put the discussion block before the newsletter block (or before the footer)."""
     i = body.find('<section class="mp-subscribe"')
@@ -439,7 +488,7 @@ SPOIL_SCRIPT = """<script>
   function key(s) { return "mp-solved:" + s; }
   function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
   function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
-  function forget(s) { try { localStorage.removeItem(key(s)); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
   function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
   function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
   function hideBtn(cls) {
@@ -633,7 +682,7 @@ def build_problem(slug, base, metas, books):
                  (m["share"]["title"], m["share"]["description"]) if "share" in m else None)
         if "i.ytimg.com" in body:
             h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
-        body = with_discuss(with_subscribe(body, lang), lang, slug)
+        body = with_discuss(with_subscribe(with_hints(body, lang, slug, meta.get("hints")), lang), lang, slug)
         items = []
         for s in related:
             rm = dict(metas)[s][lang]
