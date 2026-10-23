@@ -81,6 +81,26 @@
   });
 })();
 </script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
 <title>Simpson&#x27;s Paradox Explained: Better in Every Group, Worse Overall</title>
 <meta name="description" content="An interactive guide to Simpson&#x27;s paradox: kidney stones, a 2×2 table editor, thousands of random tables, confounders, baseball and the Berkeley case.">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -346,7 +366,7 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
 </style>
-<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=bc8c8f5a">
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=df15a884">
 </head>
 <body>
 <div class="wrap">
@@ -622,9 +642,9 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
     <div class="card wide">
       <span class="kicker"><span class="en">For formula lovers</span></span>
       <h3><span class="en">The law of total probability and standardisation</span></h3>
-      <div class="formula" id="formula"></div>
+      <div class="fx" id="formula"></div>
       
-      <p class="en">The first two lines show that the overall rate is a weighted average of the group rates, with each treatment's own weights. The last two lines give both treatments the same patient mix, the one in the whole sample (357 small and 343 large). Then the comparison is fair, and A wins. The paradox can only happen when the two treatments have different patient mixes.</p>
+      <p class="en">Rows A and B show that the overall rate is a weighted average of the group rates, with each treatment's own weights. The last row gives both treatments the same patient mix, the one in the whole sample (357 small and 343 large). Then the comparison is fair, and A wins. The paradox can only happen when the two treatments have different patient mixes.</p>
     </div>
   </div>
 </section>
@@ -1188,12 +1208,25 @@ function formulaText() {
   const s = analyze(KIDNEY), wA = 87 / 350, wB = 270 / 350, wS = 357 / 700;
   const stdA = wS * RATES[0][0] + (1 - wS) * RATES[1][0], stdB = wS * RATES[0][1] + (1 - wS) * RATES[1][1];
   const n3 = v => dec(v.toFixed(3));
+  const w = t => '<mtext class="lbl">' + t + '</mtext>';
+  const P = (a, b) => '<mi>P</mi><mo stretchy="false">(</mo>' + a + '<mo>|</mo>' + b + '<mo stretchy="false">)</mo>';
+  const T = '<mi>T</mi>', succ = w(L('успіх', 'success')), sm = w(L('малі', 'small')), lg = w(L('великі', 'large'));
+  const mn = t => '<mn>' + t + '</mn>', hl = t => '<mn class="hl">' + t + '</mn>';
+  const mix = (wt, tr) => mn(n3(wt)) + '<mo>·</mo>' + mn(pct(RATES[0][tr], 1)) + '<mo>+</mo>' + mn(n3(1 - wt)) + '<mo>·</mo>' + mn(pct(RATES[1][tr], 1));
+  const row = (cap, maths) => '<div class="fx-row"><p class="fx-cap">' + cap + '</p>' + maths.map(m => '<math display="block">' + m + '</math>').join('') + '</div>';
   $('#formula').innerHTML =
-    'P(' + L('успіх', 'success') + ' | T) = P(' + L('малі', 'small') + ' | T) · P(' + L('успіх', 'success') + ' | T, ' + L('малі', 'small') + ') + P(' + L('великі', 'large') + ' | T) · P(' + L('успіх', 'success') + ' | T, ' + L('великі', 'large') + ')<br>' +
-    'A: ' + n3(wA) + ' · ' + pct(RATES[0][0], 1) + ' + ' + n3(1 - wA) + ' · ' + pct(RATES[1][0], 1) + ' = <em>' + pct(s.R[0], 1) + '</em><br>' +
-    'B: ' + n3(wB) + ' · ' + pct(RATES[0][1], 1) + ' + ' + n3(1 - wB) + ' · ' + pct(RATES[1][1], 1) + ' = <em>' + pct(s.R[1], 1) + '</em><br>' +
-    L('Однакова суміш', 'Same mix') + ' (' + n3(wS) + ' / ' + n3(1 - wS) + '): A = ' + n3(wS) + ' · ' + pct(RATES[0][0], 1) + ' + ' + n3(1 - wS) + ' · ' + pct(RATES[1][0], 1) + ' = <em>' + pct(stdA, 1) + '</em><br>' +
-    L('Однакова суміш', 'Same mix') + ' (' + n3(wS) + ' / ' + n3(1 - wS) + '): B = ' + n3(wS) + ' · ' + pct(RATES[0][1], 1) + ' + ' + n3(1 - wS) + ' · ' + pct(RATES[1][1], 1) + ' = <em>' + pct(stdB, 1) + '</em>';
+    row(L('Загальний відсоток успіху методу T є зваженим середнім відсотків у двох групах. Ваги дорівнюють часткам малих і великих каменів серед пацієнтів цього методу.',
+          'The overall success rate of treatment T is a weighted average of its rates in the two groups. The weights are the shares of small and large stones among that treatment’s patients.'),
+      [P(succ, T) + '<mo>=</mo>', P(sm, T) + '<mo>·</mo>' + P(succ, T + '<mo>,</mo>' + sm),
+       '<mo>+</mo>' + P(lg, T) + '<mo>·</mo>' + P(succ, T + '<mo>,</mo>' + lg)]) +
+    row(L('Метод A зі своєю сумішшю пацієнтів.', 'Treatment A with its own patient mix.'),
+      ['<mi>A</mi><mo>:</mo><mspace width="0.6em"></mspace>' + mix(wA, 0), '<mo>=</mo>' + hl(pct(s.R[0], 1))]) +
+    row(L('Метод B зі своєю сумішшю пацієнтів.', 'Treatment B with its own patient mix.'),
+      ['<mi>B</mi><mo>:</mo><mspace width="0.6em"></mspace>' + mix(wB, 1), '<mo>=</mo>' + hl(pct(s.R[1], 1))]) +
+    row(L('Обидва методи з однаковою сумішшю пацієнтів, як у всій вибірці.', 'Both treatments with the same patient mix, the one in the whole sample.'),
+      [w(L('Однакова суміш', 'Same mix')) + '<mo>:</mo><mspace width="0.6em"></mspace>' + mn(n3(wS)) + '<mo>/</mo>' + mn(n3(1 - wS)),
+       '<mi>A</mi><mo>=</mo>' + mix(wS, 0), '<mo>=</mo>' + hl(pct(stdA, 1)),
+       '<mi>B</mi><mo>=</mo>' + mix(wS, 1), '<mo>=</mo>' + hl(pct(stdB, 1))]);
 }
 
 /* ---------- round 5: baseball ---------- */
