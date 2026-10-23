@@ -1,0 +1,63 @@
+<div class="tz-text">
+  <span class="eyebrow"><span class="uk">Статистика · 30 млн виборців</span><span class="en">Statistics · 30M voters</span></span>
+  <h2><a href="{{URL}}"><span class="uk">Скільки людей опитати перед виборами</span><span class="en">How many people should a poll ask</span></a></h2>
+  <p class="tz-q uk">У країні 30 мільйонів виборців. Скільки випадкових людей треба опитати, щоб передбачити результат з точністю ±3 пункти в 95 опитуваннях зі 100?</p>
+  <p class="tz-q en">A country has 30 million voters. How many random people do you need to ask to forecast the result within ±3 points in 95 polls out of 100?</p>
+  <button type="button" class="tz-reveal sp-before" data-solve><span><span class="uk">Інтуїція і відповідь</span><span class="en">Intuition and answer</span></span><b><span class="uk">Показати відповідь</span><span class="en">Show the answer</span></b></button>
+  <div class="tz-ans sp-after">
+    <div><span><span class="uk">Інтуїція</span><span class="en">Intuition</span></span><b><span class="uk">сотні тисяч</span><span class="en">hundreds of thousands</span></b></div>
+    <div class="r"><span><span class="uk">Насправді</span><span class="en">Actually</span></span><b><span class="uk">1 068</span><span class="en">1,068</span></b></div>
+  </div>
+  <p class="tz-d uk">Чому розмір вибірки не залежить від розміру країни і чому мільйони анкет від «зручних» людей помиляються сильніше за тисячу випадкових.</p>
+  <p class="tz-d en">Why the sample size does not depend on the size of the country, and why millions of answers from "convenient" people miss by more than a thousand random ones.</p>
+  <ul class="tz-inside uk"><li>вгадайте відповідь</li><li>опитайте країну</li><li>шість пасток вибірки</li><li>калькулятор вибірки</li><li>зважування і exit poll</li></ul>
+  <ul class="tz-inside en"><li>guess the answer</li><li>poll a country</li><li>six sampling traps</li><li>a sample size calculator</li><li>weighting and exit polls</li></ul>
+  <a class="tz-cta" href="{{URL}}"><span class="uk">Розібратися з опитуваннями</span><span class="en">Work through election polls</span> →</a>
+</div>
+<div class="tz-stage" id="tz-election-poll">
+  <span class="tz-try"><span class="uk">Спробуйте тут</span><span class="en">Try it here</span></span>
+  <canvas style="display:block;width:100%;max-width:420px;height:150px;background:var(--paper);border-radius:18px" aria-hidden="true"></canvas>
+  <p class="tz-msg" aria-live="polite"></p>
+  <div class="tz-acts"><button type="button" class="tz-btn"></button></div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById('tz-election-poll');
+  const L = (uk, e) => document.documentElement.dataset.lang === 'en' ? e : uk;
+  const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), b = root.querySelector('.tz-btn');
+  const LANDS = [3e7, 3e8], DOTS = 300, STEP = 100, FULL = 1100;
+  let land = 0, t = 0, n = 0, a = 0, started = false, lit = new Int8Array(DOTS).fill(-1);
+  const fmt = v => Math.round(v).toLocaleString(L('uk-UA', 'en-US'));
+  const pc = v => L((100 * v).toFixed(1).replace('.', ','), (100 * v).toFixed(1));
+  function fresh() { t = .47 + Math.random() * .08; n = 0; a = 0; lit = new Int8Array(DOTS).fill(-1); }
+  function draw() {
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight; if (!W) return;
+    cv.width = W * dpr; cv.height = H * dpr;
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const css = getComputedStyle(document.documentElement), ink = css.getPropertyValue('--ink').trim() || '#151515', line = '#D6DAE2';
+    const cols = 30, rows = DOTS / cols, dx = (W - 20) / cols, dy = (H - 20) / rows, r = Math.min(dx, dy) * .3;
+    for (let i = 0; i < DOTS; i++) {
+      c.fillStyle = lit[i] < 0 ? line : lit[i] ? ink : '#A3A9B8';
+      c.beginPath(); c.arc(10 + (i % cols + .5) * dx, 10 + (Math.floor(i / cols) + .5) * dy, r, 0, 2 * Math.PI); c.fill();
+    }
+  }
+  function step() {
+    if (!started) { started = true; fresh(); }
+    if (n >= FULL) { land = 1 - land; fresh(); }
+    for (let i = 0; i < STEP; i++) { const v = Math.random() < t ? 1 : 0; a += v; lit[Math.floor(Math.random() * DOTS)] = v; }
+    n += STEP; draw(); text();
+  }
+  function text() {
+    const N = LANDS[land];
+    if (!n) { msg.textContent = L('Країна на ' + fmt(N) + ' виборців. Опитуйте випадкових людей по 100 і стежте за похибкою.', 'A country of ' + fmt(N) + ' voters. Ask random people 100 at a time and watch the margin of error.'); b.textContent = L('Опитати 100 людей', 'Ask 100 people'); return; }
+    const p = a / n, e = 1.96 * Math.sqrt(p * (1 - p) / n);
+    msg.textContent = L('Опитано ' + fmt(n) + '. За А ' + pc(p) + '% ± ' + pc(e) + ' пункти.', 'Asked ' + fmt(n) + '. For A ' + pc(p) + '% ± ' + pc(e) + ' points.') +
+      (n >= FULL ? ' ' + L('Справжній результат ' + pc(t) + '%. А якщо країна вдесятеро більша?', 'The true result is ' + pc(t) + '%. What if the country were ten times bigger?') : '');
+    b.textContent = n >= FULL ? L('Країна на ' + fmt(LANDS[1 - land]), 'A country of ' + fmt(LANDS[1 - land])) : L('Опитати ще 100', 'Ask 100 more');
+  }
+  b.addEventListener('click', step);
+  document.addEventListener('langchange', () => { draw(); text(); });
+  window.addEventListener('resize', draw);
+  draw(); text();
+})();
+</script>

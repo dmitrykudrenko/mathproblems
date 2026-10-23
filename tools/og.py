@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -106,6 +106,10 @@ TEXT = {
     "poisoned-wine": {
         "uk": (["ОТРУЄНЕ", "ВИНО"], "1000 пляшок. Скільки треба щурів?"),
         "en": (["THE POISONED", "WINE"], "1000 bottles. How many rats?"),
+    },
+    "election-poll": {
+        "uk": (["СКІЛЬКИ", "ОПИТАТИ?"], "30 млн виборців, похибка ±3%"),
+        "en": (["HOW MANY", "TO POLL?"], "30M voters, a ±3% margin"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -374,6 +378,15 @@ def extra_visual(kind, x, y, lang="en"):
                     f'<circle cx="{mx + 16}" cy="{my - 15}" r="5" fill="{MUTED}"/>',
                     f'<path d="M{mx - 22} {my + 2} q -14 4 -18 -10" fill="none" stroke="{MUTED}" stroke-width="3" stroke-linecap="round"/>']
         out.append(f'<text x="{x + 360}" y="{y + 270}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">?</text>')
+    elif kind == "election-poll":
+        # a field of voters with a few of them asked; how many it takes is the answer
+        rnd = random.Random(5)
+        for j in range(9):
+            for i in range(14):
+                asked = rnd.random() < .13
+                fill = (INK if rnd.random() < .52 else "#9A9A9A") if asked else "#D6D6D6"
+                out.append(f'<circle cx="{x + 22 + i * 26}" cy="{y + 14 + j * 26}" r="{8 if asked else 6}" fill="{fill}"/>')
+        out.append(f'<text x="{x + 360}" y="{y + 300}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">n = ?</text>')
     return "".join(out)
 
 
@@ -406,7 +419,7 @@ def svg(kind, lang):
         parts.append(needles(740, 165))
     elif kind in ("rope-around-earth", "hundred-prisoners", "cognitive-reflection", "coupon-collector",
                   "regression-to-mean", "two-envelopes", "coin-streaks", "bertrand-paradox", "penney-game",
-                  "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine"):
+                  "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine", "election-poll"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
