@@ -877,20 +877,25 @@ def build_feeds(metas, base):
             url = base + slug + "/" + LANG_PATH[lang]
             img = base + slug + f"/og-{lang}.png"
             size = (DOCS / slug / f"og-{lang}.png").stat().st_size
+            # editors that read images only from the item HTML get the illustration from here
+            body = (f'<p><a href="{url}"><img src="{img}" alt="{e(m["og_alt"])}" width="1200" height="630"></a></p>'
+                    f'<p>{e(m["share"]["description"])}</p>')
             tags = "".join(f"\n      <category>{e(t)}</category>" for t in m["card"]["tags"])
             entries.append(
                 f"    <item>\n      <title>{e(m['share']['title'])}</title>\n      <link>{url}</link>\n"
                 f"      <guid isPermaLink=\"true\">{url}</guid>\n"
                 f"      <description>{e(m['share']['description'])}</description>\n"
+                f"      <content:encoded><![CDATA[{body}]]></content:encoded>\n"
                 f"      <pubDate>{rss_date(meta['published'])}</pubDate>\n"
                 f"      <atom:updated>{meta['updated']}T00:00:00Z</atom:updated>{tags}\n"
                 f"      <enclosure url=\"{img}\" length=\"{size}\" type=\"image/png\"/>\n"
                 f"      <media:content url=\"{img}\" medium=\"image\" type=\"image/png\" width=\"1200\" height=\"630\">\n"
-                f"        <media:description>{e(m['og_alt'])}</media:description>\n      </media:content>\n    </item>")
+                f"        <media:description>{e(m['og_alt'])}</media:description>\n      </media:content>\n"
+                f"      <media:thumbnail url=\"{img}\" width=\"1200\" height=\"630\"/>\n    </item>")
         last = max(meta["updated"] for _, meta in items)
         (DOCS / LANG_PATH[lang] / "feed.xml").write_text(
             '<?xml version="1.0" encoding="UTF-8"?>\n'
-            '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">\n'
+            '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xmlns:content="http://purl.org/rss/1.0/modules/content/">\n'
             f"  <channel>\n    <title>{SITE_NAME[lang]}</title>\n    <link>{base}{LANG_PATH[lang]}</link>\n"
             f"    <description>{e(hub_meta[lang]['description'])}</description>\n    <language>{lang}</language>\n"
             f"    <lastBuildDate>{rss_date(last)}</lastBuildDate>\n"
