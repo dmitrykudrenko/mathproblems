@@ -18,6 +18,8 @@ Bilingual (uk/en) interactive explainers of math puzzles where intuition is wron
 2. Texts in `tools/og.py`, run `python3 tools/og.py` (macOS).
 3. `python3 build.py`.
 
+`meta.json` needs `published` and `updated` (YYYY-MM-DD); bump `updated` after a real edit. They feed JSON-LD, sitemap and the RSS (`docs/feed.xml`, `docs/en/feed.xml`), whose items use only `share`, never `description`.
+
 ## Checks before commit
 
 - build succeeds; `node --check` on every inline script of the uk and en builds and the hub;

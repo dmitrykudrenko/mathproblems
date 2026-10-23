@@ -40,7 +40,7 @@ hub/
 problems/<slug>/
   page.html    сторінка задачі; обидві мови поруч (class="uk" / class="en")
   teaser.html  блок задачі на головній: умова, «інтуїція / насправді», міні-гра
-  meta.json    order, about (Wikipedia), title, description, FAQ, картка — для кожної мови
+  meta.json    order, published, updated, about (Wikipedia); title, description, FAQ, картка — для кожної мови
   assets/      og-uk.png, og-en.png (1200×630)
 books.json     книжки для блоку «Що почитати» (автор uk/en, назва, рік, ISBN, українське видання)
 site.css       спільний вигляд усіх сторінок (підключається після стилів сторінки)
@@ -66,9 +66,11 @@ python3 build.py
 
 ## Нова задача
 
-1. Створіть `problems/<slug>/` з `page.html`, `teaser.html` і `meta.json` (поле `order` задає місце на головній).
+1. Створіть `problems/<slug>/` з `page.html`, `teaser.html` і `meta.json` (поле `order` задає місце на головній, `published` і `updated` — дати у форматі `YYYY-MM-DD`).
 2. Додайте тексти задачі в `tools/og.py` і запустіть `python3 tools/og.py`.
-3. `python3 build.py` додасть сторінки, тизер на головну і записи в sitemap.
+3. `python3 build.py` додасть сторінки, тизер на головну, записи в sitemap і RSS.
+
+Після помітної правки задачі оновіть `updated` у її `meta.json`: дата йде в `dateModified`, `lastmod` у sitemap і `atom:updated` у RSS.
 
 ## Без спойлерів
 
@@ -117,6 +119,8 @@ Claspo пропустили цього відвідувача), блок хов�
 - JSON-LD: `WebPage` + `LearningResource`, `FAQPage`, `BreadcrumbList`; на головній `WebSite` + `CollectionPage` з `ItemList` задач.
 - Головна містить унікальний текст про кожну задачу, H2 з її назвою і описові посилання на сторінку задачі.
 - `sitemap.xml` з альтернативними мовами.
+- RSS задач для розсилок і читалок: https://mathparadoxes.com/feed.xml (uk) і https://mathparadoxes.com/en/feed.xml, нові зверху за `published`.
+  У пункті лише `share` (назва й питання), OG-картинка й теги картки, без відповіді. Сторінки посилаються на фід через `<link rel="alternate">`.
 - Мова: обраний вручну мовний варіант зберігається в cookie `mp_lang` на рік. Без cookie перша мова браузера
   uk/ru/be дає українську, en — англійську, інакше вирішує часовий пояс. Боти й прев'ю-краулери не перенаправляються.
 - Відео YouTube вантажиться лише після кліку по обкладинці (швидке перше завантаження).

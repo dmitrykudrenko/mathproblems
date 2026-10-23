@@ -10,6 +10,7 @@ The build writes one page per language so search engines index a clean page per 
 
     docs/index.html, docs/en/index.html                 catalogue
     docs/<slug>/index.html, docs/<slug>/en/index.html   problem pages
+    docs/feed.xml, docs/en/feed.xml                     RSS of the problems, newest first
     docs/sitemap.xml, docs/robots.txt, docs/favicon.svg
 
 Usage:  python3 build.py [--base-url https://example.com/]
@@ -20,7 +21,8 @@ import json
 import re
 import hashlib
 import shutil
-from datetime import date
+from datetime import date, datetime, timezone
+from email.utils import format_datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlparse
@@ -491,6 +493,7 @@ def head(lang, urls, title, description, image, image_alt, ld, base, slug=None, 
 <meta name="theme-color" content="#2A3DD1">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="{base}favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="{SITE_NAME[lang]}" href="{base}{LANG_PATH[lang]}feed.xml">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{SITE_NAME[lang]}">
 <meta property="og:title" content="{e(st)}">
@@ -558,7 +561,8 @@ def build_problem(slug, base, metas, books):
                 "educationalLevel": "beginner",
                 "about": {"@type": "Thing", **meta["about"]},
                 "image": page_base + f"og-{lang}.png",
-                "dateModified": date.today().isoformat(),
+                "datePublished": meta["published"],
+                "dateModified": meta["updated"],
                 "isPartOf": {"@type": "WebSite", "name": SITE_NAME[lang], "url": hub[lang]},
                 "author": {"@id": base + "#author"},
                 **({"citation": books_ld(lang, refs, books)} if refs else {}),
@@ -828,6 +832,47 @@ body {{ padding-inline: max(16px, env(safe-area-inset-left, 0px)); }}
     write(DOCS / "404.html", doc)
 
 
+def rss_date(day):
+    return format_datetime(datetime.fromisoformat(day).replace(tzinfo=timezone.utc))
+
+
+def build_feeds(metas, base):
+    """RSS per language for newsletters and feed readers. Items carry only `share` (the question),
+    never the description, because a feed preview must not give the answer away."""
+    hub_meta = json.loads((HUB / "meta.json").read_text(encoding="utf-8"))
+    items = sorted(metas, key=lambda sm: (sm[1]["published"], sm[1].get("order", 99)), reverse=True)
+    for lang in LANGS:
+        feed_url = base + LANG_PATH[lang] + "feed.xml"
+        entries = []
+        for slug, meta in items:
+            m = meta[lang]
+            url = base + slug + "/" + LANG_PATH[lang]
+            img = base + slug + f"/og-{lang}.png"
+            size = (DOCS / slug / f"og-{lang}.png").stat().st_size
+            tags = "".join(f"\n      <category>{e(t)}</category>" for t in m["card"]["tags"])
+            entries.append(
+                f"    <item>\n      <title>{e(m['share']['title'])}</title>\n      <link>{url}</link>\n"
+                f"      <guid isPermaLink=\"true\">{url}</guid>\n"
+                f"      <description>{e(m['share']['description'])}</description>\n"
+                f"      <pubDate>{rss_date(meta['published'])}</pubDate>\n"
+                f"      <atom:updated>{meta['updated']}T00:00:00Z</atom:updated>{tags}\n"
+                f"      <enclosure url=\"{img}\" length=\"{size}\" type=\"image/png\"/>\n"
+                f"      <media:content url=\"{img}\" medium=\"image\" type=\"image/png\" width=\"1200\" height=\"630\">\n"
+                f"        <media:description>{e(m['og_alt'])}</media:description>\n      </media:content>\n    </item>")
+        last = max(meta["updated"] for _, meta in items)
+        (DOCS / LANG_PATH[lang] / "feed.xml").write_text(
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">\n'
+            f"  <channel>\n    <title>{SITE_NAME[lang]}</title>\n    <link>{base}{LANG_PATH[lang]}</link>\n"
+            f"    <description>{e(hub_meta[lang]['description'])}</description>\n    <language>{lang}</language>\n"
+            f"    <lastBuildDate>{rss_date(last)}</lastBuildDate>\n"
+            f"    <atom:link href=\"{feed_url}\" rel=\"self\" type=\"application/rss+xml\"/>\n"
+            f"    <image>\n      <url>{base}og-{lang}.png</url>\n      <title>{SITE_NAME[lang]}</title>\n"
+            f"      <link>{base}{LANG_PATH[lang]}</link>\n    </image>\n"
+            + "\n".join(entries) + "\n  </channel>\n</rss>\n", encoding="utf-8")
+        print(f"{LANG_PATH[lang]}feed.xml ({len(entries)} items)")
+
+
 def build(base, out=None):
     global DOCS
     if out:
@@ -838,20 +883,25 @@ def build(base, out=None):
     dirs = [p for p in PROBLEMS.iterdir() if all((p / f).exists() for f in ("page.html", "teaser.html", "meta.json"))]
     metas = [(p.name, json.loads((p / "meta.json").read_text(encoding="utf-8"))) for p in dirs]
     metas.sort(key=lambda sm: (sm[1].get("order", 99), sm[0]))
+    for slug, meta in metas:
+        for k in ("published", "updated"):
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", meta.get(k, "")):
+                raise SystemExit(f"problems/{slug}/meta.json: \"{k}\" must be a YYYY-MM-DD date")
     books = load_books()
     problems = [build_problem(s, base, metas, books) for s, _ in metas]
     hub = build_hub(problems, base)
     build_404(problems, base)
     build_subscribed(problems, base)
     shelf = build_books(problems, base, books)
+    build_feeds(metas, base)
 
     today = date.today().isoformat()
     entries = []
-    for urls in [hub, shelf] + [p[2] for p in problems]:
+    for urls, mod in [(hub, today), (shelf, today)] + [(p[2], p[1]["updated"]) for p in problems]:
         for lang in LANGS:
             alts = "".join(f'\n    <xhtml:link rel="alternate" hreflang="{h}" href="{urls[h]}"/>' for h in LANGS)
             alts += f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{urls[X_DEFAULT]}"/>'
-            entries.append(f"  <url>\n    <loc>{urls[lang]}</loc>\n    <lastmod>{today}</lastmod>{alts}\n  </url>")
+            entries.append(f"  <url>\n    <loc>{urls[lang]}</loc>\n    <lastmod>{mod}</lastmod>{alts}\n  </url>")
     (DOCS / "sitemap.xml").write_text(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
