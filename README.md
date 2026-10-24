@@ -88,7 +88,7 @@ python3 build.py
 
 - Сторінка передає відповідь відвідувача в `mpSolve(guessed)`. Рахується лише перша відповідь із браузера, і лише якщо до неї розв'язок не відкривали (`mp-voted:<slug>` у localStorage; «Сховати відповідь» його не скидає). Браузери з `?notrack=1` не голосують.
 - `poll` у `meta.json` визначає, що вважати правильним: `"right"` — діапазони `[від, до]` для числа і точні рядки для решти, `"each"` — діапазон на кожну частину відповіді-масиву (ключ `a|b|c`), `"round"` — id розділу, якщо це не `guess`. Значення беруться в тих самих одиницях, що й `guessed` у скрипті сторінки.
-- Бекенд — Cloudflare Worker з D1 у теці `stats/`. Він зберігає лише лічильник на пару (задача, ключ відповіді): без IP, cookies і часу. Приймає POST лише з mathparadoxes.com і localhost.
+- Бекенд — Cloudflare Worker з D1 у теці `stats/`. Він зберігає лише лічильник на трійку (задача, ключ відповіді, скільки підказок було відкрито перед відповіддю): без IP, cookies і часу. Приймає POST лише з mathparadoxes.com і localhost.
 - `STATS_API` у `build.py` — адреса воркера. Порожній рядок вимикає блок. Для локальної перевірки: `python3 build.py --out /tmp/site --stats-api http://localhost:8787/`.
 
 Розгортання (одноразово, потрібен акаунт Cloudflare):
@@ -101,7 +101,7 @@ npx wrangler d1 execute mathparadoxes-stats --remote --file schema.sql
 npx wrangler deploy                             # друкує адресу *.workers.dev
 ```
 
-Потім впишіть адресу в `STATS_API`, запустіть `python3 build.py` і закомітьте `docs/`. Цифри для поста можна взяти так: `npx wrangler d1 execute mathparadoxes-stats --remote --command "SELECT slug, SUM(n) FROM votes GROUP BY slug"`.
+Потім впишіть адресу в `STATS_API`, запустіть `python3 build.py` і закомітьте `docs/`. Цифри для поста можна взяти так: `npx wrangler d1 execute mathparadoxes-stats --remote --command "SELECT slug, SUM(n) FROM votes GROUP BY slug"`, а розбивку за підказками — `... --command "SELECT slug, h, SUM(n) FROM votes GROUP BY slug, h"` (частку правильних рахує правило `poll` з `meta.json`).
 
 ## Обговорення (giscus)
 

@@ -399,7 +399,8 @@ def with_hints(body, lang, slug, hints):
 
 # Anonymous answer stats at the end of round 1: the first guess a browser makes on a problem goes to the
 # Cloudflare Worker in stats/ as a short key (no cookies, no IP, nothing else), and after the answer shows the
-# visitor sees how many people answered and what share got it right. "poll" in meta.json says which keys are
+# visitor sees how many people answered and what share got it right. The number of hints opened before the guess
+# goes along (for the author's queries only; the page shows totals). "poll" in meta.json says which keys are
 # right: "right" lists [lo, hi] ranges for a number and exact strings for anything else, "each" gives a range per
 # part of an array guess (keys "a|b|c"), "round" names the section when it is not id="guess". A browser that saw
 # the answer before guessing never votes. Empty STATS_API turns the block off.
@@ -458,9 +459,9 @@ POLL_SCRIPT = """<script>
   document.addEventListener("solved", function (e) {
     var g = e.detail && e.detail.guess;
     if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
-    var k = key(g);
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
     set(KEY, "1");
-    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k }) })
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
       .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
   });
   if (d.classList.contains("solved")) load();
