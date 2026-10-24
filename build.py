@@ -201,8 +201,8 @@ TOPICS = {
     "quick": {"uk": "Логіка й кмітливість", "en": "Logic and quick thinking"},
 }
 TOPICS_ALL = {"uk": "Усі", "en": "All"}
-# How much maths the explanation needs, meta.json "level": a badge on the home card, the problem page and the
-# "more puzzles" cards, plus a second filter row on the home page. It says nothing about how tricky the puzzle is.
+# How much maths the explanation needs, meta.json "level": a small badge on the home card and in the problem hero.
+# It says nothing about how tricky the puzzle is. Deliberately not a filter: the home page keeps one row of chips.
 LEVELS = {
     1: {"uk": ("Без формул", "Вистачить арифметики й логіки"), "en": ("No formulas", "Arithmetic and logic are enough")},
     2: {"uk": ("Шкільна математика", "Дроби, відсотки, проста ймовірність"),
@@ -210,7 +210,6 @@ LEVELS = {
     3: {"uk": ("Поглиблено", "Математичне сподівання, логарифми, ряди"),
         "en": ("Advanced", "Expected value, logarithms, series")},
 }
-LEVELS_ALL = {"uk": "Будь-який рівень", "en": "Any level"}
 LEVEL_LD = {1: "beginner", 2: "intermediate", 3: "advanced"}
 
 
@@ -228,13 +227,7 @@ def topic_filters(problems):
                 + "".join(f'<span class="{l}">{label[l]}</span>' for l in LANGS) + f' <span class="tp-n">{n}</span></button>')
     chips = [chip("", TOPICS_ALL, len(problems), True)]
     chips += [chip(k, t, sum(k in p[1]["topics"] for p in problems)) for k, t in TOPICS.items()]
-    levels = [chip("", LEVELS_ALL, len(problems), True).replace("data-topic", "data-level")]
-    levels += [chip(str(n), {l: LEVELS[n][l][0] for l in LANGS}, sum(p[1]["level"] == n for p in problems))
-               .replace("data-topic", "data-level") for n in LEVELS]
-    return ('<div class="topics" role="group" aria-label="Теми" data-aria-en="Topics">' + "".join(chips) + "</div>\n"
-            '<div class="topics levels" role="group" aria-label="Рівень" data-aria-en="Level">' + "".join(levels) + "</div>\n"
-            '<p class="tp-empty" hidden><span class="uk">У цій темі поки немає задач такого рівня. Оберіть інший рівень.</span>'
-            '<span class="en">No puzzles of this level in this topic yet. Try another level.</span></p>')
+    return '<div class="topics" role="group" aria-label="Теми" data-aria-en="Topics">' + "".join(chips) + "</div>"
 
 
 RELATED_COUNT = 3
@@ -254,10 +247,9 @@ def pick_related(slug, metas):
 
 
 def related_block(lang, items, hub_url):
-    """`items` is a list of (url, title, question, level)."""
+    """`items` is a list of (url, title, question)."""
     eyebrow, title, all_label = RELATED_TEXT[lang]
-    cards = "\n".join(f'    <a class="mp-related-card" href="{u}"><h3>{e(t)}</h3><p>{e(q)}</p>{level_badge(lang, n)}</a>'
-                      for u, t, q, n in items)
+    cards = "\n".join(f'    <a class="mp-related-card" href="{u}"><h3>{e(t)}</h3><p>{e(q)}</p></a>' for u, t, q in items)
     return f"""<section class="mp-related" id="related">
   <div class="mp-related-head">
     <span class="eyebrow">{eyebrow}</span>
@@ -824,8 +816,7 @@ def build_problem(slug, base, metas, books):
         items = []
         for s in related:
             rm = dict(metas)[s][lang]
-            items.append((base + s + "/" + LANG_PATH[lang], rm["card"]["title"],
-                          rm.get("share", {}).get("description", rm["card"]["text"]), dict(metas)[s]["level"]))
+            items.append((base + s + "/" + LANG_PATH[lang], rm["card"]["title"], rm.get("share", {}).get("description", rm["card"]["text"])))
         body = with_related(body, related_block(lang, items, hub[lang]))
         body = with_books(body, books_block(lang, refs, books, base + "books/" + LANG_PATH[lang]))
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static data-spoil>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
@@ -854,7 +845,7 @@ def build_hub(problems, base):
         level = dict(problems_meta)[slug]["level"]
         # the level badge sits on the eyebrow line; it is filled in per language below
         teaser = re.sub(r'<span class="eyebrow">.*?</span></span>', lambda m: f'<div class="tz-top">{m.group(0)}{{{{LEVEL:{level}}}}}</div>', teaser, count=1)
-        blocks.append(f'<article class="problem" id="{slug}" data-topics="{topics}" data-level="{level}" data-spoil{tint}>\n'
+        blocks.append(f'<article class="problem" id="{slug}" data-topics="{topics}" data-spoil{tint}>\n'
                       + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
     src = src.replace("<!--PROBLEMS-->", "\n".join(blocks))
     for lang in LANGS:
@@ -869,9 +860,8 @@ def build_hub(problems, base):
         if lang == "en":
             body = body.replace('alt="Дмитро Кудренко" data-alt-en="Dmytro Kudrenko"', 'alt="Dmytro Kudrenko"')
             body = body.replace('aria-label="Теми" data-aria-en="Topics"', 'aria-label="Topics"')
-            body = body.replace('aria-label="Рівень" data-aria-en="Level"', 'aria-label="Level"')
         else:
-            body = body.replace(' data-alt-en="Dmytro Kudrenko"', "").replace(' data-aria-en="Topics"', "").replace(' data-aria-en="Level"', "")
+            body = body.replace(' data-alt-en="Dmytro Kudrenko"', "").replace(' data-aria-en="Topics"', "")
         body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
         body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
         style = body[:body.index("</style>") + len("</style>")]
