@@ -191,6 +191,28 @@ def discuss_block(lang, slug):
 
 # "More puzzles" block on every problem page: links to related problems so readers (and crawlers)
 # move between pages instead of only back to the catalogue. Cards show the spoiler-free share question.
+# Theme filters on the home page; every problem lists one or more keys in meta.json "topics", in this order of chips
+TOPICS = {
+    "interview": {"uk": "Для співбесід", "en": "Interview puzzles"},
+    "conditional": {"uk": "Умовна ймовірність", "en": "Conditional probability"},
+    "chance": {"uk": "Комбінаторика й шанси", "en": "Counting and chance"},
+    "stats": {"uk": "Статистика й упередження", "en": "Statistics and biases"},
+    "games": {"uk": "Ігри та стратегії", "en": "Games and strategy"},
+    "quick": {"uk": "Логіка й кмітливість", "en": "Logic and quick thinking"},
+}
+TOPICS_ALL = {"uk": "Усі", "en": "All"}
+
+
+def topic_filters(problems):
+    """Chip bar above the problem list: "All" plus one chip per topic with its count; each label exists in both languages."""
+    def chip(key, label, n, on=False):
+        return (f'<button type="button" class="tp-chip" data-topic="{key}" aria-pressed="{"true" if on else "false"}">'
+                + "".join(f'<span class="{l}">{label[l]}</span>' for l in LANGS) + f' <span class="tp-n">{n}</span></button>')
+    chips = [chip("", TOPICS_ALL, len(problems), True)]
+    chips += [chip(k, t, sum(k in p[1]["topics"] for p in problems)) for k, t in TOPICS.items()]
+    return '<div class="topics" role="group" aria-label="Теми" data-aria-en="Topics">' + "".join(chips) + "</div>"
+
+
 RELATED_COUNT = 3
 RELATED_TEXT = {
     "uk": ("Ще задачі", "Інші парадокси", "Усі задачі"),
@@ -375,6 +397,92 @@ def with_hints(body, lang, slug, hints):
     return body[:i] + block + body[i:]
 
 
+# Anonymous answer stats at the end of round 1: the first guess a browser makes on a problem goes to the
+# Cloudflare Worker in stats/ as a short key (no cookies, no IP, nothing else), and after the answer shows the
+# visitor sees how many people answered and what share got it right. "poll" in meta.json says which keys are
+# right: "right" lists [lo, hi] ranges for a number and exact strings for anything else, "each" gives a range per
+# part of an array guess (keys "a|b|c"), "round" names the section when it is not id="guess". A browser that saw
+# the answer before guessing never votes. Empty STATS_API turns the block off.
+STATS_API = ""
+POLL_MIN = 20  # fewer answers than this are not shown as a share
+POLL_TEXT = {
+    "uk": {"kicker": "Як відповідають інші", "few": "Відповідей поки замало для статистики: {n}. Ваша вже серед них.",
+           "few_seen": "Відповідей поки замало для статистики: {n}.",
+           "all": "Відповідей: {n}. Правильних серед них {p}.",
+           "yes": "Ви серед тих, хто впорався.", "no": "Не засмучуйтеся: інтуїція підводить більшість.",
+           "bar": "правильно", "note": "Рахуємо лише першу відповідь з кожного браузера, до того як він побачив розв'язок. Анонімно."},
+    "en": {"kicker": "How others answer", "few": "Too few answers for stats yet: {n}. Yours is one of them.",
+           "few_seen": "Too few answers for stats yet: {n}.",
+           "all": "Answers so far: {n}. {p} of them are right.",
+           "yes": "You are among those who got it.", "no": "Don't worry: intuition fails most people here.",
+           "bar": "right", "note": "Only the first answer from each browser counts, given before it saw the solution. Anonymous."},
+}
+POLL_SCRIPT = """<script>
+(function () {
+  var API = %s, SLUG = %s, RULE = %s, MIN = %d, T = %s, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "%% " + T.bar + '"><i style="width:' + p + '%%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g);
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>"""
+
+
+def with_poll(body, lang, slug, poll):
+    """Put the answer-stats block at the end of the round-1 section (sp-after: it shows once the answer does)."""
+    if not STATS_API or not poll:
+        return body
+    m = re.search(r'<section class="round" id="%s">' % poll.get("round", "guess"), body)
+    if not m:
+        raise SystemExit(f"problems/{slug}/meta.json: \"poll\" has no section id=\"{poll.get('round', 'guess')}\"")
+    i = body.index("</section>", m.end())
+    rule = {k: poll[k] for k in ("right", "each") if k in poll}
+    block = ('  <div class="mp-poll sp-after" aria-live="polite" hidden></div>\n' +
+             POLL_SCRIPT % (json.dumps(STATS_API), json.dumps(slug), json.dumps(rule), POLL_MIN,
+                            json.dumps(POLL_TEXT[lang], ensure_ascii=False)) + "\n")
+    return body[:i] + block + body[i:]
+
+
 def with_discuss(body, lang, slug):
     """Put the discussion block before the newsletter block (or before the footer)."""
     i = body.find('<section class="mp-subscribe"')
@@ -472,7 +580,7 @@ LANG_SCRIPT = """<script>
       want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
     }
   }
-  if (want !== HERE) location.replace(ALT[want] + location.hash);
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
 })();
 </script>"""
 
@@ -501,10 +609,11 @@ SPOIL_SCRIPT = """<script>
   }
   if (SLUG && seen(SLUG)) d.classList.add("solved");
   window.mpSolved = function () { return d.classList.contains("solved"); };
-  window.mpSolve = function () {
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
     if (!SLUG || window.mpSolved()) return;
     d.classList.add("solved"); mark(SLUG);
-    document.dispatchEvent(new Event("solved"));
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
   };
   document.addEventListener("click", function (e) {
     var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
@@ -684,7 +793,7 @@ def build_problem(slug, base, metas, books):
                  (m["share"]["title"], m["share"]["description"]) if "share" in m else None)
         if "i.ytimg.com" in body:
             h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
-        body = with_discuss(with_subscribe(with_hints(body, lang, slug, meta.get("hints")), lang), lang, slug)
+        body = with_discuss(with_subscribe(with_poll(with_hints(body, lang, slug, meta.get("hints")), lang, slug, meta.get("poll")), lang), lang, slug)
         items = []
         for s in related:
             rm = dict(metas)[s][lang]
@@ -706,12 +815,15 @@ def build_hub(problems, base):
     src = (HUB / "page.html").read_text(encoding="utf-8")
     urls = {l: base + LANG_PATH[l] for l in LANGS}
     blocks = []
+    problems_meta = [(p[0], p[1]) for p in problems]
+    src = src.replace("<!--TOPICS-->", topic_filters(problems))
     for slug, _, _ in problems:
         teaser = (PROBLEMS / slug / "teaser.html").read_text(encoding="utf-8")
         # the stage on the home page uses the same tint as the problem page itself
         m = re.search(r"--tint:\s*(#[0-9A-Fa-f]{6})", (PROBLEMS / slug / "page.html").read_text(encoding="utf-8"))
         tint = f' style="--tint: {m.group(1)}"' if m else ""
-        blocks.append(f'<article class="problem" id="{slug}" data-spoil{tint}>\n' + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
+        topics = " ".join(dict(problems_meta)[slug]["topics"])
+        blocks.append(f'<article class="problem" id="{slug}" data-topics="{topics}" data-spoil{tint}>\n' + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
     src = src.replace("<!--PROBLEMS-->", "\n".join(blocks))
     for lang in LANGS:
         m, other = meta[lang], ("en" if lang == "uk" else "uk")
@@ -722,8 +834,9 @@ def build_hub(problems, base):
         body = body.replace("{{HOME_BASE}}", base).replace("{{HOME}}", urls[lang]).replace("{{FIRST}}", problems[0][2][lang])
         if lang == "en":
             body = body.replace('alt="Дмитро Кудренко" data-alt-en="Dmytro Kudrenko"', 'alt="Dmytro Kudrenko"')
+            body = body.replace('aria-label="Теми" data-aria-en="Topics"', 'aria-label="Topics"')
         else:
-            body = body.replace(' data-alt-en="Dmytro Kudrenko"', "")
+            body = body.replace(' data-alt-en="Dmytro Kudrenko"', "").replace(' data-aria-en="Topics"', "")
         body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
         body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
         style = body[:body.index("</style>") + len("</style>")]
@@ -988,6 +1101,8 @@ def build(base, out=None):
         for k in ("published", "updated"):
             if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", meta.get(k, "")):
                 raise SystemExit(f"problems/{slug}/meta.json: \"{k}\" must be a YYYY-MM-DD date")
+        if not meta.get("topics") or set(meta["topics"]) - set(TOPICS):
+            raise SystemExit(f"problems/{slug}/meta.json: \"topics\" must list one or more of {', '.join(TOPICS)}")
     books = load_books()
     problems = [build_problem(s, base, metas, books) for s, _ in metas]
     hub = build_hub(problems, base)
@@ -1022,5 +1137,8 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--base-url", default=DEFAULT_BASE, help="public URL of the site root, ending with /")
     ap.add_argument("--out", help="write the site here instead of docs/ (for local checks)")
+    ap.add_argument("--stats-api", help="answer-stats endpoint instead of STATS_API (e.g. a local worker for checks)")
     a = ap.parse_args()
+    if a.stats_api is not None:
+        STATS_API = a.stats_api
     build(a.base_url if a.base_url.endswith("/") else a.base_url + "/", a.out)
