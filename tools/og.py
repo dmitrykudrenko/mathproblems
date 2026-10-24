@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -142,6 +142,10 @@ TEXT = {
     "braess-paradox": {
         "uk": (["ПАРАДОКС", "БРАЕСА"], "Нова дорога. Швидше чи повільніше?"),
         "en": (["BRAESS'S", "PARADOX"], "A new road. Faster or slower?"),
+    },
+    "survivorship-bias": {
+        "uk": (["ПОМИЛКА ТИХ,", "ХТО ВИЖИВ"], "Куди ставити броню на літак?"),
+        "en": (["SURVIVORSHIP", "BIAS"], "Where should the armour go?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -508,6 +512,23 @@ def extra_visual(kind, x, y, lang="en"):
             out += [f'<circle cx="{px}" cy="{py}" r="24" fill="{INK}"/>',
                     f'<text x="{px}" y="{py + 8}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="22" fill="#fff">{t}</text>']
         out.append(f'<text x="{x + 214}" y="{y + 176}" font-family="{FONT}" font-weight="800" font-size="44" fill="{SIGNAL}">?</text>')
+    elif kind == "survivorship-bias":
+        # a bomber from above with the holes found on returning planes; where the armour goes is the answer
+        s, ox, oy = 1.95, x - 5, y - 30
+        parts = {"eng": [(34, 70, 46, 96), (60, 70, 72, 96), (128, 70, 140, 96), (154, 70, 166, 96)], "cock": [(89, 16, 111, 40)],
+                 "fus": [(89, 40, 111, 186)], "wing": [(14, 78, 89, 104), (111, 78, 186, 104)], "tail": [(62, 164, 89, 180), (111, 164, 138, 180)]}
+        for kid in ("wing", "tail", "fus", "cock", "eng"):
+            for (x0, y0, x1, y1) in parts[kid]:
+                out.append(f'<rect x="{ox + x0 * s:.1f}" y="{oy + y0 * s:.1f}" width="{(x1 - x0) * s:.1f}" height="{(y1 - y0) * s:.1f}" rx="5" fill="#fff" stroke="{INK}" stroke-width="3"/>')
+        for kid, n in (("fus", 22), ("wing", 22), ("tail", 5), ("eng", 1), ("cock", 1)):
+            for _ in range(n):
+                while True:
+                    x0, y0, x1, y1 = rnd.choice(parts[kid])
+                    px, py = rnd.uniform(x0 + 3, x1 - 3), rnd.uniform(y0 + 3, y1 - 3)
+                    if kid != "wing" or not any(a <= px <= c and b <= py <= d for a, b, c, d in parts["eng"]):
+                        break
+                out.append(f'<circle cx="{ox + px * s:.1f}" cy="{oy + py * s:.1f}" r="4.5" fill="{INK}"/>')
+        out.append(f'<text x="{x + 395}" y="{y + 20}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="44" fill="{SIGNAL}">?</text>')
     return "".join(out)
 
 
@@ -542,7 +563,7 @@ def svg(kind, lang):
                   "regression-to-mean", "two-envelopes", "coin-streaks", "bertrand-paradox", "penney-game",
                   "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine", "election-poll",
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
-                  "twenty-five-horses", "bridge-and-torch", "braess-paradox"):
+                  "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
