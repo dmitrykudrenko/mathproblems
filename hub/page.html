@@ -28,6 +28,9 @@ h1, h2, h3, p { margin: 0; }
 .list-head p { color: var(--muted); max-width: 46ch; }
 .list-side { display: grid; gap: 8px; justify-items: start; }
 .topics { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+.topics:has(+ .levels) { margin-bottom: 10px; }
+.levels .tp-chip { font-size: .84rem; padding: 6px 12px; }
+.tp-empty { color: var(--muted); margin: -12px 0 28px; }
 .tp-chip { font: inherit; font-size: .9rem; font-weight: 600; background: var(--paper); color: var(--ink); border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; transition: border-color .15s; }
 .tp-chip:hover { border-color: var(--ink); }
 .tp-chip .tp-n { color: var(--muted); font-weight: 500; margin-left: 2px; }
@@ -39,6 +42,7 @@ h1, h2, h3, p { margin: 0; }
 .problems:not(.filtered) .problem:nth-child(even) .tz-stage, .problem.flip .tz-stage { order: -1; }
 .problem[hidden] { display: none; }
 .tz-text { padding: 44px; display: grid; gap: 18px; align-content: start; min-width: 0; }
+.tz-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .tz-text h2 { font-size: clamp(1.9rem, 4vw, 3.1rem); }
 .tz-text h2 a { color: inherit; text-decoration: none; }
 .tz-text h2 a:hover { text-decoration: underline; text-decoration-thickness: 3px; }
@@ -219,25 +223,35 @@ footer a { color: var(--muted); }
 
 <script>
 document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
-// Topic filter: hides the panels outside the chosen topic and keeps it in ?t= so a filtered list can be shared
+// Topic and level filters: hide the panels outside the chosen topic and level, kept in ?t= and ?l= so a filtered list can be shared
 (() => {
-  const list = document.querySelector('.problems'), chips = [...document.querySelectorAll('.tp-chip')];
-  const apply = t => {
-    if (!chips.some(c => c.dataset.topic === t)) t = '';
-    chips.forEach(c => c.setAttribute('aria-pressed', c.dataset.topic === t));
+  const list = document.querySelector('.problems');
+  const topics = [...document.querySelectorAll('.tp-chip[data-topic]')], levels = [...document.querySelectorAll('.tp-chip[data-level]')];
+  const pick = (chips, key, v) => {
+    if (!chips.some(c => c.dataset[key] === v)) v = '';
+    chips.forEach(c => c.setAttribute('aria-pressed', c.dataset[key] === v));
+    return v;
+  };
+  let t = '', l = '';
+  const apply = () => {
+    t = pick(topics, 'topic', t); l = pick(levels, 'level', l);
     let n = 0;
     for (const a of list.children) {
-      const on = !t || a.dataset.topics.split(' ').includes(t);
+      const on = (!t || a.dataset.topics.split(' ').includes(t)) && (!l || a.dataset.level === l);
       a.hidden = !on;
       a.classList.toggle('flip', on && n++ % 2 === 1);
     }
     list.classList.add('filtered');
+    document.querySelector('.tp-empty').hidden = n > 0;
     const u = new URL(location.href);
     if (t) u.searchParams.set('t', t); else u.searchParams.delete('t');
+    if (l) u.searchParams.set('l', l); else u.searchParams.delete('l');
     history.replaceState(history.state, '', u);
   };
-  chips.forEach(c => c.addEventListener('click', () => apply(c.dataset.topic)));
-  const t0 = new URLSearchParams(location.search).get('t');
-  if (t0) apply(t0);
+  topics.forEach(c => c.addEventListener('click', () => { t = c.dataset.topic; apply(); }));
+  levels.forEach(c => c.addEventListener('click', () => { l = c.dataset.level; apply(); }));
+  const q = new URLSearchParams(location.search);
+  t = q.get('t') || ''; l = q.get('l') || '';
+  if (t || l) apply();
 })();
 </script>

@@ -201,6 +201,24 @@ TOPICS = {
     "quick": {"uk": "Логіка й кмітливість", "en": "Logic and quick thinking"},
 }
 TOPICS_ALL = {"uk": "Усі", "en": "All"}
+# How much maths the explanation needs, meta.json "level": a badge on the home card, the problem page and the
+# "more puzzles" cards, plus a second filter row on the home page. It says nothing about how tricky the puzzle is.
+LEVELS = {
+    1: {"uk": ("Без формул", "Вистачить арифметики й логіки"), "en": ("No formulas", "Arithmetic and logic are enough")},
+    2: {"uk": ("Шкільна математика", "Дроби, відсотки, проста ймовірність"),
+        "en": ("School maths", "Fractions, percentages, basic probability")},
+    3: {"uk": ("Поглиблено", "Математичне сподівання, логарифми, ряди"),
+        "en": ("Advanced", "Expected value, logarithms, series")},
+}
+LEVELS_ALL = {"uk": "Будь-який рівень", "en": "Any level"}
+LEVEL_LD = {1: "beginner", 2: "intermediate", 3: "advanced"}
+
+
+def level_badge(lang, n):
+    """Three bars, the first n filled, and the level name; the title says what maths it takes."""
+    name, hint = LEVELS[n][lang]
+    bars = '<i class="on"></i>' * n + "<i></i>" * (3 - n)
+    return f'<span class="mp-level" title="{e(hint)}"><span class="mp-bars" aria-hidden="true">{bars}</span>{e(name)}</span>'
 
 
 def topic_filters(problems):
@@ -210,7 +228,13 @@ def topic_filters(problems):
                 + "".join(f'<span class="{l}">{label[l]}</span>' for l in LANGS) + f' <span class="tp-n">{n}</span></button>')
     chips = [chip("", TOPICS_ALL, len(problems), True)]
     chips += [chip(k, t, sum(k in p[1]["topics"] for p in problems)) for k, t in TOPICS.items()]
-    return '<div class="topics" role="group" aria-label="Теми" data-aria-en="Topics">' + "".join(chips) + "</div>"
+    levels = [chip("", LEVELS_ALL, len(problems), True).replace("data-topic", "data-level")]
+    levels += [chip(str(n), {l: LEVELS[n][l][0] for l in LANGS}, sum(p[1]["level"] == n for p in problems))
+               .replace("data-topic", "data-level") for n in LEVELS]
+    return ('<div class="topics" role="group" aria-label="Теми" data-aria-en="Topics">' + "".join(chips) + "</div>\n"
+            '<div class="topics levels" role="group" aria-label="Рівень" data-aria-en="Level">' + "".join(levels) + "</div>\n"
+            '<p class="tp-empty" hidden><span class="uk">У цій темі поки немає задач такого рівня. Оберіть інший рівень.</span>'
+            '<span class="en">No puzzles of this level in this topic yet. Try another level.</span></p>')
 
 
 RELATED_COUNT = 3
@@ -230,9 +254,10 @@ def pick_related(slug, metas):
 
 
 def related_block(lang, items, hub_url):
-    """`items` is a list of (url, title, question)."""
+    """`items` is a list of (url, title, question, level)."""
     eyebrow, title, all_label = RELATED_TEXT[lang]
-    cards = "\n".join(f'    <a class="mp-related-card" href="{u}"><h3>{e(t)}</h3><p>{e(q)}</p></a>' for u, t, q in items)
+    cards = "\n".join(f'    <a class="mp-related-card" href="{u}"><h3>{e(t)}</h3><p>{e(q)}</p>{level_badge(lang, n)}</a>'
+                      for u, t, q, n in items)
     return f"""<section class="mp-related" id="related">
   <div class="mp-related-head">
     <span class="eyebrow">{eyebrow}</span>
@@ -754,6 +779,7 @@ def build_problem(slug, base, metas, books):
                       f'<a class="brand" href="{hub[lang]}" style="text-decoration:none">{BRAND_MARK}{SITE_NAME[lang]}</a>', body, count=1)
         style = body[:body.index("</style>") + len("</style>")]
         body = body[len(style):]
+        body = body.replace('<header class="hero">\n  <div>', '<header class="hero">\n  <div>\n    ' + level_badge(lang, meta["level"]), 1)
         ld = {"@context": "https://schema.org", "@graph": [
             {
                 "@type": ["WebPage", "LearningResource"],
@@ -764,7 +790,7 @@ def build_problem(slug, base, metas, books):
                 "inLanguage": lang,
                 "isAccessibleForFree": True,
                 "learningResourceType": ["interactive simulation", "game", "explanation"],
-                "educationalLevel": "beginner",
+                "educationalLevel": LEVEL_LD[meta["level"]],
                 "about": {"@type": "Thing", **meta["about"]},
                 "image": page_base + f"og-{lang}.png",
                 "datePublished": meta["published"],
@@ -798,7 +824,8 @@ def build_problem(slug, base, metas, books):
         items = []
         for s in related:
             rm = dict(metas)[s][lang]
-            items.append((base + s + "/" + LANG_PATH[lang], rm["card"]["title"], rm.get("share", {}).get("description", rm["card"]["text"])))
+            items.append((base + s + "/" + LANG_PATH[lang], rm["card"]["title"],
+                          rm.get("share", {}).get("description", rm["card"]["text"]), dict(metas)[s]["level"]))
         body = with_related(body, related_block(lang, items, hub[lang]))
         body = with_books(body, books_block(lang, refs, books, base + "books/" + LANG_PATH[lang]))
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static data-spoil>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
@@ -824,20 +851,27 @@ def build_hub(problems, base):
         m = re.search(r"--tint:\s*(#[0-9A-Fa-f]{6})", (PROBLEMS / slug / "page.html").read_text(encoding="utf-8"))
         tint = f' style="--tint: {m.group(1)}"' if m else ""
         topics = " ".join(dict(problems_meta)[slug]["topics"])
-        blocks.append(f'<article class="problem" id="{slug}" data-topics="{topics}" data-spoil{tint}>\n' + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
+        level = dict(problems_meta)[slug]["level"]
+        # the level badge sits on the eyebrow line; it is filled in per language below
+        teaser = re.sub(r'<span class="eyebrow">.*?</span></span>', lambda m: f'<div class="tz-top">{m.group(0)}{{{{LEVEL:{level}}}}}</div>', teaser, count=1)
+        blocks.append(f'<article class="problem" id="{slug}" data-topics="{topics}" data-level="{level}" data-spoil{tint}>\n'
+                      + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
     src = src.replace("<!--PROBLEMS-->", "\n".join(blocks))
     for lang in LANGS:
         m, other = meta[lang], ("en" if lang == "uk" else "uk")
         body = LangStripper(src, other).strip()
         for slug, _, purls in problems:
             body = body.replace("{{URL:%s}}" % slug, purls[lang])
+        for n in LEVELS:
+            body = body.replace("{{LEVEL:%d}}" % n, level_badge(lang, n))
         body = body.replace("{{BOOKS}}", base + "books/" + LANG_PATH[lang])
         body = body.replace("{{HOME_BASE}}", base).replace("{{HOME}}", urls[lang]).replace("{{FIRST}}", problems[0][2][lang])
         if lang == "en":
             body = body.replace('alt="Дмитро Кудренко" data-alt-en="Dmytro Kudrenko"', 'alt="Dmytro Kudrenko"')
             body = body.replace('aria-label="Теми" data-aria-en="Topics"', 'aria-label="Topics"')
+            body = body.replace('aria-label="Рівень" data-aria-en="Level"', 'aria-label="Level"')
         else:
-            body = body.replace(' data-alt-en="Dmytro Kudrenko"', "").replace(' data-aria-en="Topics"', "")
+            body = body.replace(' data-alt-en="Dmytro Kudrenko"', "").replace(' data-aria-en="Topics"', "").replace(' data-aria-en="Level"', "")
         body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
         body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
         style = body[:body.index("</style>") + len("</style>")]
@@ -854,7 +888,7 @@ def build_hub(problems, base):
                  {"@type": "ListItem", "position": i + 1, "item": {
                      "@type": "LearningResource", "@id": p[2][lang] + "#page", "url": p[2][lang],
                      "name": p[1][lang]["card"]["title"], "description": p[1][lang]["description"],
-                     "inLanguage": lang, "isAccessibleForFree": True,
+                     "inLanguage": lang, "isAccessibleForFree": True, "educationalLevel": LEVEL_LD[p[1]["level"]],
                      "image": base + p[0] + f"/og-{lang}.png"}}
                  for i, p in enumerate(problems)]}},
         ]}
@@ -1104,6 +1138,8 @@ def build(base, out=None):
                 raise SystemExit(f"problems/{slug}/meta.json: \"{k}\" must be a YYYY-MM-DD date")
         if not meta.get("topics") or set(meta["topics"]) - set(TOPICS):
             raise SystemExit(f"problems/{slug}/meta.json: \"topics\" must list one or more of {', '.join(TOPICS)}")
+        if meta.get("level") not in LEVELS:
+            raise SystemExit(f"problems/{slug}/meta.json: \"level\" must be 1, 2 or 3 (see LEVELS in build.py)")
     books = load_books()
     problems = [build_problem(s, base, metas, books) for s, _ in metas]
     hub = build_hub(problems, base)

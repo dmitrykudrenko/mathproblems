@@ -40,7 +40,7 @@ hub/
 problems/<slug>/
   page.html    сторінка задачі; обидві мови поруч (class="uk" / class="en")
   teaser.html  блок задачі на головній: умова, «інтуїція / насправді», міні-гра
-  meta.json    order, published, updated, topics, about (Wikipedia); title, description, FAQ, картка — для кожної мови
+  meta.json    order, published, updated, topics, level, about (Wikipedia); title, description, FAQ, картка — для кожної мови
   assets/      og-uk.png, og-en.png (1200×630)
 books.json     книжки для блоку «Що почитати» (автор uk/en, назва, рік, ISBN, українське видання)
 site.css       спільний вигляд усіх сторінок (підключається після стилів сторінки)
@@ -66,7 +66,7 @@ python3 build.py
 
 ## Нова задача
 
-1. Створіть `problems/<slug>/` з `page.html`, `teaser.html` і `meta.json` (поле `order` задає місце на головній, `published` і `updated` — дати у форматі `YYYY-MM-DD`, `topics` — теми для фільтрів на головній: один чи кілька ключів із `TOPICS` у build.py: interview, conditional, chance, stats, games, quick).
+1. Створіть `problems/<slug>/` з `page.html`, `teaser.html` і `meta.json` (поле `order` задає місце на головній, `published` і `updated` — дати у форматі `YYYY-MM-DD`, `topics` — теми для фільтрів на головній: один чи кілька ключів із `TOPICS` у build.py: interview, conditional, chance, stats, games, quick; `level` — скільки математики потрібно для пояснення: 1 — без формул, 2 — шкільна математика, 3 — поглиблено (сподівання, логарифми, ряди); рівень не каже, наскільки задача підступна. Він показується значком на головній, у шапці сторінки й у блоці «Ще задачі», дає другий ряд фільтрів на головній (`?l=1`) і `educationalLevel` у JSON-LD).
 2. Додайте тексти задачі в `tools/og.py` і запустіть `python3 tools/og.py`.
 3. `python3 build.py` додасть сторінки, тизер на головну, записи в sitemap і RSS.
 
