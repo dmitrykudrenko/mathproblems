@@ -168,14 +168,53 @@ DISCUSS_TEXT = {
 }
 
 
-def discuss_block(lang, slug):
+# One-click check of the maths level under the discussion intro: the vote goes to the stats worker as its own
+# problem "<slug>-lvl" (so it never mixes with the answer stats) with the key "<vote>.<level>", which keeps votes
+# apart if the level is changed later. One vote per browser, nothing is shown back but a thank-you.
+LEVEL_VOTE_TEXT = {
+    "uk": ("Рівень «%s» відповідає задачі?", (("harder", "Ні, складніше"), ("right", "Так"), ("easier", "Ні, простіше")),
+           "Дякуємо! Це допоможе точніше ставити рівні."),
+    "en": ("Is “%s” the right level for this puzzle?", (("harder", "No, harder"), ("right", "Yes"), ("easier", "No, easier")),
+           "Thank you! This helps set the levels right."),
+}
+LEVEL_VOTE_SCRIPT = """<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = %s, SLUG = %s + "-lvl", LEVEL = %d, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>"""
+
+
+def level_vote(lang, slug, level):
+    if not STATS_API:
+        return ""
+    q, votes, thanks = LEVEL_VOTE_TEXT[lang]
+    btns = "".join(f'<button type="button" data-vote="{k}">{t}</button>' for k, t in votes)
+    return (f'\n    <div class="mp-lvote"><p>{e(q % LEVELS[level][lang][0])}</p><div class="mp-lvote-btns">{btns}</div>'
+            f'<p class="mp-lvote-thanks">{thanks}</p></div>\n'
+            + LEVEL_VOTE_SCRIPT % (json.dumps(STATS_API), json.dumps(slug), level))
+
+
+def discuss_block(lang, slug, level):
     eyebrow, title, text = DISCUSS_TEXT[lang]
     g = GISCUS
     return f"""<section class="mp-discuss" id="discuss">
   <div class="mp-discuss-text">
     <span class="eyebrow">{eyebrow}</span>
     <h2>{title}</h2>
-    <p>{text}</p>
+    <p>{text}</p>{level_vote(lang, slug, level)}
   </div>
   <div class="mp-discuss-thread">
     <script src="https://giscus.app/client.js"
@@ -501,12 +540,12 @@ def with_poll(body, lang, slug, poll):
     return body[:i] + block + body[i:]
 
 
-def with_discuss(body, lang, slug):
+def with_discuss(body, lang, slug, level):
     """Put the discussion block before the newsletter block (or before the footer)."""
     i = body.find('<section class="mp-subscribe"')
     if i == -1:
         i = body.rfind("<footer")
-    return body[:i] + discuss_block(lang, slug) + "\n\n" + body[i:]
+    return body[:i] + discuss_block(lang, slug, level) + "\n\n" + body[i:]
 
 
 def with_subscribe(body, lang):
@@ -812,7 +851,7 @@ def build_problem(slug, base, metas, books):
                  (m["share"]["title"], m["share"]["description"]) if "share" in m else None)
         if "i.ytimg.com" in body:
             h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
-        body = with_discuss(with_subscribe(with_poll(with_hints(body, lang, slug, meta.get("hints")), lang, slug, meta.get("poll")), lang), lang, slug)
+        body = with_discuss(with_subscribe(with_poll(with_hints(body, lang, slug, meta.get("hints")), lang, slug, meta.get("poll")), lang), lang, slug, meta["level"])
         items = []
         for s in related:
             rm = dict(metas)[s][lang]
