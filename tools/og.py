@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "berkson-paradox": "#EAE6DC", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -138,6 +138,10 @@ TEXT = {
     "bridge-and-torch": {
         "uk": (["МІСТ І", "ЛІХТАРИК"], "1, 2, 5, 10 хв. Скільки на всіх?"),
         "en": (["THE BRIDGE", "AND THE TORCH"], "1, 2, 5, 10 min. How long for all?"),
+    },
+    "berkson-paradox": {
+        "uk": (["ПАРАДОКС", "БЕРКСОНА"], "Врода і доброта серед побачень?"),
+        "en": (["BERKSON'S", "PARADOX"], "Looks and kindness of your dates?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -493,6 +497,18 @@ def extra_visual(kind, x, y, lang="en"):
             out += [f'<rect x="{px - 30}" y="{y + 240}" width="60" height="44" rx="10" fill="#fff"/>',
                     f'<text x="{px}" y="{y + 271}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="22" fill="{INK}">{t}</text>']
         out.append(f'<text x="{x + 350}" y="{y + 70}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>')
+    elif kind == "berkson-paradox":
+        # a round cloud of independent looks and kindness with the dating bar; the correlation above it is the answer
+        out += [f'<rect x="{x + 10}" y="{y + 10}" width="360" height="320" rx="18" fill="#fff"/>']
+        cx, cy, k = x + 190, y + 170, 42
+        for _ in range(170):
+            a, b = rnd.gauss(0, 1), rnd.gauss(0, 1)
+            if abs(a) > 3.3 or abs(b) > 3.3:
+                continue
+            on = a + b > 0.7416
+            out.append(f'<circle cx="{cx + a * k:.1f}" cy="{cy - b * k:.1f}" r="{4.2 if on else 3.4}" fill="{INK}" fill-opacity="{.85 if on else .22}"/>')
+        out.append(f'<line x1="{cx - 2.6 * k:.1f}" y1="{cy - (0.7416 + 2.6) * k:.1f}" x2="{cx + 3.4 * k:.1f}" y2="{cy - (0.7416 - 3.4) * k:.1f}" stroke="{INK}" stroke-width="3" stroke-dasharray="10 8"/>')
+        out.append(f'<text x="{x + 350}" y="{y + 60}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">r = ?</text>')
     return "".join(out)
 
 
@@ -527,7 +543,7 @@ def svg(kind, lang):
                   "regression-to-mean", "two-envelopes", "coin-streaks", "bertrand-paradox", "penney-game",
                   "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine", "election-poll",
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
-                  "twenty-five-horses", "bridge-and-torch"):
+                  "twenty-five-horses", "bridge-and-torch", "berkson-paradox"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
