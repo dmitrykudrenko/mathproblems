@@ -622,6 +622,56 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
       <button class="btn ghost" id="reset3" style="margin-top:14px"><span class="uk">Скинути статистику</span></button>
     </div>
   </div>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "monty-hall", RULE = {"right": ["switch"]}, MIN = 20, T = {"kicker": "Як відповідають інші", "few": "Відповідей поки замало для статистики: {n}. Ваша вже серед них.", "few_seen": "Відповідей поки замало для статистики: {n}.", "all": "Відповідей: {n}. Правильних серед них {p}.", "yes": "Ви серед тих, хто впорався.", "no": "Не засмучуйтеся: інтуїція підводить більшість.", "bar": "правильно", "note": "Рахуємо лише першу відповідь з кожного браузера, до того як він побачив розв'язок. Анонімно."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g);
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
 </section>
 
 <!-- ROUND 3: simulation -->
