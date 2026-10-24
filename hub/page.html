@@ -27,9 +27,17 @@ h1, h2, h3, p { margin: 0; }
 .list-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; padding-block: 88px 28px; }
 .list-head p { color: var(--muted); max-width: 46ch; }
 .list-side { display: grid; gap: 8px; justify-items: start; }
+.topics { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+.tp-chip { font: inherit; font-size: .9rem; font-weight: 600; background: var(--paper); color: var(--ink); border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; transition: border-color .15s; }
+.tp-chip:hover { border-color: var(--ink); }
+.tp-chip .tp-n { color: var(--muted); font-weight: 500; margin-left: 2px; }
+.tp-chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+.tp-chip[aria-pressed="true"] .tp-n { color: rgba(255,255,255,.7); }
 .problems { display: grid; gap: 24px; padding-bottom: 40px; }
 .problem { display: grid; grid-template-columns: 1.05fr 1fr; gap: 0; border-radius: 32px; overflow: hidden; background: var(--soft); }
-.problem:nth-child(even) .tz-stage { order: -1; }
+/* panels alternate sides; once a topic filter is on, the script marks every second visible panel with .flip instead */
+.problems:not(.filtered) .problem:nth-child(even) .tz-stage, .problem.flip .tz-stage { order: -1; }
+.problem[hidden] { display: none; }
 .tz-text { padding: 44px; display: grid; gap: 18px; align-content: start; min-width: 0; }
 .tz-text h2 { font-size: clamp(1.9rem, 4vw, 3.1rem); }
 .tz-text h2 a { color: inherit; text-decoration: none; }
@@ -105,7 +113,7 @@ footer a { color: var(--muted); }
 
 @media (max-width: 900px) {
   .problem { grid-template-columns: 1fr; }
-  .problem:nth-child(even) .tz-stage { order: 0; }
+  .problems:not(.filtered) .problem:nth-child(even) .tz-stage, .problem.flip .tz-stage { order: 0; }
   .tz-text { padding: 28px 24px; }
   .tz-stage { padding: 56px 18px 28px; }
   .about, .author { grid-template-columns: 1fr; padding: 32px 24px; gap: 20px; }
@@ -154,6 +162,7 @@ footer a { color: var(--muted); }
         <button type="button" class="sp-skip hide-all" data-unsolve="all"><span class="uk">Сховати всі відповіді</span><span class="en">Hide all answers</span></button>
       </div>
     </div>
+    <!--TOPICS-->
     <div class="problems">
 <!--PROBLEMS-->
     </div>
@@ -210,4 +219,25 @@ footer a { color: var(--muted); }
 
 <script>
 document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+// Topic filter: hides the panels outside the chosen topic and keeps it in ?t= so a filtered list can be shared
+(() => {
+  const list = document.querySelector('.problems'), chips = [...document.querySelectorAll('.tp-chip')];
+  const apply = t => {
+    if (!chips.some(c => c.dataset.topic === t)) t = '';
+    chips.forEach(c => c.setAttribute('aria-pressed', c.dataset.topic === t));
+    let n = 0;
+    for (const a of list.children) {
+      const on = !t || a.dataset.topics.split(' ').includes(t);
+      a.hidden = !on;
+      a.classList.toggle('flip', on && n++ % 2 === 1);
+    }
+    list.classList.add('filtered');
+    const u = new URL(location.href);
+    if (t) u.searchParams.set('t', t); else u.searchParams.delete('t');
+    history.replaceState(history.state, '', u);
+  };
+  chips.forEach(c => c.addEventListener('click', () => apply(c.dataset.topic)));
+  const t0 = new URLSearchParams(location.search).get('t');
+  if (t0) apply(t0);
+})();
 </script>
