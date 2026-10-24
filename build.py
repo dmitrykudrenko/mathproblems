@@ -403,7 +403,7 @@ def with_hints(body, lang, slug, hints):
 # right: "right" lists [lo, hi] ranges for a number and exact strings for anything else, "each" gives a range per
 # part of an array guess (keys "a|b|c"), "round" names the section when it is not id="guess". A browser that saw
 # the answer before guessing never votes. Empty STATS_API turns the block off.
-STATS_API = ""
+STATS_API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/"
 POLL_MIN = 20  # fewer answers than this are not shown as a share
 POLL_TEXT = {
     "uk": {"kicker": "Як відповідають інші", "few": "Відповідей поки замало для статистики: {n}. Ваша вже серед них.",
