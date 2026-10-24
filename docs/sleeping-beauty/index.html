@@ -1,0 +1,1288 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/sleeping-beauty/", "en": "/sleeping-beauty/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "sleeping-beauty";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  window.mpSolve = function () {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new Event("solved"));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>Задача про Сплячу красуню: 1/3 чи 1/2? Ставки, симуляція, пояснення</title>
+<meta name="description" content="Спляча красуня: шанс орла 1/3 чи 1/2? Ставки на кожному пробудженні, мільйон експериментів, Елга проти Льюїса, кінець світу і неуважний водій.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/sleeping-beauty/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/sleeping-beauty/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/sleeping-beauty/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/sleeping-beauty/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Задача про Сплячу красуню">
+<meta property="og:description" content="При орлі Красуню будять один раз, при решці двічі, і щоразу стирають пам&#x27;ять. Вона прокинулася. Який шанс, що випав орел?">
+<meta property="og:url" content="https://mathparadoxes.com/sleeping-beauty/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/sleeping-beauty/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Монета, понеділок і вівторок. Задача про Сплячу красуню: який шанс, що випав орел?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Задача про Сплячу красуню">
+<meta name="twitter:description" content="При орлі Красуню будять один раз, при решці двічі, і щоразу стирають пам&#x27;ять. Вона прокинулася. Який шанс, що випав орел?">
+<meta name="twitter:image" content="https://mathparadoxes.com/sleeping-beauty/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/sleeping-beauty/#page", "url": "https://mathparadoxes.com/sleeping-beauty/", "name": "Задача про Сплячу красуню: 1/3 чи 1/2? Ставки, симуляція, пояснення", "description": "Спляча красуня: шанс орла 1/3 чи 1/2? Ставки на кожному пробудженні, мільйон експериментів, Елга проти Льюїса, кінець світу і неуважний водій.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "beginner", "about": {"@type": "Thing", "name": "Sleeping Beauty problem", "sameAs": "https://en.wikipedia.org/wiki/Sleeping_Beauty_problem"}, "image": "https://mathparadoxes.com/sleeping-beauty/og-uk.png", "datePublished": "2026-10-24", "dateModified": "2026-10-24", "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "workTranslation": {"@id": "https://mathparadoxes.com/sleeping-beauty/en/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "Задача про Сплячу красуню", "item": "https://mathparadoxes.com/sleeping-beauty/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/sleeping-beauty/#faq", "inLanguage": "uk", "mainEntity": [{"@type": "Question", "name": "Яка відповідь у задачі про Сплячу красуню: 1/3 чи 1/2?", "acceptedAnswer": {"@type": "Answer", "text": "Обидва числа правильні, але відповідають на різні питання. Серед усіх пробуджень лише третина припадає на орла, тож шанс орла «на пробудженні» дорівнює 1/3. Серед експериментів орел у половині, тож «шанс, що монета впала орлом» у цьому сенсі 1/2. Філософи сперечаються, яке прочитання питання правильне."}}, {"@type": "Question", "name": "Хто такі третинники і половинники?", "acceptedAnswer": {"@type": "Answer", "text": "Третинники, як Адам Елга (2000), вважають, що Красуня має назвати 1/3: три пробудження нерозрізненні, і орел лише в одному. Половинники, як Девід Льюїс (2001), вважають, що 1/2: пробудження не дає нової інформації, а монета чесна."}}, {"@type": "Question", "name": "Як ставки допомагають вирішити суперечку?", "acceptedAnswer": {"@type": "Answer", "text": "Якщо Красуня купує квиток «1, якщо орел» на кожному пробудженні, квиток окупається за ціною 1/3, а за ціною 1/2 вона в середньому втрачає 1/6 на квитку. Якщо рахується лише одна ставка на експеримент, чесна ціна 1/2. Кожне число каліброване для свого типу ставки."}}, {"@type": "Question", "name": "Хто придумав задачу про Сплячу красуню?", "acceptedAnswer": {"@type": "Answer", "text": "Задачу сформулював філософ Арнольд Зубофф у неопублікованих роботах середини 1980-х; надрукована вона в його статті «One Self» (1990). Назву дав Роберт Сталнакер, а відомою задача стала після статті Адама Елги в журналі Analysis (2000) і відповіді Девіда Льюїса (2001)."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the two envelopes page. A row per experiment (coin, Monday, Tuesday) is this problem's signature object. */
+:root {
+  --tint: #E1E2FA;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 14px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); }
+
+/* ---------- experiment rows: coin · Monday · Tuesday ---------- */
+.exps { display: grid; gap: 8px; }
+.exp { display: grid; grid-template-columns: 46px 1fr 1fr; gap: 8px; align-items: stretch; }
+.exp > * { min-width: 0; }
+.coin { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; font-size: .95rem; border: 2px solid var(--ink); background: var(--surface); color: var(--ink); align-self: center; }
+.coin.h { background: var(--ink); color: var(--surface); }
+.coin.q { border-style: dashed; color: var(--muted); }
+.day { border-radius: 10px; padding: 7px 10px; display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: .84rem; font-weight: 600; min-height: 46px; }
+.day.on { background: var(--surface); border: 1.5px solid var(--ink); }
+.day.off { border: 1.5px dashed var(--line); color: var(--muted); font-weight: 500; }
+.day .st { font-family: var(--f-mono); font-size: .72rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.day.ok { border-color: var(--win); }
+.day.ok .st { color: var(--win); }
+.day.no { border-color: var(--loss); }
+.day.no .st { color: var(--loss); }
+.day.now { border-style: solid; border-color: var(--ink); background: var(--surface); outline: 3px solid var(--ink); outline-offset: 2px; }
+.exp.head { font-family: var(--f-mono); font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.exp.head span { padding-left: 10px; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl select { font: inherit; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--ink); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+.big.day { color: var(--day); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 150px 1fr 64px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow > * { min-width: 0; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+.crow .mono { text-align: right; white-space: nowrap; }
+.half-q { margin-top: 20px; display: grid; gap: 14px; }
+.half-q .msg { min-height: 1.6em; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 20px; }
+.status { display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+.status > div { min-width: 0; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.8rem; font-weight: 800; }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.chips span { font-family: var(--f-mono); font-size: .74rem; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.9rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.pgroup { display: grid; gap: 8px; }
+.pgroup > span { font-size: .8rem; color: var(--muted); font-weight: 500; }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; min-width: 0; }
+.vs b { font-family: var(--f-display); font-size: 1.6rem; }
+.vs .a b { color: var(--ink); }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .84rem; color: var(--muted); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; margin-top: 18px; }
+.result-row > div { min-width: 0; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+th.num { text-align: right; }
+td.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+td.pos { color: var(--win); }
+td.neg { color: var(--loss); }
+td.zero { font-weight: 700; }
+tr.tot td { font-weight: 700; border-bottom: 0; }
+#x-tbl b { overflow-wrap: anywhere; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 104px 1fr 54px; font-size: .8rem; }
+  .vs { grid-template-columns: 1fr; }
+  .exp { grid-template-columns: 40px 1fr 1fr; gap: 6px; }
+  .coin { width: 40px; height: 40px; }
+  .day { padding: 6px 8px; font-size: .78rem; }
+  .day .st { font-size: .66rem; }
+  th, td { padding: 8px 6px; }
+  .why-grid th, .why-grid td { padding-inline: 3px; }
+  .tbl-wrap th { letter-spacing: 0; font-size: .64rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=31428ad6">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/sleeping-beauty/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/sleeping-beauty/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <h1 class="uk"><span class="kw">Задача про Сплячу красуню</span> Монета, сон і стерта пам'ять. <span class="q sp-before">Який шанс, що випав орел?</span><span class="sp-after"><span class="q">1/3 на пробудження,</span> 1/2 на експеримент.</span></h1>
+    
+    <p class="lead uk sp-before">Красуню присипляють і підкидають монету. Якщо орел, її будять один раз, якщо решка, двічі, і щоразу стирають пам'ять про попереднє пробудження. Прокинувшись, вона не знає, який сьогодні день. Яким має бути її шанс на орла? Зафіксуйте свою відповідь, а потім перевірте її ставками, симуляцією і поясненнями.</p>
+    <p class="lead uk sp-after">Красуню присипляють і підкидають монету. Якщо орел, її будять один раз, якщо решка, двічі, і щоразу стирають пам'ять. Серед усіх пробуджень лише третина припадає на орла, а серед експериментів половина. Філософи сперечаються з 2000 року: «третинники» рахують пробудження, «половинники» рахують експерименти. Нижче видно, яке питання ставить кожен табір і чиї ставки окупаються.</p>
+    
+    
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="mono">1/3</b><span><span class="uk">орлів серед пробуджень</span></span></div>
+      <div class="odd"><b class="mono">1/2</b><span><span class="uk">орлів серед експериментів</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="uk">Умова</b></a>
+      <a href="#guess"><span>1</span><b class="uk">Вгадайте</b></a>
+      <a href="#game"><span>2</span><b class="uk">Ставки</b></a>
+      <a href="#sim"><span>3</span><b class="uk">Мільйон експериментів</b></a>
+      <a href="#why"><span>4</span><b class="uk">Два табори</b></a>
+      <a href="#more"><span>5</span><b class="uk">Ускладнюємо</b></a>
+      <a href="#facts"><span>★</span><b class="uk" style="font-weight:inherit">Цікаві факти</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <div class="exps" id="hero-exps"></div>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span></span>
+    <h2><span class="uk">Монета в неділю, пробудження в понеділок і, можливо, у вівторок</span></h2>
+    <p class="lead uk">Це одна з небагатьох задач на сайті, де серйозні дослідники досі не дійшли згоди. Тож замість «правильної відповіді» ми покажемо, звідки береться кожне число і яке питання воно насправді відповідає.</p>
+    
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Неділя</span></h3>
+        <p class="uk">Красуню присипляють. Вона заздалегідь знає всі правила. Поки вона спить, дослідники підкидають чесну монету.</p>
+        </div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Орел: одне пробудження</span></h3>
+        <p class="uk">Якщо випав орел, її будять у понеділок, ставлять питання і знову присипляють до кінця експерименту, у середу.</p>
+        </div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Решка: два пробудження</span></h3>
+        <p class="uk">Якщо випала решка, її будять у понеділок і у вівторок. Після понеділка їй дають ліки, які стирають спогад про це пробудження. Вівторок для неї виглядає точно як понеділок.</p>
+        </div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span></h3>
+        <p class="uk">Щоразу, прокинувшись, вона чує: «Наскільки ви впевнені, що монета впала орлом?» Вона не знає, понеділок зараз чи вівторок і чи будили її раніше. Яку ймовірність їй варто назвати?</p>
+        </div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span></span>
+        <p class="q"><span class="uk">«Монета чесна, нового я нічого не дізналася. Отже, 1/2»</span></p>
+        <p class="uk">Так міркують «половинники», і серед них був філософ Девід Льюїс. Але якщо рахувати пробудження, то з трьох можливих пробуджень лише одне припадає на орла. Тому «третинники», як Адам Елга, кажуть 1/3. Обидва числа правильні, але відповідають на різні питання, і ставки показують, коли яке з них потрібне.</p>
+        
+      </div>
+      <div class="card">
+        <h3><span class="uk">Припущення</span></h3>
+        <ul class="rules uk">
+          <li>Монета чесна: орел і решка по 1/2.</li>
+          <li>Красуня знає правила і міркує бездоганно.</li>
+          <li>Пробудження нічим не відрізняються: ні календаря, ні годинника, ні спогадів.</li>
+        </ul>
+        
+        <p class="note"><span class="uk">Орел позначаємо літерою О, решку літерою Р. Понеділок і вівторок: Пн і Вт.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span></span>
+    <h2><span class="uk">Красуня прокинулася. Який шанс, що випав орел?</span></h2>
+    <p class="lead uk">Уявіть себе на її місці: ви прокинулися і не знаєте, який сьогодні день. Зафіксуйте відповідь, перш ніж читати далі.</p>
+    
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <span class="note"><span class="uk">Ваша відповідь</span></span>
+      <div class="presets" id="g-opts"></div>
+      <div class="exps"><div class="exp"><span class="coin q">?</span><span class="day now"><span id="g-day">?</span><span class="st" id="g-st"></span></span><span class="day off"><span>?</span></span></div></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться розбір вашої відповіді.</p>
+      
+    </div>
+  </div>
+  <div class="card half-q">
+    <h3><span class="uk">А тепер головне: що рахують «половинники», коли кажуть 1/2?</span></h3>
+    <div class="presets" id="f-opts"></div>
+    <p class="msg" id="f-msg" aria-live="polite"></p>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Підказки</span>
+    <p class="mp-hints-intro">Важко вирішити? Відкривайте підказки по одній: спочатку легка, далі сильніша.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Уявіть, що експеримент повторили 1 000 разів. Порахуйте дві речі: скільки було експериментів і скільки було пробуджень.</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>Орел дає одне пробудження, решка два. Скільки з усіх пробуджень припадає на орла, а скільки з усіх експериментів?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>500 експериментів з орлом дають 500 пробуджень, 500 з решкою дають 1 000. Подумайте, про яку частку питають Красуню, коли будять її і питають щоразу заново.</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Показати підказку 1 з 3 · легка&quot;, &quot;Показати підказку 2 з 3 · середня&quot;, &quot;Показати підказку 3 з 3 · сильна&quot;]">Показати підказку 1 з 3 · легка</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "sleeping-beauty";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: bets -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Ставки</span></span>
+    <h2><span class="uk">Ви Красуня. Ставте на кожному пробудженні</span></h2>
+    <p class="lead uk">Підкидаємо монету і будимо вас один чи два рази. Щоразу ви ставите 1 ₴ на орла або на решку. Дві каси рахують ставки по-різному. Каса «на пробудження» приймає 1 ₴ на кожному пробудженні. Каса «на експеримент» приймає 1 ₴ за весь експеримент, тож при решці кожне з двох пробуджень важить пів гривні. Подивіться, яка стратегія виграє в якій касі.</p>
+    
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="status">
+        <div><span class="k"><span class="uk">Експеримент</span></span><b class="mono" id="gm-n">1</b></div>
+        <div><span class="k"><span class="uk">Пробуджень усього</span></span><b class="mono" id="gm-a">0</b></div>
+      </div>
+      <div class="exps" id="gm-exp"></div>
+      <p class="msg" id="gm-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn" id="gm-h"><span class="uk">Ставлю на орла</span></button>
+        <button class="btn" id="gm-t"><span class="uk">Ставлю на решку</span></button>
+        <button class="btn pri" id="gm-next"><span class="uk">Наступний експеримент</span></button>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" id="gm-auto-t"><span class="uk">+100 експериментів: завжди решка</span></button>
+        <button class="btn ghost" id="gm-auto-h"><span class="uk">+100: завжди орел</span></button>
+        <button class="btn ghost" id="gm-reset"><span class="uk">Почати заново</span></button>
+      </div>
+      <div class="chips" id="gm-chips"></div>
+    </div>
+    <div class="card" style="display:grid;gap:14px">
+      <h3><span class="uk">Дві каси</span></h3>
+      <p class="note" id="gm-sum"></p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th><span class="uk">Стратегія</span></th><th class="num"><span class="uk">На пробудження</span></th><th class="num"><span class="uk">На експеримент</span></th></tr></thead>
+        <tbody id="gm-tbl"></tbody>
+      </table></div>
+      <h3 style="margin-top:6px"><span class="uk">Скільки коштує квиток «1 ₴, якщо орел»?</span></h3>
+      <p class="note"><span class="uk">Ваша впевненість в орлі — це ціна, за яку квиток вам ні вигідний, ні збитковий. Середній прибуток з квитка за кожної ціни, на ваших же експериментах:</span></p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th><span class="uk">Ціна</span></th><th class="num"><span class="uk">Купуєте на кожному пробудженні</span></th><th class="num"><span class="uk">Один на експеримент</span></th></tr></thead>
+        <tbody id="gm-price"></tbody>
+      </table></div>
+      <p class="note" id="gm-verdict"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span></span>
+    <h2><span class="uk">Мільйон експериментів: рахуємо пробудження і рахуємо експерименти</span></h2>
+    <p class="lead uk">Комп'ютер проводить експерименти один за одним і веде два підрахунки: яка частка експериментів закінчилася орлом і яка частка пробуджень сталася після орла. Ті самі монети, ті самі пробудження, різниться лише знаменник.</p>
+    
+  </div>
+  <div class="card">
+    <div class="controls">
+      <div class="pgroup"><span><span class="uk">Пробуджень при решці</span></span><div class="presets" id="sim-k"></div></div>
+      <label class="ctl" for="sim-r"><span class="uk">Експериментів</span>
+        <select id="sim-r">
+          <option value="1000">1 000</option>
+          <option value="10000">10 000</option>
+          <option value="100000">100 000</option>
+          <option value="1000000" selected>1 000 000</option>
+        </select>
+      </label>
+      <button class="btn pri" id="sim-run"><span class="uk">Запустити</span></button>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="sim-chart" style="height:300px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--ink)"><b class="uk">орли серед експериментів</b></span>
+          <span style="--c:var(--hit)"><b class="uk">орли серед пробуджень</b></span>
+          <span style="--c:var(--muted)"><b class="uk">пунктир: теорія</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k"><span class="uk">Експериментів · з них орел</span></div><div class="v mono" id="sim-e">–</div><div class="s" id="sim-es"></div></div>
+        <div class="tile" style="--c:var(--hit)"><div class="k"><span class="uk">Пробуджень · після орла</span></div><div class="v mono" id="sim-a">–</div><div class="s" id="sim-as"></div></div>
+        <p class="note" id="sim-txt"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Два табори</span></span>
+    <h2><span class="uk">Чому одні кажуть 1/3, інші 1/2, і обидва мають рацію</span></h2>
+    <p class="lead uk">Суперечка не про арифметику: усі згодні, що орел припадає на 1/3 пробуджень і на 1/2 експериментів. Сперечаються про те, яке з цих чисел має назвати Красуня, коли її питають про «шанс орла».</p>
+    
+  </div>
+  <div class="why-grid">
+    <div class="card">
+      <span class="kicker"><span class="uk">Аргумент Елги · третинники</span></span>
+      <h3><span class="uk">Три однакові пробудження</span></h3>
+      <div class="exps">
+        <div class="exp"><span class="coin h"><span class="uk">О</span></span><span class="day on"><span><span class="uk">Пн</span></span><span class="st">1/3</span></span><span class="day off"><span><span class="uk">Вт</span></span><span class="st">zz</span></span></div>
+        <div class="exp"><span class="coin"><span class="uk">Р</span></span><span class="day on"><span><span class="uk">Пн</span></span><span class="st">1/3</span></span><span class="day on"><span><span class="uk">Вт</span></span><span class="st">1/3</span></span></div>
+      </div>
+      <p class="uk">Прокинувшись, Красуня може бути в одній із трьох ситуацій: О-Пн, Р-Пн, Р-Вт. Р-Пн і Р-Вт для неї нерозрізненні, тож однаково ймовірні. А якби їй сказали «сьогодні понеділок», шанси О і Р мали б бути рівні: монету можна підкинути й після понеділкового пробудження, а чесна монета дає 1/2. Отже, усі три ситуації рівноймовірні, і на орла припадає 1/3. Так міркував Адам Елга у 2000 році.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Аргумент Льюїса · половинники</span></span>
+      <h3><span class="uk">Нічого нового вона не дізналася</span></h3>
+      <p class="uk">У неділю шанс орла 1/2. Прокинувшись, Красуня не отримує жодної інформації, якої не мала б у неділю: вона знала, що її точно розбудять. А ймовірність змінюється лише з новою інформацією, тож лишається 1/2. Так відповів Елзі Девід Льюїс у 2001 році.</p>
+      
+      <div class="vs">
+        <div class="a"><span><span class="uk">Половинник: шанс орла, коли їй кажуть «сьогодні понеділок»</span></span><b>2/3</b></div>
+        <div class="a"><span><span class="uk">Третинник у тій самій ситуації</span></span><b>1/2</b></div>
+      </div>
+      <p class="uk">Ціна позиції Льюїса: якщо Красуні повідомити, що сьогодні понеділок, вона мусить вважати орла ймовірнішим, 2/3, хоча монету, можливо, ще навіть не підкинули. Багатьом це здається дивним, і на цьому місці більшість суперечок і зосереджена.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Два питання</span></span>
+      <h3><span class="uk">Однакові монети, різні знаменники</span></h3>
+      <div class="tbl-wrap"><table>
+        <caption class="note" style="text-align:left;padding-bottom:6px"><span class="uk">1 000 експериментів</span></caption>
+        <thead><tr><th></th><th class="num"><span class="uk">Експерименти</span></th><th class="num"><span class="uk">Пробудження</span></th></tr></thead>
+        <tbody>
+          <tr><td><span class="uk">Орел</span></td><td class="num">500</td><td class="num">500</td></tr>
+          <tr><td><span class="uk">Решка</span></td><td class="num">500</td><td class="num"><span class="uk">1 000</span></td></tr>
+          <tr class="tot"><td><span class="uk">Частка орла</span></td><td class="num">500/1000<br>= 1/2</td><td class="num" style="color:var(--hit)">500/1500<br>= 1/3</td></tr>
+        </tbody>
+      </table></div>
+      <p class="uk">«У якій частці експериментів випав орел?» Відповідь 1/2. «Після якої частки пробуджень монета лежить орлом?» Відповідь 1/3. Філософ Беррі Ґройсман у 2008 році доводив, що обидва табори мають рацію, просто відповідають на різні питання. Слова «шанс орла» допускають обидва прочитання.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Ставки вирішують</span></span>
+      <h3><span class="uk">Яке число окупається, залежить від того, як рахують ставки</span></h3>
+      <div class="vs">
+        <div class="bb"><span><span class="uk">Ставка на кожному пробудженні: чесна ціна квитка «1, якщо орел»</span></span><b>1/3</b></div>
+        <div class="a"><span><span class="uk">Одна ставка на експеримент</span></span><b>1/2</b></div>
+      </div>
+      <p class="uk">Якщо при решці Красуня ставить двічі, а при орлі один раз, то її ставки на решку множаться. Тоді калібрована впевненість 1/3: за ціною 1/2 вона в середньому втрачає 1/6 на кожному квитку. Якщо ж рахують лише одну ставку за експеримент, правильна ціна 1/2. Саме це ви бачили в раунді 2. Тому філософ Крістофер Гічкок у 2004 році доводив, що половинника можна «обіграти» серією ставок, а половинники відповідають, що ставки на пробудження просто рахують решку двічі.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span></span>
+      <h3><span class="uk">Дві умовні ймовірності з тих самих даних</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Частка пробуджень після орла: орел дає 1 пробудження, решка 2, кожна з шансом ½.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">О</mtext><mo>|</mo><mtext class="lbl uk">пробудження</mtext><mo stretchy="false">)</mo></math>
+          <math display="block"><mo>=</mo><mfrac><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>·</mo><mn>1</mn></mrow><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>·</mo><mn>1</mn><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>·</mo><mn>2</mn></mrow></mfrac><mo>=</mo><mfrac class="hl"><mn>1</mn><mn>3</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Частка експериментів з орлом: кожен експеримент рахується один раз, хоч скільки в ньому пробуджень.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">О</mtext><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Елга: три ситуації рівноймовірні, бо Р-Пн не відрізнити від Р-Вт, а в понеділок монета ще може бути не підкинута.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">О-Пн</mtext><mo stretchy="false">)</mo><mo>=</mo><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">Р-Пн</mtext><mo stretchy="false">)</mo><mo>=</mo><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">Р-Вт</mtext><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mn>3</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Льюїс: орел ½, а решка ділиться між двома днями по ¼. Дізнавшись, що сьогодні понеділок, половинник отримує:</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">О</mtext><mo>|</mo><mtext class="lbl uk">Пн</mtext><mo stretchy="false">)</mo><mo>=</mo><mfrac><mfrac><mn>1</mn><mn>2</mn></mfrac><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>+</mo><mfrac><mn>1</mn><mn>4</mn></mfrac></mrow></mfrac><mo>=</mo><mfrac><mn>2</mn><mn>3</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Якщо при решці будять k разів, частка пробуджень після орла дорівнює:</span></p>
+          <math display="block"><mfrac><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>k</mi></mrow></mfrac><mo>=</mo><mfrac><mn>1</mn><mrow><mi>k</mi><mo>+</mo><mn>1</mn></mrow></mfrac></math>
+        </div>
+      </div>
+      <p class="uk">Жодна з цих формул не помилкова. Розбіжність у тому, що ми вважаємо «одним випадком»: пробудження чи експеримент. Красуня, яку щоразу питають заново, природно відповідає про пробудження. Красуня, яку цікавить лише сама монета, відповідає про експеримент.</p>
+      
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 5: escalation -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Ускладнюємо</span></span>
+    <h2><span class="uk">Мільйон пробуджень, кінець світу і водій, що все забуває</span></h2>
+    <p class="lead uk">Від однієї монети до питань, які виглядають зовсім інакше: скільки людей ще народиться, коли звертати з траси і як правильно опитувати пацієнтів. Усюди та сама розвилка: рахувати світи чи спостерігачів, людей чи візити.</p>
+    
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="uk">Математика: мільйон пробуджень при решці</span></h3>
+        <p class="note" style="margin:6px 0 14px"><span class="uk">Філософ Нік Бостром запропонував екстремальну версію: при решці Красуню будять мільйон разів. Оберіть, скільки пробуджень дає решка, і подивіться, як розходяться два табори.</span></p>
+        <div class="presets" id="x-k"></div>
+        <div class="vs" id="x-tbl" style="margin-top:14px"></div>
+        <div class="actions" style="margin-top:14px"><button class="btn pri" id="x-run"><span class="uk">Симулювати 100 000 експериментів</span></button></div>
+        <p class="note" id="x-txt" style="margin-top:12px"></p>
+      </div>
+      <div class="card" style="display:grid;gap:12px">
+        <h3><span class="uk">Чому це важко проковтнути</span></h3>
+        <p class="note"><span class="uk">Третинниця при мільйоні пробуджень майже впевнена в решці: шанс орла 1/1&nbsp;000&nbsp;001. Чесна монета, а вона ставить на решку мільйон до одного. Половинниця тримається 1/2, але якщо їй скажуть «це твоє перше пробудження», вона мусить дати орлу 1&nbsp;000&nbsp;000/1&nbsp;000&nbsp;001, тобто майже напевно повірити в орла через саме лише слово «перше».</span></p>
+        <p class="note"><span class="uk">Кожен табір отримує свій неприємний висновок. Дехто, зокрема Бостром, обстоює «подвійне половинство»: 1/2 на пробудженні і 1/2 після слова «понеділок», ціною відмови від звичайного правила оновлення ймовірностей. Жоден варіант поки не переконав усіх.</span></p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="uk">Логіка: аргумент кінця світу</span></h3>
+        <p class="note" style="margin:6px 0 14px"><span class="uk">Астрофізик Брендон Картер у 1983 році, а згодом філософ Джон Леслі міркували так. Ви приблизно стомільярдна людина, що народилася. Порівняймо два майбутні: усього буде 200 мільярдів людей (рання загибель) або набагато більше (довге майбутнє). Якщо вважати себе випадковою людиною зі свого світу, то бути стомільярдною набагато ймовірніше в малому світі. Це логіка половинників: світ рахується один раз, а ви в ньому випадкова точка.</span></p>
+        <div class="controls" style="margin-bottom:0">
+          <label class="ctl" for="d-p"><span><span class="uk">Апріорний шанс ранньої загибелі</span> <b class="mono" id="d-p-v">50%</b></span>
+            <input type="range" id="d-p" min="1" max="99" value="50">
+          </label>
+          <div class="pgroup"><span><span class="uk">Довге майбутнє: людей усього</span></span><div class="presets" id="d-r"></div></div>
+        </div>
+        <div class="compare" id="d-bars" style="margin-top:18px"></div>
+      </div>
+      <div class="card" style="display:grid;gap:12px">
+        <h3><span class="uk">Третинник скасовує зсув</span></h3>
+        <p class="note"><span class="uk">Нік Бостром назвав два підходи так: SSA (вважай себе випадковим спостерігачем свого світу) і SIA (світ із більшою кількістю спостерігачів сам по собі ймовірніший, у якому ви існуєте). SSA відповідає половинникам і дає зсув до кінця світу. SIA відповідає третинникам: вона зважує кожен світ за кількістю людей, і ця вага точно скасовує зсув. Після SIA шанс ранньої загибелі дорівнює апріорному.</span></p>
+        <p class="note"><span class="uk">Тобто питання про Сплячу красуню на одну монету — модель питання, чи можна з власного номера в історії людства щось дізнатися про її кінець.</span></p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="uk">Практика: неуважний водій</span></h3>
+        <p class="note" style="margin:6px 0 14px"><span class="uk">Мікеле Піччоне й Аріель Рубінштейн у 1997 році описали водія, який їде вночі трасою з двома з'їздами і не може відрізнити перший від другого. Звернути на першому: 0 балів. На другому: 4, це дім. Проїхати обидва: 1. Водій не пам'ятає, чи вже минав з'їзд, тож на кожному діє однаково: їде далі з імовірністю p.</span></p>
+        <div class="controls" style="margin-bottom:0">
+          <label class="ctl" for="a-p"><span><span class="uk">Їхати далі з імовірністю p =</span> <b class="mono" id="a-p-v"></b></span>
+            <input type="range" id="a-p" min="0" max="100" value="50">
+          </label>
+          <button class="btn pri" id="a-run"><span class="uk">10 000 поїздок</span></button>
+        </div>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Очікуваний бал</span></span><b class="big day mono" id="a-v"></b></div>
+          <div><span class="k"><span class="uk">Симуляція</span></span><b class="big mono" id="a-s">–</b></div>
+        </div>
+        <p class="note" id="a-txt" style="margin-top:14px"></p>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:10px"><span class="uk">Бал залежно від p</span></h3>
+        <canvas id="a-chart" style="height:220px"></canvas>
+        <p class="note" style="margin-top:8px"><span class="uk">Найкращий план удома: p = 2/3, бал 4/3. Але на з'їзді водій питає себе: «Де я, на першому чи на другому?» Якщо він дасть першому шанс 3/5 і почне оптимізувати лише цей момент, у нього вийде p = 1/3. Це та сама розвилка, що в Красуні: рахувати поїздку чи кожен з'їзд. Роберт Ауман, Серджіу Гарт і Мотті Перрі того ж року показали, що коли водій пам'ятає, що його рішення діє на обох з'їздах, план 2/3 лишається найкращим.</span></p>
+      </div>
+    </div>
+
+    <div class="card" style="display:grid;gap:14px">
+      <h3><span class="uk">Перевірте на практиці: опитування в черзі до лікаря</span></h3>
+      <p class="note"><span class="uk">У поліклініці 1 000 пацієнтів. Половина приходить раз на рік, половина двічі. Якщо опитати людей у черзі протягом року, кожен візит дає одну анкету. Частка тих, хто ходить раз на рік, серед анкет дорівнює 500/1500 = 1/3, а серед пацієнтів 1/2. Це рівно Красуня: «рідкісний відвідувач» — орел, «частий» — решка з двома пробудженнями.</span></p>
+      <div class="vs">
+        <div class="bb"><span><span class="uk">Рахуємо візити (анкети)</span></span><b>1/3</b></div>
+        <div class="a"><span><span class="uk">Рахуємо людей (реєстр)</span></span><b>1/2</b></div>
+      </div>
+      <p class="note"><span class="uk">Статистики називають це вибіркою, зміщеною за частотою чи тривалістю, і виправляють вагами: анкету частого відвідувача рахують з вагою 1/2. Той самий ефект пояснює, чому автобус, який ви чекаєте, здається запізнілим частіше, ніж у розкладі: <a href="../inspection-paradox/" class="uk">парадокс автобуса</a></span>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span></span>
+    <h2><span class="uk">Що розповісти друзям</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n"><span class="uk">1980-ті</span></span>
+        <h3><span class="uk">Спершу був Зубофф</span></h3>
+        <p class="uk">Задачу вигадав американський філософ Арнольд Зубофф, який викладав в Університетському коледжі Лондона. Вона ходила в рукописах із середини 1980-х, а надрукована в його статті «One Self» 1990 року. У його версії було багато днів: за одного результату монети пробудження щодня, за іншого лише в один випадковий день.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1997</span>
+        <h3><span class="uk">Спершу економісти</span></h3>
+        <p class="uk">Піччоне й Рубінштейн опублікували неуважного водія в журналі теорії ігор Games and Economic Behavior. У тій самій статті є приклад, дуже схожий на Сплячу красуню, за три роки до статті Елги.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">2000</span>
+        <h3><span class="uk">П'ять сторінок Елги</span></h3>
+        <p class="uk">Адам Елга опублікував у журналі Analysis статтю на п'ять сторінок і відповів 1/3. Назву «Спляча красуня» він приписав Роберту Сталнакеру, який дізнався про такі приклади з рукописів Зубоффа. За рік до того задачу активно обговорювали в групі новин rec.puzzles.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">2001</span>
+        <h3><span class="uk">Відповідь Льюїса</span></h3>
+        <p class="uk">Наступного року в тому самому журналі Девід Льюїс, один із найвпливовіших філософів XX століття, відповів Елзі: 1/2. Відтоді про задачу написано понад сотню статей, а табори так і звуться: третинники й половинники.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">1 000 001</span></span>
+        <h3><span class="uk">Екстремальна красуня</span></h3>
+        <p class="uk">Нік Бостром, автор книжки про антропні міркування, запропонував версію з мільйоном пробуджень при решці. Вона загострює обидві позиції: третинник ставить мільйон до одного проти чесної монети, а половинник після слова «понеділок» майже впевнений в орлі.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">2017</span>
+        <h3><span class="uk">Математики теж сперечаються</span></h3>
+        <p class="uk">Пітер Вінклер, відомий збирач математичних головоломок, розібрав аргументи всіх таборів у статті «The Sleeping Beauty Controversy» для American Mathematical Monthly. Свою лекцію про задачу він назвав «Математична головоломка, що породила сотню філософських статей».</p>
+        
+      </article>
+  </div>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">Ще задачі</span>
+    <h2>Інші парадокси</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/monty-hall/"><h3>Парадокс Монті Голла</h3><p>Ви на телешоу й обрали одні з трьох дверей. Ведучий, який знає, де авто, відчиняє інші двері з козою й пропонує змінити вибір. Змінювати?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/birthday/"><h3>Парадокс днів народження</h3><p>Скільки людей має зібратися в кімнаті, щоб двоє з них, імовірно, народилися в один день?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/false-positive/"><h3>Парадокс хибнопозитивного тесту</h3><p>Хворобу має 1% людей. Тест точний на 99%, і ваш результат позитивний. Який шанс, що ви справді хворі?</p></a>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/">Усі задачі →</a>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Обговорення</span>
+    <h2>Що ви думаєте?</h2>
+    <p>Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub.</p>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="sleeping-beauty" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="uk" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Розсилка</span>
+    <h2>Нові задачі, пояснення й обговорення</h2>
+    <p>Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">Форма підписки з'явиться тут найближчим часом.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+<footer>
+  <span class="uk">Задачу сформулював Арнольд Зубофф, назву дав Роберт Сталнакер, а відомою її зробили Адам Елга (2000) і Девід Льюїс (2001).</span>
+  
+  <span class="mono">½·1 / (½·1 + ½·2) = 1/3</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? s : s.replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = (n, d = 0) => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA', { minimumFractionDigits: d, maximumFractionDigits: d });
+const money = (v, d = 0) => (v < 0 ? '−' : v > 0 ? '+' : '') + (lang === 'en' ? '$' + fmt(Math.abs(v), d) : fmt(Math.abs(v), d) + ' ₴');
+const signed = (v, d) => (v > 5e-4 ? '+' : v < -5e-4 ? '−' : '') + dec(Math.abs(v).toFixed(d));
+const ukPl = (n, one, few, many) => {
+  const a = n % 10, b = n % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+const expW = n => lang === 'en' ? (n === 1 ? 'experiment' : 'experiments') : ukPl(n, 'експеримент', 'експерименти', 'експериментів');
+const awkW = n => lang === 'en' ? (n === 1 ? 'awakening' : 'awakenings') : ukPl(n, 'пробудження', 'пробудження', 'пробуджень');
+const HT = h => h ? L('О', 'H') : L('Р', 'T');
+const DAY = i => i === 0 ? L('Пн', 'Mon') : i === 1 ? L('Вт', 'Tue') : L('день ' + (i + 1), 'day ' + (i + 1));
+
+/* ---------- maths ---------- */
+// one experiment: a fair coin, 1 awakening on heads, k on tails
+const experiment = (k = 2) => { const heads = Math.random() < 0.5; return { heads, n: heads ? 1 : k }; };
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+
+/* ---------- experiment row markup ---------- */
+// days: [{cls, label}] for Monday and Tuesday
+function expHTML(coin, days) {
+  return '<div class="exp"><span class="coin' + (coin === null ? ' q' : coin ? ' h' : '') + '">' + (coin === null ? '?' : HT(coin)) + '</span>' +
+    days.map(d => '<span class="day ' + d.cls + '"><span>' + d.day + '</span><span class="st">' + (d.st || '') + '</span></span>').join('') + '</div>';
+}
+const plainDays = heads => [{ cls: 'on', day: DAY(0), st: L('прокинулась', 'awake') }, heads ? { cls: 'off', day: DAY(1), st: 'zz' } : { cls: 'on', day: DAY(1), st: L('прокинулась', 'awake') }];
+
+/* ---------- hero: experiments roll in, two tallies ---------- */
+const hero = { rows: [], E: 0, HE: 0, A: 0, HA: 0 };
+function heroAdd() {
+  const x = experiment();
+  hero.rows.unshift(x.heads); hero.rows.length = Math.min(hero.rows.length, 5);
+  hero.E++; hero.A += x.n; if (x.heads) { hero.HE++; hero.HA++; }
+}
+function heroDraw() {
+  $('#hero-exps').innerHTML = '<div class="exp head"><span></span><span>' + DAY(0) + '</span><span>' + DAY(1) + '</span></div>' + hero.rows.map(h => expHTML(h, plainDays(h))).join('');
+  if (window.mpSolved && !mpSolved()) {
+    $('#hero-cap').textContent = L('Експериментів: ' + fmt(hero.E) + ' · пробуджень: ' + fmt(hero.A) + '. Що має відповісти Красуня на пробудженні: який шанс, що монета впала орлом?',
+      'Experiments: ' + fmt(hero.E) + ' · awakenings: ' + fmt(hero.A) + '. What should Beauty answer when woken: what is the chance the coin landed heads?');
+    return;
+  }
+  $('#hero-cap').textContent = L('Орел: ' + fmt(hero.HE) + ' з ' + fmt(hero.E) + ' експериментів (' + pct(hero.HE / hero.E) + ') · ' + fmt(hero.HA) + ' з ' + fmt(hero.A) + ' пробуджень (' + pct(hero.HA / hero.A) + ')',
+    'Heads: ' + fmt(hero.HE) + ' of ' + fmt(hero.E) + ' experiments (' + pct(hero.HE / hero.E) + ') · ' + fmt(hero.HA) + ' of ' + fmt(hero.A) + ' awakenings (' + pct(hero.HA / hero.A) + ')');
+}
+for (let i = 0; i < 60; i++) heroAdd();
+let heroTimer = null;
+if (!reduce()) heroTimer = setInterval(() => { if (!document.hidden) { heroAdd(); heroDraw(); } }, 1600);
+
+/* ---------- round 1: guess ---------- */
+const G_OPTS = [
+  { k: 'half', uk: '1/2', en: '1/2' },
+  { k: 'third', uk: '1/3', en: '1/3' },
+  { k: 'twothirds', uk: '2/3', en: '2/3' },
+  { k: 'depends', uk: 'Залежить від питання', en: 'Depends on the question' }
+];
+const F_OPTS = [
+  { k: 'exp', uk: 'Експерименти', en: 'Experiments' },
+  { k: 'awk', uk: 'Пробудження', en: 'Awakenings' },
+  { k: 'day', uk: 'Дні тижня', en: 'Days of the week' }
+];
+let gPick = null, fPick = null;
+function guessText() {
+  $('#g-day').textContent = L('Сьогодні?', 'Today?');
+  $('#g-st').textContent = L('прокинулась', 'awake');
+  $('#g-opts').innerHTML = G_OPTS.map(o => '<button type="button" data-k="' + o.k + '" aria-pressed="' + (o.k === gPick) + '">' + o[lang] + '</button>').join('');
+  if (gPick === null) return;
+  const verdict = {
+    half: L('Так відповідають половинники, і серед них Девід Льюїс: монета чесна, а нової інформації пробудження не дає. Це правильна частка орлів серед експериментів. Але серед пробуджень орел лише в одному з трьох, і якщо Красуня ставить на кожному пробудженні, ціна 1/2 приносить їй збиток.',
+      'That is the halfer answer, David Lewis among them: the coin is fair, and waking brings no new information. It is the right share of heads among experiments. But among awakenings heads is only one in three, and if Beauty bets at every awakening, a price of 1/2 loses her money.'),
+    third: L('Так відповідають третинники, і серед них Адам Елга. Серед усіх пробуджень лише третина припадає на орла, і якщо Красуня ставить на кожному пробудженні, саме 1/3 є чесною ціною. Половинники заперечують: частка орлів серед експериментів дорівнює 1/2. Обидва числа правильні, різняться питання.',
+      'That is the thirder answer, Adam Elga among them. Only a third of all awakenings follow heads, and if Beauty bets at every awakening, 1/3 is the fair price. Halfers object that the share of heads among experiments is 1/2. Both numbers are right; the questions differ.'),
+    twothirds: L('2/3 — це шанс решки з погляду третинника: решка дає два пробудження з трьох. А ще 2/3 отримує половинник, якщо йому сказати «сьогодні понеділок». Але як шанс орла на звичайному пробудженні це число не захищає жоден табір.',
+      '2/3 is the thirder\'s chance of tails: tails gives two awakenings out of three. A halfer also gets 2/3 once told "it is Monday". But as the chance of heads at an ordinary waking, no camp defends it.'),
+    depends: L('Найточніша відповідь. Серед пробуджень орел трапляється в 1/3 випадків, серед експериментів у 1/2. Якщо вам доведеться ставити на кожному пробудженні, назвіть 1/3. Якщо вас цікавить сама монета, 1/2. Далі видно, чому серйозні філософи все одно сперечаються, яке прочитання «правильне».',
+      'The most precise answer. Among awakenings heads comes up 1/3 of the time, among experiments 1/2. If you will bet at every awakening, say 1/3. If you care about the coin itself, 1/2. Below you will see why serious philosophers still argue over which reading is "right".')
+  }[gPick];
+  const rows = [
+    [L('Серед пробуджень', 'Among awakenings'), 1 / 3, 'var(--hit)', '1/3'],
+    [L('Серед експериментів', 'Among experiments'), 1 / 2, 'var(--ink)', '1/2']
+  ];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Частка орла', 'Share of heads') + '</span><p class="big hit">1/3 · <span style="color:var(--ink)">1/2</span></p>' +
+    '<p>' + verdict + '</p><div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + r[3] + '</span></div>').join('') +
+    '</div><p class="note">' + L('Перевірте обидва числа ставками в раунді 2 і на мільйоні експериментів у раунді 3.', 'Check both numbers with bets in round 2 and on a million experiments in round 3.') + '</p>';
+}
+function flawText() {
+  $('#f-opts').innerHTML = F_OPTS.map(o => '<button type="button" data-k="' + o.k + '" aria-pressed="' + (o.k === fPick) + '">' + o[lang] + '</button>').join('');
+  const m = $('#f-msg');
+  if (fPick === null) { m.textContent = L('Оберіть варіант.', 'Pick an option.'); return; }
+  m.innerHTML = {
+    exp: L('<b>Так.</b> Половинник рахує кожен експеримент один раз: монета чесна, тож орел у половині експериментів. Третинник рахує кожне пробудження: при решці їх два, тому орел лише в третині.', '<b>Yes.</b> A halfer counts each experiment once: the coin is fair, so heads in half the experiments. A thirder counts each awakening: tails has two, so heads only in a third.'),
+    awk: L('Ні, пробудження рахують третинники. Серед пробуджень орел лише в одному з трьох, тому в них і виходить 1/3. Половинники рахують експерименти.', 'No, counting awakenings is what thirders do. Among awakenings heads is one in three, which is where their 1/3 comes from. Halfers count experiments.'),
+    day: L('Ні. Якщо рахувати дні (понеділок і вівторок у кожному експерименті), вийде щось третє. Половинники рахують експерименти: кожна монета враховується один раз.', 'No. Counting days (Monday and Tuesday in every experiment) gives something else again. Halfers count experiments: each coin is counted once.')
+  }[fPick];
+}
+$('#g-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gPick = b.dataset.k; guessText(); window.mpSolve && mpSolve(); });
+document.addEventListener('solved', heroDraw);
+$('#f-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; fPick = b.dataset.k; flawText(); });
+
+/* ---------- round 2: bets at every awakening ---------- */
+// tot: experiments E (heads HE), awakenings A (heads HA); your money at the two cashiers
+let gm, tot, hist;
+function gmReset() { tot = { E: 0, HE: 0, A: 0, HA: 0, youA: 0, youB: 0 }; hist = []; gmNew(); }
+function gmNew() { gm = Object.assign(experiment(), { i: 0, picks: [], done: false }); gmText(); }
+function settle(heads, picks) {
+  const n = picks.length;
+  tot.E++; tot.A += n; if (heads) { tot.HE++; tot.HA++; }
+  picks.forEach(p => { const ok = p === heads; tot.youA += ok ? 1 : -1; tot.youB += (ok ? 1 : -1) / n; });
+  hist.push([heads, picks]);
+}
+function gmBet(h) {
+  if (gm.done) return;
+  gm.picks.push(h); gm.i++;
+  if (gm.i >= gm.n) { gm.done = true; settle(gm.heads, gm.picks); }
+  gmText();
+}
+function gmAuto(h) {
+  if (!gm.done) { while (!gm.done) gmBet(h); }
+  for (let j = 0; j < 100; j++) { const x = experiment(); settle(x.heads, Array(x.n).fill(h)); }
+  gmNew();
+}
+function gmText() {
+  const d = gm.done;
+  let days;
+  if (!d) days = [{ cls: 'now', day: L('Сьогодні?', 'Today?'), st: L('прокинулась', 'awake') }, { cls: 'off', day: '?', st: '' }];
+  else days = [0, 1].map(i => {
+    if (i >= gm.n) return { cls: 'off', day: DAY(i), st: 'zz' };
+    const ok = gm.picks[i] === gm.heads;
+    return { cls: 'on ' + (ok ? 'ok' : 'no'), day: DAY(i), st: L('ставка ', 'bet ') + HT(gm.picks[i]) + (ok ? ' ✓' : ' ✗') };
+  });
+  $('#gm-exp').innerHTML = expHTML(d ? gm.heads : null, days);
+  $('#gm-n').textContent = fmt(tot.E + (d ? 0 : 1));
+  $('#gm-a').textContent = fmt(tot.A + (d ? 0 : gm.i + 1));
+  $('#gm-h').hidden = $('#gm-t').hidden = d;
+  $('#gm-next').hidden = !d;
+  let m;
+  if (!d) m = gm.i === 0 ? L('Ви прокинулися. Котрий сьогодні день і чи будили вас раніше, ви не знаєте. На що ставите?', 'You wake up. You don\'t know what day it is or whether you were woken before. What do you bet on?')
+    : L('Ви знову прокинулися. Ви не пам\'ятаєте попереднього пробудження: для вас воно перше. На що ставите?', 'You wake up again. You don\'t remember the previous waking: to you this is the first. What do you bet on?');
+  else {
+    const n = gm.n, ok = gm.picks.filter(p => p === gm.heads).length;
+    m = (gm.heads ? L('<b>Випав орел.</b> Вас будили один раз, у понеділок. ', '<b>Heads.</b> You were woken once, on Monday. ') : L('<b>Випала решка.</b> Вас будили двічі, у понеділок і вівторок. ', '<b>Tails.</b> You were woken twice, on Monday and Tuesday. ')) +
+      L('Вгадано ' + ok + ' з ' + n + '.', ok + ' of ' + n + ' right.');
+  }
+  $('#gm-msg').innerHTML = m;
+  statsText();
+}
+function statsText() {
+  const { E, HE, A, HA } = tot;
+  $('#gm-sum').textContent = E ? L(fmt(E) + ' ' + expW(E) + ', ' + fmt(A) + ' ' + awkW(A) + '. Орел: ' + fmt(HE) + ' з ' + fmt(E) + ' експериментів (' + pct(HE / E) + ') і ' + fmt(HA) + ' з ' + fmt(A) + ' пробуджень (' + pct(HA / A) + ').',
+    fmt(E) + ' ' + expW(E) + ', ' + fmt(A) + ' ' + awkW(A) + '. Heads: ' + fmt(HE) + ' of ' + fmt(E) + ' experiments (' + pct(HE / E) + ') and ' + fmt(HA) + ' of ' + fmt(A) + ' awakenings (' + pct(HA / A) + ').')
+    : L('Ще жодного експерименту. Зіграйте кілька або додайте 100 автоматичних.', 'No experiments yet. Play a few or add 100 automatic ones.');
+  const cell = v => '<td class="num ' + (v > 1e-9 ? 'pos' : v < -1e-9 ? 'neg' : '') + '">' + money(v, Math.abs(v % 1) > 1e-9 ? 1 : 0) + '</td>';
+  $('#gm-tbl').innerHTML = [
+    [L('Ви', 'You'), tot.youA, tot.youB],
+    [L('Завжди орел', 'Always heads'), 2 * HA - A, 2 * HE - E],
+    [L('Завжди решка', 'Always tails'), A - 2 * HA, E - 2 * HE]
+  ].map(r => '<tr><td>' + r[0] + '</td>' + cell(r[1]) + cell(r[2]) + '</tr>').join('');
+  const P = [[1 / 3, '1/3'], [1 / 2, '1/2']];
+  $('#gm-price').innerHTML = P.map(([p, s]) => {
+    const a = A ? HA / A - p : 0, b = E ? HE / E - p : 0;
+    const td = (v, fair) => '<td class="num ' + (fair ? 'zero' : v > 0.02 ? 'pos' : v < -0.02 ? 'neg' : '') + '"' + (fair && p < 0.4 ? ' style="color:var(--hit)"' : '') + '>' + (E ? signed(v, 3) : '–') + '</td>';
+    return '<tr><td class="mono">' + s + '</td>' + td(a, p < 0.4) + td(b, p > 0.4) + '</tr>';
+  }).join('');
+  $('#gm-verdict').innerHTML = E < 30 ? L('Зіграйте хоча б кілька десятків експериментів (кнопки «+100»), щоб прибутки устоялися.', 'Play at least a few dozen experiments (the "+100" buttons) for the profits to settle.')
+    : L('Квиток на кожному пробудженні окупається за ціною 1/3, один квиток на експеримент за ціною 1/2. Кожне число каліброване для свого типу ставки: теоретично прибуток −1/6 (купувати за 1/2 на кожному пробудженні) і +1/6 (купувати за 1/3 раз на експеримент).',
+      'A ticket bought at every awakening breaks even at 1/3; one ticket per experiment breaks even at 1/2. Each number is calibrated for its own kind of bet: in theory the profit is −1/6 (paying 1/2 at every awakening) and +1/6 (paying 1/3 once per experiment).');
+  $('#gm-chips').innerHTML = hist.slice(-20).map(([h, p]) => '<span>' + HT(h) + ': ' + p.map(HT).join('') + '</span>').join('');
+}
+$('#gm-h').addEventListener('click', () => gmBet(true));
+$('#gm-t').addEventListener('click', () => gmBet(false));
+$('#gm-next').addEventListener('click', gmNew);
+$('#gm-auto-t').addEventListener('click', () => gmAuto(false));
+$('#gm-auto-h').addEventListener('click', () => gmAuto(true));
+$('#gm-reset').addEventListener('click', gmReset);
+
+/* ---------- round 3: simulation ---------- */
+const SIM_K = [2, 3, 10];
+let simK = 2, sim = null;
+function runSim() {
+  const R = +$('#sim-r').value, k = simK;
+  let HE = 0, A = 0;
+  const pts = [], cps = [];
+  for (let e = 1; e <= Math.log10(R) + 1e-9; e += 0.05) cps.push(Math.round(Math.pow(10, e)));
+  let ci = 0;
+  for (let i = 1; i <= R; i++) {
+    if (Math.random() < 0.5) { HE++; A++; } else A += k;
+    while (ci < cps.length && cps[ci] === i) { pts.push([i, HE / i, HE / A]); ci++; }
+  }
+  sim = { R, k, HE, A, pts };
+  simText(); drawSim();
+}
+function simText() {
+  $('#sim-k').innerHTML = SIM_K.map(k => '<button type="button" data-k="' + k + '" aria-pressed="' + (k === simK) + '">' + k + '</button>').join('');
+  if (!sim) return;
+  const { R, k, HE, A } = sim;
+  $('#sim-e').textContent = pct(HE / R, 2);
+  $('#sim-es').textContent = fmt(HE) + L(' з ', ' of ') + fmt(R) + L(' · теорія 50%', ' · theory 50%');
+  $('#sim-a').textContent = pct(HE / A, 2);
+  $('#sim-as').textContent = fmt(HE) + L(' з ', ' of ') + fmt(A) + L(' · теорія 1/', ' · theory 1/') + (k + 1) + ' = ' + pct(1 / (k + 1), 2);
+  $('#sim-txt').textContent = L('Кожен орел дає одне пробудження, кожна решка ' + k + '. Тому серед пробуджень орлів у ' + (k + 1) + ' разів менше, ніж «половина». Експерименти ж монета ділить навпіл за будь-якого k.',
+    'Each heads gives one awakening, each tails ' + k + '. So among awakenings heads is 1 in ' + (k + 1) + ' rather than a half. Experiments, meanwhile, the coin splits in half for any k.');
+}
+function drawSim() {
+  const s = setupCanvas($('#sim-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 44, r = 14, t = 12, b = 32;
+  const R = sim ? sim.R : 1e6, lmax = Math.log10(R), k = sim ? sim.k : 2;
+  const x = n => l + (Math.log10(n) - 1) / (lmax - 1) * (W - l - r);
+  const y0 = 0, y1 = 0.7, y = v => t + (1 - (Math.max(y0, Math.min(y1, v)) - y0) / (y1 - y0)) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1;
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.fillText(Math.round(v * 100) + '%', l - 8, y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let e = 1; e <= lmax + 1e-9; e++) { const n = Math.pow(10, e); ctx.fillText(e >= 6 ? '10⁶' : fmt(n), Math.min(W - r - 18, x(n)), H - b + 8); }
+  ctx.setLineDash([6, 5]); ctx.lineWidth = 2;
+  ctx.strokeStyle = tok('--ink'); ctx.beginPath(); ctx.moveTo(l, y(0.5)); ctx.lineTo(W - r, y(0.5)); ctx.stroke();
+  ctx.strokeStyle = tok('--hit'); ctx.beginPath(); ctx.moveTo(l, y(1 / (k + 1))); ctx.lineTo(W - r, y(1 / (k + 1))); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+  ctx.fillStyle = tok('--ink'); ctx.fillText('1/2', W - r - 4, y(0.5) - 4);
+  ctx.fillStyle = tok('--hit'); ctx.fillText('1/' + (k + 1), W - r - 4, y(1 / (k + 1)) - 4);
+  if (sim) {
+    sim.pts.forEach(([n, e, a]) => {
+      ctx.fillStyle = tok('--ink'); ctx.beginPath(); ctx.arc(x(n), y(e), 3, 0, 7); ctx.fill();
+      ctx.fillStyle = tok('--hit'); ctx.beginPath(); ctx.arc(x(n), y(a), 3, 0, 7); ctx.fill();
+    });
+  }
+  ctx.font = '11px ' + tok('--f-mono'); ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+  ctx.fillText(L('експериментів (лог. шкала)', 'experiments (log scale)'), l + 4, H - b - 4);
+  ctx.save(); ctx.translate(11, t + (H - t - b) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(L('частка орла', 'share of heads'), 0, 0); ctx.restore();
+}
+$('#sim-k').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; simK = +b.dataset.k; runSim(); });
+$('#sim-run').addEventListener('click', runSim);
+$('#sim-r').addEventListener('change', runSim);
+
+/* ---------- round 5: many awakenings ---------- */
+const X_K = [1, 2, 10, 1000, 1000000];
+let xK = 1000000, xSim = null;
+const frac = (a, b) => fmt(a) + '/<wbr>' + fmt(b);
+function xText() {
+  $('#x-k').innerHTML = X_K.map(k => '<button type="button" data-k="' + k + '" aria-pressed="' + (k === xK) + '">' + fmt(k) + '</button>').join('');
+  const k = xK;
+  const box = (cls, who, now, first) => '<div class="' + cls + '"><span>' + who + ' · ' + L('шанс орла на пробудженні', 'chance of heads on waking') + '</span><b class="mono">' + now + '</b><span>' +
+    L('після слів «це перше пробудження»: ', 'after hearing "this is the first awakening": ') + '<b class="mono" style="font-size:1rem;color:var(--ink)">' + first + '</b></span></div>';
+  $('#x-tbl').innerHTML = box('bb', L('Третинник', 'Thirder'), frac(1, k + 1), '1/2') + box('a', L('Половинник', 'Halfer'), '1/2', frac(k, k + 1));
+  $('#x-txt').textContent = (xSim && xSim.k === k ? L('100 000 експериментів: орел у ', '100,000 experiments: heads in ') + pct(xSim.HE / xSim.E) + L(' експериментів і в ', ' of experiments and in ') + (xSim.HE / xSim.A < 1e-3 ? L('одному з ', 'one in ') + fmt(Math.round(xSim.A / xSim.HE)) + L(' пробуджень. ', ' awakenings. ') : pct(xSim.HE / xSim.A, 2) + L(' пробуджень. ', ' of awakenings. ')) : '') +
+    (k === 1 ? L('При k = 1 пробудження нічого не множать, і табори згодні: 1/2.', 'With k = 1 nothing gets multiplied, and the camps agree: 1/2.') : '');
+}
+function xRun() {
+  const k = xK; let HE = 0, A = 0;
+  for (let i = 0; i < 100000; i++) { if (Math.random() < 0.5) { HE++; A++; } else A += k; }
+  xSim = { k, HE, A, E: 100000 };
+  xText();
+}
+$('#x-k').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; xK = +b.dataset.k; xText(); });
+$('#x-run').addEventListener('click', xRun);
+
+/* ---------- round 5: doomsday ---------- */
+// you are about the 100-billionth human; small world: 200 billion in total; large world: r times more
+const D_R = [10, 1000];
+let dR = 1000;
+function dText() {
+  const p = +$('#d-p').value / 100;
+  $('#d-p-v').textContent = Math.round(p * 100) + '%';
+  $('#d-r').innerHTML = D_R.map(r => '<button type="button" data-r="' + r + '" aria-pressed="' + (r === dR) + '">' + (r === 10 ? L('2 трлн', '2 trillion') : L('200 трлн', '200 trillion')) + '</button>').join('');
+  const ssa = p / (p + (1 - p) / dR), sia = p;
+  const rows = [
+    [L('Апріорно', 'Prior'), p, 'var(--muted)'],
+    [L('SSA, половинник', 'SSA, halfer'), ssa, 'var(--ink)'],
+    [L('SIA, третинник', 'SIA, thirder'), sia, 'var(--hit)']
+  ];
+  $('#d-bars').innerHTML = '<span class="note">' + L('Шанс ранньої загибелі (усього 200 млрд людей) після врахування вашого номера:', 'Chance of early doom (200 billion people in total) after taking your birth rank into account:') + '</span>' +
+    rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + pct(r[1], r[1] > 0.995 && r[1] < 1 ? 2 : 1) + '</span></div>').join('');
+}
+$('#d-p').addEventListener('input', dText);
+$('#d-r').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; dR = +b.dataset.r; dText(); });
+
+/* ---------- round 5: absent-minded driver ---------- */
+const amd = p => 4 * p * (1 - p) + p * p;
+let aSim = null;
+function aRun() {
+  const p = +$('#a-p').value / 100, N = 10000; let s = 0;
+  for (let i = 0; i < N; i++) { if (Math.random() >= p) continue; s += Math.random() < p ? 1 : 4; }
+  aSim = { p, v: s / N }; aText(); drawA();
+}
+function aText() {
+  const p = +$('#a-p').value / 100;
+  $('#a-p-v').textContent = dec(p.toFixed(2));
+  $('#a-v').textContent = dec(amd(p).toFixed(3));
+  $('#a-s').textContent = aSim && aSim.p === p ? dec(aSim.v.toFixed(3)) : '–';
+  $('#a-txt').textContent = p === 0 ? L('p = 0: водій звертає на першому з\'їзді, бал 0.', 'p = 0: the driver turns off at the first exit, score 0.')
+    : p === 1 ? L('p = 1: водій проїжджає обидва з\'їзди, бал 1.', 'p = 1: the driver passes both exits, score 1.')
+    : Math.abs(p - 2 / 3) < 0.006 ? L('Майже найкраще: p = 2/3 дає 4/3 ≈ 1,333. Звернути «на другому» напевно неможливо, бо водій їх не розрізняє.', 'Close to the best: p = 2/3 gives 4/3 ≈ 1.333. Turning off "at the second" for sure is impossible, since the driver can\'t tell them apart.')
+    : L('Спробуйте p = 0,67.', 'Try p = 0.67.');
+}
+function drawA() {
+  const s = setupCanvas($('#a-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 36, r = 12, t = 10, b = 28;
+  const x = p => l + p * (W - l - r), y = v => t + (1 - v / 1.5) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, 0.5, 1, 1.5].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.fillText(dec(v.toFixed(1)), l - 6, y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => ctx.fillText(dec(String(v)), x(v), H - b + 6));
+  ctx.strokeStyle = tok('--day'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let i = 0; i <= 100; i++) { const p = i / 100, px = x(p), py = y(amd(p)); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+  ctx.stroke();
+  ctx.strokeStyle = tok('--muted'); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x(2 / 3), t); ctx.lineTo(x(2 / 3), H - b); ctx.stroke(); ctx.setLineDash([]);
+  const p = +$('#a-p').value / 100;
+  ctx.fillStyle = tok('--day'); ctx.beginPath(); ctx.arc(x(p), y(amd(p)), 4, 0, 7); ctx.fill();
+  if (aSim && aSim.p === p) { ctx.fillStyle = tok('--ink'); ctx.globalAlpha = .6; ctx.beginPath(); ctx.arc(x(p), y(aSim.v), 6, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText('p = 2/3', x(2 / 3) + 4, t + 2);
+}
+$('#a-p').addEventListener('input', () => { aText(); drawA(); });
+$('#a-run').addEventListener('click', aRun);
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Задача про Сплячу красуню', 'The Sleeping Beauty Problem');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  heroDraw(); guessText(); flawText(); gmText(); simText(); xText(); dText(); aText();
+  redraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+const redraw = () => { drawSim(); drawA(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+gmReset();
+runSim();
+xRun();
+$('#a-p').value = 67;
+aRun();
+applyLang();
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'uk' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+</body>
+</html>
