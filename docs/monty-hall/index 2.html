@@ -1,0 +1,1648 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/monty-hall/", "en": "/monty-hall/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "monty-hall";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>Парадокс Монті Голла: чому варто змінити вибір — гра, симуляція і пояснення</title>
+<meta name="description" content="Інтерактивне пояснення парадоксу Монті Голла українською: зіграйте в гру з трьома дверима, запустіть 10 000 симуляцій, подивіться сцену з фільму «21» і зрозумійте, чому зміна вибору дає шанс 2/3.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/monty-hall/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/monty-hall/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/monty-hall/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/monty-hall/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Парадокс Монті Голла">
+<meta property="og:description" content="Ви на телешоу й обрали одні з трьох дверей. Ведучий, який знає, де авто, відчиняє інші двері з козою й пропонує змінити вибір. Змінювати?">
+<meta property="og:url" content="https://mathparadoxes.com/monty-hall/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/monty-hall/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Три двері, перші обрано, за третіми коза. Парадокс Монті Голла: змінювати вибір?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Парадокс Монті Голла">
+<meta name="twitter:description" content="Ви на телешоу й обрали одні з трьох дверей. Ведучий, який знає, де авто, відчиняє інші двері з козою й пропонує змінити вибір. Змінювати?">
+<meta name="twitter:image" content="https://mathparadoxes.com/monty-hall/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/monty-hall/#page", "url": "https://mathparadoxes.com/monty-hall/", "name": "Парадокс Монті Голла: чому варто змінити вибір — гра, симуляція і пояснення", "description": "Інтерактивне пояснення парадоксу Монті Голла українською: зіграйте в гру з трьома дверима, запустіть 10 000 симуляцій, подивіться сцену з фільму «21» і зрозумійте, чому зміна вибору дає шанс 2/3.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "intermediate", "about": {"@type": "Thing", "name": "Monty Hall problem", "sameAs": "https://en.wikipedia.org/wiki/Monty_Hall_problem"}, "image": "https://mathparadoxes.com/monty-hall/og-uk.png", "datePublished": "2026-10-19", "dateModified": "2026-10-22", "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "citation": [{"@type": "Book", "name": "The Monty Hall Problem", "author": [{"@type": "Person", "name": "Джейсон Розенгаус"}], "datePublished": "2009", "isbn": "9780195367898"}, {"@type": "Book", "name": "The Book of Why", "author": [{"@type": "Person", "name": "Джудея Перл"}, {"@type": "Person", "name": "Дана Маккензі"}], "datePublished": "2018", "isbn": "9780465097609"}, {"@type": "Book", "name": "The Drunkard's Walk", "author": [{"@type": "Person", "name": "Леонард Млодінов"}], "datePublished": "2008", "isbn": "9780375424045"}], "workTranslation": {"@id": "https://mathparadoxes.com/monty-hall/en/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "Парадокс Монті Голла", "item": "https://mathparadoxes.com/monty-hall/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/monty-hall/#faq", "inLanguage": "uk", "mainEntity": [{"@type": "Question", "name": "Чи варто змінювати вибір у задачі Монті Голла?", "acceptedAnswer": {"@type": "Answer", "text": "Так. Якщо ведучий знає, де авто, завжди відчиняє двері з козою і завжди пропонує обмін, то зміна вибору виграє у 2 випадках з 3, а якщо залишитися на своїх дверях, виграш буде лише в 1 випадку з 3."}}, {"@type": "Question", "name": "Чому шанси не 50 на 50, коли залишилось двоє дверей?", "acceptedAnswer": {"@type": "Answer", "text": "Двері нерівноправні. Свої ви обрали навмання, тож авто за ними з імовірністю 1/3. Другі залишив закритими ведучий, який знає, де авто, і не може його показати, тож на них припадає решта ймовірності, 2/3."}}, {"@type": "Question", "name": "Що буде, якщо дверей 20?", "acceptedAnswer": {"@type": "Answer", "text": "Ви обираєте одні з 20 (шанс 5%), ведучий відчиняє 18 дверей з козами. Якщо змінити вибір, шанс виграти дорівнює 19/20, тобто 95%. Загалом для n дверей зміна дає (n−1)/n."}}, {"@type": "Question", "name": "А якщо ведучий відчиняє двері навмання?", "acceptedAnswer": {"@type": "Answer", "text": "Тоді, якщо він випадково показав козу, шанси справді стають 50 на 50. Перевага зміни виникає саме тому, що ведучий знає, де авто, і свідомо його обходить."}}]}]}</script>
+<link rel="preconnect" href="https://i.ytimg.com">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: a game-show running order — the page is a sequence of rounds, each one a new way into the same three doors, escalating to 100 doors. */
+:root {
+  --tint: #EEEAFF;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --door: #2A3DD1;
+  --door-deep: #1B2894;
+  --door-ink: #F2F4FF;
+  --prize: #DB9500;
+  --prize-soft: #FFF1CF;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--door); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--prize); outline-offset: 3px; border-radius: 6px; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--door); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--prize); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.hero .odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; }
+.odd span { font-size: .82rem; color: var(--muted); }
+.odd.sw b { color: var(--prize); }
+.odd.st b { color: var(--door); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a {
+  text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500;
+  border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px;
+}
+nav.rounds a:hover { border-color: var(--door); color: var(--door); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--prize); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+
+/* ---------- doors ---------- */
+.doors { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 150px)); justify-content: center; }
+.doors.many { grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 8px; justify-content: stretch; }
+.door {
+  position: relative; aspect-ratio: 3 / 4.6; max-width: 100%; border: 0; padding: 0; background: none; cursor: pointer;
+  perspective: 700px; border-radius: 10px 10px 4px 4px;
+}
+.door:disabled { cursor: default; }
+.door .behind {
+  position: absolute; inset: 0; border-radius: inherit; background: var(--paper);
+  border: 2px solid var(--line); display: grid; place-items: center; align-content: center; gap: 4px;
+  color: var(--muted); font-size: .78rem; font-weight: 600;
+}
+.door .behind svg { width: 62%; height: auto; }
+.door .behind.car { color: var(--prize); background: var(--prize-soft); border-color: var(--prize); }
+.door .panel {
+  position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(180deg, var(--door) 0%, var(--door-deep) 100%);
+  transform-origin: 0 50%; transition: transform .55s cubic-bezier(.3,.7,.2,1);
+  display: grid; place-items: center; color: var(--door-ink);
+  box-shadow: inset 0 0 0 4px rgba(255,255,255,.08), inset 0 -10px 0 rgba(0,0,0,.12);
+}
+.door .panel::before {
+  content: ""; position: absolute; inset: 12% 14% 46% 14%; border: 2px solid rgba(255,255,255,.18); border-radius: 6px;
+}
+.door .panel::after {
+  content: ""; position: absolute; inset: 60% 14% 10% 14%; border: 2px solid rgba(255,255,255,.18); border-radius: 6px;
+}
+.door .num { font-family: var(--f-display); font-weight: 800; font-size: clamp(1.4rem, 4vw, 2.4rem); position: relative; z-index: 1; }
+.door .knob { position: absolute; right: 12%; top: 52%; width: 9px; height: 9px; border-radius: 50%; background: var(--prize); }
+.door.open .panel { transform: rotateY(-78deg); }
+.door:not(:disabled):hover .panel { transform: rotateY(-9deg); }
+.door.open:not(:disabled):hover .panel { transform: rotateY(-78deg); }
+.door.picked { outline: 4px solid var(--prize); outline-offset: 4px; }
+.door .tag {
+  position: absolute; left: 50%; top: calc(100% + 10px); transform: translateX(-50%); white-space: nowrap;
+  font-size: .75rem; font-weight: 600; color: var(--prize); font-family: var(--f-mono);
+}
+.doors.many .door { border-radius: 6px 6px 2px 2px; perspective: 300px; }
+.doors.many .num { font-size: .78rem; font-family: var(--f-mono); font-weight: 600; }
+.doors.many .knob { width: 4px; height: 4px; }
+.doors.many .panel::before, .doors.many .panel::after { display: none; }
+.doors.many .behind { border-width: 1px; font-size: 0; }
+.doors.many .behind svg { width: 80%; }
+.doors.many .door.picked { outline-width: 3px; outline-offset: 2px; }
+.doors.many .door .tag { display: none; }
+.doors.many .door.alt { outline: 3px dashed var(--door); outline-offset: 2px; }
+.door.alt .tag { color: var(--door); }
+
+/* ---------- game ---------- */
+.game { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
+.stage { display: grid; gap: 34px; padding-block: 28px 22px; }
+.msg { min-height: 3.2em; text-align: center; font-weight: 500; max-width: 46ch; margin: 0 auto; }
+.msg b { color: var(--door); }
+.msg .win { color: var(--win); font-weight: 700; }
+.msg .loss { color: var(--loss); font-weight: 700; }
+.actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; min-height: 44px; }
+.btn {
+  border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer;
+  background: var(--ink); color: var(--paper); font-size: .95rem;
+}
+.btn.stay { background: var(--door); color: var(--door-ink); }
+.btn.switch { background: var(--prize); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+
+.stats h3 { margin-bottom: 14px; }
+.srow { display: grid; gap: 6px; margin-bottom: 16px; }
+.srow .top { display: flex; justify-content: space-between; gap: 8px; font-size: .9rem; }
+.srow .top b { font-weight: 600; }
+.bar { position: relative; height: 12px; border-radius: 6px; background: var(--paper); border: 1px solid var(--line); overflow: visible; }
+.bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; transition: width .4s ease; }
+.bar i.st { background: var(--door); }
+.bar i.sw { background: var(--prize); }
+.bar .th { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); opacity: .55; }
+.note { font-size: .84rem; color: var(--muted); }
+
+/* ---------- video ---------- */
+.video { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start; }
+.vcol { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.player { position: relative; aspect-ratio: 16 / 9; max-width: 100%; border-radius: var(--r); overflow: hidden; background: #0B0D18; }
+.player iframe, .yt-play { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.yt-play { padding: 0; cursor: pointer; background: #0B0D18; }
+.yt-play img { width: 100%; height: 100%; object-fit: cover; opacity: .82; }
+.yt-btn { position: absolute; left: 50%; top: 50%; width: 76px; height: 52px; transform: translate(-50%, -50%); background: #F2B438; border-radius: 14px; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+.yt-btn::after { content: ""; position: absolute; left: 31px; top: 16px; border-left: 18px solid #141A30; border-top: 10px solid transparent; border-bottom: 10px solid transparent; }
+.yt-play:hover .yt-btn { filter: brightness(1.1); }
+.yt-play:hover img { opacity: .95; }
+.yt-alt { font-size: .84rem; color: var(--muted); }
+.beats { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.beats li { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: baseline; }
+.beats .t { font-family: var(--f-mono); color: var(--muted); font-size: .8rem; }
+.callout { margin-top: 18px; padding: 14px 16px; border-radius: 10px; background: var(--prize-soft); font-size: .92rem; }
+
+/* ---------- simulation ---------- */
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl select, .ctl input[type=range] { font: inherit; color: var(--ink); }
+.ctl select { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.ctl input[type=range] { width: 170px; accent-color: var(--door); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.chart-wrap { position: relative; }
+canvas { display: block; width: 100%; height: 280px; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.tile .k { font-size: .82rem; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.tile .k::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+.tile .v { font-family: var(--f-display); font-size: 1.9rem; font-weight: 800; color: var(--c); line-height: 1.15; }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.dots { display: grid; grid-template-columns: repeat(30, 1fr); gap: 3px; margin-top: 14px; }
+.dots i { aspect-ratio: 1; border-radius: 2px; background: var(--line); }
+.dots i.st { background: var(--door); }
+.dots i.sw { background: var(--prize); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.w { color: var(--win); font-weight: 600; }
+td.l { color: var(--loss); }
+tfoot td { font-weight: 700; border-bottom: 0; }
+.tree svg { width: 100%; height: auto; display: block; }
+.tree text { font-family: var(--f-body); font-size: 11px; fill: var(--ink); }
+.tree .m { fill: var(--muted); font-family: var(--f-mono); font-size: 10px; }
+.tree line { stroke: var(--line); stroke-width: 2; }
+.tree .node { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.tree .car { fill: var(--prize-soft); stroke: var(--prize); }
+.tree .w { fill: var(--win); font-weight: 700; }
+.tree .l { fill: var(--loss); }
+.groups { display: grid; gap: 16px; }
+.grow { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; align-items: end; }
+.gcell { display: grid; gap: 8px; justify-items: center; }
+.minidoors { display: flex; gap: 8px; justify-content: center; }
+.md { width: 34px; height: 50px; border-radius: 5px 5px 2px 2px; background: var(--door); color: var(--door-ink); display: grid; place-items: center; font-family: var(--f-display); font-size: .8rem; font-weight: 800; }
+.md.mine { outline: 3px solid var(--prize); outline-offset: 2px; }
+.md.open { background: var(--paper); border: 1px dashed var(--line); color: var(--muted); }
+.md.open svg { width: 26px; }
+.brace { width: 100%; height: 8px; border: 2px solid var(--muted); border-bottom: 0; border-radius: 6px 6px 0 0; }
+.gp { font-family: var(--f-display); font-weight: 800; font-size: 1.2rem; }
+.gp.st { color: var(--door); }
+.gp.sw { color: var(--prize); }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.5rem; }
+.vs .a b { color: var(--prize); }
+.vs .bb b { color: var(--muted); }
+.vs span { font-size: .84rem; color: var(--muted); }
+.formula { font-family: var(--f-mono); font-size: .92rem; background: var(--paper); border-radius: 10px; padding: 14px 16px; overflow-x: auto; line-height: 1.9; white-space: nowrap; }
+.formula em { font-style: normal; color: var(--prize); font-weight: 600; }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 28px; }
+.esc-block { display: grid; grid-template-columns: 1.55fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-side { display: grid; gap: 16px; }
+.curve svg { width: 100%; height: auto; display: block; }
+.curve text { font-family: var(--f-mono); font-size: 10px; fill: var(--muted); }
+.curve .ax { stroke: var(--line); }
+.prog .door { aspect-ratio: 3 / 4.4; }
+.prog .doors { grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); gap: 12px; }
+.prob { margin-top: 8px; display: grid; gap: 4px; justify-items: center; }
+.prob .pb { width: 100%; height: 40px; background: var(--paper); border: 1px solid var(--line); border-radius: 5px; position: relative; overflow: hidden; }
+.prob .pb i { position: absolute; left: 0; right: 0; bottom: 0; background: var(--door); transition: height .5s ease; opacity: .85; }
+.prob .pb i.hi { background: var(--prize); }
+.prob span { font-family: var(--f-mono); font-size: .74rem; color: var(--muted); }
+.dslot { display: grid; }
+.history { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); min-height: 1.4em; text-align: center; }
+.strat-table td:last-child, .strat-table th:last-child { text-align: right; }
+.strat-table .bar { margin-top: 4px; }
+.check { display: inline-flex; gap: 8px; align-items: center; font-size: .86rem; color: var(--muted); }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .game, .video, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .doors { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .dots { grid-template-columns: repeat(20, 1fr); }
+  .ctl input[type=range] { width: 140px; }
+  .card { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* ---------- language ---------- */
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; color: var(--ink); text-decoration: none; }
+.lang a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+
+/* ---------- the puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr auto; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); align-items: start; }
+.steps li > div:not(.minidoors) { min-width: 0; display: grid; gap: 4px; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--door); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.steps .minidoors { gap: 5px; padding-top: 2px; }
+.steps .md { width: 26px; height: 38px; font-size: .66rem; }
+.steps .md.open svg { width: 20px; }
+.md.alt { outline: 2px dashed var(--prize); outline-offset: 2px; }
+.md.open.car { color: var(--prize); background: var(--prize-soft); border-color: var(--prize); border-style: solid; }
+.setup-side { display: grid; gap: 16px; }
+.ask { background: var(--prize-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .big { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.big) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+@media (max-width: 860px) { .setup { grid-template-columns: 1fr; } }
+@media (max-width: 520px) {
+  .steps li { grid-template-columns: 28px 1fr; }
+  .steps .minidoors { grid-column: 2; justify-content: flex-start; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=f9094b43">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/monty-hall/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/monty-hall/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <span class="mp-level" title="Дроби, відсотки, проста ймовірність"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span>Шкільна математика</span>
+    <h1 class="uk"><span class="kw">Парадокс Монті Голла</span> Три двері. Одне авто. <span class="q">Міняти вибір?</span></h1>
+    
+    <p class="lead uk sp-before">Ви обираєте двері. Ведучий, який знає, де приз, відчиняє інші двері з козою й пропонує змінити вибір. Змінювати чи ні? Зафіксуйте свою відповідь, а потім перевірте її в грі, на симуляції, у п'яти поясненнях і на 20 дверях.</p>
+    <p class="lead uk sp-after">Ви обираєте двері. Ведучий, який знає, де приз, відчиняє інші двері з козою й пропонує змінити вибір. Здається, що тепер шанси 50 на 50. Насправді ні. Перевірте це самі: на відео, у грі, на симуляції, у поясненнях і на 20 дверях.</p>
+    
+    
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#play"><span class="uk">Зіграти</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd st"><b>1/3</b><span><span class="uk">якщо залишитись</span></span></div>
+      <div class="odd sw"><b>2/3</b><span><span class="uk">якщо змінити</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="uk" style="font-weight:inherit">Умова</b></a>
+      <a href="#video"><span>1</span><b class="uk" style="font-weight:inherit">Відео</b></a>
+      <a href="#play"><span>2</span><b class="uk" style="font-weight:inherit">Зіграйте</b></a>
+      <a href="#sim"><span>3</span><b class="uk" style="font-weight:inherit">10 000 ігор</b></a>
+      <a href="#why"><span>4</span><b class="uk" style="font-weight:inherit">Чому так</b></a>
+      <a href="#scale"><span>5</span><b class="uk" style="font-weight:inherit">20 дверей і більше</b></a>
+      <a href="#facts"><span>★</span><b class="uk" style="font-weight:inherit">Цікаві факти</b></a>
+    </nav>
+  </div>
+  <div>
+    <div class="doors" id="hero-doors" aria-hidden="true"></div>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span></span>
+    <h2><span class="uk">Уявіть: ви на телешоу</span></h2>
+    <p class="lead uk">Задачу Монті Голла (її ще називають парадоксом Монті Холла) названо на честь ведучого американського шоу <i>Let's Make a Deal</i>, що виходило з 1963 року. Саме такої гри на шоу не було, але атмосфера та сама: ведучий, двері, призи і спокуса передумати.</p>
+    
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li>
+        <span class="n">1</span>
+        <div><h3><span class="uk">Сцена</span></h3>
+          <p class="uk">Ви фіналіст. Перед вами три зачинені двері. За одними стоїть новенький автомобіль, за двома іншими кози. Призи розставили заздалегідь і навмання. Де що, знає лише ведучий.</p>
+          </div>
+        <div class="minidoors"><div class="md">1</div><div class="md">2</div><div class="md">3</div></div>
+      </li>
+      <li>
+        <span class="n">2</span>
+        <div><h3><span class="uk">Ваш вибір</span></h3>
+          <p class="uk">Ви вказуєте на одні двері, скажімо №1. Їх поки не відчиняють.</p>
+          </div>
+        <div class="minidoors"><div class="md mine">1</div><div class="md">2</div><div class="md">3</div></div>
+      </li>
+      <li>
+        <span class="n">3</span>
+        <div><h3><span class="uk">Ведучий відчиняє інші двері</span></h3>
+          <p class="uk">Ведучий відчиняє одні з двох дверей, яких ви не обирали, скажімо №3. Там коза. Ваші двері він не чіпає, а авто ніколи не показує. Якщо кози за обома невибраними дверима, він відчиняє одні з них навмання.</p>
+          </div>
+        <div class="minidoors"><div class="md mine">1</div><div class="md">2</div><div class="md open" data-icon="goat"></div></div>
+      </li>
+      <li>
+        <span class="n">4</span>
+        <div><h3><span class="uk">Пропозиція</span></h3>
+          <p class="uk">«Бажаєте залишитися на дверях №1 чи перейти на №2?» Закритих дверей двоє, і за одними з них авто.</p>
+          </div>
+        <div class="minidoors"><div class="md mine">1</div><div class="md alt">2</div><div class="md open" data-icon="goat"></div></div>
+      </li>
+      <li>
+        <span class="n">5</span>
+        <div><h3><span class="uk">Фінал</span></h3>
+          <p class="uk">Відчиняють двері, які ви обрали остаточно. Якщо там авто, воно ваше. Якщо коза, ви йдете додому з козою.</p>
+          </div>
+        <div class="minidoors"><div class="md open" data-icon="goat"></div><div class="md open car" data-icon="car"></div><div class="md open" data-icon="goat"></div></div>
+      </li>
+    </ol>
+    <div class="setup-side">
+      <div class="card ask">
+        <span class="kicker"><span class="uk">Питання</span></span>
+        <p class="big"><span class="uk">Чи вигідно змінити вибір? Чи це не має значення?</span></p>
+        <p class="uk sp-before">Вирішіть для себе, перш ніж гортати далі. Потім перевірте свою відповідь у грі в раунді 2.</p>
+        <p class="uk sp-after">Більшість людей відповідає: не має, тепер шанси 50 на 50. У 1990 році Мерилін вос Савант написала в журналі <i>Parade</i>, що змінювати вигідно. Їй надійшло близько 10 000 листів незгоди, серед них майже тисяча від людей з науковими ступенями. Права була вона.</p>
+        
+        
+      </div>
+      <div class="card">
+        <h3><span class="uk">Правила, від яких залежить відповідь</span></h3>
+        <ul class="rules uk">
+          <li>Ведучий знає, де авто.</li>
+          <li>Він завжди відчиняє двері з козою, а не з авто.</li>
+          <li>Він ніколи не відчиняє ваші двері.</li>
+          <li>Він завжди пропонує обмін, незалежно від того, вгадали ви чи ні.</li>
+          <li>Якщо кози за обома невибраними дверима, він обирає одні з них навмання.</li>
+        </ul>
+        
+        <p class="note"><span class="uk">Якщо змінити якесь із цих правил, відповідь може стати іншою. Як саме, показано в раунді 4.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: video -->
+<section class="round" id="video">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Подивіться</span></span>
+    <h2><span class="uk">Сцена з фільму «21»</span></h2>
+    <p class="lead uk sp-before">У фільмі «21» (2008) професор математики Міккі Роза (Кевін Спейсі) ставить студентові Бену Кемпбеллу (Джим Стерджесс) задачу з телешоу. Бен відповідає одразу й пояснює свою відповідь.</p>
+    <p class="lead uk sp-after">У фільмі «21» (2008) професор математики Міккі Роза (Кевін Спейсі) ставить студентові Бену Кемпбеллу (Джим Стерджесс) задачу з телешоу. Бен відповідає, що змінив би двері, і пояснює чому.</p>
+    
+    
+  </div>
+  <div class="card sp-before">
+    <h3><span class="uk">Сцена розкриває відповідь</span></h3>
+    <p class="uk" style="margin-top:10px">Спершу зіграйте хоча б одну партію в раунді 2. Після цього тут з'являться відео й розбір сцени.</p>
+    
+    <div class="hero-go">
+      <a class="btn pri" href="#play"><span class="uk">Зіграти</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Показати відео й відповідь</span></button>
+    </div>
+  </div>
+  <div class="video sp-after">
+    <div class="vcol">
+      <div class="player uk" data-yt="xgENddTR_5s">
+        <button type="button" class="yt-play" aria-label="Відтворити відео: сцена про парадокс Монті Голла з фільму «21»">
+          <img src="https://i.ytimg.com/vi/xgENddTR_5s/hqdefault.jpg" alt="Кадр зі сцени про парадокс Монті Голла у фільмі «21»" loading="lazy" width="480" height="360">
+          <span class="yt-btn"></span>
+        </button>
+      </div>
+      
+      <p class="yt-alt uk">«21» (2008), реж. Роберт Лукетич · фрагмент з російським озвученням · <a href="https://www.youtube.com/watch?v=xgENddTR_5s" target="_blank" rel="noopener">відкрити на YouTube</a></p>
+      
+    </div>
+    <div class="card">
+      <h3><span class="uk">Що відбувається в сцені</span></h3>
+      <ul class="beats uk" style="margin-top:14px">
+        <li><span class="t">Задача</span><span>Професор: за одними з трьох дверей авто, за двома іншими кози. Ви обрали двері №1.</span></li>
+        <li><span class="t">Підказка</span><span>Ведучий відчиняє двері №3, там коза. Чи хочете ви перейти на №2?</span></li>
+        <li><span class="t">Відповідь</span><span>Бен каже «так»: спочатку шанс був 33,3%, після зміни стає 66,7%.</span></li>
+        <li><span class="t">Ідея</span><span>Бен називає це «зміною змінної»: нова інформація змінює розрахунок, а емоції заважають це побачити.</span></li>
+      </ul>
+      
+      <p class="callout uk"><b>Чого фільм не каже.</b> Відповідь 2/3 правильна лише тоді, коли ведучий <i>завжди</i> відчиняє двері з козою і <i>завжди</i> пропонує обмін. Якби він відчиняв навмання або пропонував обмін лише тим, хто вже вгадав, відповідь була б іншою. Про це в раунді 4.</p>
+      
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 2: play -->
+<section class="round" id="play">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Зіграйте самі</span></span>
+    <h2><span class="uk">Оберіть двері</span></h2>
+    <p class="lead uk">Зіграйте 15–20 разів, пробуючи обидві стратегії. Праворуч видно, як часто виграє кожна з них у вашій сесії.</p>
+    
+  </div>
+  <div class="game">
+    <div class="card stage" id="game3">
+      <div class="doors"></div>
+      <p class="msg" aria-live="polite"></p>
+      <div class="actions"></div>
+    </div>
+    <div class="card stats" id="stats3">
+      <h3><span class="uk">Ваша сесія</span></h3>
+      <div class="srows"></div>
+      <p class="note uk">Риска на шкалі показує теоретичний результат. За малої кількості ігор розкид великий, тому корисно глянути й на раунд 3.</p>
+      
+      <button class="btn ghost" id="reset3" style="margin-top:14px"><span class="uk">Скинути статистику</span></button>
+    </div>
+  </div>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "monty-hall", RULE = {"right": ["switch"]}, MIN = 20, T = {"kicker": "Як відповідають інші", "few": "Відповідей поки замало для статистики: {n}. Ваша вже серед них.", "few_seen": "Відповідей поки замало для статистики: {n}.", "all": "Відповідей: {n}. Правильних серед них {p}.", "yes": "Ви серед тих, хто впорався.", "no": "Не засмучуйтеся: інтуїція підводить більшість.", "bar": "правильно", "note": "Рахуємо лише першу відповідь з кожного браузера, до того як він побачив розв'язок. Анонімно."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span></span>
+    <h2><span class="uk">10 000 ігор за секунду</span></h2>
+    <p class="lead uk">Комп'ютер грає за вас: обирає двері навмання, ведучий відчиняє двері з козами, далі гравець або залишається, або змінює вибір. Графік показує, як частка виграшів наближається до теорії.</p>
+    
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="sim-n"><span class="uk">Кількість ігор</span>
+        <select id="sim-n">
+          <option value="100">100</option>
+          <option value="1000">1 000</option>
+          <option value="10000" selected>10 000</option>
+          <option value="100000">100 000</option>
+        </select>
+      </label>
+      <label class="ctl" for="sim-doors"><span><span class="uk">Дверей:</span> <b class="mono" id="sim-doors-v">3</b></span>
+        <input type="range" id="sim-doors" min="3" max="20" value="3">
+      </label>
+      <div class="ctl"><span class="uk">Стратегія</span>
+        <div class="seg" id="sim-strat" role="group">
+          <button type="button" data-s="both" aria-pressed="true"><span class="uk">Обидві</span></button>
+          <button type="button" data-s="stay" aria-pressed="false"><span class="uk">Залишатися</span></button>
+          <button type="button" data-s="switch" aria-pressed="false"><span class="uk">Міняти</span></button>
+        </div>
+      </div>
+      <button class="btn" id="sim-run"><span class="uk">Запустити</span></button>
+    </div>
+    <div class="sim-grid">
+      <div class="chart-wrap" style="min-width:0">
+        <canvas id="sim-chart"></canvas>
+        <div class="legend">
+          <span style="--c:var(--door)"><b class="uk" style="font-weight:inherit">Залишатися</b></span>
+          <span style="--c:var(--prize)"><b class="uk" style="font-weight:inherit">Міняти</b></span>
+          <span style="--c:var(--muted)"><b class="uk" style="font-weight:inherit">пунктир: теорія</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile" id="tile-stay" style="--c:var(--door)">
+          <div class="k"></div>
+          <div class="v">–</div>
+          <div class="s"></div>
+        </div>
+        <div class="tile" id="tile-switch" style="--c:var(--prize)">
+          <div class="k"></div>
+          <div class="v">–</div>
+          <div class="s"></div>
+        </div>
+        <div>
+          <div class="note uk">Перші 300 ігор. Колір показує, яка стратегія виграла б у цій грі.</div>
+          
+          <div class="dots" id="sim-dots"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · П'ять пояснень</span></span>
+    <h2><span class="uk">Чому інтуїція помиляється</span></h2>
+    <p class="lead uk">Двоє закритих дверей не означають 50 на 50. Ваші двері обрано навмання, а другі залишив ведучий, який знає, де авто, і не має права його показати. Ці двері нерівноправні. Ось п'ять способів у цьому переконатися: оберіть той, що вам ближчий.</p>
+    
+  </div>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Перебір усіх випадків</span></span>
+      <h3><span class="uk">Є лише три сценарії</span></h3>
+      <p><span class="uk">Нехай ви обрали двері №1. Авто з однаковою ймовірністю стоїть за будь-якими дверима.</span></p>
+      <div class="tbl-wrap">
+        <table class="uk">
+          <thead><tr><th>Авто за</th><th>Ведучий відчиняє</th><th>Залишитись</th><th>Змінити</th></tr></thead>
+          <tbody>
+            <tr><td>№1</td><td>№2 або №3</td><td class="w">авто</td><td class="l">коза</td></tr>
+            <tr><td>№2</td><td>№3</td><td class="l">коза</td><td class="w">авто</td></tr>
+            <tr><td>№3</td><td>№2</td><td class="l">коза</td><td class="w">авто</td></tr>
+          </tbody>
+          <tfoot><tr><td colspan="2">Виграш</td><td>1 з 3</td><td style="color:var(--prize)">2 з 3</td></tr></tfoot>
+        </table>
+        
+      </div>
+    </div>
+
+    <div class="card tree">
+      <span class="kicker"><span class="uk">Дерево ймовірностей</span></span>
+      <h3><span class="uk">Зміна виграє, коли перший вибір був хибним</span></h3>
+      <svg viewBox="0 0 360 210" role="img">
+        <line x1="180" y1="30" x2="60" y2="88"/><line x1="180" y1="30" x2="180" y2="88"/><line x1="180" y1="30" x2="300" y2="88"/>
+        <line x1="60" y1="112" x2="60" y2="160"/><line x1="180" y1="112" x2="180" y2="160"/><line x1="300" y1="112" x2="300" y2="160"/>
+        <rect class="node" x="125" y="8" width="110" height="26" rx="6"/>
+        <text x="180" y="25" text-anchor="middle" class="uk">Ваш перший вибір</text>
+        <text class="m" x="104" y="58" text-anchor="middle">1/3</text><text class="m" x="190" y="62">1/3</text><text class="m" x="256" y="58" text-anchor="middle">1/3</text>
+        <rect class="node car" x="14" y="88" width="92" height="26" rx="6"/>
+        <rect class="node" x="134" y="88" width="92" height="26" rx="6"/>
+        <rect class="node" x="254" y="88" width="92" height="26" rx="6"/>
+        <g class="uk"><text x="60" y="105" text-anchor="middle">авто</text><text x="180" y="105" text-anchor="middle">коза А</text><text x="300" y="105" text-anchor="middle">коза Б</text>
+        <text class="m" x="94" y="140" text-anchor="middle">змінити</text><text class="m" x="214" y="140" text-anchor="middle">змінити</text><text class="m" x="334" y="140" text-anchor="middle">змінити</text>
+        <text class="l" x="60" y="178" text-anchor="middle">коза</text><text class="w" x="180" y="178" text-anchor="middle">авто</text><text class="w" x="300" y="178" text-anchor="middle">авто</text></g>
+        
+        <text class="m" x="60" y="198" text-anchor="middle">1/3</text><text class="m" x="240" y="198" text-anchor="middle">1/3 + 1/3 = 2/3</text>
+      </svg>
+      <p><span class="uk">Стратегія «міняти» програє тільки тоді, коли ви одразу вгадали. А вгадати одразу можна лише в одному випадку з трьох.</span></p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Ви проти групи</span></span>
+      <h3><span class="uk">Ведучий стискає двоє дверей в одні</span></h3>
+      <div class="groups">
+        <div class="grow">
+          <div class="gcell"><div class="minidoors"><div class="md mine">1</div></div><span class="gp st">1/3</span></div>
+          <div class="gcell"><div class="minidoors"><div class="md">2</div><div class="md">3</div></div><div class="brace"></div><span class="gp sw">2/3</span></div>
+        </div>
+        <div class="grow">
+          <div class="gcell"><div class="minidoors"><div class="md mine">1</div></div><span class="gp st">1/3</span></div>
+          <div class="gcell"><div class="minidoors"><div class="md">2</div><div class="md open" data-icon="goat"></div></div><div class="brace"></div><span class="gp sw">2/3</span></div>
+        </div>
+      </div>
+      <p class="uk">Уявіть, що ведучий одразу пропонує: «Залиште свої двері або заберіть обидві інші». Ви взяли б дві. Показана коза нічого не змінює: за двома іншими дверима хоча б одна коза є завжди, і ведучий просто показав, за якими саме. Шанс групи 2/3 тепер зосереджений в одних дверях.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Роль ведучого</span></span>
+      <h3><span class="uk">Усе вирішує те, що ведучий знає</span></h3>
+      <div class="vs">
+        <div class="a"><span><span class="uk">Ведучий знає і завжди показує козу</span></span><b>2/3</b><span><span class="uk">шанс, якщо змінити</span></span></div>
+        <div class="bb"><span><span class="uk">Ведучий відчиняє навмання і випадково показав козу</span></span><b id="ign-v">1/2</b><span id="ign-s"></span></div>
+      </div>
+      <p class="uk">Коли ведучий знає, де авто, його вибір обмежений, і це обмеження несе інформацію. Коли він відчиняє навмання, козу за дверима можна було знайти й випадково, тому інформації менше. Перевірте: симуляція відкине ігри, де ведучий випадково показав авто.</p>
+      
+      <button class="btn ghost" id="ign-run"><span class="uk">Перевірити на 10 000 іграх</span></button>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули · теорема Баєса</span></span>
+      <h3><span class="uk">Рахуємо точно: ви обрали №1, ведучий відчинив №3</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Шанс, що ведучий відчинить №3. Авто з однаковим шансом ⅓ може бути за будь-якими дверима:</span></p>
+          <ul class="fx-cap fx-list">
+            <li><span class="uk">якщо авто за №1, ведучий обирає між №2 і №3, тож відчиняє №3 з імовірністю ½;</span></li>
+            <li><span class="uk">якщо авто за №2, він завжди відчиняє №3 (імовірність 1);</span></li>
+            <li><span class="uk">якщо авто за №3, він ніколи не відчиняє №3 (імовірність 0).</span></li>
+          </ul>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">ведучий відчинить №3</mtext><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>·</mo><mfrac><mn>1</mn><mn>3</mn></mfrac><mo>+</mo><mn>1</mn><mo>·</mo><mfrac><mn>1</mn><mn>3</mn></mfrac><mo>+</mo><mn>0</mn><mo>·</mo><mfrac><mn>1</mn><mn>3</mn></mfrac><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Теорема Баєса: шанс, що авто за вашими дверима №1, після того як ведучий відчинив №3.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">авто за №1</mtext><mo>|</mo><mtext class="lbl uk">відчинив №3</mtext><mo stretchy="false">)</mo></math>
+          <math display="block"><mo>=</mo><mfrac><mrow><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">відчинив №3</mtext><mo>|</mo><mtext class="lbl uk">авто за №1</mtext><mo stretchy="false">)</mo><mo>·</mo><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">авто за №1</mtext><mo stretchy="false">)</mo></mrow><mrow><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">відчинив №3</mtext><mo stretchy="false">)</mo></mrow></mfrac></math>
+          <math display="block"><mo>=</mo><mfrac><mrow><mn>½</mn><mo>·</mo><mn>⅓</mn></mrow><mn>½</mn></mfrac><mo>=</mo><mrow class="hl"><mfrac><mn>1</mn><mn>3</mn></mfrac></mrow></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Те саме для дверей №2: тут ведучий мусив відчинити №3, тому <span style="white-space:nowrap">P(відчинив №3 | авто за №2) = 1</span>.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">авто за №2</mtext><mo>|</mo><mtext class="lbl uk">відчинив №3</mtext><mo stretchy="false">)</mo></math>
+          <math display="block"><mo>=</mo><mfrac><mrow><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">відчинив №3</mtext><mo>|</mo><mtext class="lbl uk">авто за №2</mtext><mo stretchy="false">)</mo><mo>·</mo><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">авто за №2</mtext><mo stretchy="false">)</mo></mrow><mrow><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">відчинив №3</mtext><mo stretchy="false">)</mo></mrow></mfrac></math>
+          <math display="block"><mo>=</mo><mfrac><mrow><mn>1</mn><mo>·</mo><mn>⅓</mn></mrow><mn>½</mn></mfrac><mo>=</mo><mrow class="hl"><mfrac><mn>2</mn><mn>3</mn></mfrac></mrow></math>
+        </div>
+      </div>
+      <p class="uk">Уся різниця в множнику P(відчинив №3 | авто за …): ½ для ваших дверей №1 і 1 для дверей №2. Якщо авто за вашими дверима, ведучий обирає між №2 і №3 з імовірністю ½. Якщо авто за №2, у ведучого немає вибору: він <i>мусить</i> відчинити №3. Тому те, що ведучий відчинив саме №3, удвічі краще узгоджується з гіпотезою «авто за №2».</p>
+      
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 5: escalation -->
+<section class="round" id="scale">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Ускладнюємо</span></span>
+    <h2><span class="uk">Що буде, якщо дверей більше</span></h2>
+    <p class="lead uk">Якщо три двері не переконали, збільшимо масштаб. На двадцяти дверях інтуїція зазвичай здається.</p>
+    
+  </div>
+
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card stage" id="gameN">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
+          <h3 id="gameN-title"></h3>
+          <label class="ctl" for="esc-n"><span><span class="uk">Дверей:</span> <b class="mono" id="esc-n-v">20</b></span>
+            <input type="range" id="esc-n" min="3" max="100" value="20">
+          </label>
+        </div>
+        <div class="doors many"></div>
+        <p class="msg" aria-live="polite"></p>
+        <div class="actions"></div>
+      </div>
+      <div class="esc-side">
+        <div class="card stats" id="statsN">
+          <h3><span class="uk">Ваша сесія</span></h3>
+          <div class="srows"></div>
+        </div>
+        <div class="card curve">
+          <h3 style="margin-bottom:10px"><span class="uk">Шанс виграти залежно від кількості дверей</span></h3>
+          <svg id="curve" viewBox="0 0 320 170" role="img"></svg>
+          <p class="note" id="curve-note" style="margin-top:8px"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="esc-block prog">
+      <div class="card stage" id="prog">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end">
+          <h3><span class="uk">Ведучий відчиняє по одних дверях і щоразу пропонує обмін</span></h3>
+          <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:end">
+            <label class="ctl" for="prog-n"><span><span class="uk">Дверей:</span> <b class="mono" id="prog-n-v">6</b></span>
+              <input type="range" id="prog-n" min="4" max="10" value="6">
+            </label>
+            <label class="check" for="prog-show"><input type="checkbox" id="prog-show" checked> <span class="uk">Показати ймовірності</span></label>
+          </div>
+        </div>
+        <div class="doors"></div>
+        <p class="history"></p>
+        <p class="msg" aria-live="polite"></p>
+        <div class="actions"></div>
+      </div>
+      <div class="esc-side">
+        <div class="card">
+          <h3><span class="uk">Яка стратегія найкраща?</span></h3>
+          <p class="note" style="margin:6px 0 12px"><span class="uk">Симуляція 20 000 ігор для</span> <b id="prog-sim-n">6</b> <span class="uk">дверей.</span></p>
+          <table class="strat-table">
+            <tbody id="prog-sim"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h3><span class="uk">Як перетікає ймовірність</span></h3>
+          <p class="note uk" style="margin-top:8px">Поки ви тримаєте перші двері, їхній шанс заморожений на 1/n: ведучому заборонено їх відчиняти, тож кожна показана коза нічого про них не каже. Шанс відчинитих дверей перетікає до інших закритих. Коли залишиться двоє дверей, увесь шанс (n−1)/n зібрано в одних, і саме тоді варто змінити вибір. Якщо змінити раніше, нові двері «замерзнуть» на нижчому рівні, і ви втратите частину шансу.</p>
+          
+          <p class="note" style="margin-top:10px" id="prog-mine"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span></span>
+    <h2><span class="uk">Що розповісти друзям</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">10 000</span>
+        <h3><span class="uk">10 000 листів незгоди</span></h3>
+        <p class="uk">Після колонки Мерилін вос Савант у журналі <i>Parade</i> (1990) редакція отримала близько 10 000 листів, і майже тисяча з них були від людей з науковими ступенями, які пояснювали, що вона помиляється. Вос Савант на той час була занесена до Книги рекордів Гіннесса як людина з найвищим IQ.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1 500+</span>
+        <h3><span class="uk">Навіть Ердеш не повірив</span></h3>
+        <p class="uk">Пал Ердеш, автор понад 1 500 наукових статей і один з найплідніших математиків в історії, відмовлявся приймати відповідь 2/3. Переконала його лише комп'ютерна симуляція, яку показав колега Ендрю Важоні. Раунд 3 на цій сторінці робить те саме.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">2010</span>
+        <h3><span class="uk">Голуби впоралися краще</span></h3>
+        <p class="uk">У дослідженні 2010 року голуби і люди сотні разів грали в гру Монті Голла. Голуби, які просто запам'ятовували, що приносить їжу, навчилися майже завжди змінювати вибір. Люди так і не дійшли до оптимальної стратегії: їм заважала «логіка» 50 на 50.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1991</span>
+        <h3><span class="uk">Сам Монті Голл попереджав</span></h3>
+        <p class="uk">В інтерв'ю <i>The New York Times</i> у 1991 році Монті Голл показав журналістові, що на справжньому шоу він не був зобов'язаний пропонувати обмін. Він міг пропонувати його тим, хто вже обрав авто, і тоді міняти було б погано. Саме тому в умові важливе правило «ведучий пропонує обмін завжди».</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1889</span>
+        <h3><span class="uk">Задача старша за шоу</span></h3>
+        <p class="uk">Та сама логіка з'являється в «парадоксі скриньок» Жозефа Бертрана (1889) і в «задачі про трьох в'язнів», яку Мартін Гарднер опублікував у 1959 році. Телешоу лише дало старій ідеї двері й кіз.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">21</span>
+        <h3><span class="uk">Фільм про блекджек</span></h3>
+        <p class="uk">Фільм «21» знято за книжкою Бена Мезріча про студентів MIT, які рахували карти й вигравали в казино Лас-Вегаса. Сцена з Монті Голлом у фільмі перевіряє, чи вміє герой відкинути інтуїцію заради розрахунку.</p>
+        
+      </article>
+  </div>
+</section>
+
+<section class="mp-books" id="books">
+  <div class="mp-related-head">
+    <span class="eyebrow">Що почитати</span>
+    <h2>Книжки, де є ця задача</h2>
+  </div>
+  <div class="mp-books-grid">
+    <div class="mp-book"><h3>The Monty Hall Problem</h3><p class="mp-book-author">Джейсон Розенгаус</p><p class="mp-book-meta">2009, англійською · уся книга</p></div>
+    <div class="mp-book"><h3>The Book of Why</h3><p class="mp-book-author">Джудея Перл, Дана Маккензі</p><p class="mp-book-meta">2018, англійською · розділ 6</p></div>
+    <div class="mp-book"><h3>The Drunkard&#x27;s Walk</h3><p class="mp-book-author">Леонард Млодінов</p><p class="mp-book-meta">2008, англійською · розділ 3</p></div>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/books/">Усі книжки →</a>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">Ще задачі</span>
+    <h2>Інші парадокси</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/penney-game/"><h3>Гра Пенні</h3><p>Ви обрали трійку ООО, суперник обрав РОО. Монету підкидають, доки одна з трійок не випаде поспіль. Який шанс суперника?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/birthday/"><h3>Парадокс днів народження</h3><p>Скільки людей має зібратися в кімнаті, щоб двоє з них, імовірно, народилися в один день?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/false-positive/"><h3>Парадокс хибнопозитивного тесту</h3><p>Хворобу має 1% людей. Тест точний на 99%, і ваш результат позитивний. Який шанс, що ви справді хворі?</p></a>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/">Усі задачі →</a>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Обговорення</span>
+    <h2>Що ви думаєте?</h2>
+    <p>Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub.</p>
+    <div class="mp-lvote"><p>Рівень «Шкільна математика» відповідає задачі?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">Ні, складніше</button><button type="button" data-vote="right">Так</button><button type="button" data-vote="easier">Ні, простіше</button></div><p class="mp-lvote-thanks">Дякуємо! Це допоможе точніше ставити рівні.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "monty-hall" + "-lvl", LEVEL = 2, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="monty-hall" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="uk" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Розсилка</span>
+    <h2>Нові задачі, пояснення й обговорення</h2>
+    <p>Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">Форма підписки з'явиться тут найближчим часом.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+<footer>
+  <span class="uk">Задачу поставив Стів Селвін у 1975 році. Широко відомою вона стала після колонки Мерилін вос Савант у 1990-му.</span>
+  
+  <span class="mono">P(win | switch) = (n−1)/n</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const rnd = n => Math.floor(Math.random() * n);
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!document.documentElement.hasAttribute('data-static')) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const pct = (w, p) => { if (!p) return '–'; const s = (100 * w / p).toFixed(1) + '%'; return lang === 'en' ? s : s.replace('.', ','); };
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const doorsWord = k => {
+  if (lang === 'en') return k === 1 ? 'door' : 'doors';
+  const a = k % 10, b = k % 100;
+  if (a === 1 && b !== 11) return 'двері';
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return 'двері';
+  return 'дверей';
+};
+const no = i => (lang === 'en' ? '#' : '№') + (i + 1);
+
+const ICON = {
+  car: '<svg viewBox="0 0 48 28" aria-hidden="true"><path fill="currentColor" d="M3 21v-5c0-2 1.5-3.5 3.5-3.5H11l5.5-7c.7-.9 1.7-1.5 2.9-1.5h11.2c1.2 0 2.2.6 2.9 1.5l5 7h3c2.2 0 3.5 1.6 3.5 3.5v5z"/><path fill="var(--prize-soft)" d="M18 7.5h6.5v5H14.4zM27 7.5h4.4c.5 0 1 .2 1.3.6l3.3 4.4H27z"/><circle cx="13" cy="21.5" r="4.5" fill="var(--prize-soft)" stroke="currentColor" stroke-width="3"/><circle cx="36" cy="21.5" r="4.5" fill="var(--prize-soft)" stroke="currentColor" stroke-width="3"/></svg>',
+  goat: '<svg viewBox="0 0 48 36" aria-hidden="true"><g fill="currentColor"><ellipse cx="21" cy="19" rx="13" ry="7.5"/><rect x="10" y="22" width="3" height="12" rx="1.5"/><rect x="15.5" y="23" width="3" height="11" rx="1.5"/><rect x="24" y="23" width="3" height="11" rx="1.5"/><rect x="29.5" y="22" width="3" height="12" rx="1.5"/><path d="M30 15l5-7 4 2-4 9z"/><ellipse cx="39.5" cy="11.5" rx="5.5" ry="4" transform="rotate(25 39.5 11.5)"/><path d="M8.5 15c-2-1-3.5-3-3.5-5 2 .5 3.5 2 4.5 3.5z"/><path d="M41 15.5l1 5-2.2-.4z"/></g><path d="M37 8c-1-3-3.5-5-6.5-5.5M39.5 7.5c0-3-1.5-5.5-4-6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+};
+document.querySelectorAll('[data-icon]').forEach(el => el.innerHTML = ICON[el.dataset.icon]);
+
+function doorEl(i) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'door';
+  b.innerHTML = '<span class="behind"></span><span class="panel"><span class="num">' + (i + 1) + '</span><span class="knob"></span></span><span class="tag"></span>';
+  b.dataset.i = i;
+  return b;
+}
+function setBehind(el, isCar) {
+  const bh = el.querySelector('.behind');
+  bh.className = 'behind' + (isCar ? ' car' : '');
+  bh.dataset.car = isCar ? 1 : '';
+  bh.innerHTML = (isCar ? ICON.car : ICON.goat) + '<span>' + (isCar ? L('авто', 'car') : L('коза', 'goat')) + '</span>';
+}
+function relabelDoors(root) {
+  root.querySelectorAll('.door').forEach(d => {
+    d.setAttribute('aria-label', L('Двері ', 'Door ') + (+d.dataset.i + 1));
+    const bh = d.querySelector('.behind');
+    const s = bh.querySelector('span'); if (s) s.textContent = bh.dataset.car ? L('авто', 'car') : L('коза', 'goat');
+  });
+}
+
+/* ---------- video: thumbnail first, the YouTube player loads on click ---------- */
+document.querySelectorAll('.player').forEach(p => {
+  p.querySelector('.yt-play').addEventListener('click', () => {
+    const f = document.createElement('iframe');
+    f.src = 'https://www.youtube-nocookie.com/embed/' + p.dataset.yt + '?autoplay=1&rel=0';
+    f.title = p.querySelector('.yt-play').getAttribute('aria-label');
+    f.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+    f.referrerPolicy = 'strict-origin-when-cross-origin';
+    f.allowFullscreen = true;
+    p.replaceChildren(f);
+  });
+});
+
+/* ---------- hero doors (static illustration) ---------- */
+const heroBox = $('#hero-doors');
+[0, 1, 2].forEach(i => {
+  const d = doorEl(i);
+  d.disabled = true; d.tabIndex = -1;
+  setBehind(d, false);
+  if (i === 0) d.classList.add('picked');
+  if (i === 1) d.classList.add('alt');
+  if (i === 2) d.classList.add('open');
+  heroBox.appendChild(d);
+});
+function heroText() {
+  heroBox.children[0].querySelector('.tag').textContent = L('ваш вибір', 'your pick');
+  heroBox.children[1].querySelector('.tag').textContent = L('змінити?', 'switch?');
+  relabelDoors(heroBox);
+}
+
+/* ---------- stats widget ---------- */
+function Stats(root, theory) {
+  const s = { stay: { p: 0, w: 0 }, switch: { p: 0, w: 0 } };
+  const rows = root.querySelector('.srows');
+  function render() {
+    const th = theory();
+    rows.innerHTML = ['stay', 'switch'].map(k => {
+      const r = s[k];
+      const w = r.p ? 100 * r.w / r.p : 0;
+      return '<div class="srow"><div class="top"><b>' + (k === 'stay' ? L('Залишався', 'Stayed') : L('Міняв', 'Switched')) + '</b><span class="mono">' + r.w + L(' з ', ' of ') + r.p + ' · ' + pct(r.w, r.p) + '</span></div>' +
+        '<div class="bar"><i class="' + (k === 'stay' ? 'st' : 'sw') + '" style="width:' + w + '%"></i>' + (window.mpSolved && !mpSolved() ? '' : '<span class="th" style="left:calc(' + (100 * th[k]) + '% - 1px)"></span>') + '</div></div>';
+    }).join('');
+  }
+  render();
+  return {
+    add(k, win) { s[k].p++; if (win) s[k].w++; render(); },
+    reset() { s.stay = { p: 0, w: 0 }; s.switch = { p: 0, w: 0 }; render(); },
+    render
+  };
+}
+
+/* ---------- classic game with n doors ---------- */
+function Game(root, nInit, onResult) {
+  const box = root.querySelector('.doors'), msg = root.querySelector('.msg'), act = root.querySelector('.actions');
+  let n = nInit, car, pick, other, phase, els = [], last = null;
+  function build() {
+    box.innerHTML = '';
+    box.classList.toggle('many', n > 6);
+    els = [];
+    for (let i = 0; i < n; i++) {
+      const d = doorEl(i);
+      d.addEventListener('click', () => choose(i));
+      box.appendChild(d); els.push(d);
+    }
+  }
+  function button(cls, text, fn) {
+    const b = document.createElement('button');
+    b.className = 'btn ' + cls; b.textContent = text; b.addEventListener('click', fn); act.appendChild(b); return b;
+  }
+  // all user-visible text for the current phase, so a language switch can redraw it
+  function text() {
+    act.innerHTML = '';
+    if (phase === 'pick') {
+      msg.innerHTML = n === 3 ? L('Оберіть одні з трьох дверей. За одними авто, за двома іншими кози.', 'Pick one of three doors. One hides a car, the other two hide goats.')
+        : L('Оберіть одні з ' + n + ' дверей. Авто лише за одними.', 'Pick one of ' + n + ' doors. Only one hides the car.');
+    } else if (phase === 'decide') {
+      const toOpen = els.map((_, j) => j).filter(j => j !== pick && j !== other), k = toOpen.length;
+      msg.innerHTML = L('Ведучий знає, де авто, і відчиняє ', 'The host knows where the car is and opens ') +
+        (k === 1 ? L('двері ', 'door ') + '<b>' + no(toOpen[0]) + '</b>' : k + ' ' + doorsWord(k)) + '. ' +
+        (k === 1 ? L('Там коза.', 'It\'s a goat.') : L('За всіма кози.', 'All goats.')) +
+        L(' Залишитесь на ', ' Stay with ') + '<b>' + no(pick) + '</b>' + L(' чи зміните на ', ' or switch to ') + '<b>' + no(other) + '</b>?';
+      button('stay', L('Залишитись на ', 'Stay with ') + no(pick), () => finish('stay'));
+      button('switch', L('Змінити на ', 'Switch to ') + no(other), () => finish('switch'));
+    } else if (phase === 'done') {
+      msg.innerHTML = L('Авто за дверима ', 'The car is behind door ') + '<b>' + no(car) + '</b>. ' +
+        L('Ви ' + (last.strategy === 'stay' ? 'залишились' : 'змінили вибір') + ' і ', 'You ' + (last.strategy === 'stay' ? 'stayed' : 'switched') + ' and ') +
+        (last.win ? '<span class="win">' + L('виграли авто', 'won the car') + '</span>.' : '<span class="loss">' + L('отримали козу', 'got a goat') + '</span>.');
+      button('', L('Зіграти ще', 'Play again'), () => reset());
+    }
+    els.forEach((d, i) => d.querySelector('.tag').textContent = phase === 'decide' && i === pick ? L('ваш вибір', 'your pick') : '');
+    relabelDoors(box);
+  }
+  function reset(newN) {
+    if (newN && newN !== n) { n = newN; build(); }
+    car = rnd(n); pick = null; other = null; phase = 'pick';
+    els.forEach((d, i) => { d.className = 'door'; d.disabled = false; setBehind(d, i === car); });
+    text();
+  }
+  function choose(i) {
+    if (phase === 'pick') {
+      pick = i;
+      if (pick === car) { do { other = rnd(n); } while (other === pick); } else other = car;
+      phase = 'decide';
+      els[pick].classList.add('picked');
+      els[other].classList.add('alt');
+      const toOpen = els.map((_, j) => j).filter(j => j !== pick && j !== other);
+      const step = Math.min(120, 900 / toOpen.length);
+      toOpen.forEach((j, k) => setTimeout(() => { els[j].classList.add('open'); els[j].disabled = true; }, 250 + k * step));
+      text();
+    } else if (phase === 'decide') {
+      if (i === pick) finish('stay'); else if (i === other) finish('switch');
+    }
+  }
+  function finish(strategy) {
+    if (phase !== 'decide') return;
+    phase = 'done';
+    const final = strategy === 'stay' ? pick : other;
+    last = { strategy, win: final === car };
+    els.forEach(d => { d.classList.add('open'); d.disabled = true; d.classList.remove('picked', 'alt'); });
+    els[final].classList.add('picked');
+    text();
+    act.querySelector('.btn').focus({ preventScroll: true });
+    onResult(strategy, last.win);
+  }
+  build(); reset();
+  return { reset, text };
+}
+
+const stats3 = Stats($('#stats3'), () => ({ stay: 1 / 3, switch: 2 / 3 }));
+const game3 = Game($('#game3'), 3, (k, w) => { stats3.add(k, w); window.mpSolve && mpSolve(k); });
+document.addEventListener('solved', () => { stats3.render(); statsN.render(); });
+$('#reset3').addEventListener('click', () => stats3.reset());
+
+/* ---------- escalation: N doors ---------- */
+let escN = 20;
+const statsN = Stats($('#statsN'), () => ({ stay: 1 / escN, switch: (escN - 1) / escN }));
+const gameN = Game($('#gameN'), 20, (k, w) => statsN.add(k, w));
+const escInput = $('#esc-n');
+function escTitle() {
+  $('#gameN-title').textContent = escN + ' ' + doorsWord(escN) + L(', ведучий відчиняє ', ', the host opens ') + (escN - 2);
+}
+escInput.addEventListener('input', () => {
+  escN = +escInput.value;
+  $('#esc-n-v').textContent = escN;
+  escTitle(); gameN.reset(escN); statsN.reset(); drawCurve();
+});
+
+function drawCurve() {
+  const svg = $('#curve'), W = 320, H = 170, l = 34, r = 12, t = 10, b = 26;
+  const x = n => l + (n - 3) / 97 * (W - l - r);
+  const y = p => t + (1 - p) * (H - t - b);
+  let s = '';
+  [0, .25, .5, .75, 1].forEach(p => {
+    s += '<line class="ax" x1="' + l + '" x2="' + (W - r) + '" y1="' + y(p) + '" y2="' + y(p) + '"/>';
+    s += '<text x="' + (l - 6) + '" y="' + (y(p) + 3) + '" text-anchor="end">' + (p * 100) + '%</text>';
+  });
+  [3, 20, 40, 60, 80, 100].forEach(n => s += '<text x="' + x(n) + '" y="' + (H - 8) + '" text-anchor="middle">' + n + '</text>');
+  let ps = '', pt = '';
+  for (let n = 3; n <= 100; n++) { ps += (n === 3 ? 'M' : 'L') + x(n).toFixed(1) + ' ' + y((n - 1) / n).toFixed(1); pt += (n === 3 ? 'M' : 'L') + x(n).toFixed(1) + ' ' + y(1 / n).toFixed(1); }
+  s += '<path d="' + ps + '" fill="none" stroke="var(--prize)" stroke-width="2.5"/>';
+  s += '<path d="' + pt + '" fill="none" stroke="var(--door)" stroke-width="2.5"/>';
+  const cx = x(escN);
+  s += '<line x1="' + cx + '" x2="' + cx + '" y1="' + t + '" y2="' + (H - b) + '" stroke="var(--ink)" stroke-opacity=".35" stroke-dasharray="3 3"/>';
+  s += '<circle cx="' + cx + '" cy="' + y((escN - 1) / escN) + '" r="4.5" fill="var(--prize)"/>';
+  s += '<circle cx="' + cx + '" cy="' + y(1 / escN) + '" r="4.5" fill="var(--door)"/>';
+  svg.innerHTML = s;
+  svg.setAttribute('aria-label', L('Графік: якщо змінити, шанс дорівнює (n−1)/n, якщо залишитися, 1/n', 'Chart: switching wins with (n−1)/n, staying with 1/n'));
+  $('#curve-note').innerHTML = L('Для ' + escN + ' дверей: залишитись ', 'With ' + escN + ' doors: stay ') + '<b style="color:var(--door)">' + pct(1, escN) + '</b>' +
+    L(', змінити ', ', switch ') + '<b style="color:var(--prize)">' + pct(escN - 1, escN) + '</b>. ' +
+    L('Ваш перший вибір, найімовірніше, хибний, а ведучий залишив закритими саме ті двері, які мусив обминати.', 'Your first pick is most likely wrong, and the one door the host left closed is the one he had to avoid.');
+}
+
+/* ---------- simulation ---------- */
+const canvas = $('#sim-chart');
+const dots = $('#sim-dots');
+for (let i = 0; i < 300; i++) dots.appendChild(document.createElement('i'));
+let simStrat = 'both', sim = null, simRun = 0;
+$('#sim-strat').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  simStrat = b.dataset.s;
+  $('#sim-strat').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  $('#tile-stay').hidden = simStrat === 'switch';
+  $('#tile-switch').hidden = simStrat === 'stay';
+  drawSim(); paintDots();
+});
+const doorsInput = $('#sim-doors');
+doorsInput.addEventListener('input', () => { $('#sim-doors-v').textContent = doorsInput.value; runSim(); });
+$('#sim-run').addEventListener('click', runSim);
+$('#sim-n').addEventListener('change', runSim);
+
+function runSim() {
+  const N = +$('#sim-n').value, D = +doorsInput.value, id = ++simRun;
+  sim = { N, D, t: 0, st: 0, sw: 0, ser: [], first: [], next: 1 };
+  const per = Math.max(1, Math.ceil(N / 70));
+  $('#sim-run').disabled = true;
+  (function frame() {
+    if (id !== simRun) return;
+    const end = Math.min(N, sim.t + per);
+    while (sim.t < end) {
+      const stayWin = rnd(D) === rnd(D);
+      sim.t++;
+      if (stayWin) sim.st++; else sim.sw++;
+      if (sim.first.length < 300) sim.first.push(stayWin);
+      if (sim.t >= sim.next || sim.t === N) {
+        sim.ser.push([sim.t, sim.st / sim.t, sim.sw / sim.t]);
+        sim.next = Math.max(sim.t + 1, Math.floor(sim.t * 1.03));
+      }
+    }
+    updateTiles(); drawSim(); paintDots();
+    if (sim.t < N) requestAnimationFrame(frame); else $('#sim-run').disabled = false;
+  })();
+}
+function updateTiles() {
+  if (!sim) return;
+  const of = L(' з ', ' of ');
+  $('#tile-stay .v').textContent = pct(sim.st, sim.t);
+  $('#tile-switch .v').textContent = pct(sim.sw, sim.t);
+  $('#tile-stay .k').textContent = L('Завжди залишатися', 'Always stay') + ' · ' + fmt(sim.st) + of + fmt(sim.t);
+  $('#tile-switch .k').textContent = L('Завжди міняти', 'Always switch') + ' · ' + fmt(sim.sw) + of + fmt(sim.t);
+  $('#tile-stay .s').textContent = L('теорія: ', 'theory: ') + pct(1, sim.D);
+  $('#tile-switch .s').textContent = L('теорія: ', 'theory: ') + pct(sim.D - 1, sim.D);
+}
+function paintDots() {
+  if (!sim) return;
+  [...dots.children].forEach((d, i) => {
+    const v = sim.first[i];
+    let c = '';
+    if (v !== undefined) {
+      if (simStrat === 'both') c = v ? 'st' : 'sw';
+      else if (simStrat === 'stay') c = v ? 'st' : '';
+      else c = v ? '' : 'sw';
+    }
+    d.className = c;
+  });
+}
+function drawSim() {
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  if (!W) return;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.setAttribute('aria-label', L('Графік частки виграшів', 'Win rate chart'));
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const l = 44, r = 58, t = 12, b = 30;
+  const N = sim ? sim.N : 10000, D = sim ? sim.D : +doorsInput.value;
+  const lx = Math.log10(N);
+  const x = n => l + (Math.log10(n) / lx) * (W - l - r);
+  const y = p => t + (1 - p) * (H - t - b);
+  const muted = tok('--muted'), line = tok('--line');
+  ctx.font = '11px ' + tok('--f-mono');
+  ctx.fillStyle = muted; ctx.strokeStyle = line; ctx.lineWidth = 1;
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .25, .5, .75, 1].forEach(p => {
+    ctx.beginPath(); ctx.moveTo(l, y(p)); ctx.lineTo(W - r, y(p)); ctx.stroke();
+    ctx.fillText(p * 100 + '%', l - 8, y(p));
+  });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let k = 0; Math.pow(10, k) <= N; k++) {
+    const v = Math.pow(10, k);
+    ctx.fillText(v >= 1000 ? fmt(v) : String(v), x(v), H - b + 8);
+  }
+  ctx.textAlign = 'right';
+  ctx.fillText(L('ігор, лог. шкала', 'games, log scale'), W - r, t + 4);
+  const lines = [];
+  if (simStrat !== 'switch') lines.push({ i: 1, c: tok('--door'), th: 1 / D });
+  if (simStrat !== 'stay') lines.push({ i: 2, c: tok('--prize'), th: (D - 1) / D });
+  lines.forEach(Ln => {
+    ctx.setLineDash([5, 5]); ctx.strokeStyle = Ln.c; ctx.globalAlpha = .55; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(l, y(Ln.th)); ctx.lineTo(W - r, y(Ln.th)); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+    if (!sim || !sim.ser.length) return;
+    ctx.strokeStyle = Ln.c; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    sim.ser.forEach((s, k) => { const px = x(s[0]), py = y(s[Ln.i]); k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+    ctx.stroke();
+    const last = sim.ser[sim.ser.length - 1];
+    ctx.fillStyle = Ln.c;
+    ctx.beginPath(); ctx.arc(x(last[0]), y(last[Ln.i]), 4, 0, 7); ctx.fill();
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.font = '600 12px ' + tok('--f-mono');
+    ctx.fillText(pct(last[Ln.i], 1), x(last[0]) + 8, y(last[Ln.i]));
+    ctx.font = '11px ' + tok('--f-mono');
+  });
+}
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawSim, 100); });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawSim);
+new MutationObserver(drawSim).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- ignorant host check ---------- */
+let ign = null;
+function ignText() {
+  if (!ign) { $('#ign-s').textContent = L('шанс, якщо змінити', 'chance if you switch'); return; }
+  $('#ign-v').textContent = pct(ign.sw, ign.kept);
+  $('#ign-s').textContent = L('зміна виграла ' + fmt(ign.sw) + ' з ' + fmt(ign.kept) + ' (відкинуто ігор, де показали авто: ' + fmt(ign.total - ign.kept) + ')',
+    'switching won ' + fmt(ign.sw) + ' of ' + fmt(ign.kept) + ' (' + fmt(ign.total - ign.kept) + ' games dropped where the car was shown)');
+}
+$('#ign-run').addEventListener('click', () => {
+  let kept = 0, sw = 0, total = 0;
+  while (kept < 10000) {
+    total++;
+    const car = rnd(3), pick = rnd(3);
+    let open; do { open = rnd(3); } while (open === pick);
+    if (open === car) continue;
+    kept++;
+    if (3 - pick - open === car) sw++;
+  }
+  ign = { kept, sw, total }; ignText();
+});
+
+/* ---------- progressive Monty Hall ---------- */
+const prog = $('#prog'), pBox = prog.querySelector('.doors'), pMsg = prog.querySelector('.msg'), pAct = prog.querySelector('.actions'), pHist = prog.querySelector('.history');
+let P = { n: 6 }, pEls = [], mine = { never: [0, 0], end: [0, 0], mid: [0, 0] };
+function pButton(cls, text, fn) {
+  const b = document.createElement('button'); b.className = 'btn ' + cls; b.textContent = text; b.addEventListener('click', fn); pAct.appendChild(b); return b;
+}
+function pBuild() {
+  pBox.innerHTML = ''; pEls = [];
+  for (let i = 0; i < P.n; i++) {
+    const slot = document.createElement('div'); slot.className = 'dslot';
+    const d = doorEl(i);
+    d.addEventListener('click', () => pClick(i));
+    const pr = document.createElement('div'); pr.className = 'prob'; pr.innerHTML = '<div class="pb"><i></i></div><span></span>';
+    slot.append(d, pr); pBox.appendChild(slot);
+    pEls.push({ d, pr });
+  }
+}
+function pReset() {
+  P.car = rnd(P.n); P.pick = null; P.closed = [...Array(P.n).keys()]; P.prob = Array(P.n).fill(1 / P.n); P.phase = 'pick'; P.mid = 0; P.hist = []; P.lastOpen = null; P.lastSw = false;
+  pEls.forEach(({ d }, i) => { d.className = 'door'; d.disabled = false; setBehind(d, i === P.car); });
+  pText(); pRender();
+}
+// history items are stored as data so they can be re-rendered in either language
+function pHistory() {
+  pHist.textContent = P.hist.map(h => h.t === 'pick' ? L('обрали ', 'picked ') + no(h.d) : h.t === 'open' ? '×' + no(h.d) : h.t === 'sw' ? '→ ' + no(h.d) : '·').join('  ');
+}
+function pText() {
+  pAct.innerHTML = '';
+  if (P.phase === 'pick') {
+    pMsg.innerHTML = L('Оберіть одні з ' + P.n + ' дверей. Ведучий відчинятиме по одних дверях з козою і щоразу питатиме, чи хочете ви змінити вибір.',
+      'Pick one of ' + P.n + ' doors. The host will open one goat door at a time and ask each time whether you want to switch.');
+  } else if (P.phase === 'react') {
+    pMsg.innerHTML = L('Ведучий відчинив ' + no(P.lastOpen) + ', там коза. Клацніть інші закриті двері, щоб змінити вибір, або залиштесь на ', 'The host opened ' + no(P.lastOpen) + ': a goat. Click another closed door to switch, or stay with ') + '<b>' + no(P.pick) + '</b>.';
+    pButton('stay', L('Залишитись', 'Stay'), () => { if (P.phase !== 'react') return; P.hist.push({ t: 'stay' }); P.phase = 'wait'; pAct.innerHTML = ''; setTimeout(pHost, 250); });
+  } else if (P.phase === 'final') {
+    const other = P.closed.find(j => j !== P.pick);
+    pMsg.innerHTML = L('Ведучий відчинив ' + no(P.lastOpen) + '. Залишилось двоє дверей: ваші ', 'The host opened ' + no(P.lastOpen) + '. Two doors are left: yours, ') + '<b>' + no(P.pick) + '</b>' +
+      L(' і ', ', and ') + '<b>' + no(other) + '</b>. ' + L('Останнє рішення.', 'Final decision.');
+    pButton('stay', L('Залишитись на ', 'Stay with ') + no(P.pick), () => pFinish(false));
+    pButton('switch', L('Змінити на ', 'Switch to ') + no(other), () => pFinish(true));
+  } else if (P.phase === 'done') {
+    const type = P.type, win = P.pick === P.car;
+    const names = {
+      never: L('жодного разу не змінили вибір', 'never switched'),
+      end: L('змінили вибір лише в кінці', 'switched only at the end'),
+      mid: L('змінювали вибір посередині (' + P.mid + (P.mid === 1 ? ' раз' : P.mid < 5 ? ' рази' : ' разів') + ')', 'switched midway (' + P.mid + (P.mid === 1 ? ' time' : ' times') + ')')
+    };
+    pMsg.innerHTML = L('Авто за ', 'The car is behind ') + '<b>' + no(P.car) + '</b>. ' + L('Ви ', 'You ') + names[type] + L(' і ', ' and ') +
+      (win ? '<span class="win">' + L('виграли', 'won') + '</span>.' : '<span class="loss">' + L('програли', 'lost') + '</span>.');
+    pButton('', L('Зіграти ще', 'Play again'), pReset);
+  }
+  pHistory(); mineText(); relabelDoors(pBox);
+}
+function pRender() {
+  const show = $('#prog-show').checked;
+  const max = Math.max(...P.prob);
+  pEls.forEach(({ d, pr }, i) => {
+    pr.style.visibility = show ? 'visible' : 'hidden';
+    const v = P.prob[i];
+    const bar = pr.querySelector('i');
+    bar.style.height = (v * 100) + '%';
+    bar.classList.toggle('hi', P.closed.length < P.n && v === max && v > 0 && i !== P.pick);
+    pr.querySelector('span').textContent = (v * 100).toFixed(v > 0 && v < .1 ? 1 : 0) + '%';
+    d.classList.toggle('picked', i === P.pick && P.phase !== 'done' || (P.phase === 'done' && i === P.pick));
+    d.querySelector('.tag').textContent = i === P.pick && P.phase !== 'done' ? L('ваш', 'yours') : '';
+  });
+}
+function pClick(i) {
+  if (P.phase === 'pick') {
+    P.pick = i; P.hist.push({ t: 'pick', d: i }); P.phase = 'wait'; pRender(); pHistory();
+    setTimeout(pHost, 450);
+  } else if (P.phase === 'react') {
+    if (i === P.pick || !P.closed.includes(i)) return;
+    P.pick = i; P.mid++; P.hist.push({ t: 'sw', d: i }); P.phase = 'wait'; pAct.innerHTML = ''; pRender(); pHistory();
+    setTimeout(pHost, 350);
+  } else if (P.phase === 'final') {
+    if (!P.closed.includes(i)) return;
+    pFinish(i !== P.pick);
+  }
+}
+function pHost() {
+  const k = P.closed.length;
+  const cand = P.closed.filter(j => j !== P.pick && j !== P.car);
+  const d = cand[rnd(cand.length)];
+  // Bayes update: host picks uniformly among closed goat doors other than yours
+  const np = P.prob.map((p, j) => {
+    if (!P.closed.includes(j) || j === d) return 0;
+    return p * (j === P.pick ? 1 / (k - 1) : 1 / (k - 2));
+  });
+  const z = np.reduce((a, b) => a + b, 0);
+  P.prob = np.map(v => v / z);
+  P.closed = P.closed.filter(j => j !== d);
+  pEls[d].d.classList.add('open'); pEls[d].d.disabled = true;
+  P.hist.push({ t: 'open', d }); P.lastOpen = d;
+  P.phase = P.closed.length === 2 ? 'final' : 'react';
+  pText(); pRender();
+}
+function pFinish(sw) {
+  if (P.phase !== 'final') return;
+  if (sw) { P.pick = P.closed.find(j => j !== P.pick); P.hist.push({ t: 'sw', d: P.pick }); }
+  P.phase = 'done';
+  const win = P.pick === P.car;
+  P.type = P.mid > 0 ? 'mid' : sw ? 'end' : 'never';
+  mine[P.type][0]++; if (win) mine[P.type][1]++;
+  pEls.forEach(({ d }) => { d.classList.add('open'); d.disabled = true; });
+  pText(); pRender();
+  pAct.querySelector('.btn').focus({ preventScroll: true });
+}
+function mineText() {
+  const lbl = { never: L('ніколи не міняли', 'never switched'), end: L('міняли лише в кінці', 'switched only at the end'), mid: L('міняли посередині', 'switched midway') };
+  const ks = Object.keys(mine).filter(k => mine[k][0]);
+  $('#prog-mine').innerHTML = ks.length ? '<b>' + L('Ваші ігри:', 'Your games:') + '</b> ' + ks.map(k => lbl[k] + ': ' + mine[k][1] + L(' з ', ' of ') + mine[k][0]).join('; ') + '.' : '';
+}
+function simProgressive(n, strategy, trials) {
+  let wins = 0;
+  for (let t = 0; t < trials; t++) {
+    const car = rnd(n); let pick = rnd(n);
+    let closed = [...Array(n).keys()];
+    while (closed.length > 2) {
+      const cand = closed.filter(j => j !== pick && j !== car);
+      const d = cand[rnd(cand.length)];
+      closed = closed.filter(j => j !== d);
+      if (strategy === 'every' && closed.length > 2) {
+        const o = closed.filter(j => j !== pick); pick = o[rnd(o.length)];
+      }
+    }
+    if (strategy !== 'never') pick = closed.find(j => j !== pick);
+    if (pick === car) wins++;
+  }
+  return wins / trials;
+}
+let pSim = null;
+function pSimCompute() {
+  const n = P.n, T = 20000;
+  pSim = { n, never: simProgressive(n, 'never', T), every: simProgressive(n, 'every', T), end: simProgressive(n, 'end', T) };
+  pSimTable();
+}
+function pSimTable() {
+  const n = pSim.n;
+  $('#prog-sim-n').textContent = n;
+  const rows = [
+    [L('Ніколи не міняти', 'Never switch'), pSim.never, 'var(--door)', '1/' + n],
+    [L('Міняти щоразу', 'Switch every time'), pSim.every, 'var(--muted)', ''],
+    [L('Міняти лише в кінці', 'Switch only at the end'), pSim.end, 'var(--prize)', (n - 1) + '/' + n]
+  ];
+  $('#prog-sim').innerHTML = rows.map(r => '<tr><td style="white-space:normal">' + r[0] + (r[3] ? ' <span class="note mono">(' + L('теорія ', 'theory ') + r[3] + ')</span>' : '') +
+    '<div class="bar"><i style="width:' + (r[1] * 100) + '%;background:' + r[2] + '"></i></div></td><td class="mono" style="vertical-align:top">' + pct(r[1], 1) + '</td></tr>').join('');
+}
+const progInput = $('#prog-n');
+progInput.addEventListener('input', () => { P.n = +progInput.value; $('#prog-n-v').textContent = P.n; mine = { never: [0, 0], end: [0, 0], mid: [0, 0] }; pBuild(); pReset(); pSimCompute(); });
+$('#prog-show').addEventListener('change', pRender);
+
+/* ---------- apply language everywhere ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  // static pages carry their full SEO title in <head>; keep it
+  if (!document.documentElement.hasAttribute('data-static')) document.title = L('Парадокс Монті Голла', 'The Monty Hall Problem');
+  $('#lang').querySelectorAll('a').forEach(b => b.setAttribute('aria-current', b.dataset.l === lang));
+  heroText();
+  game3.text(); stats3.render();
+  escTitle(); gameN.text(); statsN.render(); drawCurve();
+  updateTiles(); drawSim();
+  ignText();
+  if (P.phase !== 'wait') pText(); pRender(); if (pSim) pSimTable();
+}
+// on static hosting each language is its own URL, so the links navigate normally
+const STATIC = document.documentElement.hasAttribute('data-static');
+$('#lang').addEventListener('click', e => {
+  const b = e.target.closest('a'); if (!b || STATIC) return;
+  e.preventDefault();
+  if (b.dataset.l === lang) return;
+  lang = b.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+
+pBuild(); pReset(); pSimCompute();
+applyLang();
+runSim();
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'uk' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+</body>
+</html>

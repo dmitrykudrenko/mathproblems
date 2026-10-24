@@ -1,0 +1,1412 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/bertrand-paradox/", "en": "/bertrand-paradox/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "bertrand-paradox";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>Bertrand&#x27;s Paradox: Three Right Answers for a Random Chord</title>
+<meta name="description" content="Bertrand&#x27;s paradox: what is the chance a random chord beats the side of the inscribed triangle? Three methods give 1/3, 1/2 and 1/4. Game and simulation.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/bertrand-paradox/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/bertrand-paradox/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/bertrand-paradox/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/bertrand-paradox/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="Bertrand&#x27;s paradox">
+<meta property="og:description" content="A chord of a circle is drawn at random. What is the chance it is longer than the side of the inscribed equilateral triangle?">
+<meta property="og:url" content="https://mathparadoxes.com/bertrand-paradox/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/bertrand-paradox/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A circle with an inscribed triangle and a sheaf of random chords. Bertrand&#x27;s paradox: how likely is a chord to beat the triangle&#x27;s side?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bertrand&#x27;s paradox">
+<meta name="twitter:description" content="A chord of a circle is drawn at random. What is the chance it is longer than the side of the inscribed equilateral triangle?">
+<meta name="twitter:image" content="https://mathparadoxes.com/bertrand-paradox/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/bertrand-paradox/en/#page", "url": "https://mathparadoxes.com/bertrand-paradox/en/", "name": "Bertrand's Paradox: Three Right Answers for a Random Chord", "description": "Bertrand's paradox: what is the chance a random chord beats the side of the inscribed triangle? Three methods give 1/3, 1/2 and 1/4. Game and simulation.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "intermediate", "about": {"@type": "Thing", "name": "Bertrand paradox (probability)", "sameAs": "https://en.wikipedia.org/wiki/Bertrand_paradox_(probability)"}, "image": "https://mathparadoxes.com/bertrand-paradox/og-en.png", "datePublished": "2026-10-19", "dateModified": "2026-10-23", "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "citation": [{"@type": "Book", "name": "The 2nd Scientific American Book of Mathematical Puzzles & Diversions", "author": [{"@type": "Person", "name": "Martin Gardner"}], "datePublished": "1961", "isbn": "9780226282534"}, {"@type": "Book", "name": "Paradoxes from A to Z", "author": [{"@type": "Person", "name": "Michael Clark"}], "datePublished": "2002", "isbn": "9780415420822"}], "translationOfWork": {"@id": "https://mathparadoxes.com/bertrand-paradox/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "Bertrand's paradox", "item": "https://mathparadoxes.com/bertrand-paradox/en/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/bertrand-paradox/en/#faq", "inLanguage": "en", "mainEntity": [{"@type": "Question", "name": "What is Bertrand's paradox?", "acceptedAnswer": {"@type": "Answer", "text": "A chord of a circle is drawn at random, and the question is the chance that it is longer than the side of the inscribed equilateral triangle. Three natural ways to pick the chord give three different answers: 1/3, 1/2 and 1/4."}}, {"@type": "Question", "name": "Which answer is right: 1/3, 1/2 or 1/4?", "acceptedAnswer": {"@type": "Answer", "text": "All three. Each belongs to its own way of picking the chord: random endpoints on the circle give 1/3, a random point on a random radius gives 1/2, and a random midpoint in the disc gives 1/4. Without a stated procedure the problem has no single answer."}}, {"@type": "Question", "name": "Why do random endpoints give 1/3?", "acceptedAnswer": {"@type": "Answer", "text": "Once the first endpoint is fixed, the chord is longer than the triangle's side if the second endpoint lands on the opposite arc between the triangle's other two vertices. That arc is 120° out of 360°, a third of the circle."}}, {"@type": "Question", "name": "Why did Jaynes consider 1/2 the natural answer?", "acceptedAnswer": {"@type": "Answer", "text": "In 1973 Edwin Jaynes argued that the answer should not change if the circle is rotated, shifted or scaled, since the problem says nothing about these. Only the distribution of lines that gives 1/2 meets this requirement. Long straws thrown onto the circle from far away behave this way."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the birthday page. The circle with its inscribed triangle and a sheaf of chords is this problem's signature object. */
+:root {
+  --tint: #F3F7D9;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; justify-items: center; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); justify-self: stretch; min-height: 2.6em; }
+
+/* ---------- circles ---------- */
+canvas.disc { aspect-ratio: 1 / 1; height: auto; max-width: 440px; margin-inline: auto; }
+.hero-cal canvas.disc { max-width: 360px; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl select { font: inherit; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.ctl input[type=range] { width: 200px; max-width: 100%; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+.big.day { color: var(--day); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.guess .val { font-family: var(--f-display); font-weight: 800; font-size: 3.4rem; color: var(--day); line-height: 1; }
+.guess input[type=range] { width: 100%; accent-color: var(--day); }
+.scale { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: .72rem; color: var(--muted); }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 150px 1fr 64px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+
+/* ---------- chords game ---------- */
+.room { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 18px; }
+.status { display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.8rem; font-weight: 800; }
+.status .mm b { color: var(--hit); }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--hit); }
+.tally { display: grid; gap: 10px; margin-top: 14px; }
+
+/* ---------- simulation ---------- */
+.sim3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.sim3 > div { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.sim3 h3 { font-size: .95rem; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.geo { width: 100%; max-width: 230px; height: auto; justify-self: center; }
+.geo .c { fill: none; stroke: var(--ink); stroke-width: 2; }
+.geo .t { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.geo .s { fill: none; stroke: var(--hit); stroke-width: 6; stroke-linecap: round; }
+.geo .ch { stroke: var(--hit); stroke-width: 2.5; }
+.geo .sh { stroke: var(--ink); stroke-width: 1.5; opacity: .5; }
+.geo .in { fill: var(--hit-soft); stroke: var(--hit); stroke-width: 2; }
+.geo .dot { fill: var(--ink); }
+.geo text { font-family: var(--f-mono); font-size: 13px; fill: var(--ink); font-weight: 600; }
+.formula { font-family: var(--f-mono); font-size: .92rem; background: var(--paper); border-radius: 10px; padding: 14px 16px; overflow-x: auto; line-height: 1.9; white-space: nowrap; }
+.formula em { font-style: normal; color: var(--hit); font-weight: 600; }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+td .btn { padding: 6px 10px; font-size: .8rem; }
+.res { font-family: var(--f-mono); font-size: .82rem; color: var(--muted); white-space: nowrap; }
+.own { display: grid; gap: 10px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim3, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+  .sim3 canvas.disc { max-width: 300px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 96px 1fr 56px; }
+  td, th { padding: 8px 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=f9094b43">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/en/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/bertrand-paradox/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/bertrand-paradox/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <span class="mp-level" title="Fractions, percentages, basic probability"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span>School maths</span>
+    
+    <h1 class="en"><span class="kw">Bertrand's paradox</span> A random chord. <span class="q sp-before">How likely is it to be long?</span><span class="q sp-after">Three right answers.</span></h1>
+    
+    
+    <p class="lead en sp-before">Draw a chord of a circle at random. What is the chance it is longer than the side of the inscribed equilateral triangle? Lock in your answer, then check it: draw chords yourself, look at 100,000 simulations and read the explanations.</p>
+    <p class="lead en sp-after">Draw a chord of a circle at random. What is the chance it is longer than the side of the inscribed equilateral triangle? Three careful solutions give 1/3, 1/2 and 1/4. All three are right, because "a random chord" means nothing until you say how you pick it.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd"><b>3</b><span><span class="en">ways to pick a chord</span></span></div>
+      <div class="odd hit"><b>1/3 · 1/2 · 1/4</b><span><span class="en">three different answers</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="en">The puzzle</b></a>
+      <a href="#guess"><span>1</span><b class="en">Guess</b></a>
+      <a href="#chords"><span>2</span><b class="en">Draw chords</b></a>
+      <a href="#sim"><span>3</span><b class="en">100,000 chords</b></a>
+      <a href="#why"><span>4</span><b class="en">Why it works</b></a>
+      <a href="#beyond"><span>5</span><b class="en">Straws and squares</b></a>
+      <a href="#facts"><span>★</span><b class="en" style="font-weight:inherit">Fun facts</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas class="disc" id="hero-cv"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">The puzzle</span></span>
+    <h2><span class="en">A circle, a triangle and one chord</span></h2>
+    
+    
+    <p class="lead en sp-before">The French mathematician Joseph Bertrand posed this problem in his 1889 book "Calcul des probabilités".</p>
+    <p class="lead en sp-after">The French mathematician Joseph Bertrand posed this problem in his 1889 book "Calcul des probabilités". He wanted to show that the words "at random" do not, by themselves, define a probability.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="en">The circle</span></h3>
+        
+        <p class="en">Take a circle of radius R with an equilateral triangle inscribed in it. The triangle's side is √3 · R ≈ 1.73 R.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="en">The chord</span></h3>
+        
+        <p class="en">A chord is a segment joining two points of the circle. The longest chord is a diameter, 2R long. Short chords run close to the edge.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="en">A long chord</span></h3>
+        
+        <p class="en">Call a chord long if it is longer than the triangle's side. That is the same as its midpoint lying less than R/2 from the centre.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="en">The question</span></h3>
+        
+        <p class="en">A chord is drawn at random. What is the probability that it is long?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="en">Intuition says</span></span>
+        <p class="q"><span class="en">"There is one answer, you just have to compute it correctly"</span></p>
+        
+        <p class="en">In fact three correct calculations give three different numbers. None of them contains a mistake. Each one describes its own way of picking the chord.</p>
+      </div>
+      <div class="card sp-after">
+        <h3><span class="en">Three ways to pick a chord</span></h3>
+        
+        <ul class="rules en">
+          <li><b>Method 1.</b> Two random points on the circle are the chord's endpoints.</li>
+          <li><b>Method 2.</b> A random radius and a random point on it. The chord passes through the point at right angles to the radius.</li>
+          <li><b>Method 3.</b> A random point inside the disc is the chord's midpoint.</li>
+        </ul>
+        <p class="note"><span class="en">Each method looks natural. Rounds 2 and 3 show the answer each one gives.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="en">What is the chance the chord is long?</span></h2>
+    
+    
+    <p class="lead en sp-before">Lock in your answer before reading on.</p>
+    <p class="lead en sp-after">Lock in your answer before reading on. Then compare it with the three ways of picking a chord.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <label for="guess-n" class="note"><span class="en">Your answer, chance of a long chord</span></label>
+      <div class="val mono" id="guess-v">50%</div>
+      <input type="range" id="guess-n" min="0" max="100" value="50">
+      <div class="scale"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+      <div class="actions"><button class="btn pri" id="guess-go"><span class="en">Check</span></button></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Hints</span>
+    <p class="mp-hints-intro">Hard to decide? Open the hints one at a time: the easy one first, then stronger ones.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Before you calculate, ask how exactly the chord is drawn "at random". The puzzle lists three ways, and each one sounds natural.</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>Work out the chance separately for each method. Each one makes a different thing uniform: a point on the circle, a distance along the radius, or a point in the disc.</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>Try method 3: the chord is long if its midpoint lands in a smaller circle of radius R/2. What share of the area is that? Compare it with what method 1 gives.</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Show hint 1 of 3 · easy&quot;, &quot;Show hint 2 of 3 · medium&quot;, &quot;Show hint 3 of 3 · strong&quot;]">Show hint 1 of 3 · easy</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "bertrand-paradox";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "bertrand-paradox", RULE = {"right": [[0.22, 0.28], [0.303, 0.364], [0.47, 0.53]]}, MIN = 20, T = {"kicker": "How others answer", "few": "Too few answers for stats yet: {n}. Yours is one of them.", "few_seen": "Too few answers for stats yet: {n}.", "all": "Answers so far: {n}. {p} of them are right.", "yes": "You are among those who got it.", "no": "Don't worry: intuition fails most people here.", "bar": "right", "note": "Only the first answer from each browser counts, given before it saw the solution. Anonymous."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: chords -->
+<section class="round" id="chords">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 2 · Draw chords</span></span>
+    <h2><span class="en">Three ways to draw a chord at random</span></h2>
+    
+    <p class="lead en">Pick a method and draw chords. Long chords are shown in magenta. A single chord shows how it was built. A hundred chords show that each method has its own share of long ones.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="presets" id="m-pick"></div>
+      <canvas class="disc" id="game-cv"></canvas>
+      <div class="status">
+        <div><span class="k"><span class="en">Chords</span></span><b class="mono" id="g-n">0</b></div>
+        <div class="mm"><span class="k"><span class="en">Long</span></span><b class="mono" id="g-l">0</b></div>
+        <div><span class="k"><span class="en">Share of long</span></span><b class="mono" id="g-p">–</b></div>
+      </div>
+      <p class="msg" id="g-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn pri" data-k="1"><span class="en">1 chord</span></button>
+        <button class="btn pri" data-k="10">+10</button>
+        <button class="btn hit" data-k="100">+100</button>
+        <button class="btn hit" data-k="1000">+1000</button>
+        <button class="btn ghost" id="g-clear"><span class="en">Clear</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="en">Share of long chords by method</span></h3>
+      <div class="tally" id="g-tally"></div>
+      <p class="note" style="margin-top:14px"><span class="en">The bar shows your share. The tick shows the exact answer for that method: 1/3, 1/2 or 1/4. The more chords, the closer the bar gets to the tick.</span></p>
+      <p class="note" style="margin-top:10px"><span class="en">Each method keeps its own chords. Switch between methods and compare the pictures: method 2 fills the centre more densely, method 1 crowds near the edge.</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="en">100,000 chords by each method</span></h2>
+    
+    <p class="lead en">A chord is long exactly when its midpoint lies inside the smaller circle of radius R/2. So everything depends on where the midpoints land. Below are the midpoints for each method and the distribution of their distance from the centre.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="sim-r"><span class="en">Chords per method</span>
+        <select id="sim-r">
+          <option value="10000">10 000</option>
+          <option value="100000" selected>100 000</option>
+          <option value="1000000">1 000 000</option>
+        </select>
+      </label>
+      <button class="btn pri" id="sim-run"><span class="en">Run again</span></button>
+    </div>
+    <div class="sim3">
+      <div>
+        <h3><span class="en">Method 1 · random endpoints</span></h3>
+        <canvas class="disc" id="mid-0"></canvas>
+        <canvas id="den-0" style="height:170px"></canvas>
+        <div class="tile" style="--c:var(--hit)"><div class="k"><span class="en">Long in the simulation</span></div><div class="v" id="sv-0">–</div><div class="s" id="ss-0"></div></div>
+      </div>
+      <div>
+        <h3><span class="en">Method 2 · random radius</span></h3>
+        <canvas class="disc" id="mid-1"></canvas>
+        <canvas id="den-1" style="height:170px"></canvas>
+        <div class="tile" style="--c:var(--hit)"><div class="k"><span class="en">Long in the simulation</span></div><div class="v" id="sv-1">–</div><div class="s" id="ss-1"></div></div>
+      </div>
+      <div>
+        <h3><span class="en">Method 3 · random midpoint</span></h3>
+        <canvas class="disc" id="mid-2"></canvas>
+        <canvas id="den-2" style="height:170px"></canvas>
+        <div class="tile" style="--c:var(--hit)"><div class="k"><span class="en">Long in the simulation</span></div><div class="v" id="sv-2">–</div><div class="s" id="ss-2"></div></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span style="--c:var(--hit)"><b class="en">midpoint of a long chord</b></span>
+      <span style="--c:var(--ink)"><b class="en">midpoint of a short chord</b></span>
+      <span style="--c:var(--hit-soft)"><b class="en">area under the curve up to R/2 = share of long</b></span>
+    </div>
+    <p class="note" style="margin-top:10px"><span class="en">Lower charts: the line is the exact density of the midpoint's distance from the centre, the dots are the simulation. Horizontal axis: distance from 0 to R; vertical axis: density.</span></p>
+    <h3 style="margin:24px 0 12px"><span class="en">Simulation versus the exact answer</span></h3>
+    <div class="compare" id="sim-bars"></div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 4 · Explanations</span></span>
+    <h2><span class="en">Three calculations, all of them right</span></h2>
+    
+    <p class="lead en">Each answer has a short geometric argument. The calculations are all fine. They describe three different experiments.</p>
+  </div>
+  <div class="why-grid">
+    <div class="card">
+      <span class="kicker"><span class="en">Method 1 · a 120° arc</span></span>
+      <h3><span class="en">The answer is 1/3</span></h3>
+      <svg class="geo" viewBox="0 0 220 220" role="img" aria-label="120°">
+        <circle class="c" cx="110" cy="110" r="90"/>
+        <polygon class="t" points="110,20 32.1,155 187.9,155"/>
+        <path class="s" d="M 32.1 155 A 90 90 0 0 0 187.9 155"/>
+        <line class="ch" x1="110" y1="20" x2="140.8" y2="194.6"/>
+        <line class="sh" x1="110" y1="20" x2="196.6" y2="85.4"/>
+        <circle class="dot" cx="110" cy="20" r="5"/>
+        <text x="100" y="214">120°</text>
+      </svg>
+      
+      <p class="en">Turn the circle so the first endpoint is at the top. The chord is long if the second endpoint lands on the lower arc between the triangle's other two vertices. That arc is 120° out of 360°, a third of the circle.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Method 2 · half the radius</span></span>
+      <h3><span class="en">The answer is 1/2</span></h3>
+      <svg class="geo" viewBox="0 0 220 220" role="img" aria-label="R/2">
+        <circle class="c" cx="110" cy="110" r="90"/>
+        <polygon class="t" points="110,20 32.1,155 187.9,155"/>
+        <line class="sh" x1="110" y1="110" x2="110" y2="200"/>
+        <line class="s" x1="110" y1="110" x2="110" y2="155"/>
+        <line class="ch" x1="23.5" y1="135" x2="196.5" y2="135"/>
+        <circle class="dot" cx="110" cy="110" r="4"/>
+        <text x="118" y="138">R/2</text>
+      </svg>
+      
+      <p class="en">The chord is perpendicular to the radius and crosses it at the chosen point. The triangle's side crosses the radius exactly halfway, at distance R/2 from the centre. The chord is long if the point is closer to the centre, on the inner half of the radius. The chance is 1/2.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Method 3 · the inner circle</span></span>
+      <h3><span class="en">The answer is 1/4</span></h3>
+      <svg class="geo" viewBox="0 0 220 220" role="img" aria-label="R/2">
+        <circle class="c" cx="110" cy="110" r="90"/>
+        <circle class="in" cx="110" cy="110" r="45"/>
+        <polygon class="t" points="110,20 32.1,155 187.9,155"/>
+        <line class="sh" x1="110" y1="110" x2="155" y2="110"/>
+        <circle class="dot" cx="110" cy="110" r="4"/>
+        <text x="118" y="104">R/2</text>
+      </svg>
+      
+      <p class="en">The chord is long if its midpoint lies inside the circle of radius R/2. That circle is inscribed in the triangle. Its radius is half of R, so its area is a quarter: π(R/2)² = πR²/4. A random point of the big disc lands there with chance 1/4.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">What "at random" means</span></span>
+      <h3><span class="en">Randomness needs a procedure</span></h3>
+      
+      <p class="en">A probability is always computed for a specific experiment. "A random chord" names the outcome but not how it was produced. The three methods are three different experiments, so the answers differ.</p>
+      
+      <p class="en">The same thing shows up elsewhere. In the <a href="../../two-children/en/">two-children problem</a> the answer is 1/3 or 1/2 depending on how exactly you learned that one of the two children is a boy. In the <a href="../../monty-hall/en/">Monty Hall problem</a> switching pays because the host knows where the car is and always opens a door with a goat. If he opened a door at random and it happened to show a goat, the odds would be 1/2 and 1/2.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">For formula lovers</span></span>
+      <h3><span class="en">It all comes down to the distance d from the centre to the chord</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">A chord at distance d from the centre has length ℓ. It is longer than the triangle's side √3 · R exactly when d is less than R/2.</span></p>
+          <math display="block"><mi>ℓ</mi><mo>=</mo><mn>2</mn><msqrt><msup><mrow><mi>R</mi></mrow><mrow><mn>2</mn></mrow></msup><mo>−</mo><msup><mrow><mi>d</mi></mrow><mrow><mn>2</mn></mrow></msup></msqrt></math>
+          <math display="block"><mi>ℓ</mi><mo>&gt;</mo><msqrt><mn>3</mn></msqrt><mo>·</mo><mi>R</mi><mspace width="0.6em"></mspace><mo>⇔</mo><mspace width="0.6em"></mspace><mi>d</mi><mo>&lt;</mo><mfrac><mrow><mi>R</mi></mrow><mrow><mn>2</mn></mrow></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Method 1: the central angle θ is uniform from 0° to 180°. The chord is long when θ is over 120°.</span></p>
+          <math display="block"><mi>ℓ</mi><mo>=</mo><mn>2</mn><mi>R</mi><mo>·</mo><mi>sin</mi><mo>(</mo><mfrac><mrow><mi>θ</mi></mrow><mrow><mn>2</mn></mrow></mfrac><mo>)</mo><mo>&gt;</mo><msqrt><mn>3</mn></msqrt><mo>·</mo><mi>R</mi><mspace width="0.6em"></mspace><mo>⇔</mo><mspace width="0.6em"></mspace><mi>θ</mi><mo>&gt;</mo><mn>120°</mn></math>
+          <math display="block"><mi>P</mi><mo>=</mo><mfrac><mrow><mn>60</mn></mrow><mrow><mn>180</mn></mrow></mfrac><mo>=</mo><mfrac class="hl"><mrow><mn>1</mn></mrow><mrow><mn>3</mn></mrow></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Method 2: the distance d is uniform from 0 to R.</span></p>
+          <math display="block"><mi>d</mi><mo>∈</mo><mo stretchy="false">[</mo><mn>0</mn><mo>,</mo><mi>R</mi><mo stretchy="false">]</mo><mspace width="0.6em"></mspace><mi>P</mi><mo>=</mo><mfrac><mrow><mfrac><mrow><mi>R</mi></mrow><mrow><mn>2</mn></mrow></mfrac></mrow><mrow><mi>R</mi></mrow></mfrac><mo>=</mo><mfrac class="hl"><mrow><mn>1</mn></mrow><mrow><mn>2</mn></mrow></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Method 3: the chord's midpoint is uniform in the disc, so we compare the area of the circle of radius R/2 with the whole disc.</span></p>
+          <math display="block"><mi>P</mi><mo>=</mo><mfrac><mrow><mi>π</mi><msup><mrow><mo>(</mo><mfrac><mrow><mi>R</mi></mrow><mrow><mn>2</mn></mrow></mfrac><mo>)</mo></mrow><mrow><mn>2</mn></mrow></msup></mrow><mrow><mi>π</mi><msup><mrow><mi>R</mi></mrow><mrow><mn>2</mn></mrow></msup></mrow></mfrac><mo>=</mo><mfrac class="hl"><mrow><mn>1</mn></mrow><mrow><mn>4</mn></mrow></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">The density of the distance d for each method, with R = 1.</span></p>
+          <math display="block"><msub><mrow><mi>f</mi></mrow><mrow><mn>1</mn></mrow></msub><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mrow><mn>2</mn></mrow><mrow><mi>π</mi><msqrt><mn>1</mn><mo>−</mo><msup><mrow><mi>d</mi></mrow><mrow><mn>2</mn></mrow></msup></msqrt></mrow></mfrac></math>
+          <math display="block"><msub><mrow><mi>f</mi></mrow><mrow><mn>2</mn></mrow></msub><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mo>=</mo><mn>1</mn><mo>,</mo><mspace width="0.6em"></mspace><msub><mrow><mi>f</mi></mrow><mrow><mn>3</mn></mrow></msub><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mo>=</mo><mn>2</mn><mi>d</mi></math>
+        </div>
+      </div>
+      
+      <p class="en">The three densities from round 3 differ, so the area under them from 0 to R/2 differs too. Method 1 often produces chords near the edge, which are short. Method 3 rarely puts the midpoint near the centre, because there is little area there.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 5: escalation -->
+<section class="round" id="beyond">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 5 · Going further</span></span>
+    <h2><span class="en">Straws, other methods and a square</span></h2>
+    
+    <p class="lead en">Is one of the three answers "the most natural"? The physicist Edwin Jaynes argued that it is. You can also invent as many new methods as you like, and the same problem appears even with a random point in a square.</p>
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">Throwing straws from far away</span></h3>
+        <canvas class="disc" id="straw-cv"></canvas>
+        <div class="controls" style="margin:0">
+          <label class="ctl" for="straw-r"><span><span class="en">Circle size:</span> <b class="mono" id="straw-r-v"></b></span>
+            <input type="range" id="straw-r" min="40" max="120" value="80">
+          </label>
+        </div>
+        <div class="result-row">
+          <div><span class="k"><span class="en">Straws crossing the circle</span></span><b class="big mono" id="st-n" style="font-size:1.6rem"></b></div>
+          <div><span class="k"><span class="en">Share of long chords</span></span><b class="big hit mono" id="st-p"></b></div>
+        </div>
+        <div class="actions">
+          <button class="btn pri" data-s="100"><span class="en">Throw 100</span></button>
+          <button class="btn hit" data-s="10000"><span class="en">Throw 10,000</span></button>
+          <button class="btn ghost" id="st-clear"><span class="en">Start over</span></button>
+        </div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">Jaynes's argument, 1973</span></span>
+        <h3><span class="en">Why many people pick 1/2</span></h3>
+        
+        <p class="en">Jaynes reasoned like this. The problem says nothing about where the circle is or how big it is. So the answer should not change if the circle is rotated, shifted or scaled. He called this a principle of maximum ignorance: if we do not know something, the solution should not depend on it.</p>
+        
+        <p class="en">Only one distribution of lines passes this test, and it gives the same answer as method 2: 1/2. Methods 1 and 3 fail when the circle is shifted. Physically, this distribution arises when long straws are thrown onto the circle from far away: a straw "does not know" where the circle is. The simulation here does exactly that. Change the circle's size: the share of long chords stays near 50%.</p>
+        <p class="note"><span class="en">Straw centres are spread uniformly over the square, with random directions. Because the square is finite, the exact share is slightly above 1/2, by no more than half a percentage point.</span></p>
+        <p class="note"><span class="en">This is an argument for 1/2. It does not prove the others wrong. If the experiment really works like method 1 or 3, the right answer is 1/3 or 1/4.</span></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="en">Other methods, other answers</span></h3>
+      <p class="note" style="margin:6px 0 12px"><span class="en">Each row is one more "natural" way to draw a chord at random. The exact answer comes from a formula, and a simulation of 100,000 chords checks it. Press "Check" to run the simulation again.</span></p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="en">How we pick the chord</span></th><th style="text-align:right"><span class="en">Exact</span></th><th></th><th></th></tr></thead>
+          <tbody id="variants"></tbody>
+        </table>
+      </div>
+      <div class="own">
+        <h3><span class="en">Your own method: any answer from 0 to 1</span></h3>
+        <p class="note"><span class="en">Take a random radius and set the distance from the centre to the chord to d = R · u<sup>k</sup>, with u uniform from 0 to 1. With k = 1 this is method 2, with k = 1/2 it is method 3. The chord is long when u<sup>k</sup> &lt; 1/2, which happens with chance (1/2)<sup>1/k</sup>.</span></p>
+        <div class="controls" style="margin:0">
+          <label class="ctl" for="own-k"><span>k = <b class="mono" id="own-k-v"></b></span>
+            <input type="range" id="own-k" min="0" max="40" value="20">
+          </label>
+          <div class="result-row">
+            <div><span class="k"><span class="en">Exact</span></span><b class="big hit mono" id="own-e" style="font-size:1.6rem"></b></div>
+            <div><span class="k"><span class="en">Simulation, 100,000 chords</span></span><b class="big mono" id="own-s" style="font-size:1.6rem"></b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">A random point in a square</span></h3>
+        <div class="presets" id="sq-pick"></div>
+        <canvas class="disc" id="sq-cv" style="max-width:360px"></canvas>
+        <div class="result-row">
+          <div><span class="k"><span class="en">Points in the small square</span></span><b class="big hit mono" id="sq-p"></b></div>
+          <div><span class="k"><span class="en">Exact</span></span><b class="big mono" id="sq-e" style="font-size:1.6rem"></b></div>
+        </div>
+        <div class="actions"><button class="btn pri" id="sq-more"><span class="en">1,000 more points</span></button></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">The same problem</span></span>
+        <h3><span class="en">What does "a random point" mean?</span></h3>
+        
+        <p class="en">The square contains a smaller square with the same centre and half the side. What is the chance that a random point lands in it? If you pick the coordinates x and y uniformly, the chance is the share of the area: 1/4. If instead you pick a random direction from the centre and go a random fraction of the way to the edge, the point lands in the small square when that fraction is under one half. The chance is 1/2.</p>
+        
+        <p class="en">The same 1/4 and 1/2 as in methods 3 and 2. The second procedure crowds points near the centre, just like the chord midpoints in method 2.</p>
+        
+        <p class="en">An even simpler example. A factory makes squares with a side from 1 to 2 cm. What is the chance the side is under 1.5 cm? If the side is uniform between 1 and 2 cm, the chance is 1/2. If the area is uniform between 1 and 4 cm², the area must be under 2.25 cm², and the chance is 1.25/3 ≈ 41.7%.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1889</span>
+        <h3><span class="en">Bertrand's book</span></h3>
+        
+        <p class="en">Joseph Bertrand described the chord problem in his textbook "Calcul des probabilités", published in 1889. He gave three solutions to show that the question is badly posed, because it does not say how to pick the chord.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2/3</span>
+        <h3><span class="en">Another Bertrand paradox</span></h3>
+        
+        <p class="en">The same book contains the "box paradox". There are three boxes: one with two gold coins, one with two silver coins and one with a gold and a silver coin. You pick a box at random, take out a coin at random, and it is gold. The chance that the other coin in that box is also gold is 2/3. Intuition usually says 1/2. It is a close relative of the Monty Hall problem.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1973</span>
+        <h3><span class="en">"The Well-Posed Problem"</span></h3>
+        
+        <p class="en">That was the title of a 1973 paper by the physicist Edwin T. Jaynes. He argued that if the answer must not change under rotations, shifts and changes of scale, Bertrand's problem has a single solution, 1/2. Not everyone agrees that these requirements are compulsory.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1933</span>
+        <h3><span class="en">Kolmogorov's axioms</span></h3>
+        
+        <p class="en">In 1933 Andrey Kolmogorov built probability theory on axioms. In it a probability is always defined on a specific space of outcomes. Bertrand's paradox is often cited as an example of why such a precise definition is needed.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">0…1</span>
+        <h3><span class="en">Any answer at all</span></h3>
+        
+        <p class="en">There are endless ways to pick a chord, and the answer can be any number from 0 to 1. You only need to choose the right distribution of the distance from the centre to the chord, as in round 5. Bertrand's three methods are just the best known.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">dp · dθ</span>
+        <h3><span class="en">A relative of Buffon's needle</span></h3>
+        
+        <p class="en">Jaynes's straw throwing uses the same distribution of lines as Buffon's needle. It obeys Crofton's formula: a random line hits a convex shape with a probability proportional to its perimeter. This branch of mathematics is called integral geometry.</p>
+      </article>
+  </div>
+</section>
+
+<section class="mp-books" id="books">
+  <div class="mp-related-head">
+    <span class="eyebrow">Further reading</span>
+    <h2>Books that discuss this puzzle</h2>
+  </div>
+  <div class="mp-books-grid">
+    <div class="mp-book"><h3>The 2nd Scientific American Book of Mathematical Puzzles &amp; Diversions</h3><p class="mp-book-author">Martin Gardner</p><p class="mp-book-meta">1961 · chapter 19</p></div>
+    <div class="mp-book"><h3>Paradoxes from A to Z</h3><p class="mp-book-author">Michael Clark</p><p class="mp-book-meta">2002</p></div>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/books/en/">All books →</a>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">More puzzles</span>
+    <h2>Other paradoxes</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/penney-game/en/"><h3>Penney&#x27;s game</h3><p>You pick HHH, your opponent picks THH. The coin is flipped until one of the patterns comes up in a row. What are your opponent&#x27;s odds?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/inspection-paradox/en/"><h3>The bus paradox</h3><p>A bus comes every 10 minutes on average, but with no timetable. You walk up to the stop at an arbitrary moment. How long do you wait on average?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/st-petersburg-paradox/en/"><h3>The St. Petersburg paradox</h3><p>A coin is flipped until the first tails; the pot starts at $2 and doubles with every heads. What does the game pay on average?</p></a>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/en/">All puzzles →</a>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Discussion</span>
+    <h2>What do you think?</h2>
+    <p>Share your own explanation, an objection or a variant of the puzzle. You need a GitHub account to comment.</p>
+    <div class="mp-lvote"><p>Is “School maths” the right level for this puzzle?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">No, harder</button><button type="button" data-vote="right">Yes</button><button type="button" data-vote="easier">No, easier</button></div><p class="mp-lvote-thanks">Thank you! This helps set the levels right.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "bertrand-paradox" + "-lvl", LEVEL = 2, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="bertrand-paradox" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="en" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Newsletter</span>
+    <h2>New puzzles, explanations and discussions</h2>
+    <p>I keep adding new puzzles, new ways to explain them and write-ups of the discussions they start. Leave your email and I'll write when something new is out. No spam, one-click unsubscribe.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">The sign-up form will appear here soon.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+<footer>
+  
+  <span class="en">The random chord problem was posed by Joseph Bertrand in "Calcul des probabilités" (1889). The argument for 1/2 is due to Edwin T. Jaynes (1973).</span>
+  <span class="mono">P = 1/3 · 1/2 · 1/4</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? s : s.replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const plural = (k, one, few, many) => {
+  const a = k % 10, b = k % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+const chordW = k => lang === 'en' ? (k === 1 ? 'chord' : 'chords') : plural(k, 'хорда', 'хорди', 'хорд');
+
+/* ---------- maths ---------- */
+const TAU = 2 * Math.PI;
+const EXACT = [1 / 3, 1 / 2, 1 / 4];
+const FRAC = ['1/3', '1/2', '1/4'];
+const MNAME = {
+  uk: ['Спосіб 1 · випадкові кінці', 'Спосіб 2 · випадковий радіус', 'Спосіб 3 · випадкова середина'],
+  en: ['Method 1 · random endpoints', 'Method 2 · random radius', 'Method 3 · random midpoint']
+};
+const MSHORT = { uk: ['Спосіб 1', 'Спосіб 2', 'Спосіб 3'], en: ['Method 1', 'Method 2', 'Method 3'] };
+// a uniform point of the unit disc
+function inDisc() { let x, y; do { x = 2 * Math.random() - 1; y = 2 * Math.random() - 1; } while (x * x + y * y > 1); return [x, y]; }
+// the chord of the unit circle whose midpoint is at distance d in direction phi
+function fromMid(d, phi, extra) {
+  const ux = Math.cos(phi), uy = Math.sin(phi), h = Math.sqrt(Math.max(0, 1 - d * d)), mx = d * ux, my = d * uy;
+  return Object.assign({ x1: mx - h * uy, y1: my + h * ux, x2: mx + h * uy, y2: my - h * ux, mx, my, d, phi }, extra);
+}
+// one random chord of the unit circle by method m; long means longer than the triangle side √3 ⇔ d < 1/2
+function chord(m) {
+  if (m === 0) {
+    const a = Math.random() * TAU, b = Math.random() * TAU;
+    const x1 = Math.cos(a), y1 = Math.sin(a), x2 = Math.cos(b), y2 = Math.sin(b);
+    return { x1, y1, x2, y2, mx: (x1 + x2) / 2, my: (y1 + y2) / 2, d: Math.abs(Math.cos((a - b) / 2)), a, b };
+  }
+  if (m === 1) return fromMid(Math.random(), Math.random() * TAU);
+  const [x, y] = inDisc();
+  return fromMid(Math.hypot(x, y), Math.atan2(y, x));
+}
+// distance from the centre only, for fast simulation
+function dist(m) {
+  if (m === 0) return Math.abs(Math.cos((Math.random() - Math.random()) * Math.PI));
+  if (m === 1) return Math.random();
+  const [x, y] = inDisc(); return Math.hypot(x, y);
+}
+// exact density of the distance d (R = 1) for each method
+const dens = [d => 2 / (Math.PI * Math.sqrt(1 - d * d)), () => 1, d => 2 * d];
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+// a unit circle drawn in a square canvas: returns the mapping from unit coordinates to pixels
+function circleFrame(s, pad = 10) {
+  const { ctx, W, H } = s, R = Math.min(W, H) / 2 - pad, cx = W / 2, cy = H / 2;
+  return { ctx, R, cx, cy, X: x => cx + x * R, Y: y => cy - y * R };
+}
+function drawBase(f, { tri = true, inner = false } = {}) {
+  const { ctx, R, cx, cy } = f;
+  ctx.fillStyle = tok('--surface') || '#fff';
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fill();
+  if (inner) {
+    ctx.fillStyle = tok('--hit-soft'); ctx.beginPath(); ctx.arc(cx, cy, R / 2, 0, TAU); ctx.fill();
+    ctx.strokeStyle = tok('--hit'); ctx.lineWidth = 1.2; ctx.stroke();
+  }
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke();
+  if (tri) {
+    ctx.strokeStyle = tok('--muted'); ctx.lineWidth = 1.2; ctx.setLineDash([5, 4]); ctx.beginPath();
+    for (let k = 0; k < 3; k++) { const a = Math.PI / 2 + k * TAU / 3; k ? ctx.lineTo(f.X(Math.cos(a)), f.Y(Math.sin(a))) : ctx.moveTo(f.X(Math.cos(a)), f.Y(Math.sin(a))); }
+    ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+  }
+}
+function drawChords(f, list, width) {
+  const { ctx } = f, ink = tok('--ink'), hit = tok('--hit');
+  ctx.lineCap = 'round';
+  [false, true].forEach(pass => list.forEach(c => {
+    const long = c.d < .5; if (long !== pass) return;
+    ctx.strokeStyle = long ? hit : ink; ctx.globalAlpha = long ? .9 : .4; ctx.lineWidth = width;
+    ctx.beginPath(); ctx.moveTo(f.X(c.x1), f.Y(c.y1)); ctx.lineTo(f.X(c.x2), f.Y(c.y2)); ctx.stroke();
+  }));
+  ctx.globalAlpha = 1;
+}
+const lineW = n => n > 600 ? .6 : n > 150 ? 1 : n > 30 ? 1.6 : 2.4;
+
+/* ---------- hero: chords pile up, one method after another ---------- */
+const hero = { m: 0, list: [], timer: null };
+function heroDraw() {
+  const s = setupCanvas($('#hero-cv')); if (!s) return;
+  const f = circleFrame(s); drawBase(f); drawChords(f, hero.list, 1.6);
+  const n = hero.list.length, l = hero.list.filter(c => c.d < .5).length;
+  if (window.mpSolved && !mpSolved()) { $('#hero-cap').textContent = L('Хорди, проведені навмання. Пурпурові довші за сторону трикутника. Який шанс, що хорда довга?', 'Chords drawn at random. The magenta ones are longer than the triangle\'s side. What is the chance a chord is long?'); return; }
+  $('#hero-cap').textContent = MNAME[lang][hero.m] + ' · ' + L('довгих ', 'long: ') + l + L(' з ', ' of ') + n + ' · ' + L('точно ', 'exact ') + FRAC[hero.m];
+}
+function heroStep() {
+  if (hero.list.length >= 60) { if (!window.mpSolved || mpSolved()) hero.m = (hero.m + 1) % 3; hero.list = []; }
+  hero.list.push(chord(hero.m)); heroDraw();
+}
+function heroStart() {
+  clearInterval(hero.timer);
+  if (reduce()) { hero.list = Array.from({ length: 60 }, () => chord(hero.m)); heroDraw(); return; }
+  for (let i = 0; i < 12; i++) hero.list.push(chord(hero.m));
+  heroDraw();
+  hero.timer = setInterval(heroStep, 220);
+}
+
+/* ---------- round 1: guess ---------- */
+const guessIn = $('#guess-n');
+let guessed = null;
+guessIn.addEventListener('input', () => { $('#guess-v').textContent = guessIn.value + '%'; });
+$('#guess-go').addEventListener('click', () => { guessed = +guessIn.value / 100; guessText(); window.mpSolve && mpSolve(guessed); });
+document.addEventListener('solved', heroDraw);
+function guessText() {
+  if (guessed === null) return;
+  const g = guessed;
+  let best = 0; EXACT.forEach((p, i) => { if (Math.abs(p - g) < Math.abs(EXACT[best] - g)) best = i; });
+  const close = Math.abs(EXACT[best] - g) <= 0.03;
+  const verdict = close
+    ? L('Ваша відповідь збігається з розв\'язком «' + MNAME.uk[best] + '». Інші два розв\'язки теж правильні: вони просто описують інші способи обрати хорду.', 'Your answer matches "' + MNAME.en[best] + '". The other two solutions are also correct: they just describe other ways of picking the chord.')
+    : L('Ваша відповідь не збігається з жодним із трьох класичних розв\'язків. Найближчий до неї «' + MNAME.uk[best] + '». Утім, у раунді 5 видно, що для будь-якого числа від 0 до 1 можна придумати спосіб, який його дає.', 'Your answer does not match any of the three classic solutions. The nearest is "' + MNAME.en[best] + '". Still, round 5 shows that for any number from 0 to 1 there is a method that gives it.');
+  const rows = [[L('Ваша відповідь', 'Your answer'), g, 'var(--day)']].concat(EXACT.map((p, i) => [MSHORT[lang][i] + ': ' + FRAC[i], p, 'var(--hit)']));
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">1/3 · 1/2 · 1/4</p>' +
+    '<p>' + verdict + '</p><div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + pct(r[1]) + '</span></div>').join('') +
+    '</div><p class="note">' + L('Смуги показують шанс довгої хорди за шкалою від 0 до 100%.', 'The bars show the chance of a long chord on a 0 to 100% scale.') + '</p>';
+}
+
+/* ---------- round 2: draw chords ---------- */
+const game = { m: 0, lists: [[], [], []], n: [0, 0, 0], l: [0, 0, 0], last: null };
+const KEEP = 3000;
+function gameAdd(k) {
+  const m = game.m;
+  for (let i = 0; i < k; i++) {
+    const c = chord(m);
+    game.lists[m].push(c); game.n[m]++; if (c.d < .5) game.l[m]++;
+    game.last = k === 1 ? c : null;
+  }
+  if (game.lists[m].length > KEEP) game.lists[m].splice(0, game.lists[m].length - KEEP);
+  gameDraw(); gameText();
+}
+function gameDraw() {
+  const s = setupCanvas($('#game-cv')); if (!s) return;
+  const f = circleFrame(s, 12), { ctx } = f, list = game.lists[game.m];
+  drawBase(f, { inner: true });
+  drawChords(f, list, lineW(list.length));
+  const c = game.last; if (!c) return;
+  // the construction of the last single chord
+  const ink = tok('--ink'), hit = tok('--hit'), dot = (x, y, r, col) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(f.X(x), f.Y(y), r, 0, TAU); ctx.fill(); };
+  ctx.strokeStyle = c.d < .5 ? hit : ink; ctx.lineWidth = 3.5; ctx.globalAlpha = 1;
+  ctx.beginPath(); ctx.moveTo(f.X(c.x1), f.Y(c.y1)); ctx.lineTo(f.X(c.x2), f.Y(c.y2)); ctx.stroke();
+  if (game.m === 0) { dot(c.x1, c.y1, 6, ink); dot(c.x2, c.y2, 6, ink); }
+  else {
+    if (game.m === 1) {
+      ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(f.cx, f.cy); ctx.lineTo(f.X(Math.cos(c.phi)), f.Y(Math.sin(c.phi))); ctx.stroke(); ctx.setLineDash([]);
+      dot(0, 0, 3.5, ink);
+    }
+    dot(c.mx, c.my, 6, ink);
+  }
+}
+function gameText() {
+  const m = game.m, n = game.n[m], l = game.l[m];
+  $('#m-pick').innerHTML = MNAME[lang].map((t, i) => '<button type="button" data-m="' + i + '" aria-pressed="' + (i === m) + '">' + t + '</button>').join('');
+  $('#g-n').textContent = fmt(n); $('#g-l').textContent = fmt(l); $('#g-p').textContent = n ? pct(l / n) : '–';
+  const how = [
+    L('Дві випадкові точки на колі стали кінцями хорди.', 'Two random points on the circle became the endpoints.'),
+    L('Обрано випадковий радіус (пунктир) і випадкову точку на ньому. Хорда перпендикулярна до радіуса.', 'A random radius (dashed) and a random point on it were picked. The chord is perpendicular to the radius.'),
+    L('Випадкова точка круга стала серединою хорди.', 'A random point of the disc became the chord\'s midpoint.')
+  ][m];
+  const c = game.last;
+  let msg;
+  if (c) msg = how + ' ' + (c.d < .5 ? L('<b>Хорда довга</b>: її середина в пурпуровому колі радіуса R/2.', '<b>The chord is long</b>: its midpoint is inside the magenta circle of radius R/2.') : L('Хорда коротка: її середина поза колом радіуса R/2.', 'The chord is short: its midpoint is outside the circle of radius R/2.'));
+  else if (!n) msg = L('Хорд ще немає. Проведіть першу.', 'No chords yet. Draw the first one.');
+  else msg = L('Довгих ' + fmt(l) + ' з ' + fmt(n) + '. Точна відповідь для цього способу: ' + FRAC[m] + ', тобто ' + pct(EXACT[m]) + '.', fmt(l) + ' long out of ' + fmt(n) + '. The exact answer for this method is ' + FRAC[m] + ', or ' + pct(EXACT[m]) + '.');
+  $('#g-msg').innerHTML = msg;
+  $('#g-tally').innerHTML = [0, 1, 2].map(i => {
+    const p = game.n[i] ? game.l[i] / game.n[i] : 0;
+    return '<div class="crow"><span>' + MSHORT[lang][i] + ' · ' + fmt(game.n[i]) + '</span><div class="bar"><i style="--c:var(--hit);width:' + (100 * p) + '%"></i><i style="left:calc(' + (100 * EXACT[i]) + '% - 1px);width:2px;background:var(--ink);border-radius:0"></i></div><span class="mono">' + (game.n[i] ? pct(p) : '–') + '</span></div>';
+  }).join('');
+}
+$('#m-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; game.m = +b.dataset.m; game.last = null; gameDraw(); gameText(); });
+$$('#chords [data-k]').forEach(b => b.addEventListener('click', () => gameAdd(+b.dataset.k)));
+$('#g-clear').addEventListener('click', () => { const m = game.m; game.lists[m] = []; game.n[m] = 0; game.l[m] = 0; game.last = null; gameDraw(); gameText(); });
+
+/* ---------- round 3: simulation ---------- */
+const BINS = 20;
+let sim = null;
+function simRun() {
+  const N = +$('#sim-r').value;
+  sim = [0, 1, 2].map(m => {
+    const bins = new Float64Array(BINS); let long = 0;
+    for (let i = 0; i < N; i++) { const d = dist(m); if (d < .5) long++; bins[Math.min(BINS - 1, Math.floor(d * BINS))]++; }
+    const mids = Array.from({ length: 2500 }, () => chord(m));
+    return { N, long, dens: [...bins].map(b => b / N * BINS), mids };
+  });
+  simDraw(); simText();
+}
+function simDraw() {
+  if (!sim) return;
+  sim.forEach((r, m) => {
+    const s = setupCanvas($('#mid-' + m));
+    if (s) {
+      const f = circleFrame(s, 6), { ctx } = f, ink = tok('--ink'), hit = tok('--hit');
+      drawBase(f, { tri: false });
+      ctx.strokeStyle = hit; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(f.cx, f.cy, f.R / 2, 0, TAU); ctx.stroke();
+      r.mids.forEach(c => { ctx.fillStyle = c.d < .5 ? hit : ink; ctx.globalAlpha = c.d < .5 ? .8 : .45; ctx.fillRect(f.X(c.mx) - 1, f.Y(c.my) - 1, 2, 2); });
+      ctx.globalAlpha = 1;
+    }
+    drawDensity($('#den-' + m), m, r);
+  });
+}
+function drawDensity(cv, m, r) {
+  const s = setupCanvas(cv); if (!s) return;
+  const { ctx, W, H } = s, l = 30, rr = 8, t = 8, b = 22, YM = 3;
+  const x = d => l + d * (W - l - rr), y = v => t + (1 - Math.min(v, YM) / YM) * (H - t - b);
+  const f = dens[m];
+  // shaded area up to R/2 = exact share of long chords
+  ctx.fillStyle = tok('--hit-soft'); ctx.beginPath(); ctx.moveTo(x(0), y(0));
+  for (let d = 0; d <= .5001; d += .01) ctx.lineTo(x(d), y(f(d)));
+  ctx.lineTo(x(.5), y(0)); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, 1, 2, 3].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - rr, y(v)); ctx.stroke(); ctx.fillText(v, l - 6, y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [[0, '0'], [.5, 'R/2'], [1, 'R']].forEach(([d, s2]) => ctx.fillText(s2, Math.min(W - rr - 6, Math.max(l + 4, x(d))), H - b + 6));
+  ctx.strokeStyle = tok('--muted'); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x(.5), t); ctx.lineTo(x(.5), y(0)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t - 2, W - l - rr, H - t - b + 2); ctx.clip();
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2; ctx.beginPath();
+  for (let i = 0; i <= 400; i++) { const d = Math.min(i / 400, .9995), v = f(d); i ? ctx.lineTo(x(d), y(v)) : ctx.moveTo(x(d), y(v)); }
+  ctx.stroke(); ctx.restore();
+  ctx.fillStyle = tok('--hit');
+  r.dens.forEach((v, i) => { const px = x((i + .5) / BINS); ctx.beginPath(); ctx.arc(px, y(v), 3, 0, TAU); ctx.fill(); if (v > YM) { ctx.beginPath(); ctx.moveTo(px - 4, y(YM) + 6); ctx.lineTo(px + 4, y(YM) + 6); ctx.lineTo(px, y(YM) - 1); ctx.fill(); } });
+  ctx.fillStyle = tok('--ink'); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = '600 12px ' + tok('--f-mono');
+  ctx.fillText('= ' + FRAC[m], x(.06), t + 4);
+}
+function simText() {
+  if (!sim) return;
+  sim.forEach((r, m) => {
+    $('#sv-' + m).textContent = pct(r.long / r.N);
+    $('#ss-' + m).textContent = L(fmt(r.long) + ' з ' + fmt(r.N) + ' · точно ' + FRAC[m] + ' = ' + pct(EXACT[m]), fmt(r.long) + ' of ' + fmt(r.N) + ' · exact ' + FRAC[m] + ' = ' + pct(EXACT[m]));
+  });
+  $('#sim-bars').innerHTML = sim.map((r, m) => {
+    const p = r.long / r.N;
+    return '<div class="crow"><span>' + MSHORT[lang][m] + '</span><div class="bar"><i style="--c:var(--hit);width:' + (100 * p) + '%"></i><i style="left:calc(' + (100 * EXACT[m]) + '% - 1px);width:2px;background:var(--ink);border-radius:0"></i></div><span class="mono">' + pct(p, 2) + '</span></div>';
+  }).join('') + '<p class="note">' + L('Смуга показує симуляцію, риска показує точну відповідь: 33,33%, 50% і 25%.', 'The bar is the simulation, the tick is the exact answer: 33.33%, 50% and 25%.') + '</p>';
+}
+$('#sim-run').addEventListener('click', simRun);
+$('#sim-r').addEventListener('change', simRun);
+
+/* ---------- round 5: straws thrown from far away ---------- */
+const S = 4;                          // the field is the square [-S, S]², the circle sits in the middle
+const straw = { r: .8, n: 0, l: 0, chords: [], lines: [] };
+// one straw: centre uniform in the field, direction uniform; it is long enough to span the field,
+// so it makes a chord exactly when its line passes closer than r to the centre
+function throwStraw() {
+  const px = (2 * Math.random() - 1) * S, py = (2 * Math.random() - 1) * S, th = Math.random() * Math.PI;
+  const c = Math.cos(th), s = Math.sin(th), p = px * s - py * c;    // signed distance from the centre to the line
+  return { px, py, c, s, p };
+}
+function strawThrow(k) {
+  for (let i = 0; i < k; i++) {
+    const w = throwStraw();
+    straw.lines.push(w);
+    if (Math.abs(w.p) < straw.r) {
+      straw.n++; if (Math.abs(w.p) < straw.r / 2) straw.l++;
+      straw.chords.push(w);
+    }
+  }
+  if (straw.lines.length > 40) straw.lines.splice(0, straw.lines.length - 40);
+  if (straw.chords.length > 1500) straw.chords.splice(0, straw.chords.length - 1500);
+  strawDraw(); strawText();
+}
+function strawReset() { straw.n = 0; straw.l = 0; straw.chords = []; straw.lines = []; }
+function strawDraw() {
+  const s = setupCanvas($('#straw-cv')); if (!s) return;
+  const { ctx, W, H } = s, k = Math.min(W, H) / (2 * S), cx = W / 2, cy = H / 2, X = x => cx + x * k, Y = y => cy - y * k;
+  ctx.fillStyle = tok('--surface') || '#fff'; ctx.fillRect(0, 0, W, H);
+  // recent straws, faint
+  ctx.strokeStyle = tok('--muted'); ctx.globalAlpha = .35; ctx.lineWidth = 1;
+  straw.lines.forEach(w => { const L2 = 2 * S * 1.5; ctx.beginPath(); ctx.moveTo(X(w.px - w.c * L2), Y(w.py - w.s * L2)); ctx.lineTo(X(w.px + w.c * L2), Y(w.py + w.s * L2)); ctx.stroke(); });
+  ctx.globalAlpha = 1;
+  const r = straw.r;
+  ctx.fillStyle = tok('--paper'); ctx.beginPath(); ctx.arc(cx, cy, r * k, 0, TAU); ctx.fill();
+  // chords inside the circle
+  const list = straw.chords.map(w => { const d = w.p, h = Math.sqrt(r * r - d * d), mx = d * w.s, my = -d * w.c;
+    return { x1: (mx - h * w.c) / r, y1: (my - h * w.s) / r, x2: (mx + h * w.c) / r, y2: (my + h * w.s) / r, d: Math.abs(d) / r }; });
+  const f = { ctx, R: r * k, cx, cy, X: x => cx + x * r * k, Y: y => cy - y * r * k };
+  drawChords(f, list, lineW(list.length) * .8);
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, r * k, 0, TAU); ctx.stroke();
+}
+function strawText() {
+  $('#straw-r-v').textContent = dec((straw.r / S * 100).toFixed(0)) + L('% ширини поля', '% of the field width');
+  $('#st-n').textContent = fmt(straw.n);
+  $('#st-p').textContent = straw.n ? pct(straw.l / straw.n) : '–';
+}
+$$('#beyond [data-s]').forEach(b => b.addEventListener('click', () => strawThrow(+b.dataset.s)));
+$('#st-clear').addEventListener('click', () => { strawReset(); strawDraw(); strawText(); });
+$('#straw-r').addEventListener('input', e => { straw.r = +e.target.value / 100; strawReset(); strawThrow(2000); });
+
+/* ---------- round 5: other methods ---------- */
+function lineChord(x, y, th) {               // the chord on the line through (x, y) with direction th
+  return Math.abs(x * Math.sin(th) - y * Math.cos(th));
+}
+const VARIANTS = [
+  { uk: 'Випадкова точка на колі й випадковий кут між хордою та дотичною', en: 'A random point on the circle and a random angle between the chord and the tangent',
+    exact: 1 / 3, label: '1/3', d: () => Math.abs(Math.cos(Math.random() * Math.PI)) },
+  { uk: 'Випадкова точка на фіксованому діаметрі, хорда перпендикулярна до нього', en: 'A random point on a fixed diameter, the chord perpendicular to it',
+    exact: 1 / 2, label: '1/2', d: () => Math.abs(2 * Math.random() - 1) },
+  { uk: 'Випадкова точка описаного квадрата стає серединою хорди (точки поза кругом відкидаємо)', en: 'A random point of the surrounding square is the midpoint (points outside the disc are rejected)',
+    exact: 1 / 4, label: '1/4', d: () => { const [x, y] = inDisc(); return Math.hypot(x, y); } },
+  { uk: 'Випадкова точка круга й випадковий напрям хорди через неї', en: 'A random point of the disc and a random direction of the chord through it',
+    exact: 1 / 3 + Math.sqrt(3) / (2 * Math.PI), label: '1/3 + √3/(2π)', d: () => { const [x, y] = inDisc(); return lineChord(x, y, Math.random() * Math.PI); } },
+  { uk: 'Дві випадкові точки круга, хорда проходить через обидві', en: 'Two random points of the disc, the chord passes through both',
+    exact: 1 / 3 + 3 * Math.sqrt(3) / (4 * Math.PI), label: '1/3 + 3√3/(4π)', d: () => { const [x1, y1] = inDisc(), [x2, y2] = inDisc(); return Math.abs(x1 * y2 - x2 * y1) / Math.hypot(x2 - x1, y2 - y1); } }
+];
+const varRes = {};
+function varRun(i, N = 100000) { const v = VARIANTS[i]; let h = 0; for (let r = 0; r < N; r++) if (v.d() < .5) h++; varRes[i] = h / N; }
+function variantsText() {
+  $('#variants').innerHTML = VARIANTS.map((v, i) => '<tr><td>' + v[lang] + '</td><td class="num"><b>' + pct(v.exact) + '</b><br><span class="res">' + v.label + '</span></td><td><button class="btn ghost" data-i="' + i + '">' + L('Перевірити', 'Check') + '</button></td><td class="res">' +
+    (varRes[i] !== undefined ? L('симуляція: ', 'simulated: ') + pct(varRes[i]) : '') + '</td></tr>').join('');
+}
+$('#variants').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; varRun(+b.dataset.i); variantsText(); });
+
+const kOf = v => Math.pow(2, (v - 20) / 10);     // slider 0..40 → k from 1/4 to 4, k = 1 in the middle
+function ownRun() {
+  const k = kOf(+$('#own-k').value), N = 100000; let h = 0;
+  for (let i = 0; i < N; i++) if (Math.pow(Math.random(), k) < .5) h++;
+  $('#own-k-v').textContent = dec(k.toFixed(2));
+  $('#own-e').textContent = pct(Math.pow(.5, 1 / k));
+  $('#own-s').textContent = pct(h / N);
+}
+$('#own-k').addEventListener('input', ownRun);
+
+/* ---------- round 5: a random point in a square ---------- */
+const sq = { m: 0, pts: [] };
+const SQ_NAME = { uk: ['Рівномірні x і y', 'Випадковий напрям і частка шляху'], en: ['Uniform x and y', 'Random direction and fraction of the way'] };
+// the square is [-1, 1]²; the small square is [-1/2, 1/2]²
+function sqPoint(m) {
+  if (m === 0) return [2 * Math.random() - 1, 2 * Math.random() - 1];
+  const a = Math.random() * TAU, c = Math.cos(a), s = Math.sin(a), edge = 1 / Math.max(Math.abs(c), Math.abs(s)), t = Math.random() * edge;
+  return [t * c, t * s];
+}
+const inSmall = ([x, y]) => Math.abs(x) < .5 && Math.abs(y) < .5;
+function sqAdd(k) { for (let i = 0; i < k; i++) sq.pts.push(sqPoint(sq.m)); if (sq.pts.length > 6000) sq.pts.splice(0, sq.pts.length - 6000); sqDraw(); sqText(); }
+function sqDraw() {
+  const s = setupCanvas($('#sq-cv')); if (!s) return;
+  const { ctx, W, H } = s, pad = 8, k = (Math.min(W, H) - 2 * pad) / 2, cx = W / 2, cy = H / 2, X = x => cx + x * k, Y = y => cy - y * k;
+  ctx.fillStyle = tok('--surface') || '#fff'; ctx.fillRect(X(-1), Y(1), 2 * k, 2 * k);
+  ctx.fillStyle = tok('--hit-soft'); ctx.fillRect(X(-.5), Y(.5), k, k);
+  const ink = tok('--ink'), hit = tok('--hit');
+  sq.pts.forEach(p => { const h = inSmall(p); ctx.fillStyle = h ? hit : ink; ctx.globalAlpha = h ? .85 : .45; ctx.fillRect(X(p[0]) - 1, Y(p[1]) - 1, 2, 2); });
+  ctx.globalAlpha = 1; ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.strokeRect(X(-1), Y(1), 2 * k, 2 * k);
+  ctx.strokeStyle = hit; ctx.lineWidth = 1.5; ctx.strokeRect(X(-.5), Y(.5), k, k);
+}
+function sqText() {
+  $('#sq-pick').innerHTML = SQ_NAME[lang].map((t, i) => '<button type="button" data-m="' + i + '" aria-pressed="' + (i === sq.m) + '">' + t + '</button>').join('');
+  const n = sq.pts.length, h = sq.pts.filter(inSmall).length;
+  $('#sq-p').textContent = n ? pct(h / n) : '–';
+  $('#sq-e').textContent = sq.m === 0 ? '1/4' : '1/2';
+}
+$('#sq-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; sq.m = +b.dataset.m; sq.pts = []; sqAdd(2000); });
+$('#sq-more').addEventListener('click', () => sqAdd(1000));
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Парадокс Бертрана', 'Bertrand\'s Paradox');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  heroDraw(); guessText(); gameText(); simText(); strawText(); variantsText(); ownRun(); sqText();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+const redraw = () => { heroDraw(); gameDraw(); simDraw(); strawDraw(); sqDraw(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state: everything filled ---------- */
+[2, 1, 0].forEach(m => { game.m = m; gameAdd(100); });
+game.last = null;
+simRun();
+strawThrow(2000);
+VARIANTS.forEach((v, i) => varRun(i));
+sqAdd(2000);
+applyLang();
+gameDraw();
+heroStart();
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'en' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+</body>
+</html>
