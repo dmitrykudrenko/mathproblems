@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -146,6 +146,10 @@ TEXT = {
     "survivorship-bias": {
         "uk": (["ПОМИЛКА ТИХ,", "ХТО ВИЖИВ"], "Куди ставити броню на літак?"),
         "en": (["SURVIVORSHIP", "BIAS"], "Where should the armour go?"),
+    },
+    "sleeping-beauty": {
+        "uk": (["СПЛЯЧА", "КРАСУНЯ"], "Прокинулася. Шанс, що випав орел?"),
+        "en": (["SLEEPING", "BEAUTY"], "She wakes. What is the chance of heads?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -529,6 +533,17 @@ def extra_visual(kind, x, y, lang="en"):
                         break
                 out.append(f'<circle cx="{ox + px * s:.1f}" cy="{oy + py * s:.1f}" r="4.5" fill="{INK}"/>')
         out.append(f'<text x="{x + 395}" y="{y + 20}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="44" fill="{SIGNAL}">?</text>')
+    elif kind == "sleeping-beauty":
+        # a coin and two nights, Monday and Tuesday, with a sleeper; the chance of heads is the answer
+        days = ("Пн", "Вт") if lang == "uk" else ("Mon", "Tue")
+        out += [f'<circle cx="{x + 70}" cy="{y + 60}" r="46" fill="#fff" stroke="{INK}" stroke-width="5" stroke-dasharray="12 8"/>',
+                f'<text x="{x + 70}" y="{y + 76}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="44" fill="{INK}">?</text>',
+                f'<path d="M{x + 330} {y + 22} a 40 40 0 1 0 22 70 a 32 32 0 1 1 -22 -70 z" fill="{INK}"/>']
+        for i, d in enumerate(days):
+            px = x + 10 + i * 185
+            out += [f'<rect x="{px}" y="{y + 140}" width="170" height="170" rx="18" fill="#fff" stroke="{INK}" stroke-width="4" stroke-dasharray="{"0" if i == 0 else "10 8"}"/>',
+                    f'<text x="{px + 85}" y="{y + 196}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="36" fill="{INK}">{d}</text>',
+                    f'<text x="{px + 85}" y="{y + 270}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="44" fill="{MUTED}">{"?" if i else "z z"}</text>']
     return "".join(out)
 
 
@@ -563,7 +578,7 @@ def svg(kind, lang):
                   "regression-to-mean", "two-envelopes", "coin-streaks", "bertrand-paradox", "penney-game",
                   "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine", "election-poll",
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
-                  "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias"):
+                  "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))

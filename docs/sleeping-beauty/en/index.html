@@ -1,0 +1,1289 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/sleeping-beauty/", "en": "/sleeping-beauty/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "sleeping-beauty";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>The Sleeping Beauty Problem: 1/3 or 1/2? Bets, Simulation, Maths</title>
+<meta name="description" content="Sleeping Beauty: is the chance of heads 1/3 or 1/2? Bet at every awakening, run a million experiments, Elga vs Lewis, doomsday and the absent-minded driver.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/sleeping-beauty/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/sleeping-beauty/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/sleeping-beauty/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/sleeping-beauty/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="The Sleeping Beauty problem">
+<meta property="og:description" content="On heads Beauty is woken once, on tails twice, and her memory is wiped each time. She has just woken. What is the chance of heads?">
+<meta property="og:url" content="https://mathparadoxes.com/sleeping-beauty/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/sleeping-beauty/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A coin, Monday and Tuesday. The Sleeping Beauty problem: what is the chance of heads?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Sleeping Beauty problem">
+<meta name="twitter:description" content="On heads Beauty is woken once, on tails twice, and her memory is wiped each time. She has just woken. What is the chance of heads?">
+<meta name="twitter:image" content="https://mathparadoxes.com/sleeping-beauty/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/sleeping-beauty/en/#page", "url": "https://mathparadoxes.com/sleeping-beauty/en/", "name": "The Sleeping Beauty Problem: 1/3 or 1/2? Bets, Simulation, Maths", "description": "Sleeping Beauty: is the chance of heads 1/3 or 1/2? Bet at every awakening, run a million experiments, Elga vs Lewis, doomsday and the absent-minded driver.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "beginner", "about": {"@type": "Thing", "name": "Sleeping Beauty problem", "sameAs": "https://en.wikipedia.org/wiki/Sleeping_Beauty_problem"}, "image": "https://mathparadoxes.com/sleeping-beauty/og-en.png", "datePublished": "2026-10-24", "dateModified": "2026-10-24", "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "translationOfWork": {"@id": "https://mathparadoxes.com/sleeping-beauty/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "The Sleeping Beauty problem", "item": "https://mathparadoxes.com/sleeping-beauty/en/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/sleeping-beauty/en/#faq", "inLanguage": "en", "mainEntity": [{"@type": "Question", "name": "What is the answer to the Sleeping Beauty problem: 1/3 or 1/2?", "acceptedAnswer": {"@type": "Answer", "text": "Both numbers are correct, but they answer different questions. Only a third of all awakenings follow heads, so the chance of heads per awakening is 1/3. Half of all experiments are heads, so the chance that the coin landed heads in that sense is 1/2. Philosophers disagree about which reading of the question is right."}}, {"@type": "Question", "name": "What are thirders and halfers?", "acceptedAnswer": {"@type": "Answer", "text": "Thirders, like Adam Elga (2000), hold that Beauty should say 1/3: the three possible awakenings are indistinguishable and only one follows heads. Halfers, like David Lewis (2001), hold 1/2: waking gives no new information and the coin is fair."}}, {"@type": "Question", "name": "How do bets help settle the dispute?", "acceptedAnswer": {"@type": "Answer", "text": "If Beauty buys a \"1 if heads\" ticket at every awakening, the ticket breaks even at a price of 1/3, while at 1/2 she loses 1/6 per ticket on average. If only one bet per experiment counts, the fair price is 1/2. Each number is calibrated for its own kind of bet."}}, {"@type": "Question", "name": "Who came up with the Sleeping Beauty problem?", "acceptedAnswer": {"@type": "Answer", "text": "It was posed by the philosopher Arnold Zuboff in unpublished work from the mid-1980s and printed in his paper \"One Self\" (1990). Robert Stalnaker gave it its name, and it became famous through Adam Elga's paper in Analysis (2000) and David Lewis's reply (2001)."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the two envelopes page. A row per experiment (coin, Monday, Tuesday) is this problem's signature object. */
+:root {
+  --tint: #E1E2FA;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 14px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); }
+
+/* ---------- experiment rows: coin · Monday · Tuesday ---------- */
+.exps { display: grid; gap: 8px; }
+.exp { display: grid; grid-template-columns: 46px 1fr 1fr; gap: 8px; align-items: stretch; }
+.exp > * { min-width: 0; }
+.coin { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; font-size: .95rem; border: 2px solid var(--ink); background: var(--surface); color: var(--ink); align-self: center; }
+.coin.h { background: var(--ink); color: var(--surface); }
+.coin.q { border-style: dashed; color: var(--muted); }
+.day { border-radius: 10px; padding: 7px 10px; display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: .84rem; font-weight: 600; min-height: 46px; }
+.day.on { background: var(--surface); border: 1.5px solid var(--ink); }
+.day.off { border: 1.5px dashed var(--line); color: var(--muted); font-weight: 500; }
+.day .st { font-family: var(--f-mono); font-size: .72rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.day.ok { border-color: var(--win); }
+.day.ok .st { color: var(--win); }
+.day.no { border-color: var(--loss); }
+.day.no .st { color: var(--loss); }
+.day.now { border-style: solid; border-color: var(--ink); background: var(--surface); outline: 3px solid var(--ink); outline-offset: 2px; }
+.exp.head { font-family: var(--f-mono); font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.exp.head span { padding-left: 10px; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl select { font: inherit; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--ink); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+.big.day { color: var(--day); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 150px 1fr 64px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow > * { min-width: 0; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+.crow .mono { text-align: right; white-space: nowrap; }
+.half-q { margin-top: 20px; display: grid; gap: 14px; }
+.half-q .msg { min-height: 1.6em; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 20px; }
+.status { display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+.status > div { min-width: 0; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.8rem; font-weight: 800; }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.chips span { font-family: var(--f-mono); font-size: .74rem; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.9rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.pgroup { display: grid; gap: 8px; }
+.pgroup > span { font-size: .8rem; color: var(--muted); font-weight: 500; }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; min-width: 0; }
+.vs b { font-family: var(--f-display); font-size: 1.6rem; }
+.vs .a b { color: var(--ink); }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .84rem; color: var(--muted); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; margin-top: 18px; }
+.result-row > div { min-width: 0; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+th.num { text-align: right; }
+td.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+td.pos { color: var(--win); }
+td.neg { color: var(--loss); }
+td.zero { font-weight: 700; }
+tr.tot td { font-weight: 700; border-bottom: 0; }
+#x-tbl b { overflow-wrap: anywhere; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 104px 1fr 54px; font-size: .8rem; }
+  .vs { grid-template-columns: 1fr; }
+  .exp { grid-template-columns: 40px 1fr 1fr; gap: 6px; }
+  .coin { width: 40px; height: 40px; }
+  .day { padding: 6px 8px; font-size: .78rem; }
+  .day .st { font-size: .66rem; }
+  th, td { padding: 8px 6px; }
+  .why-grid th, .why-grid td { padding-inline: 3px; }
+  .tbl-wrap th { letter-spacing: 0; font-size: .64rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=64688991">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/en/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/sleeping-beauty/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/sleeping-beauty/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    
+    <h1 class="en"><span class="kw">The Sleeping Beauty problem</span> A coin, a sleep, a wiped memory. <span class="q sp-before">What is the chance of heads?</span><span class="sp-after"><span class="q">1/3 per awakening,</span> 1/2 per experiment.</span></h1>
+    
+    
+    <p class="lead en sp-before">Beauty is put to sleep and a coin is tossed. On heads she is woken once, on tails twice, and each time her memory of any earlier waking is erased. When she wakes she doesn't know what day it is. What should her chance of heads be? Lock in your answer, then test it with bets, a simulation and the explanations.</p>
+    <p class="lead en sp-after">Beauty is put to sleep and a coin is tossed. On heads she is woken once, on tails twice, and each time her memory is erased. Only a third of all awakenings follow heads, but half of all experiments do. Philosophers have argued since 2000: "thirders" count awakenings, "halfers" count experiments. Below you can see which question each camp is answering and whose bets pay off.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="mono">1/3</b><span><span class="en">of awakenings follow heads</span></span></div>
+      <div class="odd"><b class="mono">1/2</b><span><span class="en">of experiments are heads</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="en">The puzzle</b></a>
+      <a href="#guess"><span>1</span><b class="en">Guess</b></a>
+      <a href="#game"><span>2</span><b class="en">Bets</b></a>
+      <a href="#sim"><span>3</span><b class="en">A million experiments</b></a>
+      <a href="#why"><span>4</span><b class="en">Two camps</b></a>
+      <a href="#more"><span>5</span><b class="en">Going further</b></a>
+      <a href="#facts"><span>★</span><b class="en" style="font-weight:inherit">Fun facts</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <div class="exps" id="hero-exps"></div>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">The puzzle</span></span>
+    <h2><span class="en">A coin on Sunday, a waking on Monday, and maybe on Tuesday</span></h2>
+    
+    <p class="lead en">This is one of the few puzzles on the site where serious researchers still disagree. So instead of a single "right answer" we show where each number comes from and which question it actually answers.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="en">Sunday</span></h3>
+        
+        <p class="en">Beauty is put to sleep. She knows all the rules in advance. While she sleeps, the researchers toss a fair coin.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="en">Heads: one waking</span></h3>
+        
+        <p class="en">On heads she is woken on Monday, asked a question and put back to sleep until the experiment ends on Wednesday.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="en">Tails: two wakings</span></h3>
+        
+        <p class="en">On tails she is woken on Monday and on Tuesday. After Monday she is given a drug that erases the memory of that waking. Tuesday looks to her exactly like Monday.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="en">The question</span></h3>
+        
+        <p class="en">Each time she wakes she is asked: "How confident are you that the coin landed heads?" She doesn't know whether it is Monday or Tuesday, or whether she was woken before. What probability should she give?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="en">Intuition says</span></span>
+        <p class="q"><span class="en">"The coin is fair and I learned nothing new. So 1/2"</span></p>
+        
+        <p class="en">That is how the "halfers" argue, the philosopher David Lewis among them. But count the awakenings: of three possible ones, only one follows heads. So the "thirders", like Adam Elga, say 1/3. Both numbers are correct answers to different questions, and bets show when you need which.</p>
+      </div>
+      <div class="card">
+        <h3><span class="en">Assumptions</span></h3>
+        
+        <ul class="rules en">
+          <li>The coin is fair: heads and tails 1/2 each.</li>
+          <li>Beauty knows the rules and reasons flawlessly.</li>
+          <li>The wakings are indistinguishable: no calendar, no clock, no memories.</li>
+        </ul>
+        <p class="note"><span class="en">We write H for heads and T for tails. Monday and Tuesday: Mon and Tue.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="en">Beauty has woken up. What is the chance of heads?</span></h2>
+    
+    <p class="lead en">Put yourself in her place: you have just woken and don't know what day it is. Lock in your answer before reading on.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <span class="note"><span class="en">Your answer</span></span>
+      <div class="presets" id="g-opts"></div>
+      <div class="exps"><div class="exp"><span class="coin q">?</span><span class="day now"><span id="g-day">?</span><span class="st" id="g-st"></span></span><span class="day off"><span>?</span></span></div></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+  <div class="card half-q">
+    <h3><span class="en">Now the real question: what do the "halfers" count when they say 1/2?</span></h3>
+    <div class="presets" id="f-opts"></div>
+    <p class="msg" id="f-msg" aria-live="polite"></p>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Hints</span>
+    <p class="mp-hints-intro">Hard to decide? Open the hints one at a time: the easy one first, then stronger ones.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Imagine the experiment repeated 1,000 times. Count two things: how many experiments there were and how many awakenings.</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>Heads gives one awakening, tails gives two. What share of all awakenings follows heads, and what share of all experiments?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>500 heads experiments give 500 awakenings, 500 tails experiments give 1,000. Think about which share Beauty is asked about when she is woken and asked afresh each time.</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Show hint 1 of 3 · easy&quot;, &quot;Show hint 2 of 3 · medium&quot;, &quot;Show hint 3 of 3 · strong&quot;]">Show hint 1 of 3 · easy</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "sleeping-beauty";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: bets -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 2 · Bets</span></span>
+    <h2><span class="en">You are Beauty. Bet at every awakening</span></h2>
+    
+    <p class="lead en">We toss the coin and wake you once or twice. Each time you bet $1 on heads or tails. Two cashiers settle the bets differently. The "per awakening" cashier takes $1 at every awakening. The "per experiment" cashier takes $1 for the whole experiment, so on tails each of the two awakenings is worth 50 cents. See which strategy wins at which cashier.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="status">
+        <div><span class="k"><span class="en">Experiment</span></span><b class="mono" id="gm-n">1</b></div>
+        <div><span class="k"><span class="en">Awakenings so far</span></span><b class="mono" id="gm-a">0</b></div>
+      </div>
+      <div class="exps" id="gm-exp"></div>
+      <p class="msg" id="gm-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn" id="gm-h"><span class="en">Bet on heads</span></button>
+        <button class="btn" id="gm-t"><span class="en">Bet on tails</span></button>
+        <button class="btn pri" id="gm-next"><span class="en">Next experiment</span></button>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" id="gm-auto-t"><span class="en">+100 experiments: always tails</span></button>
+        <button class="btn ghost" id="gm-auto-h"><span class="en">+100: always heads</span></button>
+        <button class="btn ghost" id="gm-reset"><span class="en">Start over</span></button>
+      </div>
+      <div class="chips" id="gm-chips"></div>
+    </div>
+    <div class="card" style="display:grid;gap:14px">
+      <h3><span class="en">Two cashiers</span></h3>
+      <p class="note" id="gm-sum"></p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th><span class="en">Strategy</span></th><th class="num"><span class="en">Per awakening</span></th><th class="num"><span class="en">Per experiment</span></th></tr></thead>
+        <tbody id="gm-tbl"></tbody>
+      </table></div>
+      <h3 style="margin-top:6px"><span class="en">What is a "$1 if heads" ticket worth?</span></h3>
+      <p class="note"><span class="en">Your confidence in heads is the price at which the ticket neither gains nor loses for you. Average profit per ticket at each price, on your own experiments:</span></p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th><span class="en">Price</span></th><th class="num"><span class="en">Bought at every awakening</span></th><th class="num"><span class="en">One per experiment</span></th></tr></thead>
+        <tbody id="gm-price"></tbody>
+      </table></div>
+      <p class="note" id="gm-verdict"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="en">A million experiments: counting awakenings and counting experiments</span></h2>
+    
+    <p class="lead en">The computer runs experiments one after another and keeps two tallies: the share of experiments that were heads, and the share of awakenings that came after heads. Same coins, same awakenings; only the denominator differs.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <div class="pgroup"><span><span class="en">Awakenings on tails</span></span><div class="presets" id="sim-k"></div></div>
+      <label class="ctl" for="sim-r"><span class="en">Experiments</span>
+        <select id="sim-r">
+          <option value="1000">1 000</option>
+          <option value="10000">10 000</option>
+          <option value="100000">100 000</option>
+          <option value="1000000" selected>1 000 000</option>
+        </select>
+      </label>
+      <button class="btn pri" id="sim-run"><span class="en">Run</span></button>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="sim-chart" style="height:300px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--ink)"><b class="en">heads among experiments</b></span>
+          <span style="--c:var(--hit)"><b class="en">heads among awakenings</b></span>
+          <span style="--c:var(--muted)"><b class="en">dashed: theory</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k"><span class="en">Experiments · heads among them</span></div><div class="v mono" id="sim-e">–</div><div class="s" id="sim-es"></div></div>
+        <div class="tile" style="--c:var(--hit)"><div class="k"><span class="en">Awakenings · after heads</span></div><div class="v mono" id="sim-a">–</div><div class="s" id="sim-as"></div></div>
+        <p class="note" id="sim-txt"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 4 · Two camps</span></span>
+    <h2><span class="en">Why some say 1/3, others 1/2, and both have a point</span></h2>
+    
+    <p class="lead en">The dispute isn't about arithmetic: everyone agrees that heads accounts for 1/3 of awakenings and 1/2 of experiments. The argument is over which of these numbers Beauty should give when asked for "the chance of heads".</p>
+  </div>
+  <div class="why-grid">
+    <div class="card">
+      <span class="kicker"><span class="en">Elga's argument · thirders</span></span>
+      <h3><span class="en">Three identical awakenings</span></h3>
+      <div class="exps">
+        <div class="exp"><span class="coin h"><span class="en">H</span></span><span class="day on"><span><span class="en">Mon</span></span><span class="st">1/3</span></span><span class="day off"><span><span class="en">Tue</span></span><span class="st">zz</span></span></div>
+        <div class="exp"><span class="coin"><span class="en">T</span></span><span class="day on"><span><span class="en">Mon</span></span><span class="st">1/3</span></span><span class="day on"><span><span class="en">Tue</span></span><span class="st">1/3</span></span></div>
+      </div>
+      
+      <p class="en">On waking, Beauty could be in one of three situations: H-Mon, T-Mon, T-Tue. T-Mon and T-Tue are indistinguishable to her, so equally likely. And if she were told "it is Monday", heads and tails would have to be equal: the coin could even be tossed after the Monday waking, and a fair coin gives 1/2. So all three situations are equally likely, and heads gets 1/3. That was Adam Elga's argument in 2000.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Lewis's argument · halfers</span></span>
+      <h3><span class="en">She learned nothing new</span></h3>
+      
+      <p class="en">On Sunday the chance of heads is 1/2. On waking, Beauty gets no information she didn't have on Sunday: she knew she would certainly be woken. Probabilities change only with new information, so it stays 1/2. That was David Lewis's reply to Elga in 2001.</p>
+      <div class="vs">
+        <div class="a"><span><span class="en">Halfer: chance of heads once told "it is Monday"</span></span><b>2/3</b></div>
+        <div class="a"><span><span class="en">Thirder in the same situation</span></span><b>1/2</b></div>
+      </div>
+      
+      <p class="en">The price of Lewis's view: once Beauty is told it is Monday, she must find heads more likely, 2/3, even though the coin may not have been tossed yet. Many find that strange, and that is where most of the debate concentrates.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Two questions</span></span>
+      <h3><span class="en">Same coins, different denominators</span></h3>
+      <div class="tbl-wrap"><table>
+        <caption class="note" style="text-align:left;padding-bottom:6px"><span class="en">1,000 experiments</span></caption>
+        <thead><tr><th></th><th class="num"><span class="en">Experiments</span></th><th class="num"><span class="en">Awakenings</span></th></tr></thead>
+        <tbody>
+          <tr><td><span class="en">Heads</span></td><td class="num">500</td><td class="num">500</td></tr>
+          <tr><td><span class="en">Tails</span></td><td class="num">500</td><td class="num"><span class="en">1,000</span></td></tr>
+          <tr class="tot"><td><span class="en">Heads share</span></td><td class="num">500/1000<br>= 1/2</td><td class="num" style="color:var(--hit)">500/1500<br>= 1/3</td></tr>
+        </tbody>
+      </table></div>
+      
+      <p class="en">"In what share of experiments did the coin land heads?" The answer is 1/2. "After what share of awakenings is the coin showing heads?" The answer is 1/3. In 2008 the philosopher Berry Groisman argued that both camps are right and simply answer different questions. The words "chance of heads" allow both readings.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Bets decide</span></span>
+      <h3><span class="en">Which number pays depends on how bets are counted</span></h3>
+      <div class="vs">
+        <div class="bb"><span><span class="en">A bet at every awakening: fair price of a "1 if heads" ticket</span></span><b>1/3</b></div>
+        <div class="a"><span><span class="en">One bet per experiment</span></span><b>1/2</b></div>
+      </div>
+      
+      <p class="en">If Beauty bets twice on tails and once on heads, her tails bets multiply. Then the calibrated confidence is 1/3: at a price of 1/2 she loses 1/6 per ticket on average. If only one bet per experiment counts, the right price is 1/2. That is what you saw in round 2. This is why the philosopher Christopher Hitchcock argued in 2004 that a halfer can be beaten by a series of bets, while halfers reply that per-awakening bets simply count tails twice.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">For formula lovers</span></span>
+      <h3><span class="en">Two conditional probabilities from the same data</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">The share of awakenings after heads: heads gives 1 awakening, tails gives 2, each with chance ½.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl en">H</mtext><mo>|</mo><mtext class="lbl en">awakening</mtext><mo stretchy="false">)</mo></math>
+          <math display="block"><mo>=</mo><mfrac><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>·</mo><mn>1</mn></mrow><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>·</mo><mn>1</mn><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>·</mo><mn>2</mn></mrow></mfrac><mo>=</mo><mfrac class="hl"><mn>1</mn><mn>3</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">The share of experiments with heads: each experiment counts once, however many awakenings it has.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl en">H</mtext><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Elga: the three situations are equally likely, because T-Mon can't be told from T-Tue, and on Monday the coin may not even be tossed yet.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl en">H-Mon</mtext><mo stretchy="false">)</mo><mo>=</mo><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl en">T-Mon</mtext><mo stretchy="false">)</mo><mo>=</mo><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl en">T-Tue</mtext><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mn>3</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Lewis: heads ½, and tails is split between the two days, ¼ each. Told that it is Monday, the halfer gets:</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl en">H</mtext><mo>|</mo><mtext class="lbl en">Mon</mtext><mo stretchy="false">)</mo><mo>=</mo><mfrac><mfrac><mn>1</mn><mn>2</mn></mfrac><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>+</mo><mfrac><mn>1</mn><mn>4</mn></mfrac></mrow></mfrac><mo>=</mo><mfrac><mn>2</mn><mn>3</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">If tails brings k awakenings, the share of awakenings after heads is:</span></p>
+          <math display="block"><mfrac><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>k</mi></mrow></mfrac><mo>=</mo><mfrac><mn>1</mn><mrow><mi>k</mi><mo>+</mo><mn>1</mn></mrow></mfrac></math>
+        </div>
+      </div>
+      
+      <p class="en">None of these formulas is wrong. The difference is what counts as "one case": an awakening or an experiment. A Beauty who is asked afresh each time naturally answers about awakenings. A Beauty who only cares about the coin itself answers about the experiment.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 5: escalation -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 5 · Going further</span></span>
+    <h2><span class="en">A million awakenings, doomsday, and a driver who forgets</span></h2>
+    
+    <p class="lead en">From one coin to questions that look quite different: how many people are yet to be born, when to leave the highway, and how to survey patients. Everywhere the same fork: count worlds or observers, people or visits.</p>
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="en">Maths: a million awakenings on tails</span></h3>
+        <p class="note" style="margin:6px 0 14px"><span class="en">The philosopher Nick Bostrom proposed an extreme version: on tails Beauty is woken a million times. Choose how many awakenings tails brings and watch the two camps drift apart.</span></p>
+        <div class="presets" id="x-k"></div>
+        <div class="vs" id="x-tbl" style="margin-top:14px"></div>
+        <div class="actions" style="margin-top:14px"><button class="btn pri" id="x-run"><span class="en">Simulate 100,000 experiments</span></button></div>
+        <p class="note" id="x-txt" style="margin-top:12px"></p>
+      </div>
+      <div class="card" style="display:grid;gap:12px">
+        <h3><span class="en">Why this is hard to swallow</span></h3>
+        <p class="note"><span class="en">With a million awakenings the thirder is nearly sure of tails: the chance of heads is 1/1,000,001. A fair coin, and she bets on tails at a million to one. The halfer holds 1/2, but once told "this is your first awakening" she must give heads 1,000,000/1,000,001, becoming almost certain of heads because of the word "first".</span></p>
+        <p class="note"><span class="en">Each camp ends up with its own awkward conclusion. Some, Bostrom among them, defend "double halfing": 1/2 on waking and 1/2 after hearing "Monday", at the cost of dropping the usual rule for updating probabilities. No version has convinced everyone yet.</span></p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="en">Logic: the doomsday argument</span></h3>
+        <p class="note" style="margin:6px 0 14px"><span class="en">The astrophysicist Brandon Carter in 1983, and later the philosopher John Leslie, reasoned like this. You are roughly the hundred-billionth human ever born. Compare two futures: 200 billion people in total (early doom) or far more (a long future). If you treat yourself as a random person from your world, being the hundred-billionth is far more likely in the small world. That is halfer logic: each world counts once, and you are a random point inside it.</span></p>
+        <div class="controls" style="margin-bottom:0">
+          <label class="ctl" for="d-p"><span><span class="en">Prior chance of early doom</span> <b class="mono" id="d-p-v">50%</b></span>
+            <input type="range" id="d-p" min="1" max="99" value="50">
+          </label>
+          <div class="pgroup"><span><span class="en">Long future: total people</span></span><div class="presets" id="d-r"></div></div>
+        </div>
+        <div class="compare" id="d-bars" style="margin-top:18px"></div>
+      </div>
+      <div class="card" style="display:grid;gap:12px">
+        <h3><span class="en">The thirder cancels the shift</span></h3>
+        <p class="note"><span class="en">Nick Bostrom named the two approaches: SSA (treat yourself as a random observer in your world) and SIA (a world with more observers is in itself more likely to contain you). SSA matches the halfers and produces the doomsday shift. SIA matches the thirders: it weights each world by its number of people, and that weight cancels the shift exactly. Under SIA the chance of early doom equals the prior.</span></p>
+        <p class="note"><span class="en">So the one-coin Sleeping Beauty question is a model of whether your own birth rank can tell you anything about humanity's end.</span></p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="en">Practice: the absent-minded driver</span></h3>
+        <p class="note" style="margin:6px 0 14px"><span class="en">In 1997 Michele Piccione and Ariel Rubinstein described a driver on a night highway with two exits, unable to tell the first from the second. Turning off at the first scores 0. At the second, 4: that is home. Passing both scores 1. The driver can't remember passing an exit, so behaves the same at each: drive on with probability p.</span></p>
+        <div class="controls" style="margin-bottom:0">
+          <label class="ctl" for="a-p"><span><span class="en">Drive on with probability p =</span> <b class="mono" id="a-p-v"></b></span>
+            <input type="range" id="a-p" min="0" max="100" value="50">
+          </label>
+          <button class="btn pri" id="a-run"><span class="en">10,000 drives</span></button>
+        </div>
+        <div class="result-row">
+          <div><span class="k"><span class="en">Expected score</span></span><b class="big day mono" id="a-v"></b></div>
+          <div><span class="k"><span class="en">Simulation</span></span><b class="big mono" id="a-s">–</b></div>
+        </div>
+        <p class="note" id="a-txt" style="margin-top:14px"></p>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:10px"><span class="en">Score by p</span></h3>
+        <canvas id="a-chart" style="height:220px"></canvas>
+        <p class="note" style="margin-top:8px"><span class="en">The best plan made at home: p = 2/3, score 4/3. But at an exit the driver asks: "Where am I, first or second?" If he gives the first a 3/5 chance and optimises just this moment, he gets p = 1/3. It is the same fork as Beauty's: count the drive or each exit. The same year Robert Aumann, Sergiu Hart and Motty Perry showed that if the driver remembers his decision acts at both exits, the 2/3 plan stays best.</span></p>
+      </div>
+    </div>
+
+    <div class="card" style="display:grid;gap:14px">
+      <h3><span class="en">Check it in practice: a waiting-room survey</span></h3>
+      <p class="note"><span class="en">A clinic has 1,000 patients. Half come once a year, half twice. Survey whoever is in the waiting room over the year, and each visit yields one questionnaire. The share of once-a-year patients among questionnaires is 500/1500 = 1/3; among patients it is 1/2. That is exactly Beauty: the rare visitor is heads, the frequent one is tails with two awakenings.</span></p>
+      <div class="vs">
+        <div class="bb"><span><span class="en">Counting visits (questionnaires)</span></span><b>1/3</b></div>
+        <div class="a"><span><span class="en">Counting people (the register)</span></span><b>1/2</b></div>
+      </div>
+      <p class="note"><span class="en">Statisticians call this length-biased or frequency-biased sampling and fix it with weights: a frequent visitor's questionnaire counts with weight 1/2. The same effect explains why the bus you wait for seems later than the timetable says: <a href="../../inspection-paradox/en/">the inspection paradox</a></span>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n"><span class="en">1980s</span></span>
+        <h3><span class="en">Zuboff came first</span></h3>
+        
+        <p class="en">The problem was devised by the American philosopher Arnold Zuboff, who taught at University College London. It circulated in unpublished work from the mid-1980s and was printed in his 1990 paper "One Self". His version had many days: on one coin result a waking every day, on the other on just one random day.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1997</span>
+        <h3><span class="en">Economists got there early</span></h3>
+        
+        <p class="en">Piccione and Rubinstein published the absent-minded driver in the game theory journal Games and Economic Behavior. The same paper has an example very close to Sleeping Beauty, three years before Elga's paper.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2000</span>
+        <h3><span class="en">Elga's five pages</span></h3>
+        
+        <p class="en">Adam Elga published a five-page paper in the journal Analysis and answered 1/3. He credited the name "Sleeping Beauty" to Robert Stalnaker, who had learned of such examples from Zuboff's unpublished work. A year earlier the puzzle had been argued over in the rec.puzzles newsgroup.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2001</span>
+        <h3><span class="en">Lewis replies</span></h3>
+        
+        <p class="en">The next year, in the same journal, David Lewis, one of the most influential philosophers of the 20th century, replied to Elga: 1/2. More than a hundred papers have followed, and the camps are still called thirders and halfers.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="en">1,000,001</span></span>
+        <h3><span class="en">Extreme Beauty</span></h3>
+        
+        <p class="en">Nick Bostrom, author of a book on anthropic reasoning, proposed the version with a million awakenings on tails. It sharpens both positions: the thirder bets a million to one against a fair coin, and the halfer, once told "Monday", is almost sure of heads.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2017</span>
+        <h3><span class="en">Mathematicians argue too</span></h3>
+        
+        <p class="en">Peter Winkler, a well-known collector of mathematical puzzles, went through every camp's arguments in "The Sleeping Beauty Controversy" for the American Mathematical Monthly. He titled his talk on it "The Math Puzzle that Spawned 100 Philosophy Papers".</p>
+      </article>
+  </div>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">More puzzles</span>
+    <h2>Other paradoxes</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/monty-hall/en/"><h3>The Monty Hall problem</h3><p>You&#x27;re on a game show and pick one of three doors. The host, who knows where the car is, opens another door to reveal a goat and offers a switch. Should you take it?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/birthday/en/"><h3>The birthday paradox</h3><p>How many people must be in a room before two of them probably share a birthday?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/false-positive/en/"><h3>The false positive paradox</h3><p>1% of people have a disease. The test is 99% accurate, and you test positive. What is the chance you&#x27;re really ill?</p></a>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/en/">All puzzles →</a>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Discussion</span>
+    <h2>What do you think?</h2>
+    <p>Share your own explanation, an objection or a variant of the puzzle. You need a GitHub account to comment.</p>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="sleeping-beauty" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="en" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Newsletter</span>
+    <h2>New puzzles, explanations and discussions</h2>
+    <p>I keep adding new puzzles, new ways to explain them and write-ups of the discussions they start. Leave your email and I'll write when something new is out. No spam, one-click unsubscribe.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">The sign-up form will appear here soon.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+<footer>
+  
+  <span class="en">The problem was posed by Arnold Zuboff, named by Robert Stalnaker and made famous by Adam Elga (2000) and David Lewis (2001).</span>
+  <span class="mono">½·1 / (½·1 + ½·2) = 1/3</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? s : s.replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = (n, d = 0) => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA', { minimumFractionDigits: d, maximumFractionDigits: d });
+const money = (v, d = 0) => (v < 0 ? '−' : v > 0 ? '+' : '') + (lang === 'en' ? '$' + fmt(Math.abs(v), d) : fmt(Math.abs(v), d) + ' ₴');
+const signed = (v, d) => (v > 5e-4 ? '+' : v < -5e-4 ? '−' : '') + dec(Math.abs(v).toFixed(d));
+const ukPl = (n, one, few, many) => {
+  const a = n % 10, b = n % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+const expW = n => lang === 'en' ? (n === 1 ? 'experiment' : 'experiments') : ukPl(n, 'експеримент', 'експерименти', 'експериментів');
+const awkW = n => lang === 'en' ? (n === 1 ? 'awakening' : 'awakenings') : ukPl(n, 'пробудження', 'пробудження', 'пробуджень');
+const HT = h => h ? L('О', 'H') : L('Р', 'T');
+const DAY = i => i === 0 ? L('Пн', 'Mon') : i === 1 ? L('Вт', 'Tue') : L('день ' + (i + 1), 'day ' + (i + 1));
+
+/* ---------- maths ---------- */
+// one experiment: a fair coin, 1 awakening on heads, k on tails
+const experiment = (k = 2) => { const heads = Math.random() < 0.5; return { heads, n: heads ? 1 : k }; };
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+
+/* ---------- experiment row markup ---------- */
+// days: [{cls, label}] for Monday and Tuesday
+function expHTML(coin, days) {
+  return '<div class="exp"><span class="coin' + (coin === null ? ' q' : coin ? ' h' : '') + '">' + (coin === null ? '?' : HT(coin)) + '</span>' +
+    days.map(d => '<span class="day ' + d.cls + '"><span>' + d.day + '</span><span class="st">' + (d.st || '') + '</span></span>').join('') + '</div>';
+}
+const plainDays = heads => [{ cls: 'on', day: DAY(0), st: L('прокинулась', 'awake') }, heads ? { cls: 'off', day: DAY(1), st: 'zz' } : { cls: 'on', day: DAY(1), st: L('прокинулась', 'awake') }];
+
+/* ---------- hero: experiments roll in, two tallies ---------- */
+const hero = { rows: [], E: 0, HE: 0, A: 0, HA: 0 };
+function heroAdd() {
+  const x = experiment();
+  hero.rows.unshift(x.heads); hero.rows.length = Math.min(hero.rows.length, 5);
+  hero.E++; hero.A += x.n; if (x.heads) { hero.HE++; hero.HA++; }
+}
+function heroDraw() {
+  $('#hero-exps').innerHTML = '<div class="exp head"><span></span><span>' + DAY(0) + '</span><span>' + DAY(1) + '</span></div>' + hero.rows.map(h => expHTML(h, plainDays(h))).join('');
+  if (window.mpSolved && !mpSolved()) {
+    $('#hero-cap').textContent = L('Експериментів: ' + fmt(hero.E) + ' · пробуджень: ' + fmt(hero.A) + '. Що має відповісти Красуня на пробудженні: який шанс, що монета впала орлом?',
+      'Experiments: ' + fmt(hero.E) + ' · awakenings: ' + fmt(hero.A) + '. What should Beauty answer when woken: what is the chance the coin landed heads?');
+    return;
+  }
+  $('#hero-cap').textContent = L('Орел: ' + fmt(hero.HE) + ' з ' + fmt(hero.E) + ' експериментів (' + pct(hero.HE / hero.E) + ') · ' + fmt(hero.HA) + ' з ' + fmt(hero.A) + ' пробуджень (' + pct(hero.HA / hero.A) + ')',
+    'Heads: ' + fmt(hero.HE) + ' of ' + fmt(hero.E) + ' experiments (' + pct(hero.HE / hero.E) + ') · ' + fmt(hero.HA) + ' of ' + fmt(hero.A) + ' awakenings (' + pct(hero.HA / hero.A) + ')');
+}
+for (let i = 0; i < 60; i++) heroAdd();
+let heroTimer = null;
+if (!reduce()) heroTimer = setInterval(() => { if (!document.hidden) { heroAdd(); heroDraw(); } }, 1600);
+
+/* ---------- round 1: guess ---------- */
+const G_OPTS = [
+  { k: 'half', uk: '1/2', en: '1/2' },
+  { k: 'third', uk: '1/3', en: '1/3' },
+  { k: 'twothirds', uk: '2/3', en: '2/3' },
+  { k: 'depends', uk: 'Залежить від питання', en: 'Depends on the question' }
+];
+const F_OPTS = [
+  { k: 'exp', uk: 'Експерименти', en: 'Experiments' },
+  { k: 'awk', uk: 'Пробудження', en: 'Awakenings' },
+  { k: 'day', uk: 'Дні тижня', en: 'Days of the week' }
+];
+let gPick = null, fPick = null;
+function guessText() {
+  $('#g-day').textContent = L('Сьогодні?', 'Today?');
+  $('#g-st').textContent = L('прокинулась', 'awake');
+  $('#g-opts').innerHTML = G_OPTS.map(o => '<button type="button" data-k="' + o.k + '" aria-pressed="' + (o.k === gPick) + '">' + o[lang] + '</button>').join('');
+  if (gPick === null) return;
+  const verdict = {
+    half: L('Так відповідають половинники, і серед них Девід Льюїс: монета чесна, а нової інформації пробудження не дає. Це правильна частка орлів серед експериментів. Але серед пробуджень орел лише в одному з трьох, і якщо Красуня ставить на кожному пробудженні, ціна 1/2 приносить їй збиток.',
+      'That is the halfer answer, David Lewis among them: the coin is fair, and waking brings no new information. It is the right share of heads among experiments. But among awakenings heads is only one in three, and if Beauty bets at every awakening, a price of 1/2 loses her money.'),
+    third: L('Так відповідають третинники, і серед них Адам Елга. Серед усіх пробуджень лише третина припадає на орла, і якщо Красуня ставить на кожному пробудженні, саме 1/3 є чесною ціною. Половинники заперечують: частка орлів серед експериментів дорівнює 1/2. Обидва числа правильні, різняться питання.',
+      'That is the thirder answer, Adam Elga among them. Only a third of all awakenings follow heads, and if Beauty bets at every awakening, 1/3 is the fair price. Halfers object that the share of heads among experiments is 1/2. Both numbers are right; the questions differ.'),
+    twothirds: L('2/3 — це шанс решки з погляду третинника: решка дає два пробудження з трьох. А ще 2/3 отримує половинник, якщо йому сказати «сьогодні понеділок». Але як шанс орла на звичайному пробудженні це число не захищає жоден табір.',
+      '2/3 is the thirder\'s chance of tails: tails gives two awakenings out of three. A halfer also gets 2/3 once told "it is Monday". But as the chance of heads at an ordinary waking, no camp defends it.'),
+    depends: L('Найточніша відповідь. Серед пробуджень орел трапляється в 1/3 випадків, серед експериментів у 1/2. Якщо вам доведеться ставити на кожному пробудженні, назвіть 1/3. Якщо вас цікавить сама монета, 1/2. Далі видно, чому серйозні філософи все одно сперечаються, яке прочитання «правильне».',
+      'The most precise answer. Among awakenings heads comes up 1/3 of the time, among experiments 1/2. If you will bet at every awakening, say 1/3. If you care about the coin itself, 1/2. Below you will see why serious philosophers still argue over which reading is "right".')
+  }[gPick];
+  const rows = [
+    [L('Серед пробуджень', 'Among awakenings'), 1 / 3, 'var(--hit)', '1/3'],
+    [L('Серед експериментів', 'Among experiments'), 1 / 2, 'var(--ink)', '1/2']
+  ];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Частка орла', 'Share of heads') + '</span><p class="big hit">1/3 · <span style="color:var(--ink)">1/2</span></p>' +
+    '<p>' + verdict + '</p><div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + r[3] + '</span></div>').join('') +
+    '</div><p class="note">' + L('Перевірте обидва числа ставками в раунді 2 і на мільйоні експериментів у раунді 3.', 'Check both numbers with bets in round 2 and on a million experiments in round 3.') + '</p>';
+}
+function flawText() {
+  $('#f-opts').innerHTML = F_OPTS.map(o => '<button type="button" data-k="' + o.k + '" aria-pressed="' + (o.k === fPick) + '">' + o[lang] + '</button>').join('');
+  const m = $('#f-msg');
+  if (fPick === null) { m.textContent = L('Оберіть варіант.', 'Pick an option.'); return; }
+  m.innerHTML = {
+    exp: L('<b>Так.</b> Половинник рахує кожен експеримент один раз: монета чесна, тож орел у половині експериментів. Третинник рахує кожне пробудження: при решці їх два, тому орел лише в третині.', '<b>Yes.</b> A halfer counts each experiment once: the coin is fair, so heads in half the experiments. A thirder counts each awakening: tails has two, so heads only in a third.'),
+    awk: L('Ні, пробудження рахують третинники. Серед пробуджень орел лише в одному з трьох, тому в них і виходить 1/3. Половинники рахують експерименти.', 'No, counting awakenings is what thirders do. Among awakenings heads is one in three, which is where their 1/3 comes from. Halfers count experiments.'),
+    day: L('Ні. Якщо рахувати дні (понеділок і вівторок у кожному експерименті), вийде щось третє. Половинники рахують експерименти: кожна монета враховується один раз.', 'No. Counting days (Monday and Tuesday in every experiment) gives something else again. Halfers count experiments: each coin is counted once.')
+  }[fPick];
+}
+$('#g-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gPick = b.dataset.k; guessText(); window.mpSolve && mpSolve(gPick); });
+document.addEventListener('solved', heroDraw);
+$('#f-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; fPick = b.dataset.k; flawText(); });
+
+/* ---------- round 2: bets at every awakening ---------- */
+// tot: experiments E (heads HE), awakenings A (heads HA); your money at the two cashiers
+let gm, tot, hist;
+function gmReset() { tot = { E: 0, HE: 0, A: 0, HA: 0, youA: 0, youB: 0 }; hist = []; gmNew(); }
+function gmNew() { gm = Object.assign(experiment(), { i: 0, picks: [], done: false }); gmText(); }
+function settle(heads, picks) {
+  const n = picks.length;
+  tot.E++; tot.A += n; if (heads) { tot.HE++; tot.HA++; }
+  picks.forEach(p => { const ok = p === heads; tot.youA += ok ? 1 : -1; tot.youB += (ok ? 1 : -1) / n; });
+  hist.push([heads, picks]);
+}
+function gmBet(h) {
+  if (gm.done) return;
+  gm.picks.push(h); gm.i++;
+  if (gm.i >= gm.n) { gm.done = true; settle(gm.heads, gm.picks); }
+  gmText();
+}
+function gmAuto(h) {
+  if (!gm.done) { while (!gm.done) gmBet(h); }
+  for (let j = 0; j < 100; j++) { const x = experiment(); settle(x.heads, Array(x.n).fill(h)); }
+  gmNew();
+}
+function gmText() {
+  const d = gm.done;
+  let days;
+  if (!d) days = [{ cls: 'now', day: L('Сьогодні?', 'Today?'), st: L('прокинулась', 'awake') }, { cls: 'off', day: '?', st: '' }];
+  else days = [0, 1].map(i => {
+    if (i >= gm.n) return { cls: 'off', day: DAY(i), st: 'zz' };
+    const ok = gm.picks[i] === gm.heads;
+    return { cls: 'on ' + (ok ? 'ok' : 'no'), day: DAY(i), st: L('ставка ', 'bet ') + HT(gm.picks[i]) + (ok ? ' ✓' : ' ✗') };
+  });
+  $('#gm-exp').innerHTML = expHTML(d ? gm.heads : null, days);
+  $('#gm-n').textContent = fmt(tot.E + (d ? 0 : 1));
+  $('#gm-a').textContent = fmt(tot.A + (d ? 0 : gm.i + 1));
+  $('#gm-h').hidden = $('#gm-t').hidden = d;
+  $('#gm-next').hidden = !d;
+  let m;
+  if (!d) m = gm.i === 0 ? L('Ви прокинулися. Котрий сьогодні день і чи будили вас раніше, ви не знаєте. На що ставите?', 'You wake up. You don\'t know what day it is or whether you were woken before. What do you bet on?')
+    : L('Ви знову прокинулися. Ви не пам\'ятаєте попереднього пробудження: для вас воно перше. На що ставите?', 'You wake up again. You don\'t remember the previous waking: to you this is the first. What do you bet on?');
+  else {
+    const n = gm.n, ok = gm.picks.filter(p => p === gm.heads).length;
+    m = (gm.heads ? L('<b>Випав орел.</b> Вас будили один раз, у понеділок. ', '<b>Heads.</b> You were woken once, on Monday. ') : L('<b>Випала решка.</b> Вас будили двічі, у понеділок і вівторок. ', '<b>Tails.</b> You were woken twice, on Monday and Tuesday. ')) +
+      L('Вгадано ' + ok + ' з ' + n + '.', ok + ' of ' + n + ' right.');
+  }
+  $('#gm-msg').innerHTML = m;
+  statsText();
+}
+function statsText() {
+  const { E, HE, A, HA } = tot;
+  $('#gm-sum').textContent = E ? L(fmt(E) + ' ' + expW(E) + ', ' + fmt(A) + ' ' + awkW(A) + '. Орел: ' + fmt(HE) + ' з ' + fmt(E) + ' експериментів (' + pct(HE / E) + ') і ' + fmt(HA) + ' з ' + fmt(A) + ' пробуджень (' + pct(HA / A) + ').',
+    fmt(E) + ' ' + expW(E) + ', ' + fmt(A) + ' ' + awkW(A) + '. Heads: ' + fmt(HE) + ' of ' + fmt(E) + ' experiments (' + pct(HE / E) + ') and ' + fmt(HA) + ' of ' + fmt(A) + ' awakenings (' + pct(HA / A) + ').')
+    : L('Ще жодного експерименту. Зіграйте кілька або додайте 100 автоматичних.', 'No experiments yet. Play a few or add 100 automatic ones.');
+  const cell = v => '<td class="num ' + (v > 1e-9 ? 'pos' : v < -1e-9 ? 'neg' : '') + '">' + money(v, Math.abs(v % 1) > 1e-9 ? 1 : 0) + '</td>';
+  $('#gm-tbl').innerHTML = [
+    [L('Ви', 'You'), tot.youA, tot.youB],
+    [L('Завжди орел', 'Always heads'), 2 * HA - A, 2 * HE - E],
+    [L('Завжди решка', 'Always tails'), A - 2 * HA, E - 2 * HE]
+  ].map(r => '<tr><td>' + r[0] + '</td>' + cell(r[1]) + cell(r[2]) + '</tr>').join('');
+  const P = [[1 / 3, '1/3'], [1 / 2, '1/2']];
+  $('#gm-price').innerHTML = P.map(([p, s]) => {
+    const a = A ? HA / A - p : 0, b = E ? HE / E - p : 0;
+    const td = (v, fair) => '<td class="num ' + (fair ? 'zero' : v > 0.02 ? 'pos' : v < -0.02 ? 'neg' : '') + '"' + (fair && p < 0.4 ? ' style="color:var(--hit)"' : '') + '>' + (E ? signed(v, 3) : '–') + '</td>';
+    return '<tr><td class="mono">' + s + '</td>' + td(a, p < 0.4) + td(b, p > 0.4) + '</tr>';
+  }).join('');
+  $('#gm-verdict').innerHTML = E < 30 ? L('Зіграйте хоча б кілька десятків експериментів (кнопки «+100»), щоб прибутки устоялися.', 'Play at least a few dozen experiments (the "+100" buttons) for the profits to settle.')
+    : L('Квиток на кожному пробудженні окупається за ціною 1/3, один квиток на експеримент за ціною 1/2. Кожне число каліброване для свого типу ставки: теоретично прибуток −1/6 (купувати за 1/2 на кожному пробудженні) і +1/6 (купувати за 1/3 раз на експеримент).',
+      'A ticket bought at every awakening breaks even at 1/3; one ticket per experiment breaks even at 1/2. Each number is calibrated for its own kind of bet: in theory the profit is −1/6 (paying 1/2 at every awakening) and +1/6 (paying 1/3 once per experiment).');
+  $('#gm-chips').innerHTML = hist.slice(-20).map(([h, p]) => '<span>' + HT(h) + ': ' + p.map(HT).join('') + '</span>').join('');
+}
+$('#gm-h').addEventListener('click', () => gmBet(true));
+$('#gm-t').addEventListener('click', () => gmBet(false));
+$('#gm-next').addEventListener('click', gmNew);
+$('#gm-auto-t').addEventListener('click', () => gmAuto(false));
+$('#gm-auto-h').addEventListener('click', () => gmAuto(true));
+$('#gm-reset').addEventListener('click', gmReset);
+
+/* ---------- round 3: simulation ---------- */
+const SIM_K = [2, 3, 10];
+let simK = 2, sim = null;
+function runSim() {
+  const R = +$('#sim-r').value, k = simK;
+  let HE = 0, A = 0;
+  const pts = [], cps = [];
+  for (let e = 1; e <= Math.log10(R) + 1e-9; e += 0.05) cps.push(Math.round(Math.pow(10, e)));
+  let ci = 0;
+  for (let i = 1; i <= R; i++) {
+    if (Math.random() < 0.5) { HE++; A++; } else A += k;
+    while (ci < cps.length && cps[ci] === i) { pts.push([i, HE / i, HE / A]); ci++; }
+  }
+  sim = { R, k, HE, A, pts };
+  simText(); drawSim();
+}
+function simText() {
+  $('#sim-k').innerHTML = SIM_K.map(k => '<button type="button" data-k="' + k + '" aria-pressed="' + (k === simK) + '">' + k + '</button>').join('');
+  if (!sim) return;
+  const { R, k, HE, A } = sim;
+  $('#sim-e').textContent = pct(HE / R, 2);
+  $('#sim-es').textContent = fmt(HE) + L(' з ', ' of ') + fmt(R) + L(' · теорія 50%', ' · theory 50%');
+  $('#sim-a').textContent = pct(HE / A, 2);
+  $('#sim-as').textContent = fmt(HE) + L(' з ', ' of ') + fmt(A) + L(' · теорія 1/', ' · theory 1/') + (k + 1) + ' = ' + pct(1 / (k + 1), 2);
+  $('#sim-txt').textContent = L('Кожен орел дає одне пробудження, кожна решка ' + k + '. Тому серед пробуджень орлів у ' + (k + 1) + ' разів менше, ніж «половина». Експерименти ж монета ділить навпіл за будь-якого k.',
+    'Each heads gives one awakening, each tails ' + k + '. So among awakenings heads is 1 in ' + (k + 1) + ' rather than a half. Experiments, meanwhile, the coin splits in half for any k.');
+}
+function drawSim() {
+  const s = setupCanvas($('#sim-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 44, r = 14, t = 12, b = 32;
+  const R = sim ? sim.R : 1e6, lmax = Math.log10(R), k = sim ? sim.k : 2;
+  const x = n => l + (Math.log10(n) - 1) / (lmax - 1) * (W - l - r);
+  const y0 = 0, y1 = 0.7, y = v => t + (1 - (Math.max(y0, Math.min(y1, v)) - y0) / (y1 - y0)) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1;
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.fillText(Math.round(v * 100) + '%', l - 8, y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let e = 1; e <= lmax + 1e-9; e++) { const n = Math.pow(10, e); ctx.fillText(e >= 6 ? '10⁶' : fmt(n), Math.min(W - r - 18, x(n)), H - b + 8); }
+  ctx.setLineDash([6, 5]); ctx.lineWidth = 2;
+  ctx.strokeStyle = tok('--ink'); ctx.beginPath(); ctx.moveTo(l, y(0.5)); ctx.lineTo(W - r, y(0.5)); ctx.stroke();
+  ctx.strokeStyle = tok('--hit'); ctx.beginPath(); ctx.moveTo(l, y(1 / (k + 1))); ctx.lineTo(W - r, y(1 / (k + 1))); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+  ctx.fillStyle = tok('--ink'); ctx.fillText('1/2', W - r - 4, y(0.5) - 4);
+  ctx.fillStyle = tok('--hit'); ctx.fillText('1/' + (k + 1), W - r - 4, y(1 / (k + 1)) - 4);
+  if (sim) {
+    sim.pts.forEach(([n, e, a]) => {
+      ctx.fillStyle = tok('--ink'); ctx.beginPath(); ctx.arc(x(n), y(e), 3, 0, 7); ctx.fill();
+      ctx.fillStyle = tok('--hit'); ctx.beginPath(); ctx.arc(x(n), y(a), 3, 0, 7); ctx.fill();
+    });
+  }
+  ctx.font = '11px ' + tok('--f-mono'); ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+  ctx.fillText(L('експериментів (лог. шкала)', 'experiments (log scale)'), l + 4, H - b - 4);
+  ctx.save(); ctx.translate(11, t + (H - t - b) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(L('частка орла', 'share of heads'), 0, 0); ctx.restore();
+}
+$('#sim-k').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; simK = +b.dataset.k; runSim(); });
+$('#sim-run').addEventListener('click', runSim);
+$('#sim-r').addEventListener('change', runSim);
+
+/* ---------- round 5: many awakenings ---------- */
+const X_K = [1, 2, 10, 1000, 1000000];
+let xK = 1000000, xSim = null;
+const frac = (a, b) => fmt(a) + '/<wbr>' + fmt(b);
+function xText() {
+  $('#x-k').innerHTML = X_K.map(k => '<button type="button" data-k="' + k + '" aria-pressed="' + (k === xK) + '">' + fmt(k) + '</button>').join('');
+  const k = xK;
+  const box = (cls, who, now, first) => '<div class="' + cls + '"><span>' + who + ' · ' + L('шанс орла на пробудженні', 'chance of heads on waking') + '</span><b class="mono">' + now + '</b><span>' +
+    L('після слів «це перше пробудження»: ', 'after hearing "this is the first awakening": ') + '<b class="mono" style="font-size:1rem;color:var(--ink)">' + first + '</b></span></div>';
+  $('#x-tbl').innerHTML = box('bb', L('Третинник', 'Thirder'), frac(1, k + 1), '1/2') + box('a', L('Половинник', 'Halfer'), '1/2', frac(k, k + 1));
+  $('#x-txt').textContent = (xSim && xSim.k === k ? L('100 000 експериментів: орел у ', '100,000 experiments: heads in ') + pct(xSim.HE / xSim.E) + L(' експериментів і в ', ' of experiments and in ') + (xSim.HE / xSim.A < 1e-3 ? L('одному з ', 'one in ') + fmt(Math.round(xSim.A / xSim.HE)) + L(' пробуджень. ', ' awakenings. ') : pct(xSim.HE / xSim.A, 2) + L(' пробуджень. ', ' of awakenings. ')) : '') +
+    (k === 1 ? L('При k = 1 пробудження нічого не множать, і табори згодні: 1/2.', 'With k = 1 nothing gets multiplied, and the camps agree: 1/2.') : '');
+}
+function xRun() {
+  const k = xK; let HE = 0, A = 0;
+  for (let i = 0; i < 100000; i++) { if (Math.random() < 0.5) { HE++; A++; } else A += k; }
+  xSim = { k, HE, A, E: 100000 };
+  xText();
+}
+$('#x-k').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; xK = +b.dataset.k; xText(); });
+$('#x-run').addEventListener('click', xRun);
+
+/* ---------- round 5: doomsday ---------- */
+// you are about the 100-billionth human; small world: 200 billion in total; large world: r times more
+const D_R = [10, 1000];
+let dR = 1000;
+function dText() {
+  const p = +$('#d-p').value / 100;
+  $('#d-p-v').textContent = Math.round(p * 100) + '%';
+  $('#d-r').innerHTML = D_R.map(r => '<button type="button" data-r="' + r + '" aria-pressed="' + (r === dR) + '">' + (r === 10 ? L('2 трлн', '2 trillion') : L('200 трлн', '200 trillion')) + '</button>').join('');
+  const ssa = p / (p + (1 - p) / dR), sia = p;
+  const rows = [
+    [L('Апріорно', 'Prior'), p, 'var(--muted)'],
+    [L('SSA, половинник', 'SSA, halfer'), ssa, 'var(--ink)'],
+    [L('SIA, третинник', 'SIA, thirder'), sia, 'var(--hit)']
+  ];
+  $('#d-bars').innerHTML = '<span class="note">' + L('Шанс ранньої загибелі (усього 200 млрд людей) після врахування вашого номера:', 'Chance of early doom (200 billion people in total) after taking your birth rank into account:') + '</span>' +
+    rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + pct(r[1], r[1] > 0.995 && r[1] < 1 ? 2 : 1) + '</span></div>').join('');
+}
+$('#d-p').addEventListener('input', dText);
+$('#d-r').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; dR = +b.dataset.r; dText(); });
+
+/* ---------- round 5: absent-minded driver ---------- */
+const amd = p => 4 * p * (1 - p) + p * p;
+let aSim = null;
+function aRun() {
+  const p = +$('#a-p').value / 100, N = 10000; let s = 0;
+  for (let i = 0; i < N; i++) { if (Math.random() >= p) continue; s += Math.random() < p ? 1 : 4; }
+  aSim = { p, v: s / N }; aText(); drawA();
+}
+function aText() {
+  const p = +$('#a-p').value / 100;
+  $('#a-p-v').textContent = dec(p.toFixed(2));
+  $('#a-v').textContent = dec(amd(p).toFixed(3));
+  $('#a-s').textContent = aSim && aSim.p === p ? dec(aSim.v.toFixed(3)) : '–';
+  $('#a-txt').textContent = p === 0 ? L('p = 0: водій звертає на першому з\'їзді, бал 0.', 'p = 0: the driver turns off at the first exit, score 0.')
+    : p === 1 ? L('p = 1: водій проїжджає обидва з\'їзди, бал 1.', 'p = 1: the driver passes both exits, score 1.')
+    : Math.abs(p - 2 / 3) < 0.006 ? L('Майже найкраще: p = 2/3 дає 4/3 ≈ 1,333. Звернути «на другому» напевно неможливо, бо водій їх не розрізняє.', 'Close to the best: p = 2/3 gives 4/3 ≈ 1.333. Turning off "at the second" for sure is impossible, since the driver can\'t tell them apart.')
+    : L('Спробуйте p = 0,67.', 'Try p = 0.67.');
+}
+function drawA() {
+  const s = setupCanvas($('#a-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 36, r = 12, t = 10, b = 28;
+  const x = p => l + p * (W - l - r), y = v => t + (1 - v / 1.5) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, 0.5, 1, 1.5].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.fillText(dec(v.toFixed(1)), l - 6, y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => ctx.fillText(dec(String(v)), x(v), H - b + 6));
+  ctx.strokeStyle = tok('--day'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let i = 0; i <= 100; i++) { const p = i / 100, px = x(p), py = y(amd(p)); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+  ctx.stroke();
+  ctx.strokeStyle = tok('--muted'); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x(2 / 3), t); ctx.lineTo(x(2 / 3), H - b); ctx.stroke(); ctx.setLineDash([]);
+  const p = +$('#a-p').value / 100;
+  ctx.fillStyle = tok('--day'); ctx.beginPath(); ctx.arc(x(p), y(amd(p)), 4, 0, 7); ctx.fill();
+  if (aSim && aSim.p === p) { ctx.fillStyle = tok('--ink'); ctx.globalAlpha = .6; ctx.beginPath(); ctx.arc(x(p), y(aSim.v), 6, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText('p = 2/3', x(2 / 3) + 4, t + 2);
+}
+$('#a-p').addEventListener('input', () => { aText(); drawA(); });
+$('#a-run').addEventListener('click', aRun);
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Задача про Сплячу красуню', 'The Sleeping Beauty Problem');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  heroDraw(); guessText(); flawText(); gmText(); simText(); xText(); dText(); aText();
+  redraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+const redraw = () => { drawSim(); drawA(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+gmReset();
+runSim();
+xRun();
+$('#a-p').value = 67;
+aRun();
+applyLang();
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'en' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+</body>
+</html>
