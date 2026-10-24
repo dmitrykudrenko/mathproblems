@@ -34,6 +34,8 @@ SITE_CSS = ROOT / "site.css"
 DOCS = ROOT / "docs"
 DEFAULT_BASE = "https://mathparadoxes.com/"
 CUSTOM_DOMAIN = "mathparadoxes.com"  # written to docs/CNAME for GitHub Pages
+# IndexNow key (Bing, Yandex and others): served as docs/<key>.txt, used by tools/indexnow.py
+INDEXNOW_KEY = "8ade1159e80343c9902c820ee44bd4ce"
 LANGS = ("uk", "en")
 LANG_PATH = {"uk": "", "en": "en/"}
 LOCALE = {"uk": "uk_UA", "en": "en_US"}
@@ -1011,6 +1013,8 @@ def build(base, out=None):
     if CUSTOM_DOMAIN and base == DEFAULT_BASE:
         (DOCS / "CNAME").write_text(CUSTOM_DOMAIN + "\n")
     (DOCS / ".nojekyll").write_text("")
+    if INDEXNOW_KEY:
+        (DOCS / f"{INDEXNOW_KEY}.txt").write_text(INDEXNOW_KEY)
     print(f"sitemap.xml ({len(entries)} URLs), robots.txt, favicon.svg")
 
 
