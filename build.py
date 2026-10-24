@@ -191,6 +191,28 @@ def discuss_block(lang, slug):
 
 # "More puzzles" block on every problem page: links to related problems so readers (and crawlers)
 # move between pages instead of only back to the catalogue. Cards show the spoiler-free share question.
+# Theme filters on the home page; every problem lists one or more keys in meta.json "topics", in this order of chips
+TOPICS = {
+    "interview": {"uk": "Для співбесід", "en": "Interview puzzles"},
+    "conditional": {"uk": "Умовна ймовірність", "en": "Conditional probability"},
+    "chance": {"uk": "Комбінаторика й шанси", "en": "Counting and chance"},
+    "stats": {"uk": "Статистика й упередження", "en": "Statistics and biases"},
+    "games": {"uk": "Ігри та стратегії", "en": "Games and strategy"},
+    "quick": {"uk": "Логіка й кмітливість", "en": "Logic and quick thinking"},
+}
+TOPICS_ALL = {"uk": "Усі", "en": "All"}
+
+
+def topic_filters(problems):
+    """Chip bar above the problem list: "All" plus one chip per topic with its count; each label exists in both languages."""
+    def chip(key, label, n, on=False):
+        return (f'<button type="button" class="tp-chip" data-topic="{key}" aria-pressed="{"true" if on else "false"}">'
+                + "".join(f'<span class="{l}">{label[l]}</span>' for l in LANGS) + f' <span class="tp-n">{n}</span></button>')
+    chips = [chip("", TOPICS_ALL, len(problems), True)]
+    chips += [chip(k, t, sum(k in p[1]["topics"] for p in problems)) for k, t in TOPICS.items()]
+    return '<div class="topics" role="group" aria-label="Теми" data-aria-en="Topics">' + "".join(chips) + "</div>"
+
+
 RELATED_COUNT = 3
 RELATED_TEXT = {
     "uk": ("Ще задачі", "Інші парадокси", "Усі задачі"),
@@ -472,7 +494,7 @@ LANG_SCRIPT = """<script>
       want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
     }
   }
-  if (want !== HERE) location.replace(ALT[want] + location.hash);
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
 })();
 </script>"""
 
@@ -706,12 +728,15 @@ def build_hub(problems, base):
     src = (HUB / "page.html").read_text(encoding="utf-8")
     urls = {l: base + LANG_PATH[l] for l in LANGS}
     blocks = []
+    problems_meta = [(p[0], p[1]) for p in problems]
+    src = src.replace("<!--TOPICS-->", topic_filters(problems))
     for slug, _, _ in problems:
         teaser = (PROBLEMS / slug / "teaser.html").read_text(encoding="utf-8")
         # the stage on the home page uses the same tint as the problem page itself
         m = re.search(r"--tint:\s*(#[0-9A-Fa-f]{6})", (PROBLEMS / slug / "page.html").read_text(encoding="utf-8"))
         tint = f' style="--tint: {m.group(1)}"' if m else ""
-        blocks.append(f'<article class="problem" id="{slug}" data-spoil{tint}>\n' + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
+        topics = " ".join(dict(problems_meta)[slug]["topics"])
+        blocks.append(f'<article class="problem" id="{slug}" data-topics="{topics}" data-spoil{tint}>\n' + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
     src = src.replace("<!--PROBLEMS-->", "\n".join(blocks))
     for lang in LANGS:
         m, other = meta[lang], ("en" if lang == "uk" else "uk")
@@ -722,8 +747,9 @@ def build_hub(problems, base):
         body = body.replace("{{HOME_BASE}}", base).replace("{{HOME}}", urls[lang]).replace("{{FIRST}}", problems[0][2][lang])
         if lang == "en":
             body = body.replace('alt="Дмитро Кудренко" data-alt-en="Dmytro Kudrenko"', 'alt="Dmytro Kudrenko"')
+            body = body.replace('aria-label="Теми" data-aria-en="Topics"', 'aria-label="Topics"')
         else:
-            body = body.replace(' data-alt-en="Dmytro Kudrenko"', "")
+            body = body.replace(' data-alt-en="Dmytro Kudrenko"', "").replace(' data-aria-en="Topics"', "")
         body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
         body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
         style = body[:body.index("</style>") + len("</style>")]
@@ -988,6 +1014,8 @@ def build(base, out=None):
         for k in ("published", "updated"):
             if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", meta.get(k, "")):
                 raise SystemExit(f"problems/{slug}/meta.json: \"{k}\" must be a YYYY-MM-DD date")
+        if not meta.get("topics") or set(meta["topics"]) - set(TOPICS):
+            raise SystemExit(f"problems/{slug}/meta.json: \"topics\" must list one or more of {', '.join(TOPICS)}")
     books = load_books()
     problems = [build_problem(s, base, metas, books) for s, _ in metas]
     hub = build_hub(problems, base)
