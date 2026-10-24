@@ -243,7 +243,7 @@ TOPICS_ALL = {"uk": "Усі", "en": "All"}
 # How much maths a reader needs, meta.json "level": a small badge on the home card and in the problem hero.
 # Judged on what the main path shows (hero, puzzle, rounds 1-4 with their charts), not on the optional
 # "for those who love formulas" card, the "subtheory" blocks or round 5. It says nothing about how tricky
-# the puzzle is. Deliberately not a filter: the home page keeps one row of chips.
+# the puzzle is. The badge hint links to the home page filtered by level (?l=); no second row of chips.
 LEVELS = {
     1: {"uk": ("Для всіх", "Вистачить арифметики й логіки"), "en": ("For everyone", "Arithmetic and logic are enough")},
     2: {"uk": ("Шкільна математика", "Дроби, відсотки, проста ймовірність, степені"),
@@ -254,12 +254,47 @@ LEVELS = {
 LEVEL_LD = {1: "beginner", 2: "intermediate", 3: "advanced"}
 
 
-def level_badge(lang, n):
-    """Three bars, the first n filled, and the level name; hover, focus or a tap shows what maths it takes."""
+LEVEL_LINK = {"uk": "Усі задачі цього рівня", "en": "All puzzles of this level"}
+LEVEL_NOTE = {"uk": ("Показано задачі рівня «%s»", "Показати всі"), "en": ("Showing “%s” puzzles", "Show all")}
+# A click on the badge opens the hint (a click elsewhere or Esc closes it); on the home page the hint opens to
+# the left when the card has no room on the right.
+LEVEL_SCRIPT = """<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>"""
+
+
+def level_badge(lang, n, hub_url):
+    """Three bars, the first n filled, and the level name; a click shows what maths it takes and a link to the
+    home page filtered to this level."""
     name, hint = LEVELS[n][lang]
     bars = '<i class="on"></i>' * n + "<i></i>" * (3 - n)
-    return (f'<span class="mp-level" tabindex="0"><span class="mp-bars" aria-hidden="true">{bars}</span>{e(name)}'
-            f'<span class="mp-level-hint" role="tooltip">{e(hint)}</span></span>')
+    return (f'<span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false">'
+            f'<span class="mp-bars" aria-hidden="true">{bars}</span>{e(name)}</button>'
+            f'<span class="mp-level-hint" hidden>{e(hint)}<a href="{hub_url}?l={n}#problems">{LEVEL_LINK[lang]} →</a></span></span>')
+
+
+def level_note():
+    """Line above the home list when it is filtered by level (?l=, from the badge hint); hidden otherwise."""
+    spans = "".join(f'<span class="{l} lv-name" data-level="{n}" hidden>{e(LEVEL_NOTE[l][0] % LEVELS[n][l][0])}.</span>'
+                    for n in LEVELS for l in LANGS)
+    clear = "".join(f'<span class="{l}">{LEVEL_NOTE[l][1]}</span>' for l in LANGS)
+    empty = ('<span class="uk lv-empty" hidden> У цій темі таких поки немає.</span>'
+             '<span class="en lv-empty" hidden> None in this topic yet.</span>')
+    return f'<p class="lv-note" hidden>{spans}{empty} <button type="button" class="lv-clear">{clear}</button></p>'
 
 
 def topic_filters(problems):
@@ -269,7 +304,7 @@ def topic_filters(problems):
                 + "".join(f'<span class="{l}">{label[l]}</span>' for l in LANGS) + f' <span class="tp-n">{n}</span></button>')
     chips = [chip("", TOPICS_ALL, len(problems), True)]
     chips += [chip(k, t, sum(k in p[1]["topics"] for p in problems)) for k, t in TOPICS.items()]
-    return '<div class="topics" role="group" aria-label="Теми" data-aria-en="Topics">' + "".join(chips) + "</div>"
+    return '<div class="topics" role="group" aria-label="Теми" data-aria-en="Topics">' + "".join(chips) + "</div>\n" + level_note()
 
 
 RELATED_COUNT = 3
@@ -813,7 +848,7 @@ def build_problem(slug, base, metas, books):
                       f'<a class="brand" href="{hub[lang]}" style="text-decoration:none">{BRAND_MARK}{SITE_NAME[lang]}</a>', body, count=1)
         style = body[:body.index("</style>") + len("</style>")]
         body = body[len(style):]
-        body = body.replace('<header class="hero">\n  <div>', '<header class="hero">\n  <div>\n    ' + level_badge(lang, meta["level"]), 1)
+        body = body.replace('<header class="hero">\n  <div>', '<header class="hero">\n  <div>\n    ' + level_badge(lang, meta["level"], hub[lang]), 1)
         ld = {"@context": "https://schema.org", "@graph": [
             {
                 "@type": ["WebPage", "LearningResource"],
@@ -862,7 +897,7 @@ def build_problem(slug, base, metas, books):
         body = with_related(body, related_block(lang, items, hub[lang]))
         body = with_books(body, books_block(lang, refs, books, base + "books/" + LANG_PATH[lang]))
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static data-spoil>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
-               f'</head>\n<body>\n{body.strip()}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
+               f'</head>\n<body>\n{body.strip()}\n{LEVEL_SCRIPT}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
         write(DOCS / slug / LANG_PATH[lang] / "index.html", doc)
     for f in (src_dir / "assets").iterdir() if (src_dir / "assets").exists() else []:
         if f.suffix in {".png", ".jpg", ".svg", ".webp"} and not f.name.startswith("og-src"):
@@ -887,7 +922,7 @@ def build_hub(problems, base):
         level = dict(problems_meta)[slug]["level"]
         # the level badge sits on the eyebrow line; it is filled in per language below
         teaser = re.sub(r'<span class="eyebrow">.*?</span></span>', lambda m: f'<div class="tz-top">{m.group(0)}{{{{LEVEL:{level}}}}}</div>', teaser, count=1)
-        blocks.append(f'<article class="problem" id="{slug}" data-topics="{topics}" data-spoil{tint}>\n'
+        blocks.append(f'<article class="problem" id="{slug}" data-topics="{topics}" data-level="{level}" data-spoil{tint}>\n'
                       + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
     src = src.replace("<!--PROBLEMS-->", "\n".join(blocks))
     for lang in LANGS:
@@ -896,7 +931,7 @@ def build_hub(problems, base):
         for slug, _, purls in problems:
             body = body.replace("{{URL:%s}}" % slug, purls[lang])
         for n in LEVELS:
-            body = body.replace("{{LEVEL:%d}}" % n, level_badge(lang, n))
+            body = body.replace("{{LEVEL:%d}}" % n, level_badge(lang, n, urls[lang]))
         body = body.replace("{{BOOKS}}", base + "books/" + LANG_PATH[lang])
         body = body.replace("{{HOME_BASE}}", base).replace("{{HOME}}", urls[lang]).replace("{{FIRST}}", problems[0][2][lang])
         if lang == "en":
@@ -927,7 +962,7 @@ def build_hub(problems, base):
         h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["og_alt"], ld, base)
         body = with_subscribe(body, lang)
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
-               f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
+               f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{LEVEL_SCRIPT}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
         write(DOCS / LANG_PATH[lang] / "index.html", doc)
     for f in (HUB / "assets").iterdir():
         if f.suffix in {".png", ".jpg"}:
