@@ -255,10 +255,11 @@ LEVEL_LD = {1: "beginner", 2: "intermediate", 3: "advanced"}
 
 
 def level_badge(lang, n):
-    """Three bars, the first n filled, and the level name; the title says what maths it takes."""
+    """Three bars, the first n filled, and the level name; hover, focus or a tap shows what maths it takes."""
     name, hint = LEVELS[n][lang]
     bars = '<i class="on"></i>' * n + "<i></i>" * (3 - n)
-    return f'<span class="mp-level" title="{e(hint)}"><span class="mp-bars" aria-hidden="true">{bars}</span>{e(name)}</span>'
+    return (f'<span class="mp-level" tabindex="0"><span class="mp-bars" aria-hidden="true">{bars}</span>{e(name)}'
+            f'<span class="mp-level-hint" role="tooltip">{e(hint)}</span></span>')
 
 
 def topic_filters(problems):
