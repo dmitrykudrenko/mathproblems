@@ -38,6 +38,9 @@ h1, h2, h3, p { margin: 0; }
 /* panels alternate sides; once a topic filter is on, the script marks every second visible panel with .flip instead */
 .problems:not(.filtered) .problem:nth-child(even) .tz-stage, .problem.flip .tz-stage { order: -1; }
 .problem[hidden] { display: none; }
+.lv-note { margin: -12px 0 24px; color: var(--muted); }
+.lv-note[hidden] { display: none; }
+.lv-clear { font: inherit; font-weight: 600; color: var(--ink); background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .tz-text { padding: 44px; display: grid; gap: 18px; align-content: start; min-width: 0; }
 .tz-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .tz-text h2 { font-size: clamp(1.9rem, 4vw, 3.1rem); }
@@ -218,34 +221,35 @@ footer a { color: var(--muted); }
 
 <script>
 document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
-// Level badge hint: open it to the left when the card has no room for it on the right
-document.querySelectorAll('.problem .mp-level').forEach(b => {
-  const fit = () => {
-    const hint = b.querySelector('.mp-level-hint'), card = b.closest('.problem').getBoundingClientRect();
-    b.classList.toggle('flip', b.getBoundingClientRect().left + hint.offsetWidth > card.right - 12);
-  };
-  b.addEventListener('mouseenter', fit);
-  b.addEventListener('focus', fit);
-});
-// Topic filter: hides the panels outside the chosen topic and keeps it in ?t= so a filtered list can be shared
+// Topic filter (chips, ?t=) and level filter (?l=, from the link in a level badge hint): hide the panels outside
+// both; the level filter shows a line above the list with a button that clears it
 (() => {
   const list = document.querySelector('.problems'), chips = [...document.querySelectorAll('.tp-chip')];
-  const apply = t => {
+  const note = document.querySelector('.lv-note');
+  let t = '', l = '';
+  const apply = () => {
     if (!chips.some(c => c.dataset.topic === t)) t = '';
+    if (!['1', '2', '3'].includes(l)) l = '';
     chips.forEach(c => c.setAttribute('aria-pressed', c.dataset.topic === t));
     let n = 0;
     for (const a of list.children) {
-      const on = !t || a.dataset.topics.split(' ').includes(t);
+      const on = (!t || a.dataset.topics.split(' ').includes(t)) && (!l || a.dataset.level === l);
       a.hidden = !on;
       a.classList.toggle('flip', on && n++ % 2 === 1);
     }
     list.classList.add('filtered');
+    note.hidden = !l;
+    note.querySelectorAll('.lv-name').forEach(s => s.hidden = s.dataset.level !== l);
+    note.querySelectorAll('.lv-empty').forEach(s => s.hidden = n > 0);
     const u = new URL(location.href);
     if (t) u.searchParams.set('t', t); else u.searchParams.delete('t');
+    if (l) u.searchParams.set('l', l); else u.searchParams.delete('l');
     history.replaceState(history.state, '', u);
   };
-  chips.forEach(c => c.addEventListener('click', () => apply(c.dataset.topic)));
-  const t0 = new URLSearchParams(location.search).get('t');
-  if (t0) apply(t0);
+  chips.forEach(c => c.addEventListener('click', () => { t = c.dataset.topic; apply(); }));
+  note.querySelector('.lv-clear').addEventListener('click', () => { l = ''; apply(); });
+  const q = new URLSearchParams(location.search);
+  t = q.get('t') || ''; l = q.get('l') || '';
+  if (t || l) apply();
 })();
 </script>
