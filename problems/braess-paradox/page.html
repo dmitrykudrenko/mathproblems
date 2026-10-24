@@ -1,0 +1,1081 @@
+<title>Парадокс Браеса: нова дорога, а їхати довше</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same running order as the poisoned-wine page. A four-node road network with one free shortcut is this problem's signature object. */
+:root {
+  --tint: #E8E0D0;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --road: #9AA1B5;
+  --short: #2F6FD6;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal canvas { height: 320px; border-radius: 14px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 2.6em; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=number] { font: inherit; font-family: var(--f-mono); font-weight: 600; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); width: 120px; max-width: 100%; }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--day); }
+.ctl output { font-family: var(--f-mono); font-weight: 600; color: var(--ink); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+.big.day { color: var(--day); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--hit); }
+.msg .bad, .verdict .bad { color: var(--loss); font-weight: 600; }
+.msg .good, .verdict .good { color: var(--win); font-weight: 600; }
+
+/* ---------- the road network ---------- */
+.net { display: block; width: 100%; height: auto; max-width: 520px; margin: 0 auto; }
+.net text { font-family: var(--f-mono); font-size: 16px; fill: var(--ink); }
+.net text.m, .net tspan.m { fill: var(--muted); font-size: 14px; }
+.net text.b { font-weight: 700; }
+.net .node { fill: var(--ink); }
+.net .node-t { fill: var(--surface); font-weight: 700; font-size: 15px; }
+.switch { display: inline-flex; align-items: center; gap: 10px; border: 1.5px solid var(--ink); border-radius: 999px; padding: 6px 14px 6px 6px; background: var(--surface); cursor: pointer; font-weight: 600; font-size: .9rem; }
+.switch i { width: 38px; height: 22px; border-radius: 999px; background: var(--line); position: relative; flex: none; transition: background .2s; }
+.switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); transition: left .2s; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
+.switch[aria-pressed="true"] i { background: var(--ink); }
+.switch[aria-pressed="true"] i::after { left: 19px; }
+.routes { display: grid; gap: 8px; }
+.route { display: grid; grid-template-columns: 1fr auto auto; gap: 4px 12px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: .9rem; background: var(--surface); }
+.route .n { font-family: var(--f-mono); color: var(--muted); font-size: .82rem; text-align: right; }
+.route .t { font-family: var(--f-mono); font-weight: 700; min-width: 5.5em; text-align: right; }
+.route.off { opacity: .45; }
+.route.sad .t { color: var(--loss); }
+.route.best .t { color: var(--win); }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.guess .val { font-family: var(--f-display); font-weight: 800; font-size: 3.4rem; color: var(--day); line-height: 1; }
+.guess input[type=range] { width: 100%; accent-color: var(--day); }
+.scale { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: .72rem; color: var(--muted); }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 150px 1fr 64px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.stat { font-family: var(--f-mono); font-size: .84rem; color: var(--muted); }
+.verdict { border-radius: 12px; padding: 12px 14px; background: var(--paper); display: grid; gap: 8px; }
+.verdict b { font-weight: 600; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.6rem; }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .84rem; color: var(--muted); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.layer { font-family: var(--f-display); font-weight: 800; font-size: 1.2rem; margin-top: 18px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.tbl-wrap { overflow-x: auto; }
+table.t { border-collapse: collapse; width: 100%; font-size: .9rem; }
+.t th, .t td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.t th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+.t td.num, .t th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+.t th.num { white-space: normal; }
+.t tr.hl td { font-weight: 600; }
+.t td.hit { color: var(--hit); font-weight: 700; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 96px 1fr 76px; }
+  .crow .mono { white-space: nowrap; text-align: right; }
+  .vs { grid-template-columns: 1fr; }
+  .t th, .t td { padding: 8px 5px; }
+  .hero-cal canvas { height: 250px; }
+  .route { font-size: .84rem; padding: 8px 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+<div class="topbar">
+  <span class="brand">Braess's paradox · 4000 drivers · 1 new road</span>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <h1 class="uk"><span class="kw">Парадокс Браеса</span> Місто відкрило безкоштовну перемичку. <span class="q sp-before">Їхати стане швидше?</span><span class="q sp-after">Усі їдуть на 15 хвилин довше.</span></h1>
+    <h1 class="en"><span class="kw">Braess's paradox</span> The city opens a free shortcut. <span class="q sp-before">Will the trip get faster?</span><span class="q sp-after">Everyone drives 15 minutes longer.</span></h1>
+    <p class="lead uk sp-before">Щоранку 4000 водіїв їдуть зі Старту на Фініш двома маршрутами. На кожному є вузька вулиця, де що більше машин, то повільніше, і широке шосе, де завжди 45 хвилин. Водії розподілилися порівну, і дорога займає 65 хвилин. Тепер місто будує миттєву перемичку між двома маршрутами. Кожен водій і далі обирає найшвидший шлях для себе. Скільки триватиме поїздка?</p>
+    <p class="lead uk sp-after">Здається, що нова дорога не може зашкодити: не подобається, то не їдь. Але перемичка вигідна кожному водієві окремо, хоч що роблять інші. Тож нею їдуть усі, обидві вузькі вулиці забиваються, і поїздка займає 80 хвилин замість 65. Якщо перемичку закрити, всі виграють по 15 хвилин.</p>
+    <p class="lead en sp-before">Every morning 4,000 drivers go from Start to Finish along two routes. Each has a narrow street, which gets slower the more cars use it, and a wide highway that always takes 45 minutes. The drivers have split evenly, and the trip takes 65 minutes. Now the city builds an instant shortcut between the two routes. Each driver still picks the fastest way for themselves. How long will the trip take?</p>
+    <p class="lead en sp-after">It seems a new road cannot hurt: if you don't like it, don't use it. But the shortcut pays off for every single driver, whatever the others do. So everyone takes it, both narrow streets clog up, and the trip takes 80 minutes instead of 65. Close the shortcut, and everyone gains 15 minutes.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="uk">80 хв</b><b class="en">80 min</b><span><span class="uk">з перемичкою</span><span class="en">with the shortcut</span></span></div>
+      <div class="odd"><b class="uk">65 хв</b><b class="en">65 min</b><span><span class="uk">без неї</span><span class="en">without it</span></span></div>
+      <div class="odd"><b>4/3</b><span><span class="uk">найгірше, що може зробити нова дорога</span><span class="en">the worst a new road can do</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="uk">Умова</b><b class="en">The puzzle</b></a>
+      <a href="#guess"><span>1</span><b class="uk">Вгадайте</b><b class="en">Guess</b></a>
+      <a href="#game"><span>2</span><b class="uk">Розподіліть машини</b><b class="en">Route the cars</b></a>
+      <a href="#sim"><span>3</span><b class="uk">80 днів заторів</b><b class="en">80 days of traffic</b></a>
+      <a href="#why"><span>4</span><b class="uk">Чому так</b><b class="en">Why it happens</b></a>
+      <a href="#more"><span>5</span><b class="uk">Масштабуємо</b><b class="en">Scaling up</b></a>
+      <a href="#facts"><span>★</span><b class="uk" style="font-weight:inherit">Цікаві факти</b><b class="en" style="font-weight:inherit">Fun facts</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span><span class="en">The puzzle</span></span>
+    <h2><span class="uk">Дві дороги, чотири тисячі машин, одна нова перемичка</span><span class="en">Two routes, four thousand cars, one new shortcut</span></h2>
+    <p class="lead uk">1968 року німецький математик Дітріх Браес описав мережу доріг, у якій нова дорога сповільнює всіх. Ось найвідоміша версія його прикладу з конкретними числами.</p>
+    <p class="lead en">In 1968 the German mathematician Dietrich Braess described a road network in which a new road slows everybody down. Here is the best-known version of his example, with concrete numbers.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Водії</span><span class="en">The drivers</span></h3>
+        <p class="uk">Щоранку 4000 водіїв їдуть зі Старту на Фініш. Кожен хоче доїхати якнайшвидше і знає, скільки триває кожна дорога, наприклад з навігатора.</p>
+        <p class="en">Every morning 4,000 drivers go from Start to Finish. Each wants to arrive as fast as possible and knows how long every road takes, say from a navigation app.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Вузькі вулиці</span><span class="en">The narrow streets</span></h3>
+        <p class="uk">Вулиці Старт → A і B → Фініш вузькі: якщо нею їде T машин, проїзд займає T/100 хвилин. 1000 машин означає 10 хвилин, 4000 машин означає 40.</p>
+        <p class="en">The streets Start → A and B → Finish are narrow: if T cars use one, it takes T/100 minutes. 1,000 cars mean 10 minutes, 4,000 cars mean 40.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Широкі шосе</span><span class="en">The wide highways</span></h3>
+        <p class="uk">Шосе A → Фініш і Старт → B широкі, але довгі: 45 хвилин, хоч скільки на них машин.</p>
+        <p class="en">The highways A → Finish and Start → B are wide but long: 45 minutes however many cars use them.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Сьогодні</span><span class="en">Today</span></h3>
+        <p class="uk">Є два маршрути: через A і через B. Водії розподілилися порівну, по 2000, і кожен їде 2000/100 + 45 = 65 хвилин. Перейти на інший маршрут нікому не вигідно.</p>
+        <p class="en">There are two routes: via A and via B. The drivers have split evenly, 2,000 each, and everyone drives 2000/100 + 45 = 65 minutes. Nobody gains by switching to the other route.</p></div></li>
+      <li><span class="n">5</span><div><h3><span class="uk">Питання</span><span class="en">The question</span></h3>
+        <p class="uk">Місто будує перемичку A → B, яку проїжджають миттєво, за 0 хвилин. Водії знову обирають кожен найшвидший маршрут для себе, доки ніхто вже не захоче нічого змінювати. Скільки тоді займе поїздка?</p>
+        <p class="en">The city builds a shortcut A → B that takes no time at all, 0 minutes. Again each driver picks the fastest route for themselves, until nobody wants to change anything. How long will the trip take then?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span><span class="en">Intuition says</span></span>
+        <p class="q"><span class="uk">«Нова дорога може лише допомогти. Гірше не буде: хто не хоче, той нею не їде»</span><span class="en">"A new road can only help. It can't get worse: whoever doesn't want it just won't use it"</span></p>
+        <p class="uk">Насправді перемичкою поїдуть усі 4000 водіїв, і кожен витрачатиме 80 хвилин. Ніхто з них не помиляється: для кожного окремо перемичка справді найшвидша. Програють вони разом.</p>
+        <p class="en">In fact all 4,000 drivers take the shortcut, and each spends 80 minutes. None of them makes a mistake: for each one alone the shortcut really is fastest. They lose together.</p>
+      </div>
+      <div class="card">
+        <h3><span class="uk">Припущення</span><span class="en">Assumptions</span></h3>
+        <ul class="rules uk">
+          <li>Водіїв так багато, що один водій майже не змінює часу на дорозі: його внесок 1/100 хвилини.</li>
+          <li>Кожен водій знає час усіх доріг і обирає найшвидший для себе маршрут.</li>
+          <li>Водії не домовляються між собою і не мають диспетчера.</li>
+          <li>Кількість водіїв не змінюється: нова дорога не приваблює нових машин.</li>
+          <li>Відповідь шукаємо в рівновазі, тобто коли нікому вже не вигідно міняти маршрут.</li>
+        </ul>
+        <ul class="rules en">
+          <li>There are so many drivers that one of them barely changes a road's time: their share is 1/100 of a minute.</li>
+          <li>Each driver knows the time of every road and picks the fastest route for themselves.</li>
+          <li>The drivers don't coordinate, and there is no dispatcher.</li>
+          <li>The number of drivers stays the same: the new road attracts no extra cars.</li>
+          <li>We look for the answer at equilibrium, when nobody gains by changing route any more.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="uk">Скільки хвилин займе поїздка з перемичкою?</span><span class="en">How many minutes will the trip take with the shortcut?</span></h2>
+    <p class="lead uk">Без перемички дорога займає 65 хвилин. Перемичку відкрили, водії звикли до неї, і ніхто вже не хоче міняти маршрут. Скільки тепер їде кожен?</p>
+    <p class="lead en">Without the shortcut the trip takes 65 minutes. The shortcut opens, the drivers get used to it, and nobody wants to change route any more. How long does each of them drive now?</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <label for="guess-n" class="note"><span class="uk">Час поїздки, хвилин</span><span class="en">Trip time, minutes</span></label>
+      <div class="val mono" id="guess-v">55</div>
+      <input type="range" id="guess-n" min="20" max="110" value="55" aria-describedby="guess-v">
+      <div class="scale"><span>20</span><span>40</span><span>65</span><span>90</span><span>110</span></div>
+      <div class="actions"><button class="btn pri" id="guess-go"><span class="uk">Перевірити</span><span class="en">Check</span></button></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться розбір вашої відповіді.</p>
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 2: route the cars -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span><span class="en">Round 2 · Game</span></span>
+    <h2><span class="uk">Розподіліть 4000 машин і подивіться, хто захоче з'їхати</span><span class="en">Route 4,000 cars and see who wants to switch</span></h2>
+    <p class="lead uk">Повзунками розподіліть водіїв між маршрутами, а перемикачем відкрийте чи закрийте перемичку. Товщина дороги показує, скільки нею їде машин. Справа видно час кожного маршруту і чи хоче хтось перейти на швидший. Спробуйте знайти розподіл, за якого з відкритою перемичкою ніхто не хоче міняти маршрут.</p>
+    <p class="lead en">Use the sliders to split the drivers between the routes, and the switch to open or close the shortcut. A road's thickness shows how many cars use it. On the right you see each route's time and whether anyone wants to move to a faster one. Try to find a split where, with the shortcut open, nobody wants to change route.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div id="g-net"></div>
+      <div class="actions"><button type="button" class="switch" id="g-open" aria-pressed="false"><i></i><span class="uk">Перемичка A → B</span><span class="en">Shortcut A → B</span></button></div>
+      <div class="controls" style="margin:0">
+        <label class="ctl" for="g-t"><span><span class="uk">Через A</span><span class="en">Via A</span>: <output id="g-tv">2000</output></span><input type="range" id="g-t" min="0" max="4000" step="50" value="2000"></label>
+        <label class="ctl" for="g-z"><span><span class="uk">Перемичкою</span><span class="en">Via the shortcut</span>: <output id="g-zv">0</output></span><input type="range" id="g-z" min="0" max="4000" step="50" value="0"></label>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" id="g-even" type="button"><span class="uk">Порівну</span><span class="en">Even split</span></button>
+        <button class="btn ghost" id="g-best" type="button"><span class="uk">Як радить диспетчер</span><span class="en">The dispatcher's plan</span></button>
+        <button class="btn pri" id="g-go" type="button"><span class="uk">Нехай водії обирають самі</span><span class="en">Let the drivers choose</span></button>
+      </div>
+    </div>
+    <div class="card" style="display:grid;gap:14px;align-content:start">
+      <h3><span class="uk">Маршрути</span><span class="en">Routes</span></h3>
+      <div class="routes" id="g-routes"></div>
+      <p class="stat" id="g-avg"></p>
+      <div class="verdict" id="g-verdict" aria-live="polite"></div>
+      <p class="note" id="g-hint"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="uk">80 днів: 4000 водіїв звикають до перемички</span><span class="en">80 days: 4,000 drivers get used to the shortcut</span></h2>
+    <p class="lead uk">Кожен із 4000 водіїв щоранку з певною ймовірністю передумує: дивиться у навігатор, скільки вчора тривав кожен маршрут, і обирає найшвидший. Навігатор трохи помиляється. Перемичку відкривають на 11-й день і закривають на 61-й. Графік показує, скільки в середньому їде водій.</p>
+    <p class="lead en">Each of the 4,000 drivers reconsiders on a given morning with some probability: they check the app for how long each route took yesterday and pick the fastest. The app is a little off. The shortcut opens on day 11 and closes on day 61. The chart shows how long a driver spends on the road on average.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="sim-p"><span><span class="uk">Передумують щодня</span><span class="en">Reconsider each day</span>: <output id="sim-pv">10%</output></span><input type="range" id="sim-p" min="1" max="50" value="10"></label>
+      <label class="ctl" for="sim-s"><span><span class="uk">Похибка навігатора</span><span class="en">App error</span>: <output id="sim-sv">±1</output></span><input type="range" id="sim-s" min="0" max="8" value="1"></label>
+      <button class="btn pri" id="sim-run"><span class="uk">Запустити ще раз</span><span class="en">Run again</span></button>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="sim-cv" style="height:320px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--ink)"><b class="uk">середній час</b><b class="en">average time</b></span>
+          <span style="--c:var(--short)"><b class="uk">маршрут перемичкою</b><b class="en">shortcut route</b></span>
+          <span style="--c:var(--road)"><b class="uk">маршрути через A і через B</b><b class="en">routes via A and via B</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k"><span class="uk">Дні 1–10, без перемички</span><span class="en">Days 1–10, no shortcut</span></div><div class="v mono" id="t-before">–</div><div class="s" id="t-befores"></div></div>
+        <div class="tile"><div class="k"><span class="uk">11-й день: перші, хто поїхав перемичкою</span><span class="en">Day 11: the first to take the shortcut</span></div><div class="v mono" id="t-early">–</div><div class="s" id="t-earlys"></div></div>
+        <div class="tile" style="--c:var(--hit)"><div class="k"><span class="uk">60-й день, перемичка відкрита</span><span class="en">Day 60, shortcut open</span></div><div class="v mono" id="t-open">–</div><div class="s" id="t-opens"></div></div>
+        <div class="tile"><div class="k"><span class="uk">80-й день, перемичку закрили</span><span class="en">Day 80, shortcut closed</span></div><div class="v mono" id="t-after">–</div><div class="s" id="t-afters"></div></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:12px"><span class="uk">Кожен водій моделюється окремо. Похибка навігатора означає, що до вчорашнього часу кожного маршруту додається випадкова помилка з таким стандартним відхиленням у хвилинах. Коли перемичку закривають, ті, хто нею їздив, наступного ранку обирають один із двох старих маршрутів.</span><span class="en">Every driver is modelled separately. The app error means that a random error with this standard deviation, in minutes, is added to yesterday's time of each route. When the shortcut closes, those who used it pick one of the two old routes the next morning.</span></p>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · П'ять пояснень</span><span class="en">Round 4 · Five explanations</span></span>
+    <h2><span class="uk">Чому всі обирають перемичку і всі програють</span><span class="en">Why everyone takes the shortcut and everyone loses</span></h2>
+    <p class="lead uk">Ніхто з водіїв не помиляється. Проблема в тому, що, обираючи дорогу, водій рахує лише свій час, а не час, який він забирає в інших.</p>
+    <p class="lead en">None of the drivers makes a mistake. The trouble is that a driver choosing a road counts only their own time, not the time they take from others.</p>
+  </div>
+  <div class="why-grid">
+    <div class="card">
+      <span class="kicker"><span class="uk">Домінантна стратегія</span><span class="en">A dominant strategy</span></span>
+      <h3><span class="uk">Перемичка вигідна за будь-якої ситуації</span><span class="en">The shortcut wins in every situation</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">Від A до Фінішу шосе</span><span class="en">A to Finish by highway</span></span><b class="mono"><span class="uk">45 хв</span><span class="en">45 min</span></b><span><span class="uk">завжди</span><span class="en">always</span></span></div>
+        <div class="bb"><span><span class="uk">Від A перемичкою і вулицею</span><span class="en">A via the shortcut and the street</span></span><b class="mono"><span class="uk">≤ 40 хв</span><span class="en">≤ 40 min</span></b><span><span class="uk">навіть коли там усі 4000</span><span class="en">even with all 4,000 there</span></span></div>
+      </div>
+      <p class="uk">Вулиця B → Фініш навіть ущент забита займає 4000/100 = 40 хвилин, а шосе завжди 45. Тому водієві, який доїхав до A, вигідніше перемичкою на B, хоч що роблять інші. Так само тому, хто стоїть на Старті, вигідніше вузька вулиця до A (≤ 40 хв), ніж шосе до B (45 хв). Обидва вибори разом дають маршрут перемичкою.</p>
+      <p class="en">The street B → Finish, even jammed solid, takes 4000/100 = 40 minutes, while the highway always takes 45. So a driver at A does better via the shortcut to B whatever the others do. Likewise a driver at Start does better on the narrow street to A (≤ 40 min) than on the highway to B (45 min). Together the two choices make the shortcut route.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Чужий час</span><span class="en">Other people's time</span></span>
+      <h3><span class="uk">Що виграє той, хто переходить, і що втрачають інші</span><span class="en">What the switcher gains and what the others lose</span></h3>
+      <label class="ctl" for="ex-z"><span><span class="uk">Уже їдуть перемичкою</span><span class="en">Already on the shortcut</span>: <output id="ex-zv">0</output></span><input type="range" id="ex-z" min="0" max="3999" step="1" value="0" style="width:100%"></label>
+      <div class="compare" id="ex-bars"></div>
+      <p id="ex-txt"></p>
+      <p class="uk">Новий водій на вузькій вулиці додає по 1/100 хвилини кожному, хто вже нею їде. Сам він цього не помічає, а разом це хвилини, а згодом і десятки хвилин. Поки перемичкою їде менше 500 водіїв, перехід вигідний усім разом. Далі кожен новий водій виграє собі менше, ніж забирає в інших.</p>
+      <p class="en">A new driver on a narrow street adds 1/100 of a minute for each person already on it. They don't notice it, but together it adds up to minutes and later to tens of minutes. While fewer than 500 drivers use the shortcut, switching pays off for everyone together. Beyond that each new driver gains less for themselves than they take from the others.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Рівновага Неша</span><span class="en">Nash equilibrium</span></span>
+      <h3><span class="uk">Стан, з якого нікому не вигідно йти самому</span><span class="en">A state nobody gains by leaving alone</span></h3>
+      <div class="tbl-wrap"><table class="t">
+        <thead><tr><th><span class="uk">Мережа</span><span class="en">Network</span></th><th class="num"><span class="uk">Кожен сам</span><span class="en">Each for themselves</span></th><th class="num"><span class="uk">Диспетчер</span><span class="en">Dispatcher</span></th></tr></thead>
+        <tbody>
+          <tr><td><span class="uk">Без перемички</span><span class="en">No shortcut</span></td><td class="num"><span class="uk">65 хв</span><span class="en">65 min</span></td><td class="num"><span class="uk">65 хв</span><span class="en">65 min</span></td></tr>
+          <tr class="hl"><td><span class="uk">З перемичкою</span><span class="en">With the shortcut</span></td><td class="num hit"><span class="uk">80 хв</span><span class="en">80 min</span></td><td class="num"><span class="uk">64,69 хв</span><span class="en">64.69 min</span></td></tr>
+        </tbody>
+      </table></div>
+      <p class="uk">1950 року Джон Неш назвав рівновагою такий стан гри, у якому жоден гравець не виграє, змінивши свій вибір сам. У нашій мережі з перемичкою рівновага одна: всі 4000 їдуть перемичкою. Звідти на маршрут через A чи через B переходити безглуздо: 85 хвилин замість 80.</p>
+      <p class="en">In 1950 John Nash called an equilibrium a state of a game in which no player gains by changing their choice alone. In our network with the shortcut there is just one equilibrium: all 4,000 take the shortcut. From there it makes no sense to move to the route via A or via B: 85 minutes instead of 80.</p>
+      <p class="uk">Диспетчер, який розподіляє машини сам, пустив би перемичкою лише 500 водіїв, а решту порівну на маршрути через A і через B. Тоді в середньому 64,69 хвилини, на 19 секунд краще, ніж без перемички. Але цей розподіл нестійкий: ті, хто на шосе, одразу захочуть на перемичку.</p>
+      <p class="en">A dispatcher who routes the cars would send only 500 drivers via the shortcut and split the rest evenly between the routes via A and via B. That gives an average of 64.69 minutes, 19 seconds better than without the shortcut. But the split is unstable: those on the highways at once want the shortcut.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Принципи Вордропа</span><span class="en">Wardrop's principles</span></span>
+      <h3><span class="uk">Рівні часи для водіїв і найменший середній для міста</span><span class="en">Equal times for drivers, the least average for the city</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">Перший принцип: усі маршрути, якими їздять, однаково швидкі</span><span class="en">First principle: all routes in use are equally fast</span></span><b class="mono"><span class="uk">рівновага</span><span class="en">equilibrium</span></b></div>
+        <div><span><span class="uk">Другий принцип: найменший сумарний час</span><span class="en">Second principle: the least total time</span></span><b class="mono"><span class="uk">оптимум</span><span class="en">optimum</span></b></div>
+      </div>
+      <p class="uk">Британський транспортний інженер Джон Вордроп 1952 року розділив дві мети. Перша описує, як водії розподіляються самі: усі маршрути, якими хтось їздить, займають однаковий час, і він не більший за час будь-якого іншого маршруту. Друга описує, як розподілив би їх планувальник: щоб сумарний час був найменшим. Без перемички обидва принципи дають одне й те саме, 2000 на 2000. Перемичка їх розводить.</p>
+      <p class="en">In 1952 the British transport engineer John Wardrop separated two goals. The first describes how drivers spread out on their own: all routes that anyone uses take the same time, and no unused route is faster. The second describes how a planner would spread them: so that the total time is the least. Without the shortcut both give the same thing, 2,000 and 2,000. The shortcut pulls them apart.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span><span class="en">For formula lovers</span></span>
+      <h3><span class="uk">Час маршрутів, рівновага і оптимум</span><span class="en">Route times, the equilibrium and the optimum</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Нехай a водіїв їдуть через A, b через B, z перемичкою, разом a + b + z = 4000. Вулицею Старт → A їдуть a + z машин, вулицею B → Фініш b + z.</span><span class="en">Let a drivers go via A, b via B and z via the shortcut, with a + b + z = 4000. The street Start → A carries a + z cars, the street B → Finish carries b + z.</span></p>
+          <math display="block"><msub><mi>t</mi><mi>A</mi></msub><mo>=</mo><mfrac><mrow><mi>a</mi><mo>+</mo><mi>z</mi></mrow><mn>100</mn></mfrac><mo>+</mo><mn>45</mn><mo>,</mo><mspace width="1em"></mspace><msub><mi>t</mi><mi>B</mi></msub><mo>=</mo><mn>45</mn><mo>+</mo><mfrac><mrow><mi>b</mi><mo>+</mo><mi>z</mi></mrow><mn>100</mn></mfrac><mo>,</mo><mspace width="1em"></mspace><msub><mi>t</mi><mi>Z</mi></msub><mo>=</mo><mfrac><mrow><mi>a</mi><mo>+</mo><mi>z</mi></mrow><mn>100</mn></mfrac><mo>+</mo><mn>0</mn><mo>+</mo><mfrac><mrow><mi>b</mi><mo>+</mo><mi>z</mi></mrow><mn>100</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Без перемички z = 0, а рівновага вимагає t<sub>A</sub> = t<sub>B</sub>, тобто a = b = 2000.</span><span class="en">Without the shortcut z = 0, and equilibrium needs t<sub>A</sub> = t<sub>B</sub>, so a = b = 2000.</span></p>
+          <math display="block"><msub><mi>t</mi><mi>A</mi></msub><mo>=</mo><msub><mi>t</mi><mi>B</mi></msub><mo>=</mo><mfrac><mn>2000</mn><mn>100</mn></mfrac><mo>+</mo><mn>45</mn><mo>=</mo><mn>65</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">З перемичкою маршрут Z завжди швидший, бо b + z ≤ 4000 &lt; 4500. Тому в рівновазі z = 4000.</span><span class="en">With the shortcut, route Z is always faster, since b + z ≤ 4000 &lt; 4500. So at equilibrium z = 4000.</span></p>
+          <math display="block"><msub><mi>t</mi><mi>A</mi></msub><mo>−</mo><msub><mi>t</mi><mi>Z</mi></msub><mo>=</mo><mn>45</mn><mo>−</mo><mfrac><mrow><mi>b</mi><mo>+</mo><mi>z</mi></mrow><mn>100</mn></mfrac><mo>≥</mo><mn>5</mn><mo>&gt;</mo><mn>0</mn></math>
+          <math display="block"><msub><mi>t</mi><mi>Z</mi></msub><mo>=</mo><mfrac><mn>4000</mn><mn>100</mn></mfrac><mo>+</mo><mfrac><mn>4000</mn><mn>100</mn></mfrac><mo>=</mo><mn class="hl">80</mn><mo>,</mo><mspace width="1em"></mspace><msub><mi>t</mi><mi>A</mi></msub><mo>=</mo><msub><mi>t</mi><mi>B</mi></msub><mo>=</mo><mn>85</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Сумарний час для симетричного розподілу a = b = (4000 − z)/2 і його мінімум, який шукав би диспетчер.</span><span class="en">The total time for a symmetric split a = b = (4000 − z)/2, and its minimum that a dispatcher would look for.</span></p>
+          <math display="block"><mi>C</mi><mo stretchy="false">(</mo><mi>z</mi><mo stretchy="false">)</mo><mo>=</mo><mn>2</mn><mo>·</mo><mfrac><msup><mrow><mo stretchy="false">(</mo><mn>2000</mn><mo>+</mo><mi>z</mi><mo>/</mo><mn>2</mn><mo stretchy="false">)</mo></mrow><mn>2</mn></msup><mn>100</mn></mfrac><mo>+</mo><mn>45</mn><mo stretchy="false">(</mo><mn>4000</mn><mo>−</mo><mi>z</mi><mo stretchy="false">)</mo><mo>=</mo><mn>260000</mn><mo>−</mo><mn>5</mn><mi>z</mi><mo>+</mo><mfrac><msup><mi>z</mi><mn>2</mn></msup><mn>200</mn></mfrac></math>
+          <math display="block"><msup><mi>C</mi><mo>′</mo></msup><mo stretchy="false">(</mo><mi>z</mi><mo stretchy="false">)</mo><mo>=</mo><mn>0</mn><mo>⇒</mo><mi>z</mi><mo>=</mo><mn>500</mn><mo>,</mo><mspace width="1em"></mspace><mfrac><mrow><mi>C</mi><mo stretchy="false">(</mo><mn>500</mn><mo stretchy="false">)</mo></mrow><mn>4000</mn></mfrac><mo>=</mo><mn class="uk">64,6875</mn><mn class="en">64.6875</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Ціна анархії, тобто у скільки разів рівновага гірша за оптимум, у цій мережі:</span><span class="en">The price of anarchy, how many times worse the equilibrium is than the optimum, in this network:</span></p>
+          <math display="block"><mfrac><mn>80</mn><mn class="uk">64,6875</mn><mn class="en">64.6875</mn></mfrac><mo>=</mo><mfrac><mn>256</mn><mn>207</mn></mfrac><mo>≈</mo><mn class="uk">1,237</mn><mn class="en">1.237</mn><mo>≤</mo><mfrac><mn>4</mn><mn>3</mn></mfrac></math>
+        </div>
+      </div>
+      <p class="uk">Межа 4/3 не випадкова: 2002 року Тім Рафгарден і Єва Тардош довели, що коли час кожної дороги лінійно залежить від кількості машин, егоїстичні водії в будь-якій мережі витрачають щонайбільше на третину більше часу, ніж за найкращого розподілу.</p>
+      <p class="en">The 4/3 bound is no accident: in 2002 Tim Roughgarden and Éva Tardos proved that when each road's time depends linearly on the number of cars, selfish drivers in any network spend at most a third more time than under the best possible routing.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Масштабуємо</span><span class="en">Round 5 · Scaling up</span></span>
+    <h2><span class="uk">Більше машин, будь-які мережі, платні дороги</span><span class="en">More cars, any network, toll roads</span></h2>
+    <p class="lead uk">Парадокс Браеса веде у три світи. У математиці він стає теорією ціни анархії: наскільки погано можуть розподілитися егоїстичні учасники. У логіці це та сама пастка, що й дилема в'язня. А на практиці міста закривають дороги, і рух від цього не гіршає.</p>
+    <p class="lead en">Braess's paradox leads into three worlds. In mathematics it becomes the theory of the price of anarchy: how badly selfish players can spread out. In logic it is the same trap as the prisoner's dilemma. And in practice cities close roads, and traffic does not get worse.</p>
+  </div>
+  <div class="esc">
+    <p class="layer"><span class="uk">Математика</span><span class="en">Mathematics</span></p>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Скільки водіїв, щоб перемичка шкодила</span><span class="en">How many drivers it takes for the shortcut to hurt</span></h3>
+        <label class="ctl" for="n-n"><span><span class="uk">Водіїв</span><span class="en">Drivers</span>: <output id="n-nv">4000</output></span><input type="range" id="n-n" min="0" max="12000" step="100" value="4000" style="width:100%"></label>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Без перемички</span><span class="en">No shortcut</span></span><b class="big mono" id="n-a" style="font-size:2rem">–</b></div>
+          <div><span class="k"><span class="uk">З перемичкою</span><span class="en">With the shortcut</span></span><b class="big mono" id="n-b" style="font-size:2rem">–</b></div>
+          <div><span class="k"><span class="uk">Відношення</span><span class="en">Ratio</span></span><b class="big hit mono" id="n-r" style="font-size:2rem">–</b></div>
+        </div>
+        <canvas id="n-cv" style="height:220px"></canvas>
+        <p class="note" id="n-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Коли парадокс діє</span><span class="en">When the paradox bites</span></span>
+        <h3><span class="uk">Найгірше при 4500 машинах: рівно 4/3</span><span class="en">The worst is at 4,500 cars: exactly 4/3</span></h3>
+        <p class="uk">Парадокс залежить від трафіку. Коли машин мало, до 3000, перемичка справді допомагає: вузькі вулиці майже порожні, і маршрут через неї найшвидший для всіх. Від 3000 до 9000 перемичка шкодить. Коли машин понад 9000, вузькі вулиці так забиті, що перемичкою вже ніхто не їде, і вона нічого не змінює.</p>
+        <p class="en">The paradox depends on traffic. With few cars, up to 3,000, the shortcut really helps: the narrow streets are nearly empty, and the route through it is fastest for everyone. From 3,000 to 9,000 the shortcut hurts. Beyond 9,000 cars the narrow streets are so jammed that nobody takes the shortcut any more, and it changes nothing.</p>
+        <p class="uk">Найбільша шкода при 4500 водіях: з перемичкою 90 хвилин, без неї 67,5. Відношення дорівнює рівно 4/3. Це не збіг: Рафгарден довів, що в мережі з лінійними дорогами нова дорога не може погіршити рівновагу більш ніж у 4/3 раза, і приклад Браеса досягає цієї межі.</p>
+        <p class="en">The harm peaks at 4,500 drivers: 90 minutes with the shortcut, 67.5 without it. The ratio is exactly 4/3. That's no coincidence: Roughgarden proved that in a network of linear roads a new road cannot make the equilibrium worse by more than a factor of 4/3, and Braess's example reaches that bound.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Ціна анархії: дві дороги Пігу</span><span class="en">The price of anarchy: Pigou's two roads</span></h3>
+        <label class="ctl" for="pg-d"><span><span class="uk">Степінь затору</span><span class="en">Congestion power</span> d: <output id="pg-dv">1</output></span><input type="range" id="pg-d" min="1" max="8" value="1" style="width:100%"></label>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Кожен сам</span><span class="en">Each for themselves</span></span><b class="big mono" id="pg-n" style="font-size:2rem">–</b></div>
+          <div><span class="k"><span class="uk">Диспетчер</span><span class="en">Dispatcher</span></span><b class="big mono" id="pg-o" style="font-size:2rem">–</b></div>
+          <div><span class="k"><span class="uk">Ціна анархії</span><span class="en">Price of anarchy</span></span><b class="big hit mono" id="pg-p" style="font-size:2rem">–</b></div>
+        </div>
+        <div class="compare" id="pg-bars"></div>
+        <p class="note" id="pg-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Від Пігу до Рафгардена</span><span class="en">From Pigou to Roughgarden</span></span>
+        <h3><span class="uk">Що крутіше росте затор, то дорожча анархія</span><span class="en">The steeper the jam, the costlier the anarchy</span></h3>
+        <p class="uk">1920 року економіст Артур Пігу розглянув дві дороги між тими самими містами. Перша завжди займає годину. Друга займає x<sup>d</sup> години, де x означає частку водіїв на ній. Друга ніколи не гірша за першу, тож егоїстичні водії їдуть нею всі і витрачають годину. Диспетчер пустив би частину водіїв першою дорогою, щоб друга була вільнішою.</p>
+        <p class="en">In 1920 the economist Arthur Pigou looked at two roads between the same towns. The first always takes an hour. The second takes x<sup>d</sup> hours, where x is the share of drivers on it. The second is never worse than the first, so selfish drivers all take it and spend an hour. A dispatcher would send some drivers by the first road to keep the second one freer.</p>
+        <p class="uk">За d = 1 ціна анархії дорівнює 4/3, як у Браеса. Рафгарден 2003 року показав, що для доріг із многочленним часом найгірший випадок у будь-якій мережі дає саме така пара доріг. Транспортні інженери часто описують затор формулою Бюро доріг США 1964 року, де час росте як четвертий степінь завантаження. Для d = 4 ціна анархії вже близько 2,15.</p>
+        <p class="en">For d = 1 the price of anarchy is 4/3, as in Braess's network. In 2003 Roughgarden showed that for roads with polynomial times the worst case in any network comes from just such a pair of roads. Traffic engineers often model congestion with the US Bureau of Public Roads formula from 1964, where time grows with the fourth power of the load. For d = 4 the price of anarchy is already about 2.15.</p>
+      </div>
+    </div>
+
+    <p class="layer"><span class="uk">Логіка</span><span class="en">Logic</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Ваш найкращий вибір, хоч що роблять інші</span><span class="en">Your best choice, whatever the others do</span></h3>
+        <label class="ctl" for="lg-z"><span><span class="uk">Інших водіїв на перемичці</span><span class="en">Other drivers on the shortcut</span>: <output id="lg-zv">0</output></span><input type="range" id="lg-z" min="0" max="3999" step="1" value="0" style="width:100%"></label>
+        <div class="routes" id="lg-routes"></div>
+        <p class="msg" id="lg-msg" aria-live="polite"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Дилема в'язня</span><span class="en">The prisoner's dilemma</span></span>
+        <h3><span class="uk">Кожен обирає краще для себе, і всім гірше</span><span class="en">Each picks what is best for them, and all are worse off</span></h3>
+        <p class="uk">Ви один із 4000 водіїв, а решта 3999 розподілилися якось. Повзунок задає, скільки з них їде перемичкою, інші порівну на два старі маршрути. Хоч куди ви його посунете, перемичка для вас швидша на 5–25 хвилин. Логіки тут дві: «що б не робили інші, мені краще так» і «якщо так зроблять усі, всім буде гірше». Обидві правильні.</p>
+        <p class="en">You are one of the 4,000 drivers, and the other 3,999 have spread out somehow. The slider sets how many of them take the shortcut, with the rest split evenly over the two old routes. Wherever you move it, the shortcut is 5 to 25 minutes faster for you. There are two lines of logic here: "whatever the others do, I'm better off this way" and "if everyone does this, everyone is worse off". Both are right.</p>
+        <p class="uk">Це будова дилеми в'язня, яку 1950 року придумали Мерріл Флад і Мелвін Дрешер у корпорації RAND, а назву й історію про в'язнів додав Альберт Такер. Двоє підозрюваних мовчать або зраджують, і зрада вигідна кожному, хоч що робить інший. Але якщо зрадять обидва, обом гірше, ніж якби обидва мовчали. Браес показав ту саму пастку для тисяч учасників, де кожен «зраджує», просто обираючи швидшу дорогу.</p>
+        <p class="en">This is the structure of the prisoner's dilemma, devised in 1950 by Merrill Flood and Melvin Dresher at the RAND Corporation; Albert Tucker added the name and the story about prisoners. Two suspects stay silent or betray, and betraying pays off for each whatever the other does. But if both betray, both are worse off than if both had stayed silent. Braess showed the same trap for thousands of players, where each one "betrays" just by picking the faster road.</p>
+      </div>
+    </div>
+
+    <p class="layer"><span class="uk">Практика</span><span class="en">Practice</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Закрити перемичку чи зробити її платною</span><span class="en">Close the shortcut or charge for it</span></h3>
+        <label class="ctl" for="tl-t"><span><span class="uk">Плата за перемичку, у хвилинах</span><span class="en">Toll on the shortcut, in minutes</span>: <output id="tl-tv">0</output></span><input type="range" id="tl-t" min="0" max="30" step="0.5" value="0" style="width:100%"></label>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Їдуть перемичкою</span><span class="en">On the shortcut</span></span><b class="big mono" id="tl-z" style="font-size:2rem">–</b></div>
+          <div><span class="k"><span class="uk">Середній час у дорозі</span><span class="en">Average time on the road</span></span><b class="big hit mono" id="tl-a" style="font-size:2rem">–</b></div>
+        </div>
+        <canvas id="tl-cv" style="height:200px"></canvas>
+        <p class="note" id="tl-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Від формул до міст</span><span class="en">From formulas to cities</span></span>
+        <h3><span class="uk">Дорогу прибрали, а затору не стало більше</span><span class="en">A road went, and the jams did not grow</span></h3>
+        <p class="uk">Ціну зручно міряти в хвилинах: скільки хвилин водієві не шкода, щоб не платити. Коли плата досягає 22,5 хвилини, перемичкою їдуть рівно 500 водіїв, як радив диспетчер, і середній час падає до 64,69. Плата не змушує нікого, вона лише додає до рішення водія той час, який він забирає в інших. Так працюють платні в'їзди до центру Лондона і Стокгольма.</p>
+        <p class="en">A toll is handy to measure in minutes: how many minutes a driver would give up to avoid paying it. At a toll of 22.5 minutes exactly 500 drivers use the shortcut, as the dispatcher advised, and the average time falls to 64.69. The toll forces nobody; it only adds to a driver's decision the time they take from others. That is how the congestion charges in central London and Stockholm work.</p>
+        <p class="uk">Простіше перемичку закрити. 1969 року в Штутгарті рух покращився лише тоді, коли нову ділянку дороги знову закрили. 1990 року на День Землі в Нью-Йорку перекрили завжди забиту 42-гу вулицю, і обіцяного колапсу не сталося. 2003 року Сеул почав зносити естакаду Чхонгечхон, якою щодня їздило близько 170 тисяч машин, і на її місці 2005 року відкрили річку з парком. Місто розпланувало об'їзди й водночас реформувало автобуси, тож це не чистий експеримент, але затори не зросли.</p>
+        <p class="en">Simpler still is to close the shortcut. In Stuttgart in 1969 traffic improved only when a newly built section of road was closed again. On Earth Day 1990 New York closed the always jammed 42nd Street, and the predicted gridlock never came. In 2003 Seoul began tearing down the Cheonggye elevated highway, which carried about 170 thousand cars a day, and in 2005 a stream with a park opened in its place. The city planned detours and reformed its buses at the same time, so it was no clean experiment, but the jams did not grow.</p>
+        <p class="uk">2008 року фізики Хеджін Юн, Майкл Гастнер і Хавунг Чжон змоделювали вулиці Бостона, Нью-Йорка й Лондона і знайшли вулиці, закриття яких мало б скоротити час у дорозі.</p>
+        <p class="en">In 2008 the physicists Hyejin Youn, Michael Gastner and Hawoong Jeong modelled the streets of Boston, New York and London and found streets whose closure should cut travel times.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="uk">Що розповісти друзям</span><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1968</span>
+        <h3><span class="uk">Стаття Браеса</span><span class="en">Braess's paper</span></h3>
+        <p class="uk">Дітріх Браес надрукував статтю «Über ein Paradoxon aus der Verkehrsplanung» («Про парадокс транспортного планування») у німецькому журналі «Unternehmensforschung». Англійський переклад вийшов лише 2005 року в «Transportation Science».</p>
+        <p class="en">Dietrich Braess published "Über ein Paradoxon aus der Verkehrsplanung" ("On a paradox of traffic planning") in the German journal Unternehmensforschung. An English translation appeared only in 2005, in Transportation Science.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1969</span>
+        <h3><span class="uk">Штутгарт</span><span class="en">Stuttgart</span></h3>
+        <p class="uk">За рік після статті Браеса Штутгарт уклав гроші в дорожню мережу, але рух не покращився, доки ділянку нової дороги знову не закрили. Цей випадок описав Вальтер Кнедель у книжці 1969 року про методи теорії графів.</p>
+        <p class="en">A year after Braess's paper Stuttgart invested in its road network, but traffic did not improve until a section of the new road was closed again. Walter Knödel described the case in his 1969 book on graph-theory methods.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1990</span>
+        <h3><span class="uk">42-га вулиця</span><span class="en">42nd Street</span></h3>
+        <p class="uk">На День Землі транспортний комісар Нью-Йорка Луціус Річчо закрив 42-гу вулицю на Мангеттені. Багато хто чекав «судного дня» на дорогах, але затору не сталося. 25 грудня «The New York Times» розповіла про це у статті Джини Колати з парадоксом Браеса.</p>
+        <p class="en">On Earth Day New York's transportation commissioner Lucius Riccio closed 42nd Street in Manhattan. Many expected doomsday on the roads, but no jam came. On 25 December The New York Times told the story in an article by Gina Kolata featuring Braess's paradox.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1991</span>
+        <h3><span class="uk">Пружини й мотузки</span><span class="en">Springs and strings</span></h3>
+        <p class="uk">Джоел Коен і Пол Горовіц описали в «Nature» конструкцію з пружин і мотузок, на якій висить вантаж. Якщо перерізати одну натягнуту мотузку, вантаж піднімається. Той самий ефект вони показали в електричному колі з резисторами й діодами.</p>
+        <p class="en">Joel Cohen and Paul Horowitz described in Nature a rig of springs and strings holding a weight. Cut one taut string, and the weight goes up. They showed the same effect in an electric circuit of resistors and diodes.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">5,6 <span class="uk">км</span><span class="en">km</span></span>
+        <h3><span class="uk">Естакада в Сеулі</span><span class="en">The Seoul overpass</span></h3>
+        <p class="uk">Естакада Чхонгечхон завдовжки 5,6 км стояла над річкою, закутою в бетон. 2003 року мер Лі Мьон Бак почав її знесення, а 2005 року на її місці відкрили відновлену річку з парком. Машин, що в'їжджають у центр, стало на 2,3% менше.</p>
+        <p class="en">The 5.6 km Cheonggye overpass stood above a stream buried in concrete. In 2003 mayor Lee Myung-bak began tearing it down, and in 2005 the restored stream with a park opened in its place. The number of cars entering downtown fell by 2.3%.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2012</span>
+        <h3><span class="uk">Премія Геделя</span><span class="en">The Gödel Prize</span></h3>
+        <p class="uk">Статтю Рафгардена й Тардош «How Bad Is Selfish Routing?» з межею 4/3 відзначили премією Геделя, однією з головних нагород теоретичної інформатики. Її розділили з двома іншими роботами з алгоритмічної теорії ігор, зокрема зі статтею, де Куцупіас і Пападімітріу ввели поняття ціни анархії.</p>
+        <p class="en">Roughgarden and Tardos's paper "How Bad Is Selfish Routing?" with its 4/3 bound won the Gödel Prize, one of the top awards in theoretical computer science. It shared the prize with two other papers in algorithmic game theory, including the one where Koutsoupias and Papadimitriou introduced the price of anarchy.</p>
+      </article>
+  </div>
+</section>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const solved = () => !window.mpSolved || mpSolved();
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const TAU = Math.PI * 2;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+// minutes with up to d decimals, trailing zeros dropped
+const mn = (x, d = 2) => dec(String(+x.toFixed(d)));
+const minW = x => mn(x) + L(' хв', ' min');
+const plural = (k, one, few, many) => {
+  const a = k % 10, b = k % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+const driversW = n => L(plural(n, 'водій', 'водії', 'водіїв'), n === 1 ? 'driver' : 'drivers');
+
+/* ---------- the network ---------- */
+// a cars via A, b via B, z via the shortcut; narrow streets take T/100 minutes, highways 45, the shortcut 0
+const W45 = 45, K = 100, N0 = 4000;
+function times(a, b, z, toll = 0) {
+  const sa = (a + z) / K, be = (b + z) / K;
+  return { sa, be, A: sa + W45, B: W45 + be, Z: sa + be, Zc: sa + be + toll };
+}
+const avgTime = (a, b, z) => { const t = times(a, b, z), n = a + b + z; return n ? (a * t.A + b * t.B + z * t.Z) / n : 0; };
+// equilibrium trip time for n drivers with or without the shortcut
+const eqTime = (n, open) => !open ? n / 200 + W45 : n <= 4500 ? 2 * n / K : n <= 9000 ? 90 : n / 200 + W45;
+// equilibrium number on the shortcut with a toll of tau minutes on it (symmetric split of the rest)
+const tollZ = tau => Math.max(0, Math.min(N0, 5000 - 200 * tau));
+
+const P = { S: [40, 128], A: [210, 36], B: [210, 220], F: [380, 128] };
+function netSVG(s) {
+  const t = times(s.a, s.b, s.z), w = n => (2.5 + 10 * n / N0).toFixed(1);
+  const ink = 'var(--ink)', road = 'var(--road)';
+  const line = (p, q, n, col, dash) => '<line x1="' + P[p][0] + '" y1="' + P[p][1] + '" x2="' + P[q][0] + '" y2="' + P[q][1] + '" stroke="' + col + '" stroke-width="' + w(n) + '" stroke-linecap="round"' + (dash ? ' stroke-dasharray="' + dash + '"' : '') + '/>';
+  const lab = (x, y, anchor, top, bot) => '<text x="' + x + '" y="' + y + '" text-anchor="' + anchor + '"><tspan class="b">' + top + '</tspan><tspan x="' + x + '" dy="18" class="m">' + bot + '</tspan></text>';
+  const cars = n => fmt(n) + L(' маш.', ' cars');
+  let h = '<svg class="net" viewBox="0 0 420 256" role="img" aria-label="' + L('Мережа доріг', 'Road network') + '">';
+  h += line('S', 'A', s.a + s.z, ink) + line('A', 'F', s.a, road) + line('S', 'B', s.b, road) + line('B', 'F', s.b + s.z, ink);
+  if (s.open) h += line('A', 'B', s.z, 'var(--short)');
+  else h += '<line x1="210" y1="60" x2="210" y2="196" stroke="var(--line)" stroke-width="3" stroke-dasharray="6 6"/>';
+  h += lab(116, 60, 'end', minW(t.sa), 'T = ' + fmt(s.a + s.z));
+  h += lab(304, 60, 'start', '45' + L(' хв', ' min'), cars(s.a));
+  h += lab(116, 200, 'end', '45' + L(' хв', ' min'), cars(s.b));
+  h += lab(304, 200, 'start', minW(t.be), 'T = ' + fmt(s.b + s.z));
+  h += s.open ? lab(224, 118, 'start', '0' + L(' хв', ' min'), cars(s.z)) + '<path d="M204 140 l6 10 l6 -10 z" fill="var(--short)"/>'
+    : '<text x="224" y="133" class="m">' + L('перемички немає', 'no shortcut') + '</text>';
+  [['S', L('С', 'S')], ['A', 'A'], ['B', 'B'], ['F', L('Ф', 'F')]].forEach(([k, txt]) => {
+    h += '<circle class="node" cx="' + P[k][0] + '" cy="' + P[k][1] + '" r="15"/><text class="node-t" x="' + P[k][0] + '" y="' + (P[k][1] + 4.5) + '" text-anchor="middle">' + txt + '</text>';
+  });
+  h += '<text x="' + P.S[0] + '" y="' + (P.S[1] + 36) + '" text-anchor="middle" class="m">' + L('Старт', 'Start') + '</text>';
+  h += '<text x="' + P.F[0] + '" y="' + (P.F[1] + 36) + '" text-anchor="middle" class="m">' + L('Фініш', 'Finish') + '</text>';
+  return h + '</svg>';
+}
+function routesHTML(s, extra = {}) {
+  const t = times(s.a, s.b, s.z), rows = [['A', L('Через A', 'Via A'), s.a, t.A, true], ['B', L('Через B', 'Via B'), s.b, t.B, true], ['Z', L('Перемичкою: С → A → B → Ф', 'Shortcut: S → A → B → F'), s.z, t.Z, s.open]];
+  const live = rows.filter(r => r[4]), best = Math.min(...live.map(r => r[3]));
+  return rows.map(r => {
+    const cls = !r[4] ? ' off' : extra.marks && r[2] > 0 && r[3] > best + .02 ? ' sad' : extra.marks && Math.abs(r[3] - best) < .005 ? ' best' : '';
+    return '<div class="route' + cls + '"><span>' + r[1] + '</span><span class="n">' + (extra.noCount ? '' : fmt(r[2])) + '</span><span class="t">' + (r[4] ? minW(r[3]) : '–') + '</span></div>';
+  }).join('');
+}
+
+/* ---------- drawing helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+// axes for a line chart: returns x(), y() maps
+function axes(ctx, W, H, o) {
+  const { l = 40, r = 12, t = 14, b = 28, x0, x1, y0, y1, xs, ys, xl, yl } = o;
+  const x = v => l + (v - x0) / (x1 - x0) * (W - l - r), y = v => t + (1 - (v - y0) / (y1 - y0)) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ys.forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.fillText(yl ? yl(v) : v, l - 6, y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  xs.forEach(v => ctx.fillText(xl ? xl(v) : v, x(v), H - b + 7));
+  return { x, y };
+}
+
+/* ---------- hero: cars on the network ---------- */
+const hero = { t0: performance.now(), raf: 0, visible: true, cars: Array.from({ length: 46 }, (_, i) => ({ ph: Math.random(), side: i % 2 })) };
+let heroCapText = '';
+function heroDraw(now) {
+  const st = setupCanvas($('#hero-cv')); if (!st) return;
+  const { ctx, W, H } = st, ok = solved();
+  const ink = tok('--ink'), muted = tok('--muted'), road = tok('--road'), hit = tok('--hit'), sur = tok('--surface') || '#fff', line = tok('--line');
+  const t = reduce() ? 1.3 : ((now || performance.now()) - hero.t0) / 1000;
+  ctx.fillStyle = sur; rr(ctx, 0, 0, W, H, 14); ctx.fill();
+  const pad = 30, sx = (W - 2 * pad) / 340, sy = (H - 70) / 184;
+  const pt = k => [pad + (P[k][0] - 40) * sx, 26 + (P[k][1] - 36) * sy];
+  const S = pt('S'), A = pt('A'), B = pt('B'), F = pt('F');
+  const seg = (p, q, col, wd, dash) => { ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); ctx.setLineDash([]); };
+  const wd = ok ? 11 : 7;
+  seg(S, A, ink, wd); seg(B, F, ink, wd); seg(A, F, road, ok ? 3 : 7); seg(S, B, road, ok ? 3 : 7);
+  if (ok) seg(A, B, hit, wd); else seg(A, B, line, 3, [6, 6]);
+  // cars: each route is a polyline, a car's speed on a segment follows that segment's minutes
+  const routes = ok ? [[[S, A, 40], [A, B, 3], [B, F, 40]]] : [[[S, A, 20], [A, F, 45]], [[S, B, 45], [B, F, 20]]];
+  hero.cars.forEach(c => {
+    const r = routes[ok ? 0 : c.side], total = r.reduce((s, q) => s + q[2], 0);
+    let u = ((c.ph + t * 60 / (total * 8)) % 1) * total;
+    for (const [p, q, m] of r) { if (u <= m) { const f = u / m; ctx.fillStyle = ok ? hit : ink; ctx.beginPath(); ctx.arc(p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f, 3.6, 0, TAU); ctx.fill(); break; } u -= m; }
+  });
+  [[S, L('С', 'S')], [A, 'A'], [B, 'B'], [F, L('Ф', 'F')]].forEach(([p, txt]) => {
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(p[0], p[1], 14, 0, TAU); ctx.fill();
+    ctx.fillStyle = sur; ctx.font = '700 12px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, p[0], p[1] + .5);
+  });
+  ctx.font = '600 11px ' + tok('--f-mono'); ctx.fillStyle = muted; ctx.textBaseline = 'middle';
+  const mid = (p, q, dx, dy) => [(p[0] + q[0]) / 2 + dx, (p[1] + q[1]) / 2 + dy];
+  const tag = (p, txt, al) => { ctx.textAlign = al; ctx.fillText(txt, p[0], p[1]); };
+  const m1 = L(' хв', ' min');
+  tag(mid(S, A, -8, -10), 'T/100' + (ok ? ' = 40' + m1 : ''), 'right');
+  tag(mid(A, F, 8, -10), '45' + m1, 'left');
+  tag(mid(S, B, -8, 10), '45' + m1, 'right');
+  tag(mid(B, F, 8, 10), 'T/100' + (ok ? ' = 40' + m1 : ''), 'left');
+  ctx.textAlign = 'left'; ctx.fillStyle = ok ? hit : muted; ctx.font = (ok ? '700 ' : '600 ') + '12px ' + tok('--f-mono');
+  ctx.fillText(ok ? '0' + m1 : '0' + m1 + ' ?', A[0] + 12, (A[1] + B[1]) / 2);
+  ctx.font = '800 ' + (W < 420 ? 15 : 18) + 'px ' + tok('--f-display'); ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = ok ? hit : ink; ctx.fillText(ok ? '80' + m1 : '65' + m1 + ' → ?', W - 14, H - 14);
+  const cap = ok ? L('Перемичка найшвидша для кожного водія окремо, тож нею їдуть усі 4000. Обидві вузькі вулиці забиті: 40 + 0 + 40 = 80 хвилин замість 65.', 'The shortcut is fastest for each driver alone, so all 4,000 take it. Both narrow streets are jammed: 40 + 0 + 40 = 80 minutes instead of 65.')
+    : L('4000 водіїв, по 2000 на кожному маршруті, 20 + 45 = 65 хвилин. Пунктир показує нову миттєву перемичку A → B. Що з нею станеться?', '4,000 drivers, 2,000 on each route, 20 + 45 = 65 minutes. The dashed line is the new instant shortcut A → B. What will happen with it?');
+  if (cap !== heroCapText) { heroCapText = cap; $('#hero-cap').textContent = cap; }
+}
+function heroLoop(now) { heroDraw(now); if (!reduce() && hero.visible) hero.raf = requestAnimationFrame(heroLoop); else hero.raf = 0; }
+function heroStart() {
+  if (hero.raf) cancelAnimationFrame(hero.raf);
+  hero.raf = 0;
+  if (reduce()) { heroDraw(); return; }
+  hero.raf = requestAnimationFrame(heroLoop);
+}
+if ('IntersectionObserver' in window) new IntersectionObserver(es => {
+  hero.visible = es[0].isIntersecting;
+  if (hero.visible && !hero.raf && !reduce()) hero.raf = requestAnimationFrame(heroLoop);
+}).observe($('#hero-cv'));
+
+/* ---------- round 1: guess ---------- */
+const guessIn = $('#guess-n');
+let guessed = null;
+guessIn.addEventListener('input', () => { $('#guess-v').textContent = guessIn.value; });
+$('#guess-go').addEventListener('click', () => { guessed = +guessIn.value; guessText(); window.mpSolve && mpSolve(guessed); });
+function guessText() {
+  if (guessed === null) return;
+  const g = guessed;
+  let verdict;
+  if (g < 65) verdict = L('Так відповідає більшість: нова дорога має прискорити рух. Але кожен водій окремо обирає перемичку, обидві вузькі вулиці заповнюються до 4000 машин, і поїздка стає довшою, а не коротшою.', 'That is what most people say: a new road should speed things up. But each driver on their own picks the shortcut, both narrow streets fill up to 4,000 cars, and the trip gets longer, not shorter.');
+  else if (g === 65) verdict = L('Логічно припустити, що в найгіршому разі нічого не зміниться: перемичкою можна просто не їхати. Але відмовитися від неї невигідно жодному водієві окремо, і всі разом програють 15 хвилин.', 'It is logical to assume that at worst nothing changes: you can just not use the shortcut. But refusing it pays off for no single driver, and together they all lose 15 minutes.');
+  else if (g < 80) verdict = L('Ви відчули підступ: стане гірше. Але гірше, ніж здається: перемичкою поїдуть усі 4000 водіїв, а не частина.', 'You sensed the trap: it gets worse. But worse than it seems: all 4,000 drivers take the shortcut, not just some of them.');
+  else if (g === 80) verdict = L('Точно. Перемичкою їдуть усі 4000, кожна вузька вулиця займає 40 хвилин, і поїздка займає 80. На 15 хвилин довше, ніж без нової дороги.', 'Exactly. All 4,000 take the shortcut, each narrow street takes 40 minutes, and the trip takes 80. That is 15 minutes longer than without the new road.');
+  else verdict = L('Надто песимістично. Гірше справді стане, але не більше ніж до 80 хвилин: тоді всі вже на перемичці, і далі йти нікуди.', 'Too gloomy. It does get worse, but no further than 80 minutes: by then everyone is on the shortcut, and there is nowhere further to go.');
+  const rows = [[L('Ваша відповідь', 'Your answer'), g, 'var(--day)'], [L('Без перемички', 'No shortcut'), 65, 'var(--muted)'], [L('З перемичкою', 'With the shortcut'), 80, 'var(--hit)']];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">' + minW(80) + '</p>' +
+    '<p>' + verdict + '</p><div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + Math.min(100, 100 * r[1] / 110) + '%"></i></div><span class="mono">' + minW(r[1]) + '</span></div>').join('') + '</div>' +
+    '<div class="routes">' + routesHTML({ a: 0, b: 0, z: N0, open: true }, { marks: true }) + '</div>' +
+    '<p>' + L('Перемичкою: 40 + 0 + 40 = 80 хвилин. Будь-який старий маршрут тепер займає 40 + 45 = 85, тож з\'їхати з перемички нікому не вигідно. Перевірте це в раунді 2.', 'Via the shortcut: 40 + 0 + 40 = 80 minutes. Either old route now takes 40 + 45 = 85, so nobody gains by leaving the shortcut. Check it in round 2.') + '</p>';
+}
+
+/* ---------- round 2: route the cars ---------- */
+const g = { a: 2000, b: 2000, z: 0, open: false, timer: 0, found: false, steps: 0 };
+function gSync() {
+  if (!g.open) { g.b += g.z; g.z = 0; }
+  $('#g-t').value = g.a; $('#g-z').value = g.z; $('#g-z').disabled = !g.open;
+  $('#g-open').setAttribute('aria-pressed', g.open);
+}
+// who wants to switch: the slowest used route against the fastest open one
+function gWorst() {
+  const t = times(g.a, g.b, g.z), r = [['A', g.a, t.A], ['B', g.b, t.B]];
+  if (g.open) r.push(['Z', g.z, t.Z]);
+  const best = r.reduce((m, x) => x[2] < m[2] ? x : m), used = r.filter(x => x[1] > 0), worst = used.reduce((m, x) => x[2] > m[2] ? x : m);
+  return { best, worst, gap: worst[2] - best[2] };
+}
+const rName = k => k === 'A' ? L('через A', 'via A') : k === 'B' ? L('через B', 'via B') : L('перемичкою', 'via the shortcut');
+function gText() {
+  $('#g-net').innerHTML = netSVG(g);
+  $('#g-tv').textContent = fmt(g.a); $('#g-zv').textContent = fmt(g.z);
+  $('#g-routes').innerHTML = routesHTML(g, { marks: true });
+  const avg = avgTime(g.a, g.b, g.z);
+  $('#g-avg').textContent = L('Середній час: ', 'Average time: ') + minW(avg) + L('. Через B їдуть решта: ', '. The rest go via B: ') + fmt(g.b) + '.';
+  const w = gWorst();
+  let v;
+  if (w.gap > .02) {
+    const gain = gainOf(w.worst[0], w.best[0]);
+    v = '<p><span class="bad">' + L('Нестійко.', 'Unstable.') + '</span> ' + L('Водієві, який їде ' + rName(w.worst[0]) + ', вигідно перейти на маршрут ' + rName(w.best[0]) + ': він виграє ' + minW(gain) + '.', 'A driver going ' + rName(w.worst[0]) + ' gains ' + minW(gain) + ' by switching to the route ' + rName(w.best[0]) + '.') + '</p>';
+  } else {
+    v = '<p><span class="good">' + L('Рівновага.', 'Equilibrium.') + '</span> ' + L('Жодному водієві не вигідно міняти маршрут самому.', 'No driver gains by changing route alone.') + '</p>';
+    if (g.open) v += '<p class="note">' + L('Перемичкою їдуть ' + fmt(g.z) + ' з 4000, і кожен витрачає ' + minW(avg) + '. Без перемички було б 65.', fmt(g.z) + ' of 4,000 use the shortcut, and each spends ' + minW(avg) + '. Without the shortcut it would be 65.') + '</p>';
+  }
+  $('#g-verdict').innerHTML = v;
+  $('#g-hint').textContent = g.open
+    ? L('Червоний час означає, що з цього маршруту водії хочуть піти, зелений показує найшвидший маршрут.', 'A red time means drivers want to leave that route; green marks the fastest route.')
+    : L('Відкрийте перемичку перемикачем під мережею. Поки її немає, стійкий лише поділ 2000 на 2000.', 'Open the shortcut with the switch under the network. While it is closed, only the 2,000 / 2,000 split is stable.');
+}
+// what a driver on route p wins by moving alone to route q
+function gainOf(p, q) {
+  const s = { A: g.a, B: g.b, Z: g.z }; s[p]--; s[q]++;
+  return times(g.a, g.b, g.z)[p] - times(s.A, s.B, s.Z)[q];
+}
+function gStep() {
+  const w = gWorst();
+  if (w.gap <= .02) return false;
+  // never move enough to overshoot: each mover shifts the gap by at most 0.02 minutes
+  const k = Math.min(100, w.worst[1], Math.max(1, Math.floor(w.gap * 25)));
+  const s = { A: g.a, B: g.b, Z: g.z }; s[w.worst[0]] -= k; s[w.best[0]] += k;
+  g.a = s.A; g.b = s.B; g.z = s.Z; g.steps++;
+  return true;
+}
+function gStop() { clearTimeout(g.timer); g.timer = 0; $('#g-go').disabled = false; }
+function gGo() {
+  gStop();
+  if (reduce()) { let i = 0; while (gStep() && i++ < 10000); gSync(); gText(); return; }
+  $('#g-go').disabled = true;
+  (function tick() { if (gStep()) { gSync(); gText(); g.timer = setTimeout(tick, 40); } else gStop(); })();
+}
+$('#g-t').addEventListener('input', () => { gStop(); g.a = +$('#g-t').value; if (g.a + g.z > N0) g.z = N0 - g.a; g.b = N0 - g.a - g.z; gSync(); gText(); });
+$('#g-z').addEventListener('input', () => { gStop(); g.z = +$('#g-z').value; if (g.a + g.z > N0) g.a = N0 - g.z; g.b = N0 - g.a - g.z; gSync(); gText(); });
+$('#g-open').addEventListener('click', () => { gStop(); g.open = !g.open; gSync(); gText(); });
+$('#g-even').addEventListener('click', () => { gStop(); g.a = 2000; g.b = 2000; g.z = 0; gSync(); gText(); });
+$('#g-best').addEventListener('click', () => { gStop(); g.open = true; g.a = 1750; g.b = 1750; g.z = 500; gSync(); gText(); });
+$('#g-go').addEventListener('click', gGo);
+
+/* ---------- round 3: day-by-day simulation ---------- */
+const SIM = { N: N0, D: 80, OPEN: 10, CLOSE: 60 };
+let simRes = null, simTimer = 0, simShown = 0;
+function gauss() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * v); }
+// each morning a driver reconsiders with probability p and picks the route with the least of yesterday's time plus app error
+function simulate(p, sigma) {
+  const { N, D, OPEN, CLOSE } = SIM, route = new Uint8Array(N), days = [];
+  for (let i = 0; i < N; i++) route[i] = Math.random() < .5 ? 0 : 1;
+  let prev = null;
+  for (let d = 0; d < D; d++) {
+    const open = d >= OPEN && d < CLOSE;
+    if (prev) for (let i = 0; i < N; i++) {
+      if (!(route[i] === 2 && !open) && Math.random() >= p) continue;
+      const c = [prev.A + sigma * gauss(), prev.B + sigma * gauss(), open ? prev.Z + sigma * gauss() : Infinity];
+      route[i] = c[0] <= c[1] && c[0] <= c[2] ? 0 : c[1] <= c[2] ? 1 : 2;
+    }
+    const n = [0, 0, 0]; for (let i = 0; i < N; i++) n[route[i]]++;
+    const t = times(n[0], n[1], n[2]);
+    days.push({ open, n, A: t.A, B: t.B, Z: t.Z, avg: avgTime(n[0], n[1], n[2]) });
+    prev = t;
+  }
+  return days;
+}
+function simRun() {
+  clearTimeout(simTimer);
+  simRes = simulate(+$('#sim-p').value / 100, +$('#sim-s').value);
+  if (reduce()) { simShown = SIM.D; simDraw(); simText(); return; }
+  simShown = 0;
+  (function tick() { simShown = Math.min(SIM.D, simShown + 2); simDraw(); simText(); if (simShown < SIM.D) simTimer = setTimeout(tick, 45); })();
+}
+function simDraw() {
+  const st = setupCanvas($('#sim-cv')); if (!st || !simRes) return;
+  const { ctx, W, H } = st;
+  const { x, y } = axes(ctx, W, H, { x0: 0, x1: SIM.D, y0: 30, y1: 95, xs: [1, 10, 20, 30, 40, 50, 60, 70, 80], ys: [30, 45, 65, 80, 95], xl: v => v, yl: v => v });
+  ctx.fillStyle = tok('--cell'); ctx.globalAlpha = .55; ctx.fillRect(x(SIM.OPEN), 14, x(SIM.CLOSE) - x(SIM.OPEN), H - 42); ctx.globalAlpha = 1;
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(L('перемичка відкрита', 'shortcut open'), x(SIM.OPEN) + 6, 18);
+  ctx.textAlign = 'right'; ctx.fillText(L('день', 'day'), W - 12, H - 40);
+  const days = simRes.slice(0, simShown);
+  const plot = (f, col, wd, dash, only) => {
+    ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash || []); ctx.beginPath(); let on = false;
+    days.forEach((d, i) => { if (only && !only(d)) { on = false; return; } const px = x(i + .5), py = y(Math.max(30, Math.min(95, f(d)))); on ? ctx.lineTo(px, py) : ctx.moveTo(px, py); on = true; });
+    ctx.stroke(); ctx.setLineDash([]);
+  };
+  plot(d => d.A, tok('--road'), 1.6); plot(d => d.B, tok('--road'), 1.6, [4, 3]);
+  plot(d => d.Z, tok('--short'), 2, null, d => d.open);
+  plot(d => d.avg, tok('--ink'), 3);
+}
+function simText() {
+  const s = +$('#sim-p').value, sg = +$('#sim-s').value;
+  $('#sim-pv').textContent = s + '%'; $('#sim-sv').textContent = '±' + sg + L(' хв', ' min');
+  if (!simRes) return;
+  const done = simShown >= SIM.D, d = simRes, mean = (a, b) => { let s = 0; for (let i = a; i < b; i++) s += d[i].avg; return s / (b - a); };
+  const day = i => simShown > i ? d[i] : null;
+  $('#t-before').textContent = simShown >= SIM.OPEN ? minW(mean(0, SIM.OPEN)) : '…';
+  $('#t-befores').textContent = L('середній час за перші 10 днів', 'average over the first 10 days');
+  const e = day(SIM.OPEN);
+  $('#t-early').textContent = e ? minW(e.Z) : '…';
+  $('#t-earlys').textContent = e ? L(fmt(e.n[2]) + ' ' + driversW(e.n[2]) + ' на перемичці, решта їде ' + minW((e.n[0] * e.A + e.n[1] * e.B) / (e.n[0] + e.n[1] || 1)), fmt(e.n[2]) + ' drivers on the shortcut, the rest drive ' + minW((e.n[0] * e.A + e.n[1] * e.B) / (e.n[0] + e.n[1] || 1))) : '';
+  const o = day(SIM.CLOSE - 1);
+  $('#t-open').textContent = o ? minW(o.avg) : '…';
+  $('#t-opens').textContent = o ? L('на перемичці ' + dec((100 * o.n[2] / SIM.N).toFixed(1)) + '% водіїв', dec((100 * o.n[2] / SIM.N).toFixed(1)) + '% of drivers on the shortcut') : '';
+  const f = done ? d[SIM.D - 1] : null;
+  $('#t-after').textContent = f ? minW(f.avg) : '…';
+  $('#t-afters').textContent = f ? L('через A ' + fmt(f.n[0]) + ', через B ' + fmt(f.n[1]), 'via A ' + fmt(f.n[0]) + ', via B ' + fmt(f.n[1])) : '';
+}
+$('#sim-p').addEventListener('input', simText);
+$('#sim-s').addEventListener('input', simText);
+$('#sim-p').addEventListener('change', simRun);
+$('#sim-s').addEventListener('change', simRun);
+$('#sim-run').addEventListener('click', simRun);
+
+/* ---------- round 4: what one switcher gains and costs ---------- */
+function exText() {
+  const z = +$('#ex-z').value, rest = N0 - z, a = Math.ceil(rest / 2), b = rest - a;
+  $('#ex-zv').textContent = fmt(z);
+  // a driver from the route via A moves to the shortcut: the street B → Finish gets one more car
+  const before = times(a, b, z), after = times(a - 1, b, z + 1);
+  const gain = a > 0 ? before.A - after.Z : 0, cost = (b + z) / K;
+  const mx = 45;
+  $('#ex-bars').innerHTML = [[L('Виграє він сам', 'Gain to the switcher'), gain, 'var(--win)'], [L('Втрачають інші разом', 'Loss to everyone else'), cost, 'var(--loss)']]
+    .map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + Math.min(100, 100 * r[1] / mx) + '%"></i></div><span class="mono">' + minW(r[1]) + '</span></div>').join('');
+  $('#ex-txt').textContent = a === 0 ? L('Через A вже ніхто не їде.', 'Nobody goes via A any more.')
+    : L('Водій із маршруту через A переходить на перемичку. Сам він їхав ' + minW(before.A) + ', а тепер ' + minW(after.Z) + '. Вулицею B → Фініш уже їдуть ' + fmt(b + z) + ' ' + driversW(b + z) + ', і кожен утратить 1/100 хвилини. ' + (gain > cost ? 'Разом місто виграє.' : 'Разом місто програє.'),
+      'A driver on the route via A moves to the shortcut. They used to drive ' + minW(before.A) + ', and now ' + minW(after.Z) + '. ' + fmt(b + z) + ' drivers already use the street B → Finish, and each loses 1/100 of a minute. ' + (gain > cost ? 'Overall the city gains.' : 'Overall the city loses.'));
+}
+$('#ex-z').addEventListener('input', exText);
+
+/* ---------- round 5: number of drivers ---------- */
+function nText() {
+  const n = +$('#n-n').value, a = eqTime(n, false), b = eqTime(n, true);
+  $('#n-nv').textContent = fmt(n);
+  $('#n-a').textContent = minW(a); $('#n-b').textContent = minW(b);
+  $('#n-r').textContent = n ? dec((b / a).toFixed(3)) : '–';
+  $('#n-txt').textContent = n < 3000 ? L('Машин мало: перемичка допомагає.', 'Few cars: the shortcut helps.')
+    : n === 3000 ? L('Рівно 3000: з перемичкою і без неї однаково, 60 хвилин.', 'Exactly 3,000: with or without the shortcut it is the same, 60 minutes.')
+    : n < 9000 ? L('Зона парадоксу: з перемичкою всім гірше.', 'The paradox zone: with the shortcut everyone is worse off.')
+    : L('Затор такий, що перемичкою ніхто не їде, і вона нічого не змінює.', 'The jam is so bad that nobody takes the shortcut, and it changes nothing.');
+  nDraw();
+}
+function nDraw() {
+  const st = setupCanvas($('#n-cv')); if (!st) return;
+  const { ctx, W, H } = st, n = +$('#n-n').value, NM = 12000;
+  const { x, y } = axes(ctx, W, H, { l: 34, x0: 0, x1: NM, y0: 0, y1: 120, xs: [0, 3000, 4500, 9000, 12000], ys: [0, 45, 90, 120], xl: v => v ? fmt(v / 1000) + L(' тис.', 'k') : '0' });
+  ctx.fillStyle = tok('--cell'); ctx.globalAlpha = .55; ctx.fillRect(x(3000), 14, x(9000) - x(3000), H - 42); ctx.globalAlpha = 1;
+  const plot = (open, col, wd, dash) => { ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash || []); ctx.beginPath(); for (let v = 0; v <= NM; v += 50) { const px = x(v), py = y(Math.min(120, eqTime(v, open))); v ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke(); ctx.setLineDash([]); };
+  plot(false, tok('--ink'), 2, [5, 4]); plot(true, tok('--hit'), 2.5);
+  [[eqTime(n, false), tok('--ink')], [eqTime(n, true), tok('--hit')]].forEach(([v, c]) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x(n), y(Math.min(120, v)), 4.5, 0, TAU); ctx.fill(); });
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(L('хв · пунктир: без перемички', 'min · dashed: no shortcut'), 38, 0);
+}
+$('#n-n').addEventListener('input', nText);
+
+/* ---------- round 5: Pigou's two roads ---------- */
+// share x on the variable road x^d, the rest on the fixed one-hour road
+const pgOpt = d => Math.pow(d + 1, -1 / d);
+const pgCost = (d, x) => x * Math.pow(x, d) + (1 - x);
+function pgText() {
+  const d = +$('#pg-d').value, x = pgOpt(d), c = pgCost(d, x), poa = 1 / c;
+  $('#pg-dv').textContent = d;
+  $('#pg-n').textContent = '60' + L(' хв', ' min');
+  $('#pg-o').textContent = minW(60 * c, 1);
+  $('#pg-p').textContent = d === 1 ? '4/3' : dec(poa.toFixed(2));
+  $('#pg-bars').innerHTML = [[L('Кожен сам', 'Each for themselves'), 60, 'var(--hit)'], [L('Диспетчер', 'Dispatcher'), 60 * c, 'var(--ink)']]
+    .map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1] / 60) + '%"></i></div><span class="mono">' + minW(r[1], 1) + '</span></div>').join('');
+  $('#pg-txt').textContent = L('Диспетчер пускає змінною дорогою ' + dec((100 * x).toFixed(1)) + '% водіїв, решту дорогою на годину. Змінна дорога тоді займає ' + minW(60 * Math.pow(x, d), 1) + '.', 'The dispatcher sends ' + dec((100 * x).toFixed(1)) + '% of drivers by the variable road and the rest by the one-hour road. The variable road then takes ' + minW(60 * Math.pow(x, d), 1) + '.');
+}
+$('#pg-d').addEventListener('input', pgText);
+
+/* ---------- round 5: your best choice ---------- */
+function lgText() {
+  const z = +$('#lg-z').value, rest = 3999 - z, a = Math.ceil(rest / 2), b = rest - a;
+  $('#lg-zv').textContent = fmt(z);
+  // your time on each route, with you added to it
+  const tA = times(a + 1, b, z).A, tB = times(a, b + 1, z).B, tZ = times(a, b, z + 1).Z;
+  const best = Math.min(tA, tB, tZ);
+  $('#lg-routes').innerHTML = [[L('Ви через A', 'You via A'), tA], [L('Ви через B', 'You via B'), tB], [L('Ви перемичкою', 'You via the shortcut'), tZ]]
+    .map(r => '<div class="route' + (r[1] === best ? ' best' : '') + '"><span>' + r[0] + '</span><span class="n"></span><span class="t">' + minW(r[1]) + '</span></div>').join('');
+  $('#lg-msg').innerHTML = L('Перемичка швидша для вас на ' + minW(Math.min(tA, tB) - tZ) + '. ', 'The shortcut is ' + minW(Math.min(tA, tB) - tZ) + ' faster for you. ') +
+    (z === 3999 ? L('Тут усі вже на перемичці, і кожен їде <b>' + minW(tZ) + '</b>.', 'Here everyone is already on the shortcut, and each drives <b>' + minW(tZ) + '</b>.')
+      : z === 0 ? L('Але якщо так подумають усі, кожен їхатиме 80 хвилин.', 'But if everyone thinks so, each will drive 80 minutes.') : '');
+}
+$('#lg-z').addEventListener('input', lgText);
+
+/* ---------- round 5: a toll on the shortcut ---------- */
+function tlText() {
+  const tau = +$('#tl-t').value, z = tollZ(tau), rest = (N0 - z) / 2;
+  $('#tl-tv').textContent = mn(tau, 1);
+  $('#tl-z').textContent = fmt(z);
+  $('#tl-a').textContent = minW(avgTime(rest, rest, z));
+  $('#tl-txt').textContent = tau < 5 ? L('Плата замала: перемичкою й далі їдуть усі.', 'The toll is too small: everyone still takes the shortcut.')
+    : tau >= 25 ? L('Плата така велика, що перемичкою ніхто не їде: те саме, що її закрити.', 'The toll is so high that nobody takes the shortcut: the same as closing it.')
+    : Math.abs(tau - 22.5) < .01 ? L('Найкраща плата: 500 водіїв на перемичці, як у диспетчера.', 'The best toll: 500 drivers on the shortcut, as with the dispatcher.')
+    : L('Частина водіїв вирішує, що перемичка не варта плати.', 'Some drivers decide the shortcut is not worth the toll.');
+  tlDraw();
+}
+function tlDraw() {
+  const st = setupCanvas($('#tl-cv')); if (!st) return;
+  const { ctx, W, H } = st, tau = +$('#tl-t').value;
+  const f = v => { const z = tollZ(v), r = (N0 - z) / 2; return avgTime(r, r, z); };
+  const { x, y } = axes(ctx, W, H, { l: 34, x0: 0, x1: 30, y0: 60, y1: 82, xs: [0, 5, 10, 15, 22.5, 30], ys: [60, 65, 70, 75, 80], xl: v => dec(String(v)) });
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let v = 0; v <= 30; v += .25) { v ? ctx.lineTo(x(v), y(f(v))) : ctx.moveTo(x(v), y(f(v))); }
+  ctx.stroke();
+  ctx.fillStyle = tok('--hit'); ctx.beginPath(); ctx.arc(x(tau), y(f(tau)), 5, 0, TAU); ctx.fill();
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(L('середній час, хв · плата, хв', 'average time, min · toll, min'), 38, 0);
+}
+$('#tl-t').addEventListener('input', tlText);
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Парадокс Браеса: нова дорога, а їхати довше', 'Braess\'s Paradox: a New Road, a Longer Trip');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  heroCapText = ''; heroDraw(); guessText(); gText(); simDraw(); simText(); exText(); nText(); pgText(); lgText(); tlText();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang || lang; applyLang(); });
+document.addEventListener('solved', () => { heroCapText = ''; heroDraw(); });
+const redraw = () => { heroDraw(); simDraw(); nDraw(); tlDraw(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state ---------- */
+gSync();
+simRes = simulate(.1, 1); simShown = SIM.D;
+applyLang();
+heroStart();
+})();
+</script>

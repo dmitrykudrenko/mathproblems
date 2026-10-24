@@ -1,0 +1,1338 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/survivorship-bias/", "en": "/survivorship-bias/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "survivorship-bias";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>Survivorship Bias: Armour the Planes Where the Holes Aren&#x27;t</title>
+<meta name="description" content="Returning planes have few engine holes: planes hit there never came back. Wald&#x27;s problem with an armour game, a simulation and Bayes&#x27; formula.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/survivorship-bias/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/survivorship-bias/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/survivorship-bias/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/survivorship-bias/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="Survivorship bias: Wald&#x27;s planes">
+<meta property="og:description" content="Bombers come back with holes in the fuselage and wings, and hardly any on the engines. Where should the armour go?">
+<meta property="og:url" content="https://mathparadoxes.com/survivorship-bias/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/survivorship-bias/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A bomber seen from above, covered in bullet holes, with a question mark. Where should the armour go?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Survivorship bias: Wald&#x27;s planes">
+<meta name="twitter:description" content="Bombers come back with holes in the fuselage and wings, and hardly any on the engines. Where should the armour go?">
+<meta name="twitter:image" content="https://mathparadoxes.com/survivorship-bias/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/survivorship-bias/en/#page", "url": "https://mathparadoxes.com/survivorship-bias/en/", "name": "Survivorship Bias: Armour the Planes Where the Holes Aren't", "description": "Returning planes have few engine holes: planes hit there never came back. Wald's problem with an armour game, a simulation and Bayes' formula.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "beginner", "about": {"@type": "Thing", "name": "Survivorship bias", "sameAs": "https://en.wikipedia.org/wiki/Survivorship_bias"}, "image": "https://mathparadoxes.com/survivorship-bias/og-en.png", "datePublished": "2026-10-24", "dateModified": "2026-10-24", "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "citation": [{"@type": "Book", "name": "How Not to Be Wrong", "author": [{"@type": "Person", "name": "Jordan Ellenberg"}], "datePublished": "2014", "isbn": "9781594205224"}], "translationOfWork": {"@id": "https://mathparadoxes.com/survivorship-bias/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "Survivorship bias: Wald's planes", "item": "https://mathparadoxes.com/survivorship-bias/en/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/survivorship-bias/en/#faq", "inLanguage": "en", "mainEntity": [{"@type": "Question", "name": "Where should the armour go if returning planes have most holes in the fuselage and wings?", "acceptedAnswer": {"@type": "Answer", "text": "On the engines and cockpit, where the holes are fewest. Holes on returning planes show hits the plane survived. Engine hits are more often fatal, so planes hit there do not come back and never reach the diagrams. In the page's model this armour cuts losses from 20.8% to 10.1%, while armouring the fuselage and wings only gets them to 17.5%."}}, {"@type": "Question", "name": "What is survivorship bias?", "acceptedAnswer": {"@type": "Answer", "text": "It is drawing conclusions from a sample that passed a filter as if it stood for everyone. We see the planes that came back, the funds that were not shut, the companies that succeeded, and not those that dropped out. If dropping out depends on what we measure, the conclusion is skewed."}}, {"@type": "Question", "name": "What did Abraham Wald actually do?", "acceptedAnswer": {"@type": "Answer", "text": "In 1943, in the Statistical Research Group at Columbia University, he wrote eight technical memoranda on estimating a plane's vulnerability from the damage on survivors. They contain no advice on where to put armour. The memoranda were published in 1980 and explained by Mangel and Samaniego in 1984. The red-dot picture was drawn on Wikipedia in 2016."}}, {"@type": "Question", "name": "Is it true that cats survive falls from high floors better?", "acceptedAnswer": {"@type": "Answer", "text": "The claim rests on a 1987 study of 132 cats that were brought to a clinic alive. Cats killed by the fall were less often brought in, so the sample may be skewed. A 2004 study of 119 cats found that falls from the seventh floor or higher went with more severe injuries."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the birthday page. A bomber seen from above, holes collecting on the planes that came back, is this problem's signature object. */
+:root {
+  --tint: #DCE6E1;
+  --paper: #EEF2EF;
+  --surface: #FFFFFF;
+  --ink: #142019;
+  --muted: #56645C;
+  --line: #D0DAD4;
+  --day: #1F5A45;
+  --day-ink: #EFF7F2;
+  --hit: #C23A7A;
+  --hit-soft: #F8E1EC;
+  --plane: #D9E0DC;
+  --plane-edge: #9AA7A0;
+  --armor: #6F7C75;
+  --band: #D3DBEA;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; justify-items: center; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); justify-self: stretch; min-height: 2.6em; }
+canvas.yard { aspect-ratio: 1 / 1; height: auto; max-width: 420px; margin-inline: auto; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #fff; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+canvas { display: block; width: 100%; }
+canvas.plane { aspect-ratio: 1 / 1; height: auto; max-width: 440px; margin-inline: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+.holes-tbl { margin-top: 8px; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 150px 1fr 64px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+.crow .mono { text-align: right; }
+.opts { display: grid; gap: 10px; }
+.opts button { text-align: left; border: 1.5px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; cursor: pointer; display: grid; gap: 2px; }
+.opts button b { font-weight: 600; }
+.opts button span.s { font-size: .84rem; color: var(--muted); }
+.opts button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: #fff; }
+.opts button[aria-pressed="true"] span.s { color: rgba(255,255,255,.75); }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 14px; }
+.status { display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; }
+.status .mm b { color: var(--hit); }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--hit); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button { border: 1.5px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.chips button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+.log { display: grid; gap: 6px; font-size: .84rem; margin-top: 12px; max-height: 240px; overflow-y: auto; }
+.log div { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+
+/* ---------- simulation ---------- */
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.sim2 { display: grid; grid-template-columns: 1fr 1.1fr; gap: 20px; margin-top: 10px; }
+.sim2 > div { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.sim2 h3 { font-size: .95rem; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.secs { display: grid; gap: 12px; }
+.sec { display: grid; grid-template-columns: 84px 1fr; gap: 10px; align-items: center; font-size: .84rem; }
+.sec .bars { display: grid; gap: 3px; }
+.sec .bar { height: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; position: relative; overflow: hidden; }
+.sec .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 6px; }
+.sec .bar em { position: absolute; top: -1px; bottom: -1px; width: 2px; background: var(--ink); }
+.sec .bar span { position: absolute; right: 6px; top: -2px; font-family: var(--f-mono); font-size: .7rem; line-height: 14px; color: var(--ink); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+td.num.s { color: var(--hit); font-weight: 700; }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.res { font-family: var(--f-mono); font-size: .82rem; color: var(--muted); }
+.calc { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; }
+.calc .ctl input[type=range] { width: 100%; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim2, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .calc { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 104px 1fr 52px; }
+  .tiles { grid-template-columns: 1fr; }
+  td, th { padding: 8px 6px; }
+  table { font-size: .82rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=64688991">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/en/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/survivorship-bias/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/survivorship-bias/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    
+    <h1 class="en"><span class="kw">Survivorship bias</span> Bombers come back full of holes. <span class="q sp-before">Where should the armour go?</span><span class="q sp-after">Where the holes aren't.</span></h1>
+    
+    
+    <p class="lead en sp-before">Planes coming back from combat have most of their holes in the fuselage and wings, and hardly any on the engines. Armour is heavy, so only two parts of the plane can get it. Which ones? Lock in your answer, then check it in a game, on a simulation of ten thousand sorties and with the explanations.</p>
+    <p class="lead en sp-after">Planes coming back from combat have most of their holes in the fuselage and wings, and hardly any on the engines. The armour belongs exactly on the engines and the cockpit. There are few holes there not because nothing hits them, but because planes hit there do not come back. We only see the survivors. The idea is linked to Abraham Wald and his memoranda of 1943.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b><span class="en">84 of 120</span></b><span><span class="en">engine hits were on planes that never came back</span></span></div>
+      <div class="odd"><b><span class="en">4%</span></b><span><span class="en">of holes on the engines, which are 12% of the area</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="en">The puzzle</b></a>
+      <a href="#guess"><span>1</span><b class="en">Guess</b></a>
+      <a href="#game"><span>2</span><b class="en">Armour the planes</b></a>
+      <a href="#sim"><span>3</span><b class="en">10,000 sorties</b></a>
+      <a href="#why"><span>4</span><b class="en">Why it works</b></a>
+      <a href="#more"><span>5</span><b class="en">Wald's method and funds</b></a>
+      <a href="#facts"><span>★</span><b class="en" style="font-weight:inherit">Fun facts</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas class="yard" id="hero-cv"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">The puzzle</span></span>
+    <h2><span class="en">A squadron, the holes and too little armour</span></h2>
+    
+    <p class="lead en">The Second World War. Bombers fly over enemy territory every day, and some of them do not come back. Command wants to add armour, but knows that a heavy plane is slower and carries fewer bombs.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="en">Inspection after each sortie</span></h3>
+        
+        <p class="en">Every plane that comes back is inspected, and every hole from bullets and shrapnel is marked on a diagram. After a few months there are lots of diagrams.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="en">Where the holes are</span></h3>
+        
+        <p class="en">Out of every 100 holes on the returning planes: 42 in the fuselage, 40 in the wings, 10 in the tail, 4 on the engines and 4 in the cockpit.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="en">The constraint</span></h3>
+        
+        <p class="en">There is only enough armour for two of the plane's five parts: the engines, the cockpit, the fuselage, the wings or the tail. Armour does not make a part invulnerable, but it lowers the chance that a hit there brings the plane down.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="en">The question</span></h3>
+        
+        <p class="en">Where should the armour go so that as few planes as possible are lost?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="en">Intuition says</span></span>
+        <p class="q"><span class="en">"Where the holes are: on the fuselage and wings"</span></p>
+        
+        <p class="en">In fact the engines and the cockpit need the armour. Holes on the returning planes show hits the plane survived. Hits after which it did not come back are not on the diagrams at all.</p>
+      </div>
+      <div class="card">
+        <h3><span class="en">What we know</span></h3>
+        
+        <ul class="rules en">
+          <li>A gunner cannot aim at the engine specifically: bullets and shrapnel land on the plane <b>evenly</b>, each part gets hits in proportion to its area.</li>
+          <li>The plane's area: fuselage and wings 35% each, engines 12%, tail 10%, cockpit 8%.</li>
+          <li>The numbers on this page are a model, not wartime statistics. Wald's own worked example was made up too.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="en">Where should the armour go?</span></h2>
+    
+    <p class="lead en">There is armour for two parts. Pick an option before reading on.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <span class="note"><span class="en">Your answer</span></span>
+      <div class="opts" id="g-opts"></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Hints</span>
+    <p class="mp-hints-intro">Hard to decide? Open the hints one at a time: the easy one first, then stronger ones.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Imagine that any hit on an engine downs the plane at once. How many engine holes would you find on the planes that come back?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>Holes are counted only on the planes that came back. If bullets land evenly, the engines, which make up 12% of the area, should take about 12% of the hits. Where are the rest?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>Compare holes not with each other but with area. A part with far fewer holes than its area suggests is where a hit stops planes from coming back.</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Show hint 1 of 3 · easy&quot;, &quot;Show hint 2 of 3 · medium&quot;, &quot;Show hint 3 of 3 · strong&quot;]">Show hint 1 of 3 · easy</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "survivorship-bias";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 2 · Game</span></span>
+    <h2><span class="en">Armour the squadron</span></h2>
+    
+    <p class="lead en">Pick two parts to armour by clicking the plane or the buttons, and send 100 bombers on a mission. The diagram shows the holes on the planes that came back. Then show the planes that did not return and see where they were hit.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="chips" id="a-chips" role="group" aria-label="Броня / Armour"></div>
+      <canvas class="plane" id="game-cv" aria-label="Схема літака / Plane diagram"></canvas>
+      <div class="legend" style="margin-top:0">
+        <span style="--c:var(--ink)"><b class="en">hole on a plane that came back</b></span>
+        <span style="--c:var(--hit)"><b class="en">hit on a plane that did not return</b></span>
+        <span style="--c:var(--armor)"><b class="en">armour</b></span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="status">
+        <div><span class="k"><span class="en">Came back</span></span><b class="mono" id="g-ret">–</b></div>
+        <div class="mm"><span class="k"><span class="en">Lost</span></span><b class="mono" id="g-lost">–</b></div>
+      </div>
+      <p class="msg" id="g-msg" aria-live="polite" style="margin-top:10px"></p>
+      <div class="actions">
+        <button class="btn pri" id="g-fly"><span class="en">Send 100 planes</span></button>
+        <button class="btn hit" id="g-show"></button>
+      </div>
+      <div class="log" id="g-log"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="en">10,000 sorties without armour</span></h2>
+    
+    <p class="lead en">Each plane takes a random number of hits, 1.2 on average, and each hit lands at a random spot on the plane. A hit on an engine brings the plane down with probability 70%, on the cockpit 60%, on the tail 20%, on the wings 8%, on the fuselage 4%. Compare where all the planes were hit with where the holes are on those that came back. Change the number of hits and how vulnerable the engines are.</p>
+  </div>
+  <div class="card">
+    <div class="controls" style="margin:0 0 10px">
+      <label class="ctl" for="s-lam"><span><span class="en">Hits per plane on average:</span> <b class="mono" id="s-lam-v"></b></span><input type="range" id="s-lam" min="0.3" max="4" step="0.1" value="1.2"></label>
+      <label class="ctl" for="s-eng"><span><span class="en">An engine hit downs the plane:</span> <b class="mono" id="s-eng-v"></b></span><input type="range" id="s-eng" min="0" max="1" step="0.05" value="0.7"></label>
+      <button class="btn pri" id="sim-run"><span class="en">Run again</span></button>
+      <span class="note" id="sim-prog"></span>
+    </div>
+    <div class="sim2">
+      <div>
+        <h3><span class="en">Holes on the planes that came back</span></h3>
+        <canvas class="plane" id="cv-heat"></canvas>
+        <p class="note" id="heat-note"></p>
+      </div>
+      <div>
+        <h3><span class="en">Share of hits in each part</span></h3>
+        <div class="secs" id="secs"></div>
+        <div class="legend">
+          <span style="--c:var(--plane-edge)"><b class="en">all hits (area)</b></span>
+          <span style="--c:var(--ink)"><b class="en">holes on those that came back</b></span>
+          <span style="--c:var(--hit)"><b class="en">hits that downed a plane</b></span>
+        </div>
+        <p class="note"><span class="en">Bars show the simulation, the tick the exact value from the formula in round 4.</span></p>
+      </div>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="k"><span class="en">Came back</span></div><div class="v mono" id="tv-a">–</div><div class="s" id="ts-a"></div></div>
+      <div class="tile"><div class="k"><span class="en">Share of holes on engines</span></div><div class="v mono" id="tv-b">–</div><div class="s" id="ts-b"></div></div>
+      <div class="tile" style="--c:var(--hit)"><div class="k"><span class="en">Engine hits on lost planes</span></div><div class="v mono" id="tv-c">–</div><div class="s" id="ts-c"></div></div>
+      <div class="tile"><div class="k"><span class="en">Engine lethality from the holes</span></div><div class="v mono" id="tv-d">–</div><div class="s" id="ts-d"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 4 · Explanations</span></span>
+    <h2><span class="en">The missing holes are on the missing planes</span></h2>
+    
+    <p class="lead en">The hole diagrams come only from planes that came back. That is not a random sample of all planes: a plane gets into it only if it survived its hits.</p>
+  </div>
+  <div class="why-grid">
+    <div class="card">
+      <span class="kicker"><span class="en">The idea · an extreme case</span></span>
+      <h3><span class="en">What if an engine hit were always fatal?</span></h3>
+      
+      <p class="en">Then the returning planes would have no engine holes at all. There are two explanations: either the enemy somehow hits everywhere except the engines, or every engine hit brings the plane down. The second is far more plausible.</p>
+      
+      <p class="en">Our case is milder, but the logic is the same. The engines make up 12% of the area, yet carry only 4% of the holes. The other engine hits stayed on the planes that never returned.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Counting what is missing</span></span>
+      <h3><span class="en">1,000 planes, one hit each</span></h3>
+      
+      <p class="en">Say each of 1,000 planes was hit once. By area the engines should have taken 120 hits. The planes that came back carry just 36. So 84 engine hits went down with their planes.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="en">Part</span></th><th class="num"><span class="en">Expected</span></th><th class="num"><span class="en">Found</span></th><th class="num"><span class="en">Missing</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="en">Engines</span></td><td class="num">120</td><td class="num">36</td><td class="num s">84</td></tr>
+            <tr><td><span class="en">Cockpit</span></td><td class="num">80</td><td class="num">32</td><td class="num s">48</td></tr>
+            <tr><td><span class="en">Fuselage</span></td><td class="num">350</td><td class="num">336</td><td class="num">14</td></tr>
+            <tr><td><span class="en">Wings</span></td><td class="num">350</td><td class="num">322</td><td class="num">28</td></tr>
+            <tr><td><span class="en">Tail</span></td><td class="num">100</td><td class="num">80</td><td class="num">20</td></tr>
+            <tr><td><b><span class="en">Total</span></b></td><td class="num">1 000</td><td class="num">806</td><td class="num">194</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note"><span class="en">806 planes came back, each with one hole. 194 were lost, and 132 of them were downed by a hit on the engine or cockpit.</span></p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">A hole as evidence</span></span>
+      <h3><span class="en">Many holes mean "this is survivable"</span></h3>
+      
+      <p class="en">Every hole on a returning plane proves the plane survived that hit. A fuselage riddled with holes is the best evidence that the fuselage needs armour least.</p>
+      
+      <p class="en">Compare holes not with each other but with area. The fuselage has 1.19 times the average number of holes per unit of area, the engines just 0.37. The lower the ratio, the more often a hit there is fatal.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Assumptions</span></span>
+      <h3><span class="en">When the conclusion holds</span></h3>
+      
+      <ul class="rules en">
+        <li><b>Hits are even.</b> If the enemy aimed at the engines on purpose, holes would be missing there for other reasons.</li>
+        <li><b>Planes are lost to hits,</b> not to breakdowns or running out of fuel. Otherwise some "missing holes" are made up.</li>
+        <li><b>We know how many flew.</b> Without the number of planes sent you cannot count what is missing.</li>
+      </ul>
+      
+      <p class="en">In his memoranda Wald spelt out assumptions like these carefully and checked how they affect the conclusion.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">History</span></span>
+      <h3><span class="en">What Wald actually wrote</span></h3>
+      
+      <p class="en">Abraham Wald worked in the Statistical Research Group (SRG) at Columbia University. In 1943 he wrote eight technical memoranda on how to estimate a plane's vulnerability from the damage on survivors. They contain no advice on where to put armour: decisions were for the military.</p>
+      
+      <p class="en">The armour story was retold by the group's director, Allen Wallis, in 1980: the military wanted to protect the parts with the most hits, while Wald, he wrote, "assumed, on good evidence, that hits in combat were uniformly distributed". The dramatic details that circulate online are mostly later reconstructions.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">The red-dot picture</span></span>
+      <h3><span class="en">Not Wald's diagram</span></h3>
+      
+      <p class="en">The famous plane covered in red dots is modern. Wikipedia user McGeddon drew it in 2016 over a drawing of the Lockheed PV-1 Ventura patrol plane, and in 2021 Martin Grandjean turned it into a vector image. The idea comes from later US Air Force "hit plots". No diagrams by Wald, if he ever drew any, survive.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">For formula lovers</span></span>
+      <h3><span class="en">Bayes' formula for holes</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">A hit lands on part s with probability equal to its share of the area, a<sub>s</sub>. The plane survives a hit there with probability 1 − k<sub>s</sub>, where k<sub>s</sub> is the part's vulnerability.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mi>s</mi><mo stretchy="false">)</mo><mo>=</mo><msub><mi>a</mi><mi>s</mi></msub><mo>,</mo><mspace width="0.8em"></mspace><mi>P</mi><mo stretchy="false">(</mo><mtext class="en">returned</mtext><mo>∣</mo><mi>s</mi><mo stretchy="false">)</mo><mo>=</mo><mn>1</mn><mo>−</mo><msub><mi>k</mi><mi>s</mi></msub></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Bayes' formula: where the hole is on a plane that came back.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mi>s</mi><mo>∣</mo><mtext class="en">returned</mtext><mo stretchy="false">)</mo><mo>=</mo><mfrac><mrow><msub><mi>a</mi><mi>s</mi></msub><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>k</mi><mi>s</mi></msub><mo stretchy="false">)</mo></mrow><mrow><munder><mo>∑</mo><mi>j</mi></munder><msub><mi>a</mi><mi>j</mi></msub><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>k</mi><mi>j</mi></msub><mo stretchy="false">)</mo></mrow></mfrac></math>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="en">engines</mtext><mo>∣</mo><mtext class="en">returned</mtext><mo stretchy="false">)</mo><mo>=</mo><mfrac><mrow><mrow><mn class="en">0.12</mn></mrow><mo>·</mo><mrow><mn class="en">0.3</mn></mrow></mrow><mrow><mn class="en">0.806</mn></mrow></mfrac><mo>=</mo><mrow class="hl"><mn class="en">4.5%</mn></mrow><mspace width="0.6em"></mspace><mtext class="en">instead of 12%</mtext></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Holes relative to area: the further below 1, the more vulnerable the part. Hence an estimate of vulnerability when we know how many planes flew (N) and came back (S).</span></p>
+          <math display="block"><mfrac><mrow><mi>P</mi><mo stretchy="false">(</mo><mi>s</mi><mo>∣</mo><mtext class="en">returned</mtext><mo stretchy="false">)</mo></mrow><msub><mi>a</mi><mi>s</mi></msub></mfrac><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><msub><mi>k</mi><mi>s</mi></msub></mrow><mrow><mi>S</mi><mo>/</mo><mi>N</mi></mrow></mfrac><mspace width="0.8em"></mspace><mo>⇒</mo><mspace width="0.8em"></mspace><msub><mover><mi>k</mi><mo>^</mo></mover><mi>s</mi></msub><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><msub><mi>H</mi><mi>s</mi></msub><mrow><mi>N</mi><msub><mi>a</mi><mi>s</mi></msub></mrow></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">If a plane takes several hits, their number is random (Poisson with mean λ), and each hit is independent. Then the shares of holes on the survivors are the same whatever λ is. The share that returns, and λ estimated from the holes:</span></p>
+          <math display="block"><mfrac><mi>S</mi><mi>N</mi></mfrac><mo>=</mo><msup><mi>e</mi><mrow><mo>−</mo><mi>λ</mi><munder><mo>∑</mo><mi>j</mi></munder><msub><mi>a</mi><mi>j</mi></msub><msub><mi>k</mi><mi>j</mi></msub></mrow></msup><mo>,</mo><mspace width="0.8em"></mspace><mover><mi>λ</mi><mo>^</mo></mover><mo>=</mo><mfrac><mi>H</mi><mi>S</mi></mfrac><mo>−</mo><mi>ln</mi><mfrac><mi>S</mi><mi>N</mi></mfrac><mo>,</mo><mspace width="0.8em"></mspace><msub><mover><mi>k</mi><mo>^</mo></mover><mi>s</mi></msub><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><msub><mi>H</mi><mi>s</mi></msub><mrow><mi>S</mi><mover><mi>λ</mi><mo>^</mo></mover><msub><mi>a</mi><mi>s</mi></msub></mrow></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Wald's basic equation: S<sub>i</sub> is how many planes came back with i hits, q<sub>i</sub> the chance of surviving the i-th hit. In Wald's example (as given by Mangel and Samaniego) 380 of 400 planes came back, 320 of them unhit.</span></p>
+          <math display="block"><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mfrac><msub><mi>S</mi><mi>i</mi></msub><mrow><msub><mi>q</mi><mn>1</mn></msub><msub><mi>q</mi><mn>2</mn></msub><mo>⋯</mo><msub><mi>q</mi><mi>i</mi></msub></mrow></mfrac><mo>=</mo><mi>N</mi><mo>−</mo><msub><mi>S</mi><mn>0</mn></msub><mspace width="0.8em"></mspace><mo>⇒</mo><mspace width="0.8em"></mspace><mi>q</mi><mo>≈</mo><mrow class="hl"><mn class="en">0.851</mn></mrow></math>
+        </div>
+      </div>
+      
+      <p class="en">The first row sets up the model. The second is Bayes' formula: the share of holes on the engines drops from 12% to 4.5%. The third turns it around: from the holes found, H<sub>s</sub>, and the area we estimate how deadly a hit on each part is. The fourth extends this to several hits. The last is the equation from Wald's memoranda: if the chance of surviving each hit is the same, in his example it is about 85%.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 5 · Scaling up</span></span>
+    <h2><span class="en">From planes to funds and cats</span></h2>
+    
+    <p class="lead en">How to see the invisible from the survivors' data, why surviving funds look smarter than the market, and where else this mistake hides.</p>
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">Recover the invisible</span></h3>
+        <p class="note"><span class="en">The computer has made up a new vulnerability for each part. You see only how many planes flew and came back, and where the holes are on the returning ones. The method from round 4 estimates the vulnerability, then you can reveal the truth.</span></p>
+        <div class="presets" id="w-n" role="group" aria-label="Літаків / Planes"></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th><span class="en">Part</span></th><th class="num"><span class="en">Area</span></th><th class="num"><span class="en">Holes</span></th><th class="num"><span class="en">Estimate</span></th><th class="num"><span class="en">Truth</span></th></tr></thead>
+            <tbody id="w-tbl"></tbody>
+          </table>
+        </div>
+        <p class="res" id="w-sum" aria-live="polite"></p>
+        <div class="actions">
+          <button class="btn pri" id="w-new"><span class="en">A new hidden plane</span></button>
+          <button class="btn hit" id="w-show"><span class="en">Reveal the truth</span></button>
+        </div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">The maths</span></span>
+        <h3><span class="en">Making the data speak</span></h3>
+        
+        <p class="en">The dead cannot tell their story, but their absence can be measured. The number of holes in each part on the survivors, together with the share that came back, gives exactly as many equations as unknowns: the average number of hits and the vulnerability of each of the five parts.</p>
+        
+        <p class="en">The precision depends on how many planes flew. With 200 sorties the estimate for small parts such as the cockpit is often 10 to 30 points off. With 10,000 the error is just a few points. In his memoranda Wald worked with exactly this kind of uncertainty: he derived not a single number but bounds within which the answer lies.</p>
+        
+        <p class="en">Wald's basic equation solves an even harder problem: knowing only how many planes came back with 0, 1, 2… hits, estimate the chance of surviving each further hit. For the 400-plane example it comes to about 85% per hit.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">The mutual fund graveyard</span></h3>
+        <p class="note"><span class="en">1,000 funds with no skill at all: each year every one trails the market by 1 point on average (fees) plus random noise. A fund that falls behind the market by more than the threshold is shut. After 15 years we average the results.</span></p>
+        <div class="calc">
+          <label class="ctl" for="f-th"><span><span class="en">Shut when behind by:</span> <b class="mono" id="f-th-v"></b></span><input type="range" id="f-th" min="2" max="40" step="1" value="10"></label>
+          <label class="ctl" for="f-sd"><span><span class="en">Yearly spread:</span> <b class="mono" id="f-sd-v"></b></span><input type="range" id="f-sd" min="1" max="10" step="0.5" value="6"></label>
+        </div>
+        <canvas id="f-cv" style="height:170px"></canvas>
+        <div class="legend" style="margin-top:0">
+          <span style="--c:var(--ink)"><b class="en">surviving funds</b></span>
+          <span style="--c:var(--plane-edge)"><b class="en">closed funds</b></span>
+        </div>
+        <div class="result-row">
+          <div><span class="k"><span class="en">Survivors on average, per year</span></span><b class="big hit mono" id="f-surv">–</b></div>
+          <div><span class="k"><span class="en">All funds, per year</span></span><b class="big mono" id="f-all">–</b></div>
+        </div>
+        <p class="note" id="f-note"></p>
+        <div class="actions"><button class="btn pri" id="f-run"><span class="en">A new 1,000 funds</span></button></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">The logic</span></span>
+        <h3><span class="en">A league table without the dead</span></h3>
+        
+        <p class="en">Funds, like planes, do not "die" at random: the ones closed or merged are precisely those that earn badly. So the average record of the funds that exist today is inflated. In the simulation no fund can beat the market, yet the survivors beat it on average. All funds together, the closed ones included, trail it by about their fees.</p>
+        
+        <p class="en">In 1996 Elton, Gruber and Blake put this inflation for US equity funds at about 0.9 points a year. According to S&amp;P's SPIVA report for 2020, nearly 70% of US domestic equity funds disappeared over 20 years. Those that remain are the ones in the advertised league tables.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">Practice</span></span>
+        <h3><span class="en">Winners' advice and old buildings</span></h3>
+        
+        <ul class="rules en">
+          <li><b>Startups.</b> "Drop out and take the risk, like the founders of big companies" is advice drawn from a sample of those who made it. Nobody invites the dropouts who went bust to talk about success. To judge a strategy you need everyone who tried it.</li>
+          <li><b>Old buildings.</b> "They built to last back then" seems true because the sturdiest buildings are the ones that reached us. The badly built ones fell down or were demolished long ago. The same goes for "indestructible" old things and "better" old music: we only hear what survived the filter.</li>
+          <li><b>Reviews and surveys.</b> An in-app survey is seen only by people still using the app. Those who left will not say why.</li>
+        </ul>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">Checking a claim</span></span>
+        <h3><span class="en">Do cats really fall better from higher up?</span></h3>
+        
+        <p class="en">In 1987 vets at the Animal Medical Center in New York described 132 cats that had fallen from windows: of those treated, 90% survived. The study became famous for the observation that cats falling from higher floors had, on average, fewer injuries than those falling from middle ones. The explanation offered was that the cat has time to relax and spread out.</p>
+        
+        <p class="en">But only cats brought to the clinic alive got into the study. A cat killed by the fall is less often taken to a vet. In 1996 The Straight Dope column pointed this out; the clinic's head disputed that it skewed the data. A Croatian study in 2004 (119 cats) found the opposite: falls from the seventh floor or higher went with more severe injuries. The "safe height" claim stands on weak ground.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">8</span>
+        <h3><span class="en">Memoranda from a box</span></h3>
+        
+        <p class="en">Wald's eight memoranda of 1943 were not published during the war. Allen Wallis kept the group's papers in a box and around 1980 gave them to Phil DePoy at the Center for Naval Analyses (CNA). He kept only Wald's work and in July 1980 issued it as "A Method of Estimating Plane Vulnerability Based on Damage of Survivors".</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1984</span>
+        <h3><span class="en">A guide to the memoranda</span></h3>
+        
+        <p class="en">Wald's memoranda are highly technical. In 1984 Marc Mangel and Francisco Samaniego explained them in "Abraham Wald's Work on Aircraft Survivability" in the Journal of the American Statistical Association. That is where the example comes from: 400 planes, 380 back, 320 without a single hit.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2016</span>
+        <h3><span class="en">The plane in red dots</span></h3>
+        
+        <p class="en">The picture attached to every retelling of the Wald story was drawn on Wikipedia in 2016 over a drawing of a Lockheed PV-1 Ventura. The mathematician Bill Casselman noted that the internet illustrates the story with any plane at all, down to a DC-3 transport.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="en">0.9</span></span>
+        <h3><span class="en">Points a year</span></h3>
+        
+        <p class="en">That is how much, by Elton, Gruber and Blake's estimate (1996), the average return of US funds is inflated if you count only the survivors. Over 20 years a gap of 0.9 points a year compounds to almost a fifth of the capital.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">132</span>
+        <h3><span class="en">Cats of New York</span></h3>
+        
+        <p class="en">That many cats that fell from a height were described in 1987 in the Journal of the American Veterinary Medical Association. 90% of them had chest injuries, and 90% of the treated cats survived. There were no dead cats in the sample.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1950</span>
+        <h3><span class="en">The plane that did not return</span></h3>
+        
+        <p class="en">Abraham Wald was born in Cluj in 1902. After Austria was annexed he emigrated to the US. He died in a plane crash in the mountains of southern India in 1950, aged 48, without ever writing a memoir of his wartime work.</p>
+      </article>
+  </div>
+</section>
+
+<section class="mp-books" id="books">
+  <div class="mp-related-head">
+    <span class="eyebrow">Further reading</span>
+    <h2>Books that discuss this puzzle</h2>
+  </div>
+  <div class="mp-books-grid">
+    <div class="mp-book"><h3>How Not to Be Wrong</h3><p class="mp-book-author">Jordan Ellenberg</p><p class="mp-book-meta">2014 · introduction</p></div>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/books/en/">All books →</a>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">More puzzles</span>
+    <h2>Other paradoxes</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/simpson-paradox/en/"><h3>Simpson&#x27;s paradox</h3><p>Treatment A beats treatment B for small kidney stones and for large ones. Can B be better for all the patients together?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/regression-to-mean/en/"><h3>Regression to the mean</h3><p>After praise players do worse, and after criticism they do better. Does that mean criticism works?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/inspection-paradox/en/"><h3>The bus paradox</h3><p>A bus comes every 10 minutes on average, but with no timetable. You walk up to the stop at an arbitrary moment. How long do you wait on average?</p></a>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/en/">All puzzles →</a>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Discussion</span>
+    <h2>What do you think?</h2>
+    <p>Share your own explanation, an objection or a variant of the puzzle. You need a GitHub account to comment.</p>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="survivorship-bias" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="en" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Newsletter</span>
+    <h2>New puzzles, explanations and discussions</h2>
+    <p>I keep adding new puzzles, new ways to explain them and write-ups of the discussions they start. Leave your email and I'll write when something new is out. No spam, one-click unsubscribe.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">The sign-up form will appear here soon.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => Math.round(n).toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+
+/* ---------- the model: five parts of a bomber ---------- */
+// a: share of the area (hits land evenly), k: chance that one hit there downs the plane
+const SEC = [
+  { id: 'eng', uk: 'Двигуни', en: 'Engines', a: .12, k: .70 },
+  { id: 'cock', uk: 'Кабіна', en: 'Cockpit', a: .08, k: .60 },
+  { id: 'fus', uk: 'Фюзеляж', en: 'Fuselage', a: .35, k: .04 },
+  { id: 'wing', uk: 'Крила', en: 'Wings', a: .35, k: .08 },
+  { id: 'tail', uk: 'Хвіст', en: 'Tail', a: .10, k: .20 }
+];
+const LAM = 1.2;          // hits per plane on average (Poisson)
+const ARMOR = .2;         // armour leaves a fifth of a part's lethality
+const KILL = SEC.map(s => s.k);
+// exact: share of holes by part on returning planes, share of hits by part on lost planes, chance to return
+function exact(kill, lam = LAM) {
+  const sv = SEC.map((s, i) => s.a * (1 - kill[i])), ls = SEC.map((s, i) => s.a * kill[i]);
+  const S = sv.reduce((x, y) => x + y, 0), K = ls.reduce((x, y) => x + y, 0);
+  return { ret: sv.map(v => v / S), lost: ls.map(v => K ? v / K : 0), pRet: Math.exp(-lam * K), K };
+}
+const armored = set => SEC.map((s, i) => set.has(s.id) ? s.k * ARMOR : s.k);
+
+/* ---------- geometry: a bomber seen from above in a 200×200 box, nose up ---------- */
+const GEO = {
+  eng: [[34, 70, 46, 96], [60, 70, 72, 96], [128, 70, 140, 96], [154, 70, 166, 96]],
+  cock: [[89, 8, 111, 40]],
+  fus: [[89, 40, 111, 186]],
+  wing: [[14, 78, 89, 104], [111, 78, 186, 104]],
+  tail: [[62, 164, 89, 180], [111, 164, 138, 180]]
+};
+const inRect = (x, y, r) => x >= r[0] && x <= r[2] && y >= r[1] && y <= r[3];
+function partAt(x, y) {
+  for (const id of ['eng', 'cock', 'fus', 'tail', 'wing']) if (GEO[id].some(r => inRect(x, y, r))) return id;
+  return null;
+}
+// a uniform point inside part id (wings exclude the engine nacelles)
+function spot(id, r) {
+  const rs = GEO[id], areas = rs.map(q => (q[2] - q[0]) * (q[3] - q[1])), tot = areas.reduce((a, b) => a + b, 0);
+  for (;;) {
+    let u = r() * tot, j = 0; while (u > areas[j]) { u -= areas[j]; j++; }
+    const q = rs[Math.min(j, rs.length - 1)], x = q[0] + 1.5 + r() * (q[2] - q[0] - 3), y = q[1] + 1.5 + r() * (q[3] - q[1] - 3);
+    if (id !== 'wing' || !GEO.eng.some(e => inRect(x, y, e))) return { x, y };
+  }
+}
+
+/* ---------- randomness ---------- */
+// a deterministic generator, so the hero looks the same on every load
+function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function poisson(lam, r) { const L0 = Math.exp(-lam); let k = 0, p = r(); while (p > L0) { k++; p *= r(); } return k; }
+const CUM = (() => { let c = 0; return SEC.map(s => (c += s.a)); })();
+const pickPart = r => { const u = r(); for (let i = 0; i < CUM.length; i++) if (u < CUM[i]) return i; return CUM.length - 1; };
+// one sortie: hits [{i, x, y, fatal}], lost if any hit was fatal
+function fly(kill, lam, r, where = true) {
+  const n = poisson(lam, r), hits = []; let lost = false;
+  for (let h = 0; h < n; h++) {
+    const i = pickPart(r), fatal = r() < kill[i];
+    if (fatal) lost = true;
+    const p = where ? spot(SEC[i].id, r) : null;
+    hits.push({ i, x: p && p.x, y: p && p.y, fatal });
+  }
+  return { hits, lost };
+}
+
+/* ---------- canvas helpers ---------- */
+const TAU = 2 * Math.PI;
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+// map the 200×200 plane box into a canvas of size W×H
+const frame = (W, H, pad = 10) => { const s = Math.min(W, H) - 2 * pad; return { s: s / 200, ox: (W - s) / 2, oy: (H - s) / 2 }; };
+// draw the bomber; arm: set of armoured part ids; mark: set of part ids outlined in the signal colour
+function drawPlane(ctx, f, arm, mark) {
+  const P = (x, y) => [f.ox + x * f.s, f.oy + y * f.s];
+  const fill = tok('--plane') || '#D9E0DC', edge = tok('--plane-edge') || '#9AA7A0', armor = tok('--armor') || '#6F7C75', hit = tok('--hit');
+  const order = ['wing', 'tail', 'fus', 'cock', 'eng'];
+  order.forEach(id => GEO[id].forEach(q => {
+    const [x0, y0] = P(q[0], q[1]), [x1, y1] = P(q[2], q[3]);
+    const rad = id === 'eng' ? 4 * f.s : id === 'cock' ? 8 * f.s : 2.5 * f.s;
+    ctx.fillStyle = fill; rr(ctx, x0, y0, x1 - x0, y1 - y0, rad); ctx.fill();
+    ctx.strokeStyle = edge; ctx.lineWidth = 1; ctx.stroke();
+    if (arm && arm.has(id)) {
+      ctx.save(); rr(ctx, x0, y0, x1 - x0, y1 - y0, rad); ctx.clip();
+      ctx.strokeStyle = armor; ctx.globalAlpha = .55; ctx.lineWidth = 1.6;
+      for (let t = -(y1 - y0); t < x1 - x0; t += 6) { ctx.beginPath(); ctx.moveTo(x0 + t, y1); ctx.lineTo(x0 + t + (y1 - y0), y0); ctx.stroke(); }
+      ctx.restore();
+      ctx.strokeStyle = armor; ctx.lineWidth = 2; rr(ctx, x0, y0, x1 - x0, y1 - y0, rad); ctx.stroke();
+    }
+    if (mark && mark.has(id)) { ctx.strokeStyle = hit; ctx.lineWidth = 3; rr(ctx, x0 - 2, y0 - 2, x1 - x0 + 4, y1 - y0 + 4, rad + 2); ctx.stroke(); }
+  }));
+  return P;
+}
+function dot(ctx, x, y, r, col, alpha = 1) { ctx.globalAlpha = alpha; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
+
+/* ---------- hero: planes come home one by one and leave their holes on the diagram ---------- */
+const hero = { t0: performance.now(), raf: 0, visible: true, holes: [], back: 0, sent: 0 };
+(() => {
+  const r = rng(43); let sent = 0;
+  while (hero.holes.length < 260) { sent++; const s = fly(KILL, 1.5, r); if (!s.lost) s.hits.forEach(h => hero.holes.push({ x: h.x, y: h.y, n: sent })); }
+  hero.sent = sent;
+})();
+function heroDraw(now) {
+  const s = setupCanvas($('#hero-cv')); if (!s) return;
+  const { ctx, W, H } = s, solved = !window.mpSolved || mpSolved();
+  const ink = tok('--ink'), hit = tok('--hit');
+  ctx.fillStyle = tok('--surface') || '#fff'; rr(ctx, 0, 0, W, H, 18); ctx.fill();
+  const f = frame(W, H - 50, 18); f.oy += 16;
+  const P = drawPlane(ctx, f, null, solved ? new Set(['eng', 'cock']) : null);
+  const t = reduce() ? 99 : (((now || performance.now()) - hero.t0) / 1000) % 16;
+  const upto = Math.floor(Math.max(0, t - .5) * 12);   // sorties shown so far
+  let shown = 0;
+  hero.holes.forEach(h => { if (h.n <= upto) { const [x, y] = P(h.x, h.y); dot(ctx, x, y, Math.max(1.6, 1.9 * f.s), ink, .8); shown++; } });
+  ctx.fillStyle = ink; ctx.font = '600 12px ' + tok('--f-mono'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(L('дірок на тих, що повернулися: ', 'holes on returning planes: ') + shown, 14, 20);
+  ctx.font = '800 15px ' + tok('--f-display'); ctx.textBaseline = 'middle';
+  if (solved) { ctx.fillStyle = hit; ctx.fillText(L('Броня туди, де дірок немає', 'Armour where the holes aren\'t'), 14, H - 20); }
+  else { ctx.fillStyle = ink; ctx.fillText(L('Куди ставити броню?', 'Where does the armour go?'), 14, H - 20); }
+}
+function heroCap() {
+  $('#hero-cap').textContent = window.mpSolved && !mpSolved()
+    ? L('Кожна точка позначає дірку на літаку, що повернувся з бою. Двигуни на крилах майже чисті.', 'Each dot is a hole on a plane that came back from combat. The engines on the wings stay almost clean.')
+    : L('Двигуни і кабіна чисті, бо літаки з влучаннями туди не повертаються. Там і потрібна броня.', 'The engines and the cockpit stay clean because planes hit there do not come back. That is where the armour is needed.');
+}
+function heroLoop(now) { heroDraw(now); if (!reduce() && hero.visible) hero.raf = requestAnimationFrame(heroLoop); else hero.raf = 0; }
+function heroStart() {
+  if (hero.raf) cancelAnimationFrame(hero.raf);
+  hero.raf = 0;
+  if (reduce()) { heroDraw(); return; }
+  hero.raf = requestAnimationFrame(heroLoop);
+}
+if ('IntersectionObserver' in window) new IntersectionObserver(es => {
+  hero.visible = es[0].isIntersecting;
+  if (hero.visible && !hero.raf && !reduce()) hero.raf = requestAnimationFrame(heroLoop);
+}).observe($('#hero-cv'));
+document.addEventListener('solved', () => { heroDraw(); heroCap(); });
+
+/* ---------- round 1: guess ---------- */
+// losses of a raid with LAM hits per plane for each armour plan; "evenly" spreads the same weight: 2/5 of a plate everywhere
+const OPTS = [
+  { id: 'fw', set: ['fus', 'wing'], uk: ['Фюзеляж і крила', 'там найбільше дірок'], en: ['Fuselage and wings', 'that is where most holes are'] },
+  { id: 'wt', set: ['wing', 'tail'], uk: ['Крила і хвіст', 'великі, і дірок там багато'], en: ['Wings and tail', 'large, with plenty of holes'] },
+  { id: 'ec', set: ['eng', 'cock'], uk: ['Двигуни і кабіна', 'там дірок найменше'], en: ['Engines and cockpit', 'that is where the fewest holes are'] },
+  { id: 'ev', set: null, uk: ['Рівномірно по всьому літаку', 'тонкий шар скрізь'], en: ['Evenly over the whole plane', 'a thin layer everywhere'] }
+];
+const EVEN = 1 - (1 - ARMOR) * 2 / 5;
+const optKill = o => o.set ? armored(new Set(o.set)) : SEC.map(s => s.k * EVEN);
+const lossOf = kill => 1 - exact(kill).pRet;
+let gPick = null;
+function optsText() {
+  $('#g-opts').innerHTML = OPTS.map(o => '<button type="button" data-k="' + o.id + '" aria-pressed="' + (gPick === o.id) + '"><b>' + o[lang][0] + '</b><span class="s">' + o[lang][1] + '</span></button>').join('');
+}
+function guessText() {
+  if (gPick === null) return;
+  const o = OPTS.find(q => q.id === gPick), none = lossOf(KILL);
+  const verdict = {
+    fw: L('Так відповідає більшість, і саме так хотіли зробити військові. Але дірки у фюзеляжі й крилах — це влучання, які літак пережив. Броня там майже нічого не дає: втрати падають з 20,8% лише до 17,5%.', 'That is what most people answer, and what the military wanted to do. But the holes in the fuselage and wings are hits the plane survived. Armour there does little: losses fall from 20.8% only to 17.5%.'),
+    wt: L('Крила і хвіст великі, тож дірок там багато, але більшість таких влучань літак переживає. Броня там зменшує втрати лише до 17,0%.', 'The wings and tail are large, so they collect many holes, but the plane survives most of those hits. Armour there cuts losses only to 17.0%.'),
+    ec: L('Влучно. Дірок на двигунах і в кабіні мало, бо літаки з такими влучаннями не повертаються. Броня там удвічі зменшує втрати: з 20,8% до 10,1%.', 'Spot on. There are few holes on the engines and cockpit because planes hit there do not come back. Armour there halves the losses: from 20.8% to 10.1%.'),
+    ev: L('Тонкий шар скрізь кращий за броню на фюзеляжі (втрати 14,6%), але помітно гірший за точну відповідь. Броню вигідно ставити туди, де влучання смертельне: на двигуни і кабіну.', 'A thin layer everywhere beats armouring the fuselage (14.6% lost), but it is clearly worse than the precise answer. Armour pays off where a hit is deadly: on the engines and the cockpit.')
+  }[gPick];
+  const rows = [[L('Без броні', 'No armour'), none, 'var(--line)']].concat(OPTS.map(q => [q[lang][0], lossOf(optKill(q)), q.id === 'ec' ? 'var(--hit)' : q.id === gPick ? 'var(--ink)' : 'var(--plane-edge)']));
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit">' + L('Двигуни і кабіна', 'Engines and cockpit') + '</p>' +
+    '<p>' + verdict + '</p><span class="note">' + L('Частка літаків, що не повернулися', 'Share of planes lost') + '</span><div class="compare">' +
+    rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1] / .25) + '%"></i></div><span class="mono">' + pct(r[1]) + '</span></div>').join('') +
+    '</div><p class="note">' + L('Точний розрахунок для моделі зі сторінки: у середньому 1,2 влучання на літак, броня знижує вразливість частини вп\'ятеро.', 'Exact figures for this page\'s model: 1.2 hits per plane on average, armour cuts a part\'s lethality five times.') + '</p>';
+}
+$('#g-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gPick = b.dataset.k; optsText(); guessText(); window.mpSolve && mpSolve(gPick); });
+
+/* ---------- round 2: armour the squadron ---------- */
+const game = { arm: ['fus', 'wing'], last: null, showLost: false, log: [] };
+function gameFly() {
+  const kill = armored(new Set(game.arm)), r = Math.random, out = [];
+  for (let i = 0; i < 100; i++) out.push(fly(kill, LAM, r));
+  game.last = { arm: game.arm.slice(), planes: out };
+  const lost = out.filter(p => p.lost).length;
+  game.log.push({ arm: game.arm.slice(), lost, exp: lossOf(kill) });
+  gameDraw(); gameText();
+}
+function gameDraw() {
+  const s = setupCanvas($('#game-cv')); if (!s) return;
+  const { ctx, W, H } = s, f = frame(W, H, 8);
+  const P = drawPlane(ctx, f, new Set(game.arm), null);
+  const g = game.last; if (!g) return;
+  const ink = tok('--ink'), hit = tok('--hit'), rad = Math.max(1.8, 2.2 * f.s);
+  g.planes.forEach(p => { if (!p.lost) p.hits.forEach(h => { const [x, y] = P(h.x, h.y); dot(ctx, x, y, rad, ink, .85); }); });
+  if (game.showLost) g.planes.forEach(p => { if (p.lost) p.hits.forEach(h => {
+    const [x, y] = P(h.x, h.y);
+    if (h.fatal) { ctx.strokeStyle = hit; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, rad + 2.5, 0, TAU); ctx.stroke(); }
+    dot(ctx, x, y, rad, hit, .9);
+  }); });
+}
+function gameText() {
+  $('#a-chips').innerHTML = SEC.map(s => '<button type="button" data-id="' + s.id + '" aria-pressed="' + game.arm.includes(s.id) + '">' + s[lang] + '</button>').join('');
+  const g = game.last, armName = a => a.length ? a.map(id => SEC.find(s => s.id === id)[lang].toLowerCase()).join(L(' і ', ' and ')) : L('без броні', 'no armour');
+  const same = g && g.arm.join() === game.arm.join();
+  if (!g) { $('#g-ret').textContent = '–'; $('#g-lost').textContent = '–'; }
+  else { const lost = g.planes.filter(p => p.lost).length; $('#g-ret').textContent = fmt(100 - lost); $('#g-lost').textContent = fmt(lost); }
+  let msg;
+  if (!g) msg = L('Оберіть броню і відправте літаки.', 'Pick the armour and send the planes.');
+  else if (!same) msg = L('Броню змінено: ' + armName(game.arm) + '. Відправте нові 100 літаків.', 'Armour changed: ' + armName(game.arm) + '. Send another 100 planes.');
+  else {
+    const holes = g.planes.filter(p => !p.lost).reduce((n, p) => n + p.hits.length, 0), eng = g.planes.filter(p => !p.lost).reduce((n, p) => n + p.hits.filter(h => h.i === 0).length, 0);
+    msg = L('Броня: ' + armName(g.arm) + '. Дірок на тих, що повернулися: ' + fmt(holes) + ', з них на двигунах: ' + eng + '. ', 'Armour: ' + armName(g.arm) + '. The returning planes carry ' + fmt(holes) + ' holes, ' + eng + ' of them on the engines. ') +
+      (game.showLost ? L('Рожеві точки — влучання в літаки, що не повернулися; обведено те, що збило літак.', 'Pink dots are hits on the planes that did not return; the ringed ones brought them down.') : L('Куди влучали в ті, що не повернулися?', 'Where were the lost ones hit?'));
+    if (game.showLost) {
+      const fat = SEC.map(() => 0); g.planes.forEach(p => { if (p.lost) { const h = p.hits.find(q => q.fatal); fat[h.i]++; } });
+      const tot = fat.reduce((a, b) => a + b, 0);
+      if (tot) msg += ' ' + L('Збили влучання в ', 'Downed by hits on ') + SEC.map((s, i) => [s[lang].toLowerCase(), fat[i]]).filter(x => x[1]).sort((a, b) => b[1] - a[1]).map(x => x[0] + ' ' + x[1]).join(', ') + '.';
+    }
+  }
+  $('#g-msg').textContent = msg;
+  $('#g-show').innerHTML = game.showLost ? L('Сховати збиті літаки', 'Hide the lost planes') : L('Показати збиті літаки', 'Show the lost planes');
+  $('#g-show').disabled = !g;
+  $('#g-log').innerHTML = game.log.slice().reverse().slice(0, 20).map(q => '<div><span>' + armName(q.arm) + '</span><span class="mono">' + L('втрачено ', 'lost ') + q.lost + '</span><span class="mono" style="color:var(--muted)">' + L('очікувано ', 'expected ') + pct(q.exp, 0) + '</span></div>').join('');
+}
+function toggleArm(id) {
+  const a = game.arm, i = a.indexOf(id);
+  if (i >= 0) a.splice(i, 1); else { a.push(id); if (a.length > 2) a.shift(); }
+  gameDraw(); gameText();
+}
+$('#a-chips').addEventListener('click', e => { const b = e.target.closest('button'); if (b) toggleArm(b.dataset.id); });
+$('#game-cv').addEventListener('click', e => {
+  const c = $('#game-cv'), rc = c.getBoundingClientRect(), f = frame(rc.width, rc.height, 8);
+  const id = partAt((e.clientX - rc.left - f.ox) / f.s, (e.clientY - rc.top - f.oy) / f.s);
+  if (id) toggleArm(id);
+});
+$('#g-fly').addEventListener('click', gameFly);
+$('#g-show').addEventListener('click', () => { game.showLost = !game.showLost; gameDraw(); gameText(); });
+
+/* ---------- round 3: 10,000 sorties ---------- */
+const SIM_N = 10000, SIM_DRAW = 1400;
+let sim = null, simGen = 0;
+const simKill = () => SEC.map((s, i) => i === 0 ? +$('#s-eng').value : s.k);
+function simRun() {
+  const lam = +$('#s-lam').value, kill = simKill(), gen = ++simGen;
+  sim = { lam, kill, n: 0, back: 0, all: SEC.map(() => 0), ret: SEC.map(() => 0), lost: SEC.map(() => 0), lostAll: SEC.map(() => 0), pts: [] };
+  $('#sim-run').disabled = true;
+  (function chunk() {
+    if (gen !== simGen) return;
+    const t0 = performance.now();
+    while (sim.n < SIM_N && performance.now() - t0 < 30) {
+      const p = fly(kill, lam, Math.random, sim.pts.length < SIM_DRAW); sim.n++;
+      p.hits.forEach(h => sim.all[h.i]++);
+      if (p.lost) p.hits.forEach(h => { sim.lostAll[h.i]++; if (h.fatal) sim.lost[h.i]++; });
+      else { sim.back++; p.hits.forEach(h => { sim.ret[h.i]++; if (h.x !== null && sim.pts.length < SIM_DRAW) sim.pts.push(h); }); }
+    }
+    $('#sim-prog').textContent = sim.n < SIM_N ? L('Рахуємо… ', 'Running… ') + fmt(sim.n) : '';
+    simDraw(); simText();
+    if (sim.n < SIM_N) setTimeout(chunk, 0); else $('#sim-run').disabled = false;
+  })();
+}
+function simDraw() {
+  const s = setupCanvas($('#cv-heat')); if (!s || !sim) return;
+  const { ctx, W, H } = s, f = frame(W, H, 6), P = drawPlane(ctx, f, null, null), ink = tok('--ink');
+  sim.pts.forEach(h => { const [x, y] = P(h.x, h.y); dot(ctx, x, y, Math.max(1, 1.2 * f.s), ink, .6); });
+}
+// Wald-style estimate of each part's lethality from what the survivors show (see the formula card)
+function waldEstimate(N, S, H) {
+  const Htot = H.reduce((a, b) => a + b, 0);
+  if (!S) return SEC.map(() => NaN);
+  const lam = Htot / S - Math.log(S / N);
+  return SEC.map((s, i) => lam > 0 ? Math.min(1, Math.max(0, 1 - H[i] / (S * lam * s.a))) : NaN);
+}
+function simText() {
+  const lam = +$('#s-lam').value, ke = +$('#s-eng').value;
+  $('#s-lam-v').textContent = dec(lam.toFixed(1));
+  $('#s-eng-v').textContent = Math.round(ke * 100) + '%';
+  if (!sim) return;
+  const ex = exact(sim.kill, sim.lam), sum = a => a.reduce((x, y) => x + y, 0);
+  const tA = sum(sim.all), tR = sum(sim.ret), tL = sum(sim.lost);
+  const bar = (v, c, tick) => '<div class="bar"><i style="--c:' + c + ';width:' + (100 * v / .6) + '%"></i>' + (tick === null ? '' : '<em style="left:calc(' + (100 * tick / .6) + '% - 1px)"></em>') + '<span>' + pct(v, 0) + '</span></div>';
+  $('#secs').innerHTML = SEC.map((s, i) => '<div class="sec"><span>' + s[lang] + '</span><div class="bars">' +
+    bar(tA ? sim.all[i] / tA : 0, 'var(--plane-edge)', s.a) + bar(tR ? sim.ret[i] / tR : 0, 'var(--ink)', ex.ret[i]) + bar(tL ? sim.lost[i] / tL : 0, 'var(--hit)', ex.lost[i]) + '</div></div>').join('');
+  $('#tv-a').textContent = pct(sim.back / Math.max(1, sim.n));
+  $('#ts-a').textContent = L('з ' + fmt(sim.n) + ' · точно ', 'of ' + fmt(sim.n) + ' · exact ') + pct(ex.pRet);
+  $('#tv-b').textContent = tR ? pct(sim.ret[0] / tR) : '–';
+  $('#ts-b').textContent = L('площа 12% · точно ', 'area 12% · exact ') + pct(ex.ret[0]);
+  $('#tv-c').textContent = sim.all[0] ? pct(sim.lostAll[0] / sim.all[0], 0) : '–';
+  $('#ts-c').textContent = L('від усіх влучань у двигуни · точно ', 'of all engine hits · exact ') + pct(1 - (1 - sim.kill[0]) * ex.pRet, 0);
+  const est = waldEstimate(sim.n, sim.back, sim.ret)[0];
+  $('#tv-d').textContent = isNaN(est) ? '–' : pct(est, 0);
+  $('#ts-d').textContent = L('насправді ', 'truly ') + Math.round(ke * 100) + '%';
+  $('#heat-note').textContent = L('Перші ' + fmt(sim.pts.length) + ' дірок. Порівняйте густоту на двигунах і на крилах навколо них.', 'The first ' + fmt(sim.pts.length) + ' holes. Compare how dense they are on the engines and on the wings around them.');
+}
+['#s-lam', '#s-eng'].forEach(id => $(id).addEventListener('input', simText));
+['#s-lam', '#s-eng'].forEach(id => $(id).addEventListener('change', simRun));
+$('#sim-run').addEventListener('click', simRun);
+
+/* ---------- round 5: recover the invisible ---------- */
+const W_NS = [200, 1000, 10000];
+const wg = { n: 1, kill: null, data: null, shown: false };
+function wNew() {
+  // a hidden plane: two random parts are deadly, the rest are tough
+  const deadly = new Set(); while (deadly.size < 2) deadly.add(Math.floor(Math.random() * SEC.length));
+  wg.kill = SEC.map((s, i) => Math.round(100 * (deadly.has(i) ? .4 + .5 * Math.random() : .25 * Math.random())) / 100);
+  wg.shown = false; wFly();
+}
+function wFly() {
+  const N = W_NS[wg.n], H = SEC.map(() => 0); let S = 0;
+  for (let i = 0; i < N; i++) { const p = fly(wg.kill, LAM, Math.random, false); if (!p.lost) { S++; p.hits.forEach(h => H[h.i]++); } }
+  wg.data = { N, S, H, est: waldEstimate(N, S, H) };
+  wText();
+}
+function wText() {
+  $('#w-n').innerHTML = W_NS.map((n, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === wg.n) + '">' + fmt(n) + ' ' + L('вильотів', 'sorties') + '</button>').join('');
+  const d = wg.data; if (!d) return;
+  $('#w-tbl').innerHTML = SEC.map((s, i) => '<tr><td>' + s[lang] + '</td><td class="num">' + pct(s.a, 0) + '</td><td class="num">' + fmt(d.H[i]) + '</td><td class="num">' + (isNaN(d.est[i]) ? '–' : pct(d.est[i], 0)) + '</td><td class="num' + (wg.shown && wg.kill[i] >= .4 ? ' s' : '') + '">' + (wg.shown ? pct(wg.kill[i], 0) : '?') + '</td></tr>').join('');
+  const err = wg.shown ? Math.max(...SEC.map((s, i) => Math.abs(d.est[i] - wg.kill[i]))) : null;
+  $('#w-sum').textContent = L('Вилетіли ' + fmt(d.N) + ', повернулися ' + fmt(d.S) + ' (' + pct(d.S / d.N) + ').', fmt(d.N) + ' flew, ' + fmt(d.S) + ' came back (' + pct(d.S / d.N) + ').') +
+    (wg.shown ? ' ' + L('Найбільша похибка оцінки: ' + dec((100 * err).toFixed(0)) + ' п.', 'Largest estimation error: ' + (100 * err).toFixed(0) + ' points.') : '');
+  $('#w-show').disabled = wg.shown;
+}
+$('#w-n').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; wg.n = +b.dataset.i; wFly(); });
+$('#w-new').addEventListener('click', wNew);
+$('#w-show').addEventListener('click', () => { wg.shown = true; wText(); });
+
+/* ---------- round 5: the mutual fund graveyard ---------- */
+const F_N = 1000, F_Y = 15, F_FEE = .01;
+let fRes = null;
+function gauss() { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * Math.random()); }
+// each fund: yearly excess return over the market ~ N(−fee, sd); shut once its cumulative excess falls below −threshold
+function fRun() {
+  const th = +$('#f-th').value / 100, sd = +$('#f-sd').value / 100, funds = [];
+  for (let i = 0; i < F_N; i++) {
+    let cum = 0, y = 0, alive = true;
+    while (y < F_Y) { cum += -F_FEE + sd * gauss(); y++; if (cum < -th) { alive = false; break; } }
+    funds.push({ avg: cum / y, years: y, alive });
+  }
+  fRes = funds; fText(); fDraw();
+}
+function fText() {
+  $('#f-th-v').textContent = $('#f-th').value + L(' п.', ' pt');
+  $('#f-sd-v').textContent = dec($('#f-sd').value) + L(' п.', ' pt');
+  if (!fRes) return;
+  const surv = fRes.filter(f => f.alive), sgn = v => (v > 0 ? '+' : v < 0 ? '−' : '') + dec(Math.abs(100 * v).toFixed(2)) + L(' п.', ' pt');
+  const sAvg = surv.length ? surv.reduce((a, f) => a + f.avg, 0) / surv.length : NaN;
+  const allY = fRes.reduce((a, f) => a + f.years, 0), allAvg = fRes.reduce((a, f) => a + f.avg * f.years, 0) / allY;
+  $('#f-surv').textContent = surv.length ? sgn(sAvg) : '–';
+  $('#f-all').textContent = sgn(allAvg);
+  const beat = surv.filter(f => f.avg > 0).length;
+  $('#f-note').textContent = L('Вижили фондів: ' + fmt(surv.length) + ' з ' + fmt(F_N) + ', з них обігнали ринок: ' + fmt(beat) + '. Результат відносно ринку, у пунктах на рік. Без вміння всі фонди разом мають відставати на 1 пункт.',
+    fmt(surv.length) + ' of ' + fmt(F_N) + ' funds survived, ' + fmt(beat) + ' of them beat the market. Results are relative to the market, in points per year. With no skill, all funds together should trail by 1 point.');
+}
+function fDraw() {
+  const s = setupCanvas($('#f-cv')); if (!s || !fRes) return;
+  const { ctx, W, H } = s, lo = -.08, hi = .06, bins = 28, bw = (hi - lo) / bins, l = 8, r = W - 8, b = H - 22;
+  const hs = [0, 1].map(alive => { const h = new Array(bins).fill(0); fRes.forEach(f => { if (f.alive === !!alive) h[Math.min(bins - 1, Math.max(0, Math.floor((f.avg - lo) / bw)))]++; }); return h; });
+  const mx = Math.max(1, ...hs[0].map((v, i) => v + hs[1][i])), X = v => l + (r - l) * (v - lo) / (hi - lo), cw = (r - l) / bins;
+  for (let i = 0; i < bins; i++) {
+    const h1 = (b - 8) * hs[1][i] / mx, h0 = (b - 8) * hs[0][i] / mx;
+    ctx.fillStyle = tok('--ink'); ctx.fillRect(l + i * cw + 1, b - h1, cw - 2, h1);
+    ctx.fillStyle = tok('--plane-edge'); ctx.fillRect(l + i * cw + 1, b - h1 - h0, cw - 2, h0);
+  }
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [-.06, -.04, -.02, 0, .02, .04].forEach(v => ctx.fillText((v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(Math.round(v * 100)), X(v), b + 6));
+  ctx.strokeStyle = tok('--hit'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(0), 4); ctx.lineTo(X(0), b); ctx.stroke();
+  ctx.fillStyle = tok('--hit'); ctx.textAlign = 'left'; ctx.fillText(L('ринок', 'market'), X(0) + 4, 4);
+}
+['#f-th', '#f-sd'].forEach(id => { $(id).addEventListener('input', fText); $(id).addEventListener('change', fRun); });
+$('#f-run').addEventListener('click', fRun);
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Помилка тих, хто вижив: літаки Абрагама Вальда', 'Survivorship Bias: Abraham Wald\'s Planes');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  heroDraw(); heroCap(); optsText(); guessText(); gameDraw(); gameText(); simText(); simDraw(); wText(); fText(); fDraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang || lang; applyLang(); });
+const redraw = () => { heroDraw(); gameDraw(); simDraw(); fDraw(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state: everything filled ---------- */
+gameFly();
+wNew();
+applyLang();
+heroStart();
+setTimeout(() => { simRun(); fRun(); }, 30);
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'en' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+</body>
+</html>

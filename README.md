@@ -40,7 +40,7 @@ hub/
 problems/<slug>/
   page.html    сторінка задачі; обидві мови поруч (class="uk" / class="en")
   teaser.html  блок задачі на головній: умова, «інтуїція / насправді», міні-гра
-  meta.json    order, published, updated, about (Wikipedia); title, description, FAQ, картка — для кожної мови
+  meta.json    order, published, updated, topics, about (Wikipedia); title, description, FAQ, картка — для кожної мови
   assets/      og-uk.png, og-en.png (1200×630)
 books.json     книжки для блоку «Що почитати» (автор uk/en, назва, рік, ISBN, українське видання)
 site.css       спільний вигляд усіх сторінок (підключається після стилів сторінки)
@@ -66,7 +66,7 @@ python3 build.py
 
 ## Нова задача
 
-1. Створіть `problems/<slug>/` з `page.html`, `teaser.html` і `meta.json` (поле `order` задає місце на головній, `published` і `updated` — дати у форматі `YYYY-MM-DD`).
+1. Створіть `problems/<slug>/` з `page.html`, `teaser.html` і `meta.json` (поле `order` задає місце на головній, `published` і `updated` — дати у форматі `YYYY-MM-DD`, `topics` — теми для фільтрів на головній: один чи кілька ключів із `TOPICS` у build.py: interview, conditional, chance, stats, games, quick).
 2. Додайте тексти задачі в `tools/og.py` і запустіть `python3 tools/og.py`.
 3. `python3 build.py` додасть сторінки, тизер на головну, записи в sitemap і RSS.
 
@@ -81,6 +81,27 @@ python3 build.py
 - Елемент з атрибутом `data-solve` відкриває відповідь кліком. У скрипті сторінки `mpSolve()` позначає задачу розв'язаною (подія `solved` на `document`), `mpSolved()` перевіряє стан. Вибір запам'ятовується в localStorage, тож картка і сторінка відкриваються разом.
 - Перший екран сторінки містить лише умову й питання, відповідь показує перший раунд з вгадуванням. Міні-гра на картці нічого не показує до першого кліку.
 - `share` у `meta.json` (назва й питання) іде в og:/twitter:-теги, щоб превʼю посилання не видавало відповідь. `<title>` і description лишаються з відповіддю для пошуку. OG-картинки (`tools/og.py`) теж без відповідей.
+
+## Статистика відповідей
+
+Наприкінці першого раунду, коли відповідь уже відкрита, блок «Як відповідають інші» показує, скільки людей відповіло і яка частка відповіла правильно. Поки відповідей менше 20, частка не показується.
+
+- Сторінка передає відповідь відвідувача в `mpSolve(guessed)`. Рахується лише перша відповідь із браузера, і лише якщо до неї розв'язок не відкривали (`mp-voted:<slug>` у localStorage; «Сховати відповідь» його не скидає). Браузери з `?notrack=1` не голосують.
+- `poll` у `meta.json` визначає, що вважати правильним: `"right"` — діапазони `[від, до]` для числа і точні рядки для решти, `"each"` — діапазон на кожну частину відповіді-масиву (ключ `a|b|c`), `"round"` — id розділу, якщо це не `guess`. Значення беруться в тих самих одиницях, що й `guessed` у скрипті сторінки.
+- Бекенд — Cloudflare Worker з D1 у теці `stats/`. Він зберігає лише лічильник на пару (задача, ключ відповіді): без IP, cookies і часу. Приймає POST лише з mathparadoxes.com і localhost.
+- `STATS_API` у `build.py` — адреса воркера. Порожній рядок вимикає блок. Для локальної перевірки: `python3 build.py --out /tmp/site --stats-api http://localhost:8787/`.
+
+Розгортання (одноразово, потрібен акаунт Cloudflare):
+
+```
+cd stats
+npx wrangler login
+npx wrangler d1 create mathparadoxes-stats      # вставте database_id у wrangler.toml
+npx wrangler d1 execute mathparadoxes-stats --remote --file schema.sql
+npx wrangler deploy                             # друкує адресу *.workers.dev
+```
+
+Потім впишіть адресу в `STATS_API`, запустіть `python3 build.py` і закомітьте `docs/`. Цифри для поста можна взяти так: `npx wrangler d1 execute mathparadoxes-stats --remote --command "SELECT slug, SUM(n) FROM votes GROUP BY slug"`.
 
 ## Обговорення (giscus)
 
