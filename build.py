@@ -162,9 +162,11 @@ GISCUS = {"repo": "dmitrykudrenko/mathproblems", "repo_id": "R_kgDOVP1Ehw",
           "category": "Announcements", "category_id": "DIC_kwDOVP1Eh84DJCIi"}
 DISCUSS_TEXT = {
     "uk": ("Обговорення", "Що ви думаєте?",
-           "Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub."),
+           ("Поділіться своїм поясненням, запереченням чи варіантом задачі. Якщо рівень угорі сторінки здається "
+            "завищеним чи заниженим, напишіть і про це. Для коментаря потрібен акаунт GitHub.")),
     "en": ("Discussion", "What do you think?",
-           "Share your own explanation, an objection or a variant of the puzzle. You need a GitHub account to comment."),
+           ("Share your own explanation, an objection or a variant of the puzzle. If the level at the top of the page "
+            "looks too high or too low, say so too. You need a GitHub account to comment.")),
 }
 
 
