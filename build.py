@@ -201,6 +201,23 @@ TOPICS = {
     "quick": {"uk": "Логіка й кмітливість", "en": "Logic and quick thinking"},
 }
 TOPICS_ALL = {"uk": "Усі", "en": "All"}
+# How much maths the explanation needs, meta.json "level": a small badge on the home card and in the problem hero.
+# It says nothing about how tricky the puzzle is. Deliberately not a filter: the home page keeps one row of chips.
+LEVELS = {
+    1: {"uk": ("Без формул", "Вистачить арифметики й логіки"), "en": ("No formulas", "Arithmetic and logic are enough")},
+    2: {"uk": ("Шкільна математика", "Дроби, відсотки, проста ймовірність"),
+        "en": ("School maths", "Fractions, percentages, basic probability")},
+    3: {"uk": ("Поглиблено", "Математичне сподівання, логарифми, ряди"),
+        "en": ("Advanced", "Expected value, logarithms, series")},
+}
+LEVEL_LD = {1: "beginner", 2: "intermediate", 3: "advanced"}
+
+
+def level_badge(lang, n):
+    """Three bars, the first n filled, and the level name; the title says what maths it takes."""
+    name, hint = LEVELS[n][lang]
+    bars = '<i class="on"></i>' * n + "<i></i>" * (3 - n)
+    return f'<span class="mp-level" title="{e(hint)}"><span class="mp-bars" aria-hidden="true">{bars}</span>{e(name)}</span>'
 
 
 def topic_filters(problems):
@@ -754,6 +771,7 @@ def build_problem(slug, base, metas, books):
                       f'<a class="brand" href="{hub[lang]}" style="text-decoration:none">{BRAND_MARK}{SITE_NAME[lang]}</a>', body, count=1)
         style = body[:body.index("</style>") + len("</style>")]
         body = body[len(style):]
+        body = body.replace('<header class="hero">\n  <div>', '<header class="hero">\n  <div>\n    ' + level_badge(lang, meta["level"]), 1)
         ld = {"@context": "https://schema.org", "@graph": [
             {
                 "@type": ["WebPage", "LearningResource"],
@@ -764,7 +782,7 @@ def build_problem(slug, base, metas, books):
                 "inLanguage": lang,
                 "isAccessibleForFree": True,
                 "learningResourceType": ["interactive simulation", "game", "explanation"],
-                "educationalLevel": "beginner",
+                "educationalLevel": LEVEL_LD[meta["level"]],
                 "about": {"@type": "Thing", **meta["about"]},
                 "image": page_base + f"og-{lang}.png",
                 "datePublished": meta["published"],
@@ -824,13 +842,19 @@ def build_hub(problems, base):
         m = re.search(r"--tint:\s*(#[0-9A-Fa-f]{6})", (PROBLEMS / slug / "page.html").read_text(encoding="utf-8"))
         tint = f' style="--tint: {m.group(1)}"' if m else ""
         topics = " ".join(dict(problems_meta)[slug]["topics"])
-        blocks.append(f'<article class="problem" id="{slug}" data-topics="{topics}" data-spoil{tint}>\n' + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
+        level = dict(problems_meta)[slug]["level"]
+        # the level badge sits on the eyebrow line; it is filled in per language below
+        teaser = re.sub(r'<span class="eyebrow">.*?</span></span>', lambda m: f'<div class="tz-top">{m.group(0)}{{{{LEVEL:{level}}}}}</div>', teaser, count=1)
+        blocks.append(f'<article class="problem" id="{slug}" data-topics="{topics}" data-spoil{tint}>\n'
+                      + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
     src = src.replace("<!--PROBLEMS-->", "\n".join(blocks))
     for lang in LANGS:
         m, other = meta[lang], ("en" if lang == "uk" else "uk")
         body = LangStripper(src, other).strip()
         for slug, _, purls in problems:
             body = body.replace("{{URL:%s}}" % slug, purls[lang])
+        for n in LEVELS:
+            body = body.replace("{{LEVEL:%d}}" % n, level_badge(lang, n))
         body = body.replace("{{BOOKS}}", base + "books/" + LANG_PATH[lang])
         body = body.replace("{{HOME_BASE}}", base).replace("{{HOME}}", urls[lang]).replace("{{FIRST}}", problems[0][2][lang])
         if lang == "en":
@@ -854,7 +878,7 @@ def build_hub(problems, base):
                  {"@type": "ListItem", "position": i + 1, "item": {
                      "@type": "LearningResource", "@id": p[2][lang] + "#page", "url": p[2][lang],
                      "name": p[1][lang]["card"]["title"], "description": p[1][lang]["description"],
-                     "inLanguage": lang, "isAccessibleForFree": True,
+                     "inLanguage": lang, "isAccessibleForFree": True, "educationalLevel": LEVEL_LD[p[1]["level"]],
                      "image": base + p[0] + f"/og-{lang}.png"}}
                  for i, p in enumerate(problems)]}},
         ]}
@@ -1104,6 +1128,8 @@ def build(base, out=None):
                 raise SystemExit(f"problems/{slug}/meta.json: \"{k}\" must be a YYYY-MM-DD date")
         if not meta.get("topics") or set(meta["topics"]) - set(TOPICS):
             raise SystemExit(f"problems/{slug}/meta.json: \"topics\" must list one or more of {', '.join(TOPICS)}")
+        if meta.get("level") not in LEVELS:
+            raise SystemExit(f"problems/{slug}/meta.json: \"level\" must be 1, 2 or 3 (see LEVELS in build.py)")
     books = load_books()
     problems = [build_problem(s, base, metas, books) for s, _ in metas]
     hub = build_hub(problems, base)
