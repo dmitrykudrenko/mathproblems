@@ -240,14 +240,16 @@ TOPICS = {
     "quick": {"uk": "Логіка й кмітливість", "en": "Logic and quick thinking"},
 }
 TOPICS_ALL = {"uk": "Усі", "en": "All"}
-# How much maths the explanation needs, meta.json "level": a small badge on the home card and in the problem hero.
-# It says nothing about how tricky the puzzle is. Deliberately not a filter: the home page keeps one row of chips.
+# How much maths a reader needs, meta.json "level": a small badge on the home card and in the problem hero.
+# Judged on what the main path shows (hero, puzzle, rounds 1-4 with their charts), not on the optional
+# "for those who love formulas" card, the "subtheory" blocks or round 5. It says nothing about how tricky
+# the puzzle is. Deliberately not a filter: the home page keeps one row of chips.
 LEVELS = {
-    1: {"uk": ("Без формул", "Вистачить арифметики й логіки"), "en": ("No formulas", "Arithmetic and logic are enough")},
-    2: {"uk": ("Шкільна математика", "Дроби, відсотки, проста ймовірність"),
-        "en": ("School maths", "Fractions, percentages, basic probability")},
-    3: {"uk": ("Поглиблено", "Математичне сподівання, логарифми, ряди"),
-        "en": ("Advanced", "Expected value, logarithms, series")},
+    1: {"uk": ("Для всіх", "Вистачить арифметики й логіки"), "en": ("For everyone", "Arithmetic and logic are enough")},
+    2: {"uk": ("Шкільна математика", "Дроби, відсотки, проста ймовірність, степені"),
+        "en": ("School maths", "Fractions, percentages, basic probability, powers")},
+    3: {"uk": ("Поглиблено", "Сподівання, дисперсія, кореляція, логарифми, ряди"),
+        "en": ("Advanced", "Expected value, variance, correlation, logarithms, series")},
 }
 LEVEL_LD = {1: "beginner", 2: "intermediate", 3: "advanced"}
 

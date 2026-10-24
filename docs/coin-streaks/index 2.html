@@ -1,0 +1,1461 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/coin-streaks/", "en": "/coin-streaks/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "coin-streaks";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>Серії в підкиданні монети: помилка гравця і довгі серії</title>
+<meta name="description" content="Чому випадковість не схожа на випадковість: у 100 кидках монети серія з 6 однакових буває у 80,7% випадків. Гра, симуляції, помилка гравця і гаряча рука.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/coin-streaks/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/coin-streaks/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/coin-streaks/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/coin-streaks/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Серії в підкиданні монети">
+<meta property="og:description" content="Якою буває найдовша серія однакових сторін, якщо підкинути чесну монету 100 разів?">
+<meta property="og:url" content="https://mathparadoxes.com/coin-streaks/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/coin-streaks/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="60 підкидань монети, решки й орли. Яка найдовша серія вийде зі 100 підкидань?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Серії в підкиданні монети">
+<meta name="twitter:description" content="Якою буває найдовша серія однакових сторін, якщо підкинути чесну монету 100 разів?">
+<meta name="twitter:image" content="https://mathparadoxes.com/coin-streaks/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/coin-streaks/#page", "url": "https://mathparadoxes.com/coin-streaks/", "name": "Серії в підкиданні монети: помилка гравця і довгі серії", "description": "Чому випадковість не схожа на випадковість: у 100 кидках монети серія з 6 однакових буває у 80,7% випадків. Гра, симуляції, помилка гравця і гаряча рука.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "intermediate", "about": {"@type": "Thing", "name": "Gambler's fallacy", "sameAs": "https://en.wikipedia.org/wiki/Gambler%27s_fallacy"}, "image": "https://mathparadoxes.com/coin-streaks/og-uk.png", "datePublished": "2026-10-19", "dateModified": "2026-10-23", "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "citation": [{"@type": "Book", "name": "Мислення швидке й повільне", "author": [{"@type": "Person", "name": "Деніел Канеман"}], "datePublished": "2017", "isbn": "9786177279180", "publisher": {"@type": "Organization", "name": "Наш Формат"}, "translationOfWork": {"@type": "Book", "name": "Thinking, Fast and Slow", "datePublished": "2011"}}, {"@type": "Book", "name": "The Drunkard's Walk", "author": [{"@type": "Person", "name": "Леонард Млодінов"}], "datePublished": "2008", "isbn": "9780375424045"}, {"@type": "Book", "name": "How We Know What Isn't So", "author": [{"@type": "Person", "name": "Томас Гілович"}], "datePublished": "1991", "isbn": "9780029117064"}], "workTranslation": {"@id": "https://mathparadoxes.com/coin-streaks/en/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "Серії в підкиданні монети", "item": "https://mathparadoxes.com/coin-streaks/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/coin-streaks/#faq", "inLanguage": "uk", "mainEntity": [{"@type": "Question", "name": "Якою буває найдовша серія у 100 кидках монети?", "acceptedAnswer": {"@type": "Answer", "text": "У середньому 6,98 кидка. Найчастіше найдовша серія дорівнює 6, медіана 7. Серія з 6 або більше однакових сторін буває у 80,7% випадків, з 5 або більше у 97,2%."}}, {"@type": "Question", "name": "Що таке помилка гравця?", "acceptedAnswer": {"@type": "Answer", "text": "Це віра в те, що після серії однакових результатів протилежний результат стає ймовірнішим. Для чесної монети після п'яти орлів поспіль шанс решки залишається 1/2, бо кидки незалежні."}}, {"@type": "Question", "name": "Як відрізнити вигадану послідовність від справжньої?", "acceptedAnswer": {"@type": "Answer", "text": "Люди уникають довгих серій і чергують сторони надто часто. У справжніх 100 кидках близько 49,5 перемикання і зазвичай є серія з 6 чи більше. У вигаданих перемикань більше, а найдовша серія коротша."}}, {"@type": "Question", "name": "Що не так із дослідженням «гарячої руки» 1985 року?", "acceptedAnswer": {"@type": "Answer", "text": "У 2018 році Міллер і Санхурхо показали, що усереднена за гравцями частка влучань після серії влучань зміщена донизу навіть для чесної монети. Після поправки дані контрольованого експерименту з тієї статті свідчать на користь «гарячої руки»."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the birthday page. The strip of 100 flips with its longest run lit up is this problem's signature object. */
+:root {
+  --tint: #E5EEF0;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 12px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); }
+.hero-cal .btn { justify-self: start; padding: 8px 16px; font-size: .85rem; }
+
+/* ---------- strip of flips ---------- */
+.flips { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 3px; padding: 10px; background: var(--surface); border-radius: 12px; }
+.flips i { aspect-ratio: 1; border-radius: 50%; background: var(--ink); border: 2px solid var(--ink); transition: background .2s, border-color .2s; }
+.flips i.t { background: var(--surface); }
+.flips i.e { background: transparent; border: 1px dashed var(--line); }
+.flips i.r { background: var(--hit); border-color: var(--hit); }
+.flips i.t.r { background: var(--hit-soft); border-color: var(--hit); }
+.flips i.new { animation: pop .3s ease-out; }
+@keyframes pop { 0% { transform: scale(1.8); } 100% { transform: scale(1); } }
+.flip-key { display: flex; gap: 14px; flex-wrap: wrap; font-size: .8rem; color: var(--muted); }
+.flip-key span { display: inline-flex; align-items: center; gap: 6px; }
+.flip-key i { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--ink); background: var(--ink); display: inline-block; }
+.flip-key i.t { background: var(--surface); }
+.flip-key i.r { background: var(--hit); border-color: var(--hit); }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl select { font: inherit; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.ctl input[type=range] { width: 200px; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+.big.day { color: var(--day); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.guess .val { font-family: var(--f-display); font-weight: 800; font-size: 3.4rem; color: var(--day); line-height: 1; }
+.guess input[type=range] { width: 100%; accent-color: var(--day); }
+.scale { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: .72rem; color: var(--muted); }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 6px; }
+.crow { display: grid; grid-template-columns: 54px 1fr 58px; gap: 10px; align-items: center; font-size: .86rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+.crow.me span:first-child { font-weight: 700; color: var(--hit); }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.status { display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.8rem; font-weight: 800; }
+.status .mm b { color: var(--hit); }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--hit); }
+.coin-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.coin-btns .btn { padding: 16px; font-size: 1.05rem; }
+.typed { width: 100%; min-height: 64px; font: inherit; font-family: var(--f-mono); font-size: .9rem; letter-spacing: .12em; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); resize: vertical; word-break: break-all; }
+.duel { display: grid; gap: 14px; }
+.seq { display: grid; gap: 8px; }
+.seq-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.seq-head h3 { font-size: 1rem; }
+.seq-head .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.seq.fake .seq-head h3 { color: var(--hit); }
+.verdict { border-radius: 12px; padding: 14px 16px; background: var(--hit-soft); font-weight: 500; }
+.verdict b { color: var(--hit); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.chips span { font-family: var(--f-mono); font-size: .74rem; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+.chips span.hot { border-color: var(--hit); color: var(--hit); font-weight: 600; }
+.real { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; margin-top: 20px; }
+.real > * { min-width: 0; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.9rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.marks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.marks div { border-radius: 10px; background: var(--paper); padding: 8px 10px; }
+.marks b { font-family: var(--f-display); font-size: 1.1rem; display: block; }
+.marks span { font-family: var(--f-mono); font-size: .72rem; color: var(--muted); }
+.pgroup { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.6rem; }
+.vs .a b { color: var(--day); }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .84rem; color: var(--muted); }
+.formula { font-family: var(--f-mono); font-size: .92rem; background: var(--paper); border-radius: 10px; padding: 14px 16px; overflow-x: auto; line-height: 1.9; white-space: nowrap; }
+.formula em { font-style: normal; color: var(--hit); font-weight: 600; }
+.inline-ctl { display: flex; align-items: center; gap: 10px; font-size: .86rem; color: var(--muted); flex-wrap: wrap; }
+.inline-ctl input[type=range] { width: 160px; accent-color: var(--day); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; margin-top: 18px; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.four { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; margin-top: 10px; }
+.four span { font-family: var(--f-mono); font-size: .8rem; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; display: flex; justify-content: space-between; gap: 6px; background: var(--surface); }
+.four span b { font-weight: 600; letter-spacing: .08em; }
+.four span.lo { border-color: var(--hit); }
+.four span.lo i { color: var(--hit); font-style: normal; font-weight: 600; }
+.four span i { font-style: normal; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .real, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .flips { gap: 2px; padding: 6px; }
+  .flips i { border-width: 1.5px; }
+  .card { padding: 16px; }
+  .marks { grid-template-columns: repeat(2, 1fr); }
+  .vs { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=f9094b43">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/coin-streaks/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/coin-streaks/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <span class="mp-level" title="Дроби, відсотки, проста ймовірність"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span>Шкільна математика</span>
+    <h1 class="uk"><span class="kw">Серії в підкиданні монети</span> 100 кидків монети. <span class="q sp-before">Якою буде найдовша серія?</span><span class="q sp-after">Шість і більше однакових поспіль буває в 4 випадках із 5.</span></h1>
+    
+    <p class="lead uk sp-before">Підкиньте чесну монету 100 разів. Якою буде найдовша серія однакових сторін поспіль? Зафіксуйте свою відповідь, а потім перевірте її на собі, на 100 000 симуляціях і на історії «помилки гравця».</p>
+    <p class="lead uk sp-after">Чому випадковість не схожа на випадковість? Підкиньте чесну монету 100 разів, і найдовша серія однакових сторін найчастіше матиме 6–7 кидків. Люди, які вигадують «випадкові» результати, таких серій уникають і чергують сторони занадто часто. Тут ви перевірите це на собі, на 100 000 симуляціях і на історії «помилки гравця».</p>
+    
+    
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd"><b>≈ 7</b><span><span class="uk">найдовша серія за 100 кидків</span></span></div>
+      <div class="odd hit"><b>80,7%</b><span><span class="uk">шанс серії з 6 і більше</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="uk">Умова</b></a>
+      <a href="#guess"><span>1</span><b class="uk">Вгадайте</b></a>
+      <a href="#game"><span>2</span><b class="uk">Обдуріть детектор</b></a>
+      <a href="#sim"><span>3</span><b class="uk">100 000 послідовностей</b></a>
+      <a href="#why"><span>4</span><b class="uk">Чому так</b></a>
+      <a href="#more"><span>5</span><b class="uk">Рулетка і «гаряча рука»</b></a>
+      <a href="#facts"><span>★</span><b class="uk" style="font-weight:inherit">Цікаві факти</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal">
+    <div class="flips" id="hero-flips" aria-hidden="true"></div>
+    <div class="flip-key"><span><i></i><b class="uk" style="font-weight:inherit">орел</b></span><span><i class="t"></i><b class="uk" style="font-weight:inherit">решка</b></span><span class="sp-after"><i class="r"></i><b class="uk" style="font-weight:inherit">найдовша серія</b></span></div>
+    <p class="cap" id="hero-cap" aria-live="polite"></p>
+    <button class="btn ghost" id="hero-new" type="button"><span class="uk">Ще 100 кидків</span></button>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span></span>
+    <h2><span class="uk">Уявіть: учитель просить клас підкинути монету 100 разів</span></h2>
+    <p class="lead uk">Половина класу справді підкидає монету, а друга половина вигадує результати й записує їх так, щоб вони «виглядали випадково». Учитель дивиться на два аркуші й майже завжди вгадує, де підробка. Як він це робить?</p>
+    
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Монета</span></h3>
+        <p class="uk">Монета чесна: орел і решка випадають з однаковою ймовірністю 1/2. Кидки незалежні, монета не пам'ятає попередніх результатів.</p>
+        </div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Серія</span></h3>
+        <p class="uk">Серія означає кілька однакових результатів поспіль: ООООО або РРРР. Нас цікавить найдовша серія будь-якої сторони за 100 кидків.</p>
+        </div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Перемикання</span></h3>
+        <p class="uk">Перемикання відбувається, коли сусідні кидки різні: після орла решка або навпаки. У 100 кидках є 99 пар сусідніх кидків.</p>
+        </div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span></h3>
+        <p class="uk">Якою зазвичай буває найдовша серія у 100 чесних кидках? Скільки там перемикань? І чи стає решка ймовірнішою після п'яти орлів поспіль?</p>
+        </div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span></span>
+        <p class="q"><span class="uk">«Шість орлів поспіль? Це вже підозріло»</span></p>
+        <p class="uk">Насправді у 100 кидках серія з 6 або більше однакових буває в 80,7% випадків, а найдовша серія в середньому близько 7. Справжня випадковість виглядає «грудкуватою». А підробку видає якраз надмірна рівномірність.</p>
+        
+      </div>
+      <div class="card">
+        <h3><span class="uk">Припущення моделі</span></h3>
+        <ul class="rules uk">
+          <li>Монета чесна: 50 на 50.</li>
+          <li>Кидки незалежні один від одного.</li>
+          <li>Серії рахуємо для обох сторін.</li>
+        </ul>
+        
+        <p class="note sp-after"><span class="uk">Якщо рахувати лише серії орлів, найдовша буде в середньому приблизно на одиницю коротшою: близько 6.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span></span>
+    <h2><span class="uk">Яка найдовша серія за 100 кидків?</span></h2>
+    <p class="lead uk">Зафіксуйте відповідь, перш ніж читати далі. Якої довжини найдовшу серію однакових сторін ви очікуєте у 100 чесних кидках?</p>
+    
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <label for="guess-n" class="note"><span class="uk">Найдовша серія, кидків поспіль</span></label>
+      <div class="val mono" id="guess-v">4</div>
+      <input type="range" id="guess-n" min="1" max="20" value="4">
+      <div class="scale"><span>1</span><span>5</span><span>10</span><span>15</span><span>20</span></div>
+      <div class="actions"><button class="btn pri" id="guess-go"><span class="uk">Перевірити</span></button></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться порівняння вашої відповіді з точним розподілом.</p>
+      
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Підказки</span>
+    <p class="mp-hints-intro">Важко вирішити? Відкривайте підказки по одній: спочатку легка, далі сильніша.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Не уявляйте, як «має виглядати» випадковість. Справжні кидки злипаються в серії, і рахуються серії будь-якої сторони: і орли, і решки.</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>Серія може початися майже з будь-якого кидка. Шанс для кожного окремого місця малий, але місць багато, і малі шанси складаються у великий.</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>Порахуйте, з яким шансом конкретні k кидків поспіль однакові (рахуються обидві сторони) і скільки таких вікон у 100 кидках. Знайдіть k, за якого таких вікон у середньому близько одного.</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Показати підказку 1 з 3 · легка&quot;, &quot;Показати підказку 2 з 3 · середня&quot;, &quot;Показати підказку 3 з 3 · сильна&quot;]">Показати підказку 1 з 3 · легка</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "coin-streaks";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "coin-streaks", RULE = {"right": [[6, 7]]}, MIN = 20, T = {"kicker": "Як відповідають інші", "few": "Відповідей поки замало для статистики: {n}. Ваша вже серед них.", "few_seen": "Відповідей поки замало для статистики: {n}.", "all": "Відповідей: {n}. Правильних серед них {p}.", "yes": "Ви серед тих, хто впорався.", "no": "Не засмучуйтеся: інтуїція підводить більшість.", "bar": "правильно", "note": "Рахуємо лише першу відповідь з кожного браузера, до того як він побачив розв'язок. Анонімно."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span></span>
+    <h2><span class="uk">Вигадайте 100 кидків і спробуйте обдурити детектор</span></h2>
+    <p class="lead uk">Натискайте «Орел» і «Решка» або друкуйте в полі літери О і Р, поки не наберете 100 «випадкових» результатів. Сторінка паралельно підкидає справжню монету 100 разів. Детектор бачить дві послідовності без підписів і вгадує, яку з них вигадала людина. Він дивиться лише на дві речі: найдовшу серію і кількість перемикань.</p>
+    
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="status">
+        <div><span class="k"><span class="uk">Кидків</span></span><b class="mono" id="me-n">0</b></div>
+        <div class="mm"><span class="k"><span class="uk">Найдовша серія</span></span><b class="mono" id="me-l">0</b></div>
+        <div><span class="k"><span class="uk">Перемикань</span></span><b class="mono" id="me-s">0</b></div>
+      </div>
+      <div class="flips" id="me-flips" aria-hidden="true"></div>
+      <div class="coin-btns">
+        <button class="btn pri" id="me-h" type="button"><span class="uk">Орел (О)</span></button>
+        <button class="btn ghost" id="me-t" type="button"><span class="uk">Решка (Р)</span></button>
+      </div>
+      <label class="note" for="me-typed"><span class="uk">Або надрукуйте тут: О/Р, H/T чи 1/0</span></label>
+      <textarea class="typed" id="me-typed" rows="3" spellcheck="false" autocomplete="off"></textarea>
+      <p class="msg" id="me-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn ghost" id="me-undo" type="button"><span class="uk">Стерти останній</span></button>
+        <button class="btn hit" id="me-clear" type="button"><span class="uk">Почати свою послідовність</span></button>
+      </div>
+    </div>
+    <div class="card duel" id="duel" aria-live="polite"></div>
+  </div>
+
+  <div class="real">
+    <div class="card stage">
+      <h3><span class="uk">Підкиньте 100 разів по-справжньому</span></h3>
+      <div class="flips" id="real-flips" aria-hidden="true"></div>
+      <div class="status">
+        <div class="mm"><span class="k"><span class="uk">Найдовша серія</span></span><b class="mono" id="real-l">–</b></div>
+        <div><span class="k"><span class="uk">Перемикань</span></span><b class="mono" id="real-s">–</b></div>
+        <div><span class="k"><span class="uk">Орлів</span></span><b class="mono" id="real-h">–</b></div>
+      </div>
+      <p class="msg" id="real-msg"></p>
+      <div class="actions"><button class="btn pri" id="real-go" type="button"><span class="uk">Підкинути 100 разів</span></button></div>
+    </div>
+    <div class="card">
+      <h3><span class="uk">Найдовші серії ваших підкидань</span></h3>
+      <p class="note" id="real-sum" style="margin-top:6px"></p>
+      <div class="chips" id="real-chips"></div>
+      <p class="note" style="margin-top:12px"><span class="uk">Теорія для 100 кидків: найдовша серія в середньому 6,98, найчастіше 6, медіана 7. Серії з 6 і більше виділені кольором.</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span></span>
+    <h2><span class="uk">100 000 послідовностей по 100 кидків</span></h2>
+    <p class="lead uk">Комп'ютер підкидає монету мільйони разів, ділить кидки на послідовності й для кожної знаходить найдовшу серію та кількість перемикань. Лінія на графіку показує точний розподіл, обчислений динамічним програмуванням, точки показують симуляцію.</p>
+    
+  </div>
+  <div class="card">
+    <div class="controls">
+      <div class="pgroup"><span><span class="uk">Кидків у послідовності</span></span><div class="presets" id="sim-len"></div></div>
+      <label class="ctl" for="sim-r"><span class="uk">Послідовностей</span>
+        <select id="sim-r">
+          <option value="10000">10 000</option>
+          <option value="100000" selected>100 000</option>
+        </select>
+      </label>
+      <button class="btn pri" id="sim-run"><span class="uk">Запустити</span></button>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="sim-chart" style="height:300px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--day)"><b class="uk">точний розподіл</b></span>
+          <span style="--c:var(--hit)"><b class="uk">симуляція</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile" style="--c:var(--hit)"><div class="k" id="sim-k"></div><div class="v" id="sim-v">–</div><div class="s" id="sim-s"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Середня найдовша серія</span></div><div class="v mono" id="sim-m">–</div><div class="s" id="sim-ms"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Середня кількість перемикань</span></div><div class="v mono" id="sim-w">–</div><div class="s" id="sim-ws"></div></div>
+        <div class="marks" id="marks"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px">
+    <h3><span class="uk">Довша послідовність, довша серія: приблизно log₂ n</span></h3>
+    <p class="note" style="margin:6px 0 12px"><span class="uk">Щоб найдовша серія виросла на 1, кількість кидків треба приблизно подвоїти. Вісь кидків логарифмічна. Точки показують по 2 000 симульованих послідовностей для кожної довжини.</span></p>
+    <canvas id="len-chart" style="height:260px"></canvas>
+    <div class="legend">
+      <span style="--c:var(--day)"><b class="uk">точне середнє</b></span>
+      <span style="--c:var(--muted)"><b class="uk">log₂ n (пунктир)</b></span>
+      <span style="--c:var(--hit)"><b class="uk">симуляція</b></span>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · П'ять пояснень</span></span>
+    <h2><span class="uk">Чому довгі серії неминучі</span></h2>
+    <p class="lead uk">Кожен окремий кидок не знає про попередні. Але серія може початися в багатьох місцях, і за 100 кидків таких спроб багато. Ось п'ять способів це побачити.</p>
+    
+  </div>
+  <div class="why-grid">
+    <div class="card">
+      <span class="kicker"><span class="uk">Помилка гравця</span></span>
+      <h3><span class="uk">Монета не має пам'яті</span></h3>
+      <div class="vs">
+        <div class="a"><span><span class="uk">П'ять орлів поспіль, далі решка</span></span><b class="mono">50%</b><span><span class="uk">шанс решки на шостому кидку</span></span></div>
+        <div class="bb"><span><span class="uk">Шість орлів поспіль від початку</span></span><b class="mono">1/64</b><span><span class="uk">шанс до першого кидка</span></span></div>
+      </div>
+      <p class="uk">Помилка гравця полягає у вірі, що після серії орлів решка «має» випасти, бо випадковість нібито вирівнюється. Шанс серії з шести орлів справді малий, 1/64, але лише до початку. Коли п'ять орлів уже випали, шостий кидок дає орла або решку з однаковим шансом 1/2.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Багато місць для старту</span></span>
+      <h3><span class="uk">Серія може початися майже з будь-якого кидка</span></h3>
+      <div class="inline-ctl"><label for="start-k"><span class="uk">Довжина серії:</span> <b class="mono" id="start-v">6</b></label><input type="range" id="start-k" min="3" max="12" value="6"></div>
+      <p id="start-txt"></p>
+      <p class="uk">Шанс, що шість конкретних кидків однакові, дорівнює 2/64 = 1/32. Але у 100 кидках є 95 вікон по шість кидків поспіль, і кожне з них може стати серією. Багато маленьких шансів разом дають великий.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Закон малих чисел</span></span>
+      <h3><span class="uk">Ми чекаємо 50 на 50 навіть у малих вибірках</span></h3>
+      <div class="vs">
+        <div class="a"><span><span class="uk">Рівно 5 орлів із 10</span></span><b class="mono" id="sn-a">24,6%</b><span><span class="uk">решта випадків «нерівні»</span></span></div>
+        <div class="bb"><span><span class="uk">Від 45 до 55 орлів із 100</span></span><b class="mono" id="sn-b">72,9%</b><span><span class="uk">більш ніж у чверті випадків відхилення більше</span></span></div>
+      </div>
+      <p class="uk">Амос Тверскі й Деніел Канеман назвали це «вірою в закон малих чисел»: люди очікують, що навіть короткий відрізок випадкової послідовності буде схожий на загальну картину. Тому вигадані послідовності надто рівні навіть на коротких відрізках: орли й решки в них чергуються частіше, ніж у справжніх.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Рахуємо перемикання</span></span>
+      <h3><span class="uk">99 пар сусідів, у кожній перемикання з шансом 1/2</span></h3>
+      <div class="vs">
+        <div class="a"><span><span class="uk">Очікувана кількість перемикань</span></span><b class="mono">49,5</b><span>99 · 1/2</span></div>
+        <div class="bb"><span><span class="uk">Справжні послідовності</span></span><b class="mono">40–59</b><span><span class="uk">у 95,6% випадків</span></span></div>
+      </div>
+      <p class="uk">Кожна пара сусідніх кидків різна з імовірністю 1/2, незалежно від інших пар. Тому кількість перемикань має біноміальний розподіл з n = 99 і p = 1/2. 60 і більше перемикань у справжній послідовності трапляються лише в 2,2% випадків. У людей, які вигадують кидки, перемикань зазвичай набагато більше.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span></span>
+      <h3><span class="uk">Точна формула через динамічне програмування</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">A<sub>k</sub>(m) — кількість послідовностей довжини m, у яких усі серії коротші за k. Поки m менше за k, годиться будь-яка послідовність.</span></p>
+          <math display="block"><mi>m</mi><mo>&lt;</mo><mi>k</mi><mo>:</mo><mspace width="0.6em"></mspace><msub><mrow><mi>A</mi></mrow><mrow><mi>k</mi></mrow></msub><mo stretchy="false">(</mo><mi>m</mi><mo stretchy="false">)</mo><mo>=</mo><msup><mrow><mn>2</mn></mrow><mrow><mi>m</mi></mrow></msup></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Довші послідовності складаємо з коротших допустимих.</span></p>
+          <math display="block"><mi>m</mi><mo>≥</mo><mi>k</mi><mo>:</mo><mspace width="0.6em"></mspace><msub><mrow><mi>A</mi></mrow><mrow><mi>k</mi></mrow></msub><mo stretchy="false">(</mo><mi>m</mi><mo stretchy="false">)</mo></math>
+          <math display="block"><mo>=</mo><msub><mrow><mi>A</mi></mrow><mrow><mi>k</mi></mrow></msub><mo stretchy="false">(</mo><mi>m</mi><mo>−</mo><mn>1</mn><mo stretchy="false">)</mo><mo>+</mo><msub><mrow><mi>A</mi></mrow><mrow><mi>k</mi></mrow></msub><mo stretchy="false">(</mo><mi>m</mi><mo>−</mo><mn>2</mn><mo stretchy="false">)</mo><mo>+</mo><mo>…</mo><mo>+</mo><msub><mrow><mi>A</mi></mrow><mrow><mi>k</mi></mrow></msub><mo stretchy="false">(</mo><mi>m</mi><mo>−</mo><mi>k</mi><mo>+</mo><mn>1</mn><mo stretchy="false">)</mo></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Шанс, що найдовша серія має довжину щонайменше k: усі послідовності, крім тих, де всі серії короткі.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">найдовша серія</mtext><mo>≥</mo><mi>k</mi><mo stretchy="false">)</mo><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><msub><mrow><mi>A</mi></mrow><mrow><mi>k</mi></mrow></msub><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow><mrow><msup><mrow><mn>2</mn></mrow><mrow><mi>n</mi></mrow></msup></mrow></mfrac></math>
+          <math display="block"><mi>n</mi><mo>=</mo><mn>100</mn><mo>,</mo><mspace width="0.6em"></mspace><mi>k</mi><mo>=</mo><mn>6</mn><mo>:</mo><mspace width="0.6em"></mspace><mn class="hl" id="dp-6">0,8068</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Середня довжина найдовшої серії.</span></p>
+          <math display="block"><mi>E</mi><mo stretchy="false">[</mo><mtext class="lbl uk">найдовша серія</mtext><mo stretchy="false">]</mo><mo>=</mo><munder><mo>∑</mo><mrow><mi>k</mi><mo>≥</mo><mn>1</mn></mrow></munder><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">серія</mtext><mo>≥</mo><mi>k</mi><mo stretchy="false">)</mo></math>
+          <math display="block"><mo>≈</mo><msub><mrow><mi>log</mi></mrow><mrow><mn>2</mn></mrow></msub><mspace width="0.17em"></mspace><mi>n</mi><mo>+</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mn>3</mn></mrow></mfrac></math>
+          <math display="block"><mi>n</mi><mo>=</mo><mn>100</mn><mo>:</mo><mspace width="0.6em"></mspace><mn class="hl" id="dp-e">6,98</mn></math>
+        </div>
+      </div>
+      <p class="uk">Логіка рекурсії: остання серія послідовності має довжину j від 1 до k−1, а перед нею стоїть коротша допустима послідовність, яка закінчується іншою стороною. Сторона останньої серії тоді визначена однозначно. Для 100 кидків і k = 6 точне значення 80,68%. Сторінка рахує всі ці числа саме так, без наближень.</p>
+      
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 5: escalation -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Ускладнюємо</span></span>
+    <h2><span class="uk">Рулетка, «черговість» і гаряча рука</span></h2>
+    <p class="lead uk">Помилку гравця можна перевірити на мільйоні кидків. Потім подивимось на рулетку із зеро і на одну з найтонших історій у статистиці: як у дослідженні «гарячої руки» в баскетболі через 33 роки знайшли приховане зміщення.</p>
+    
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="uk">Після k орлів поспіль решка ймовірніша?</span></h3>
+        <p class="note" style="margin:6px 0 12px"><span class="uk">Симуляція підкидає монету мільйон разів і щоразу після серії з k орлів дивиться, що випало далі. Кожне натискання додає ще мільйон кидків.</span></p>
+        <canvas id="cond-chart" style="height:240px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--hit)"><b class="uk">частка решок після k орлів</b></span>
+          <span style="--c:var(--muted)"><b class="uk">50%</b></span>
+        </div>
+        <div class="actions" style="margin-top:14px"><button class="btn pri" id="cond-more" type="button"><span class="uk">Ще мільйон кидків</span></button></div>
+      </div>
+      <div class="card">
+        <h3><span class="uk">Що показує симуляція</span></h3>
+        <div class="presets" id="cond-k" style="margin-top:14px"></div>
+        <div class="result-row">
+          <div><span class="k" id="cond-lab"></span><b class="big hit mono" id="cond-v"></b></div>
+        </div>
+        <p class="note" id="cond-txt" style="margin-top:14px"></p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="uk">Рулетка: червоне, чорне і зеро</span></h3>
+        <div class="presets" id="wheel" style="margin-top:14px"></div>
+        <div class="inline-ctl" style="margin-top:16px"><label for="wheel-k"><span class="uk">Чорних поспіль:</span> <b class="mono" id="wheel-kv">26</b></label><input type="range" id="wheel-k" min="1" max="30" value="26"></div>
+        <div class="result-row">
+          <div><span class="k" id="wheel-l1"></span><b class="big day mono" id="wheel-p" style="font-size:1.6rem"></b></div>
+          <div><span class="k"><span class="uk">Шанс червоного на наступному оберті</span></span><b class="big hit mono" id="wheel-r"></b></div>
+        </div>
+        <p class="note" id="wheel-txt" style="margin-top:14px"></p>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:10px"><span class="uk">Чому зеро важливе</span></h3>
+        <p class="uk">Колесо не має пам'яті так само, як монета. Але на рулетці червоне не є «половиною»: зелене зеро забирає частину шансів. Ставка на червоне після будь-якої серії чорних виграє з тим самим шансом 18/37 на європейському колесі і 18/38 на американському.</p>
+        
+        <p class="note" style="margin-top:12px"><span class="uk">Тому довга серія чорних не дає жодної переваги, а перевага казино залишається незмінною: 1/37 ≈ 2,7% від кожної ставки на європейському колесі.</span></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="uk">«Гаряча рука»: прихована пастка в коротких послідовностях</span></h3>
+      <p class="note" style="margin:8px 0 0;max-width:80ch"><span class="uk">У 1985 році Гілович, Валлоне й Тверскі перевірили, чи влучає баскетболіст частіше після кількох влучань поспіль. Для кожного гравця вони рахували частку влучань після серії влучань і порівнювали її з часткою влучань після серії промахів. Різниці не знайшлося, і «гарячу руку» оголосили когнітивною ілюзією. У 2018 році Міллер і Санхурхо показали, що такий підрахунок зміщений: навіть для чесної монети усереднена за гравцями частка орлів після орлів менша за 50%.</span></p>
+      <div class="esc-block" style="margin-top:18px">
+        <div>
+          <span class="kicker"><span class="uk">Найменший приклад: 4 кидки, частка О після О</span></span>
+          <div class="four" id="four"></div>
+          <p class="note" style="margin-top:10px" id="four-txt"></p>
+        </div>
+        <div style="display:grid;gap:14px;align-content:start">
+          <div class="pgroup"><span><span class="uk">Кидків у гравця</span></span><div class="presets" id="hh-n"></div></div>
+          <div class="pgroup"><span><span class="uk">Довжина серії перед кидком</span></span><div class="presets" id="hh-k"></div></div>
+          <div class="tile" style="--c:var(--hit)"><div class="k"><span class="uk">Середня частка за гравцями</span></div><div class="v mono" id="hh-a">–</div><div class="s" id="hh-as"></div></div>
+          <div class="tile"><div class="k"><span class="uk">Усі кидки разом</span></div><div class="v mono" id="hh-p">–</div><div class="s" id="hh-ps"></div></div>
+          <div class="actions"><button class="btn pri" id="hh-run" type="button"><span class="uk">Симулювати 100 000 гравців</span></button></div>
+        </div>
+      </div>
+      <p class="note" style="margin-top:16px;max-width:80ch"><span class="uk">Звідки зміщення? Кожен гравець дає одне число, хоч би скільки серій у нього було. Послідовності з довгими серіями мають багато кидків «після орла», і майже всі вони орли, але в середньому така послідовність важить стільки ж, скільки послідовність з однією-єдиною серією. Якщо ж скласти всі кидки разом, частка буде рівно 50%. Міллер і Санхурхо внесли цю поправку й знайшли в контрольованому експерименті з оригінальної статті ознаки «гарячої руки».</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span></span>
+    <h2><span class="uk">Що розповісти друзям</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">26</span>
+        <h3><span class="uk">Монте-Карло, 18 серпня 1913 року</span></h3>
+        <p class="uk">У казино Монте-Карло на рулетці 26 разів поспіль випало чорне. Гравці ставили на червоне дедалі більше, вважаючи, що воно «має» випасти, і програли мільйони франків. Тому помилку гравця ще називають помилкою Монте-Карло.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">1 : 137 млн</span></span>
+        <h3><span class="uk">Наскільки рідкісна така серія</span></h3>
+        <p class="uk">Шанс, що 26 обертів європейського колеса, починаючи з певного, усі дадуть чорне, дорівнює (18/37)²⁶, приблизно 1 до 137 мільйонів. Але за десятиліття роботи тисяч рулеток у світі обертів набирається дуже багато, тому десь така серія рано чи пізно трапляється.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1971</span>
+        <h3><span class="uk">«Віра в закон малих чисел»</span></h3>
+        <p class="uk">Під такою назвою Амос Тверскі й Деніел Канеман 1971 року опублікували статтю про те, що навіть науковці очікують від малих вибірок надто точної схожості з усією сукупністю. Пізніше Канеман отримав Нобелівську премію з економіки за дослідження помилок у судженнях.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1985</span>
+        <h3><span class="uk">«Гаряча рука» в баскетболі</span></h3>
+        <p class="uk">Томас Гілович, Роберт Валлоне й Амос Тверскі проаналізували кидки гравців «Філадельфії 76» і провели експеримент з баскетболістами Корнелльського університету. Вони не знайшли «гарячої руки», і стаття на десятиліття стала класичним прикладом того, як люди бачать закономірності у випадковості.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">2018</span>
+        <h3><span class="uk">Поправка Міллера й Санхурхо</span></h3>
+        <p class="uk">Джошуа Міллер і Адам Санхурхо опублікували в журналі Econometrica статтю про те, що метод 1985 року систематично занижує частку влучань після серії влучань. Після поправки дані того самого експерименту свідчать на користь «гарячої руки». Спір про її розмір триває.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">Урок</span></span>
+        <h3><span class="uk">Учитель і два аркуші</span></h3>
+        <p class="uk">Цей фокус давно показують на уроках статистики. Одна група підкидає монету, друга вигадує результати. Учитель знаходить підробку за кілька секунд: у вигаданій послідовності немає довгих серій, а орли й решки чергуються надто часто.</p>
+        
+      </article>
+  </div>
+</section>
+
+<section class="mp-books" id="books">
+  <div class="mp-related-head">
+    <span class="eyebrow">Що почитати</span>
+    <h2>Книжки, де є ця задача</h2>
+  </div>
+  <div class="mp-books-grid">
+    <div class="mp-book"><h3>Мислення швидке й повільне</h3><p class="mp-book-author">Деніел Канеман</p><p class="mp-book-meta">Наш Формат, 2017 · розділ 10</p></div>
+    <div class="mp-book"><h3>The Drunkard&#x27;s Walk</h3><p class="mp-book-author">Леонард Млодінов</p><p class="mp-book-meta">2008, англійською · розділ 9</p></div>
+    <div class="mp-book"><h3>How We Know What Isn&#x27;t So</h3><p class="mp-book-author">Томас Гілович</p><p class="mp-book-meta">1991, англійською</p></div>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/books/">Усі книжки →</a>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">Ще задачі</span>
+    <h2>Інші парадокси</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/bertrand-paradox/"><h3>Парадокс Бертрана</h3><p>У колі навмання проводять хорду. Який шанс, що вона довша за сторону вписаного рівностороннього трикутника?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/penney-game/"><h3>Гра Пенні</h3><p>Ви обрали трійку ООО, суперник обрав РОО. Монету підкидають, доки одна з трійок не випаде поспіль. Який шанс суперника?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/inspection-paradox/"><h3>Парадокс автобуса</h3><p>Автобус ходить у середньому раз на 10 хвилин, але без розкладу. Ви приходите на зупинку в довільний момент. Скільки в середньому чекатимете?</p></a>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/">Усі задачі →</a>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Обговорення</span>
+    <h2>Що ви думаєте?</h2>
+    <p>Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub.</p>
+    <div class="mp-lvote"><p>Рівень «Шкільна математика» відповідає задачі?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">Ні, складніше</button><button type="button" data-vote="right">Так</button><button type="button" data-vote="easier">Ні, простіше</button></div><p class="mp-lvote-thanks">Дякуємо! Це допоможе точніше ставити рівні.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "coin-streaks" + "-lvl", LEVEL = 2, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="coin-streaks" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="uk" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Розсилка</span>
+    <h2>Нові задачі, пояснення й обговорення</h2>
+    <p>Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">Форма підписки з'явиться тут найближчим часом.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+<footer>
+  <span class="uk">Помилку гравця називають також помилкою Монте-Карло, через серію з 26 чорних 1913 року. Поправку до дослідження «гарячої руки» 1985 року опублікували Міллер і Санхурхо (2018).</span>
+  
+  <span class="mono">E[run] ≈ log₂ n</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? s : String(s).replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+// Ukrainian plural forms: 1 кидок, 2 кидки, 5 кидків
+const ukPl = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+const flipsW = n => L(ukPl(n, 'кидок', 'кидки', 'кидків'), n === 1 ? 'flip' : 'flips');
+
+/* ---------- maths ---------- */
+// q[m] = P(all runs in m fair flips are shorter than k) = A_k(m) / 2^m
+function qArr(N, k) {
+  const q = new Float64Array(N + 1);
+  for (let m = 0; m <= N; m++) {
+    if (k <= 1) { q[m] = m === 0 ? 1 : 0; continue; }
+    if (m < k) { q[m] = 1; continue; }
+    let s = 0, w = 0.5;
+    for (let j = 1; j < k; j++) { s += q[m - j] * w; w *= 0.5; }
+    q[m] = s;
+  }
+  return q;
+}
+const pAtLeast = (n, k) => 1 - qArr(n, k)[n];              // P(longest run >= k)
+const pExactly = (n, k) => qArr(n, k + 1)[n] - qArr(n, k)[n]; // P(longest run == k)
+function longestDist(n) { const d = [0]; for (let k = 1; k <= n; k++) d.push(pExactly(n, k)); return d; }
+function meanLongest(n) { let e = 0; for (let k = 1; k <= Math.min(n, 60); k++) e += pAtLeast(n, k); return e; }
+// exact mean longest run for every length 1..N in one pass per k
+function meanCurve(N) {
+  const e = new Float64Array(N + 1);
+  for (let k = 1; k <= 45; k++) { const q = qArr(N, k); for (let m = 1; m <= N; m++) e[m] += 1 - q[m]; }
+  return e;
+}
+const coin = () => Math.random() < 0.5 ? 1 : 0; // 1 = heads
+const flipN = n => Array.from({ length: n }, coin);
+// longest run, where it starts, and number of switches
+function stats(a) {
+  let L = a.length ? 1 : 0, start = 0, cur = 1, S = 0, heads = a.length ? a[0] : 0;
+  for (let i = 1; i < a.length; i++) {
+    heads += a[i];
+    if (a[i] === a[i - 1]) cur++; else { cur = 1; S++; }
+    if (cur > L) { L = cur; start = i - cur + 1; }
+  }
+  return { L, start, S, heads, n: a.length };
+}
+// longest run and switches of n random flips, without storing them
+function simOne(n) {
+  let prev = coin(), cur = 1, L = 1, S = 0;
+  for (let i = 1; i < n; i++) { const f = Math.random() < 0.5 ? 1 : 0; if (f === prev) { if (++cur > L) L = cur; } else { cur = 1; S++; prev = f; } }
+  return [L, S];
+}
+const D100 = longestDist(100);
+const E100 = D100.reduce((s, p, k) => s + p * k, 0);
+const SD100 = Math.sqrt(D100.reduce((s, p, k) => s + p * (k - E100) ** 2, 0));
+const SW_SD = Math.sqrt(99) / 2;
+// how far a 100-flip sequence is from a typical real one: switch count and longest run, in standard deviations
+const fakeScore = st => Math.abs(st.S - 49.5) / SW_SD + Math.abs(st.L - E100) / SD100;
+
+/* ---------- strip of flips ---------- */
+function Strip(el, n = 100) {
+  el.innerHTML = '';
+  const cells = Array.from({ length: n }, () => { const c = document.createElement('i'); el.appendChild(c); return c; });
+  return {
+    show(a, { fresh = -1, run = true } = {}) {
+      const st = stats(a);
+      cells.forEach((c, i) => {
+        if (i >= a.length) { c.className = 'e'; return; }
+        let cl = a[i] ? 'h' : 't';
+        if (run && st.L > 1 && i >= st.start && i < st.start + st.L) cl += ' r';
+        if (i === fresh) cl += ' new';
+        c.className = cl;
+      });
+      return st;
+    }
+  };
+}
+const sideW = (h, n) => h ? L(ukPl(n, 'орел', 'орли', 'орлів'), n === 1 ? 'head' : 'heads') : L(ukPl(n, 'решка', 'решки', 'решок'), n === 1 ? 'tail' : 'tails');
+
+/* ---------- hero ---------- */
+const heroStrip = Strip($('#hero-flips'));
+let heroSeq = flipN(100);
+function heroText() {
+  const st = stats(heroSeq);
+  if (window.mpSolved && !mpSolved()) { $('#hero-cap').textContent = L('100 справжніх кидків. Якою, на вашу думку, є найдовша серія однакових сторін?', '100 real flips. How long do you think the longest run of one side is?'); return; }
+  $('#hero-cap').textContent = L('100 справжніх кидків. Найдовша серія: ' + st.L + ' ' + sideW(heroSeq[st.start], st.L) + ' поспіль. Перемикань: ' + st.S + '.',
+    '100 real flips. Longest run: ' + st.L + ' ' + sideW(heroSeq[st.start], st.L) + ' in a row. Switches: ' + st.S + '.');
+}
+const heroShow = () => heroStrip.show(heroSeq, { run: !window.mpSolved || mpSolved() });
+heroShow();
+$('#hero-new').addEventListener('click', () => { heroSeq = flipN(100); heroShow(); heroText(); });
+document.addEventListener('solved', () => { heroShow(); heroText(); });
+
+/* ---------- round 1: guess ---------- */
+const guessIn = $('#guess-n');
+let guessed = null;
+guessIn.addEventListener('input', () => { $('#guess-v').textContent = guessIn.value; });
+$('#guess-go').addEventListener('click', () => { guessed = +guessIn.value; guessText(); window.mpSolve && mpSolve(guessed); });
+function guessText() {
+  if (guessed === null) return;
+  const g = guessed, rows = [];
+  rows.push(['≤ 4', D100.slice(1, 5).reduce((a, b) => a + b, 0), g <= 4]);
+  for (let k = 5; k <= 11; k++) rows.push([String(k), D100[k], g === k]);
+  rows.push(['≥ 12', pAtLeast(100, 12), g >= 12]);
+  const mx = Math.max(...rows.map(r => r[1]));
+  const longer = pAtLeast(100, g + 1);
+  const verdict = g === 6 || g === 7
+    ? L('Влучно. Найдовша серія у 100 кидках найчастіше 6, а медіана 7.', 'Spot on. The longest run in 100 flips is most often 6, and its median is 7.')
+    : g < 6
+      ? L('Замало. Серія, довша за ' + g + ', буває в ' + pct(longer) + ' послідовностей зі 100 кидків.', 'Too short. A run longer than ' + g + ' appears in ' + pct(longer) + ' of 100-flip sequences.')
+      : L('Забагато. Серія з ' + g + ' або більше буває лише в ' + pct(pAtLeast(100, g)) + ' випадків.', 'Too long. A run of ' + g + ' or more happens only ' + pct(pAtLeast(100, g)) + ' of the time.');
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">≈ 7</p>' +
+    '<p>' + verdict + '</p><div class="compare">' + rows.map(r => '<div class="crow' + (r[2] ? ' me' : '') + '"><span class="mono">' + r[0] + '</span><div class="bar"><i style="--c:' + (r[2] ? 'var(--hit)' : 'var(--day)') + ';width:' + (100 * r[1] / mx) + '%"></i></div><span class="mono">' + pct(r[1]) + '</span></div>').join('') +
+    '</div><p class="note">' + L('Точний розподіл найдовшої серії у 100 кидках. Ваша відповідь виділена кольором.', 'The exact distribution of the longest run in 100 flips. Your answer is highlighted.') + '</p>';
+}
+
+/* ---------- round 2: game ---------- */
+// a made-up sequence of the kind people usually write: frequent switches, runs rarely past 4
+function humanLike(seed) {
+  let s = seed >>> 0; const r = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
+  const a = [r() < 0.5 ? 1 : 0]; let cur = 1;
+  while (a.length < 100) { const sw = r() < (cur >= 4 ? 0.95 : cur === 3 ? 0.75 : 0.6); const f = sw ? 1 - a[a.length - 1] : a[a.length - 1]; cur = sw ? 1 : cur + 1; a.push(f); }
+  return a;
+}
+const meStrip = Strip($('#me-flips'));
+const typed = $('#me-typed');
+let me = humanLike(20231), example = true, realSeq = flipN(100), aFirst = Math.random() < 0.5, lastFresh = -1;
+let score = { right: 0, total: 0 }, counted = false;
+const letters = a => a.map(f => f ? L('О', 'H') : L('Р', 'T')).join('');
+const parse = s => [...s].map(ch => /[оОoOhH1]/.test(ch) ? 1 : /[рРpPtT0]/.test(ch) ? 0 : -1).filter(v => v >= 0).slice(0, 100);
+function meRender(fromTyping) {
+  const st = meStrip.show(me, { fresh: lastFresh });
+  if (!fromTyping) typed.value = letters(me);
+  $('#me-n').textContent = me.length;
+  $('#me-l').textContent = st.L;
+  $('#me-s').textContent = Math.max(0, st.S);
+  $('#me-h').disabled = $('#me-t').disabled = me.length >= 100;
+  const left = 100 - me.length;
+  $('#me-msg').innerHTML = example
+    ? L('Це <b>приклад</b> того, як зазвичай пишуть люди. Натисніть «Почати свою послідовність», щоб спробувати самостійно.', 'This is an <b>example</b> of what people usually write. Press "Start your own sequence" to try it yourself.')
+    : left ? L('Ще ' + left + ' ' + flipsW(left) + '. Не думайте занадто довго: пишіть так, як «виглядає випадково».', left + ' more ' + flipsW(left) + ' to go. Don\'t overthink it: write what "looks random".')
+      : L('Готово. Праворуч детектор порівнює вашу послідовність зі справжньою.', 'Done. On the right the detector compares your sequence with a real one.');
+  duelRender();
+}
+function duelRender() {
+  const box = $('#duel');
+  if (me.length < 100) {
+    box.innerHTML = '<span class="kicker">' + L('Детектор', 'Detector') + '</span><p class="msg">' + L('Детектор чекає, поки ви наберете 100 кидків. Тим часом справжня монета вже підкинута 100 разів.', 'The detector waits until you have 100 flips. Meanwhile the real coin has already been flipped 100 times.') + '</p>' +
+      '<p class="note">' + L('Він порівняє дві ознаки: найдовшу серію (у справжніх послідовностях зазвичай 5–9) і кількість перемикань (зазвичай 40–59).', 'It will compare two features: the longest run (usually 5 to 9 in real sequences) and the number of switches (usually 40 to 59).') + '</p>';
+    return;
+  }
+  const sm = stats(me), sr = stats(realSeq), fm = fakeScore(sm), fr = fakeScore(sr);
+  const pickMe = fm >= fr;
+  if (!example && !counted) { counted = true; score.total++; if (pickMe) score.right++; }
+  const seqs = aFirst ? [['A', me, sm, true], ['B', realSeq, sr, false]] : [['A', realSeq, sr, false], ['B', me, sm, true]];
+  const guessName = seqs.find(s => s[3] === pickMe)[0];
+  box.innerHTML = '<span class="kicker">' + L('Детектор', 'Detector') + '</span>' + seqs.map(s =>
+    '<div class="seq' + (s[3] ? ' fake' : '') + '"><div class="seq-head"><h3>' + L('Послідовність ', 'Sequence ') + s[0] + ' · ' + (s[3] ? (example ? L('приклад людини', 'human example') : L('ваша', 'yours')) : L('справжня монета', 'real coin')) + '</h3>' +
+    '<span class="s">' + L('серія ', 'run ') + s[2].L + ' · ' + L('перемикань ', 'switches ') + s[2].S + '</span></div><div class="flips" data-seq="' + s[0] + '"></div></div>').join('') +
+    '<p class="verdict">' + L('Детектор вважає вигаданою послідовність <b>' + guessName + '</b>. ', 'The detector says sequence <b>' + guessName + '</b> was made up. ') +
+    (pickMe ? L('І він має рацію.', 'And it is right.') : L('Цього разу він помилився: вам вдалося його обдурити!', 'This time it got it wrong: you fooled it!')) + '</p>' +
+    '<p class="note">' + (score.total ? L('Ваші спроби: детектор вгадав ' + score.right + ' з ' + score.total + '. ', 'Your attempts: the detector was right ' + score.right + ' of ' + score.total + ' times. ') : '') +
+    L('Справжня монета: у 97,2% випадків серія з 5 і більше, у 95,6% випадків від 40 до 59 перемикань.', 'A real coin: a run of 5 or more 97.2% of the time, 40 to 59 switches 95.6% of the time.') + '</p>';
+  seqs.forEach(s => Strip(box.querySelector('[data-seq="' + s[0] + '"]')).show(s[1]));
+}
+function meAdd(f) { if (me.length >= 100) return; if (example) meReset(); me.push(f); lastFresh = me.length - 1; meRender(); }
+function meReset() { me = []; example = false; counted = false; realSeq = flipN(100); aFirst = Math.random() < 0.5; lastFresh = -1; }
+$('#me-h').addEventListener('click', () => meAdd(1));
+$('#me-t').addEventListener('click', () => meAdd(0));
+$('#me-undo').addEventListener('click', () => { if (example) return; me.pop(); counted = false; lastFresh = -1; meRender(); });
+$('#me-clear').addEventListener('click', () => { meReset(); meRender(); typed.focus(); });
+typed.addEventListener('input', () => {
+  if (example) { example = false; counted = false; realSeq = flipN(100); aFirst = Math.random() < 0.5; }
+  const prev = me.length; me = parse(typed.value); lastFresh = me.length > prev ? me.length - 1 : -1;
+  if (me.length < 100) counted = false;
+  meRender(true);
+});
+
+/* ---------- round 2: real flips ---------- */
+const realStrip = Strip($('#real-flips'));
+let realShown = flipN(100), realRuns = [], realTimer = null;
+function realText() {
+  const st = stats(realShown);
+  $('#real-l').textContent = st.L; $('#real-s').textContent = st.S; $('#real-h').textContent = st.heads;
+  $('#real-msg').innerHTML = L('Найдовша серія: <b>' + st.L + ' ' + sideW(realShown[st.start], st.L) + '</b> поспіль, з ' + (st.start + 1) + '-го по ' + (st.start + st.L) + '-й кидок.',
+    'Longest run: <b>' + st.L + ' ' + sideW(realShown[st.start], st.L) + '</b> in a row, flips ' + (st.start + 1) + ' to ' + (st.start + st.L) + '.');
+  const N = realRuns.length, six = realRuns.filter(v => v >= 6).length;
+  $('#real-sum').textContent = L('Підкидань: ' + N + ' · серія 6+ у ' + six + ' з ' + N + ' (' + pct(six / N, 0) + ') · теорія 80,7%', 'Rounds: ' + N + ' · a run of 6+ in ' + six + ' of ' + N + ' (' + pct(six / N, 0) + ') · theory 80.7%');
+  $('#real-chips').innerHTML = realRuns.slice(-40).map(v => '<span class="' + (v >= 6 ? 'hot' : '') + '">' + v + '</span>').join('');
+}
+function realFinish() { realStrip.show(realShown); realRuns.push(stats(realShown).L); realText(); $('#real-go').disabled = false; }
+$('#real-go').addEventListener('click', () => {
+  if (realTimer) return;
+  realShown = flipN(100);
+  if (reduce()) { realFinish(); return; }
+  $('#real-go').disabled = true; let i = 0;
+  realTimer = setInterval(() => {
+    i += 2; realStrip.show(realShown.slice(0, i), { fresh: i - 1, run: false });
+    if (i >= 100) { clearInterval(realTimer); realTimer = null; realFinish(); }
+  }, 18);
+});
+realStrip.show(realShown); realRuns.push(stats(realShown).L);
+
+/* ---------- round 3: simulation ---------- */
+const LENS = [20, 50, 100, 200];
+let simLen = 100, sim = null, simBusy = false;
+function runSim() {
+  if (simBusy) return;
+  const n = simLen, R = +$('#sim-r').value, hist = new Float64Array(n + 1);
+  let done = 0, sumL = 0, sumS = 0; simBusy = true; $('#sim-run').disabled = true;
+  (function chunk() {
+    const end = Math.min(R, done + 10000);
+    for (; done < end; done++) { const [l, s] = simOne(n); hist[l]++; sumL += l; sumS += s; }
+    sim = { n, R: done, hist, sumL, sumS };
+    simText(); drawSim();
+    if (done < R) requestAnimationFrame(chunk); else { simBusy = false; $('#sim-run').disabled = false; }
+  })();
+}
+function simText() {
+  $('#sim-len').innerHTML = LENS.map(n => '<button type="button" data-n="' + n + '" aria-pressed="' + (n === simLen) + '">' + n + '</button>').join('');
+  const n = simLen, p6 = pAtLeast(n, 6);
+  $('#marks').innerHTML = [5, 6, 7, 8].map(k => '<div><b>' + k + '+</b><span>' + pct(pAtLeast(n, k)) + '</span></div>').join('');
+  $('#sim-k').textContent = L('Частка послідовностей із серією 6+', 'Share of sequences with a run of 6+');
+  const ok = sim && sim.n === n;
+  if (ok) {
+    let c = 0; for (let k = 6; k <= n; k++) c += sim.hist[k];
+    $('#sim-v').textContent = pct(c / sim.R);
+    $('#sim-s').textContent = L(fmt(c) + ' з ' + fmt(sim.R) + ' · точно ' + pct(p6, 2), fmt(c) + ' of ' + fmt(sim.R) + ' · exact ' + pct(p6, 2));
+    $('#sim-m').textContent = dec((sim.sumL / sim.R).toFixed(2));
+    $('#sim-w').textContent = dec((sim.sumS / sim.R).toFixed(2));
+  } else { $('#sim-v').textContent = '–'; $('#sim-s').textContent = L('натисніть «Запустити» · точно ', 'press "Run" · exact ') + pct(p6, 2); $('#sim-m').textContent = '–'; $('#sim-w').textContent = '–'; }
+  $('#sim-ms').textContent = L('точно ', 'exact ') + dec(meanLongest(n).toFixed(2));
+  $('#sim-ws').textContent = L('точно ', 'exact ') + '(' + n + ' − 1) / 2 = ' + dec(((n - 1) / 2).toFixed(1));
+}
+$('#sim-len').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || simBusy) return; simLen = +b.dataset.n; runSim(); drawLen(); });
+$('#sim-run').addEventListener('click', runSim);
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W) return null;
+  c.width = W * dpr; c.height = H * dpr;
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+function drawSim() {
+  const s = setupCanvas($('#sim-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 42, r = 14, t = 14, b = 34, K = 16;
+  const n = simLen, d = longestDist(n);
+  const ex = k => k < K ? d[k] || 0 : d.slice(K).reduce((a, v) => a + v, 0);
+  const ok = sim && sim.n === n;
+  const sv = k => !ok ? 0 : (k < K ? sim.hist[k] : Array.from(sim.hist.slice(K)).reduce((a, v) => a + v, 0)) / sim.R;
+  let mx = 0; for (let k = 1; k <= K; k++) mx = Math.max(mx, ex(k), sv(k));
+  mx = Math.ceil(mx * 10 + 0.5) / 10;
+  const x = k => l + (k - 0.5) / K * (W - l - r), y = p => t + (1 - p / mx) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let p = 0; p <= mx + 1e-9; p += 0.1) { ctx.beginPath(); ctx.moveTo(l, y(p)); ctx.lineTo(W - r, y(p)); ctx.stroke(); ctx.fillText(Math.round(p * 100) + '%', l - 8, y(p)); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const step = W < 420 ? 2 : 1;
+  for (let k = 1; k <= K; k += step) ctx.fillText(k === K ? K + '+' : k, x(k), H - b + 6);
+  // the run >= 6 zone
+  ctx.fillStyle = tok('--hit'); ctx.globalAlpha = .07; ctx.fillRect(x(6) - (W - l - r) / K / 2, t, W - r - x(6) + (W - l - r) / K / 2, H - t - b); ctx.globalAlpha = 1;
+  ctx.strokeStyle = tok('--day'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let k = 1; k <= K; k++) { k === 1 ? ctx.moveTo(x(k), y(ex(k))) : ctx.lineTo(x(k), y(ex(k))); }
+  ctx.stroke();
+  ctx.fillStyle = tok('--day'); for (let k = 1; k <= K; k++) { ctx.beginPath(); ctx.arc(x(k), y(ex(k)), 2.5, 0, 7); ctx.fill(); }
+  if (ok) { ctx.fillStyle = tok('--hit'); for (let k = 1; k <= K; k++) { ctx.beginPath(); ctx.arc(x(k), y(sv(k)), 5, 0, 7); ctx.fill(); } }
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+  ctx.fillText(L('найдовша серія, кидків', 'longest run, flips'), W - r, H - 2);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = tok('--hit');
+  ctx.fillText(L('серія 6+', 'run 6+'), x(6) - 6, t + 2);
+}
+// expected longest run vs sequence length (log x axis)
+const LEN_MAX = 1000, CURVE = meanCurve(LEN_MAX), LEN_PTS = [10, 20, 50, 100, 200, 500, 1000];
+let lenSim = [];
+function lenSimRun() { lenSim = LEN_PTS.map(n => { let s = 0; for (let i = 0; i < 2000; i++) s += simOne(n)[0]; return [n, s / 2000]; }); drawLen(); }
+function drawLen() {
+  const s = setupCanvas($('#len-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 34, r = 14, t = 12, b = 30, ymax = 12;
+  const x = n => l + Math.log10(n / 5) / Math.log10(LEN_MAX / 5) * (W - l - r), y = v => t + (1 - v / ymax) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let v = 0; v <= ymax; v += 2) { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.fillText(v, l - 8, y(v)); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  (W < 420 ? [10, 50, 200, 1000] : LEN_PTS).forEach(n => ctx.fillText(fmt(n), x(n), H - b + 6));
+  ctx.strokeStyle = tok('--muted'); ctx.setLineDash([5, 5]); ctx.lineWidth = 1.5; ctx.beginPath();
+  for (let n = 5; n <= LEN_MAX; n++) { const v = Math.log2(n); n === 5 ? ctx.moveTo(x(n), y(v)) : ctx.lineTo(x(n), y(v)); }
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = tok('--day'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let n = 5; n <= LEN_MAX; n++) { n === 5 ? ctx.moveTo(x(n), y(CURVE[n])) : ctx.lineTo(x(n), y(CURVE[n])); }
+  ctx.stroke();
+  ctx.fillStyle = tok('--hit'); lenSim.forEach(([n, v]) => { ctx.beginPath(); ctx.arc(x(n), y(v), 5, 0, 7); ctx.fill(); });
+  ctx.strokeStyle = tok('--ink'); ctx.globalAlpha = .3; ctx.beginPath(); ctx.moveTo(x(simLen), t); ctx.lineTo(x(simLen), H - b); ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.fillStyle = tok('--day'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.font = '600 11px ' + tok('--f-mono');
+  ctx.fillText(simLen + ' → ' + dec(CURVE[simLen].toFixed(2)), Math.min(x(simLen) + 6, W - r - 90), y(CURVE[simLen]) - 8);
+  ctx.font = '11px ' + tok('--f-mono'); ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right';
+  ctx.fillText(L('кидків у послідовності', 'flips in the sequence'), W - r, H - b - 4);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(L('найдовша серія', 'longest run'), l + 4, t);
+}
+
+/* ---------- round 4: starting points ---------- */
+const startIn = $('#start-k');
+startIn.addEventListener('input', () => { $('#start-v').textContent = startIn.value; startText(); });
+function startText() {
+  const k = +startIn.value, n = 100;
+  // expected number of runs of length >= k: one may start at flip 1, or right after a switch at flips 2..n-k+1
+  const exp = Math.pow(2, 1 - k) + (n - k) * Math.pow(2, -k);
+  $('#start-txt').innerHTML = L('Вікон по ' + k + ' ' + flipsW(k) + ' у 100 кидках: <b>' + (n - k + 1) + '</b>. Очікувана кількість серій довжиною ' + k + ' і більше: <b>' + dec(exp.toFixed(2)) + '</b>. Шанс, що буде хоча б одна: <b>' + pct(pAtLeast(n, k)) + '</b>.',
+    'Windows of ' + k + ' flips in 100 flips: <b>' + (n - k + 1) + '</b>. Expected number of runs of length ' + k + ' or more: <b>' + exp.toFixed(2) + '</b>. Chance there is at least one: <b>' + pct(pAtLeast(n, k)) + '</b>.');
+}
+function staticNums() {
+  $('#dp-6').textContent = dec(pAtLeast(100, 6).toFixed(4));
+  $('#dp-e').textContent = dec(E100.toFixed(2));
+  $('#sn-a').textContent = pct(252 / 1024);
+  let c = 0, b = 1; for (let k = 0; k <= 100; k++) { if (k >= 45 && k <= 55) c += b; b = b * (100 - k) / (k + 1); }
+  $('#sn-b').textContent = pct(c / Math.pow(2, 100));
+}
+
+/* ---------- round 5: after k heads ---------- */
+const COND_K = 8;
+let cond = { n: 0, after: new Float64Array(COND_K + 1), tails: new Float64Array(COND_K + 1) }, condSel = 5;
+function condRun(N = 1e6) {
+  let run = 0;
+  for (let i = 0; i < N; i++) {
+    const f = Math.random() < 0.5 ? 1 : 0;
+    for (let k = 1; k <= Math.min(run, COND_K); k++) { cond.after[k]++; if (!f) cond.tails[k]++; }
+    run = f ? run + 1 : 0;
+  }
+  cond.n += N; condText(); drawCond();
+}
+function condText() {
+  $('#cond-k').innerHTML = Array.from({ length: COND_K }, (_, i) => i + 1).map(k => '<button type="button" data-k="' + k + '" aria-pressed="' + (k === condSel) + '">' + k + ' ' + L(ukPl(k, 'орел', 'орли', 'орлів'), k === 1 ? 'head' : 'heads') + '</button>').join('');
+  const k = condSel, a = cond.after[k], t = cond.tails[k];
+  $('#cond-lab').textContent = L('Частка решок після ' + k + ' ' + (k === 1 ? 'орла' : 'орлів') + ' поспіль', 'Share of tails after ' + k + ' ' + (k === 1 ? 'head' : 'heads') + ' in a row');
+  $('#cond-v').textContent = a ? pct(t / a, 2) : '–';
+  $('#cond-txt').textContent = L('За ' + fmt(cond.n) + ' кидків серія з ' + k + ' ' + (k === 1 ? 'орла' : 'орлів') + ' траплялася ' + fmt(a) + ' ' + ukPl(a, 'раз', 'рази', 'разів') + '. Наступною була решка в ' + fmt(t) + ' з них. Шанс решки не зростає: монета не знає, що було перед цим.',
+    'In ' + fmt(cond.n) + ' flips a run of ' + k + ' ' + (k === 1 ? 'head' : 'heads') + ' came up ' + fmt(a) + ' ' + (a === 1 ? 'time' : 'times') + '. The next flip was tails in ' + fmt(t) + ' of them. The chance of tails does not grow: the coin doesn\'t know what came before.');
+}
+$('#cond-k').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; condSel = +b.dataset.k; condText(); drawCond(); });
+$('#cond-more').addEventListener('click', () => condRun());
+function drawCond() {
+  const s = setupCanvas($('#cond-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 42, r = 10, t = 12, b = 30, lo = 0.4, hi = 0.6;
+  const bw = (W - l - r) / COND_K, y = p => t + (1 - (Math.max(lo, Math.min(hi, p)) - lo) / (hi - lo)) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0.4, 0.45, 0.5, 0.55, 0.6].forEach(p => { ctx.beginPath(); ctx.moveTo(l, y(p)); ctx.lineTo(W - r, y(p)); ctx.stroke(); ctx.fillText(Math.round(p * 100) + '%', l - 6, y(p)); });
+  for (let k = 1; k <= COND_K; k++) {
+    const a = cond.after[k]; if (!a) continue;
+    const p = cond.tails[k] / a, se = Math.sqrt(0.25 / a), cx = l + (k - 0.5) * bw;
+    ctx.fillStyle = tok('--hit'); ctx.globalAlpha = k === condSel ? 1 : .55;
+    ctx.fillRect(cx - bw * 0.3, Math.min(y(p), y(0.5)), bw * 0.6, Math.max(2, Math.abs(y(p) - y(0.5))));
+    ctx.globalAlpha = 1; ctx.strokeStyle = tok('--ink'); ctx.beginPath(); ctx.moveTo(cx, y(p - 2 * se)); ctx.lineTo(cx, y(p + 2 * se)); ctx.stroke();
+  }
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(l, y(0.5)); ctx.lineTo(W - r, y(0.5)); ctx.stroke();
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let k = 1; k <= COND_K; k++) ctx.fillText(k, l + (k - 0.5) * bw, H - b + 6);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(L('орлів поспіль перед кидком', 'heads in a row before the flip'), W - r, H - 2);
+}
+
+/* ---------- round 5: roulette ---------- */
+const WHEELS = [{ p: 37, uk: 'Європейське колесо (0)', en: 'European wheel (0)' }, { p: 38, uk: 'Американське колесо (0 і 00)', en: 'American wheel (0 and 00)' }];
+let wheel = 0;
+const wheelK = $('#wheel-k');
+wheelK.addEventListener('input', () => { $('#wheel-kv').textContent = wheelK.value; wheelText(); });
+$('#wheel').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; wheel = +b.dataset.i; wheelText(); });
+function wheelText() {
+  const w = WHEELS[wheel], k = +wheelK.value, pB = 18 / w.p, inv = Math.pow(1 / pB, k);
+  $('#wheel').innerHTML = WHEELS.map((q, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === wheel) + '">' + q[lang] + '</button>').join('');
+  $('#wheel-l1').textContent = L('Шанс ' + k + ' ' + ukPl(k, 'чорного', 'чорних', 'чорних') + ' поспіль, починаючи з певного оберту', 'Chance of ' + k + ' ' + (k === 1 ? 'black' : 'blacks') + ' in a row from a given spin');
+  $('#wheel-p').textContent = L('1 з ', '1 in ') + fmt(Math.round(inv));
+  $('#wheel-r').textContent = pct(pB);
+  $('#wheel-txt').textContent = L('На ' + (w.p === 37 ? 'європейському' : 'американському') + ' колесі ' + w.p + ' ' + ukPl(w.p, 'сектор', 'сектори', 'секторів') + ': 18 червоних, 18 чорних і ' + (w.p === 37 ? 'одне зелене зеро' : 'два зелені, 0 і 00') + '. Після ' + k + ' ' + ukPl(k, 'чорного', 'чорних', 'чорних') + ' червоне випадає з тим самим шансом 18/' + w.p + ' = ' + pct(pB) + '.',
+    'A ' + (w.p === 37 ? 'European' : 'American') + ' wheel has ' + w.p + ' pockets: 18 red, 18 black and ' + (w.p === 37 ? 'one green zero' : 'two green ones, 0 and 00') + '. After ' + k + ' ' + (k === 1 ? 'black' : 'blacks') + ', red still comes up with the same chance 18/' + w.p + ' = ' + pct(pB) + '.');
+}
+
+/* ---------- round 5: hot hand ---------- */
+// share of heads right after k heads in a row, per sequence (undefined sequences skipped) and pooled
+function hotHand(n, k, R) {
+  let sum = 0, def = 0, A = 0, B = 0; const a = new Uint8Array(n);
+  for (let r = 0; r < R; r++) {
+    let run = 0, ca = 0, cb = 0;
+    for (let i = 0; i < n; i++) { const f = Math.random() < 0.5 ? 1 : 0; if (run >= k) { ca++; cb += f; } run = f ? run + 1 : 0; a[i] = f; }
+    if (ca) { sum += cb / ca; def++; A += ca; B += cb; }
+  }
+  return { avg: sum / def, pooled: B / A, def, R, A };
+}
+// exact enumeration for 4 flips and k = 1
+function fourFlips() {
+  const rows = [];
+  for (let m = 0; m < 16; m++) {
+    const f = [3, 2, 1, 0].map(i => (m >> i) & 1);
+    let a = 0, b = 0; for (let i = 0; i < 3; i++) if (f[i]) { a++; b += f[i + 1]; }
+    rows.push({ f, a, b });
+  }
+  return rows;
+}
+const FOUR = fourFlips();
+function fourText() {
+  const def = FOUR.filter(r => r.a);
+  const avg = def.reduce((s, r) => s + r.b / r.a, 0) / def.length;
+  const A = def.reduce((s, r) => s + r.a, 0), B = def.reduce((s, r) => s + r.b, 0);
+  $('#four').innerHTML = FOUR.map(r => '<span class="' + (r.a && r.b / r.a < 0.5 ? 'lo' : '') + '"><b>' + letters(r.f) + '</b><i>' + (r.a ? r.b + '/' + r.a : '–') + '</i></span>').join('');
+  $('#four-txt').textContent = L('16 рівноймовірних послідовностей. У ' + def.length + ' з них є орел серед перших трьох кидків, тож частка О після О визначена. Середнє цих ' + def.length + ' часток: 17/42 ≈ ' + pct(avg) + ', а не 50%. Якщо скласти всі кидки разом, виходить ' + B + '/' + A + ' = ' + pct(B / A, 0) + '.',
+    '16 equally likely sequences. ' + def.length + ' of them have a head among the first three flips, so the share of H after H is defined. The average of these ' + def.length + ' shares is 17/42 ≈ ' + pct(avg) + ', not 50%. Pool all the flips and you get ' + B + '/' + A + ' = ' + pct(B / A, 0) + '.');
+}
+const HH_N = [4, 10, 20, 50, 100], HH_K = [1, 2, 3];
+let hhN = 100, hhK = 3, hh = null;
+function hhRun() { hh = { n: hhN, k: hhK, ...hotHand(hhN, hhK, 100000) }; hhText(); }
+function hhText() {
+  $('#hh-n').innerHTML = HH_N.map(n => '<button type="button" data-n="' + n + '" aria-pressed="' + (n === hhN) + '">' + n + '</button>').join('');
+  $('#hh-k').innerHTML = HH_K.map(k => '<button type="button" data-k="' + k + '" aria-pressed="' + (k === hhK) + '"' + (k >= hhN ? ' disabled' : '') + '>' + k + '</button>').join('');
+  if (!hh) return;
+  $('#hh-a').textContent = pct(hh.avg);
+  $('#hh-as').textContent = L('частка О після ' + hh.k + ' О, порахована для кожного з ' + fmt(hh.def) + ' гравців і усереднена', 'share of H after ' + hh.k + ' H, computed for each of ' + fmt(hh.def) + ' players and averaged');
+  $('#hh-p').textContent = pct(hh.pooled);
+  $('#hh-ps').textContent = L(fmt(hh.A) + ' кидків після серії, усі разом', fmt(hh.A) + ' shots after a run, all together');
+}
+$('#hh-n').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; hhN = +b.dataset.n; if (hhK >= hhN) hhK = 1; hhRun(); });
+$('#hh-k').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; hhK = +b.dataset.k; hhRun(); });
+$('#hh-run').addEventListener('click', hhRun);
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Серії в підкиданні монети', 'Coin Streaks');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  heroText(); guessText(); meRender(); realText(); simText(); drawSim(); drawLen(); startText(); staticNums(); condText(); drawCond(); wheelText(); fourText(); hhText();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+const redraw = () => { drawSim(); drawLen(); drawCond(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+applyLang();
+// fill every chart on open: a 100,000-sequence run, the length curve, a million flips, 100,000 players
+runSim();
+setTimeout(() => { lenSimRun(); condRun(); hhRun(); }, 30);
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'uk' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+</body>
+</html>

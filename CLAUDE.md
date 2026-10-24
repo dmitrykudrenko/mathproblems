@@ -18,7 +18,7 @@ Bilingual (uk/en) interactive explainers of math puzzles where intuition is wron
 2. Texts in `tools/og.py`, run `python3 tools/og.py` (macOS).
 3. `python3 build.py`.
 
-`meta.json` needs `published` and `updated` (YYYY-MM-DD) and `topics` (home-page filter keys from `TOPICS` in build.py) and `level` (1 no formulas, 2 school maths, 3 advanced: how much maths the explanation needs, not how tricky it is), plus `poll` (which round-1 answers are right, for the answer stats; the page calls `mpSolve(guessed)`); bump `updated` after a real edit. They feed JSON-LD, sitemap and the RSS (`docs/feed.xml`, `docs/en/feed.xml`), whose items use only `share`, never `description`.
+`meta.json` needs `published` and `updated` (YYYY-MM-DD) and `topics` (home-page filter keys from `TOPICS` in build.py) and `level` (1 for everyone, 2 school maths, 3 advanced: how much maths the main path through round 4 shows, charts included; the optional formula card and round 5 don't count; not how tricky it is), plus `poll` (which round-1 answers are right, for the answer stats; the page calls `mpSolve(guessed)`); bump `updated` after a real edit. They feed JSON-LD, sitemap and the RSS (`docs/feed.xml`, `docs/en/feed.xml`), whose items use only `share`, never `description`.
 
 ## Checks before commit
 
