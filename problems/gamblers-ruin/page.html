@@ -1,0 +1,1168 @@
+<title>Розорення гравця</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same running order as the St. Petersburg page. The bankroll walking between $0 and $200 is this problem's signature object. */
+:root {
+  --tint: #D8EDE2;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --red: #C8102E;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 2.6em; }
+
+/* ---------- the wheel result ---------- */
+.pocket { display: inline-grid; place-items: center; min-width: 46px; height: 46px; padding: 0 8px; border-radius: 50%; font-family: var(--f-mono); font-weight: 700; color: #fff; background: var(--ink); border: 3px solid var(--surface); box-shadow: 0 0 0 2px var(--line); }
+.pocket.red { background: var(--red); }
+.pocket.green { background: var(--win); }
+.pocket.idle { background: var(--cell); color: var(--muted); }
+.pocket.new { animation: spin .35s ease-out; }
+@keyframes spin { 0% { transform: rotate(-200deg) scale(.6); } 100% { transform: rotate(0) scale(1); } }
+.spin-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-height: 52px; }
+.spin-row .last { font-size: .9rem; color: var(--muted); }
+.spin-row .last b { color: var(--ink); }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+.wheel-strip { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.wheel-strip i { width: 22px; height: 22px; display: inline-grid; place-items: center; font-style: normal; font-family: var(--f-mono); font-size: .62rem; font-weight: 700; color: #fff; background: var(--ink); border-radius: 4px; }
+.wheel-strip i.r { background: var(--red); }
+.wheel-strip i.g { background: var(--win); }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .76rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.status { display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.7rem; font-weight: 800; }
+.msg { min-height: 3em; font-weight: 500; }
+.pgroup { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+.two > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.5rem; }
+.vs span { font-size: .84rem; color: var(--muted); }
+.inline-ctl { display: flex; align-items: center; gap: 10px; font-size: .86rem; color: var(--muted); flex-wrap: wrap; }
+.inline-ctl input[type=range] { width: 180px; max-width: 100%; accent-color: var(--day); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .two, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .vs { grid-template-columns: 1fr; }
+  td, th { padding: 7px 4px; }
+  table { font-size: .8rem; }
+  .status { gap: 16px; }
+  .status b { font-size: 1.4rem; }
+  .wheel-strip i { width: 19px; height: 19px; font-size: .56rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+<div class="topbar">
+  <span class="brand">$100 → $200 or $0 · red · 18/37</span>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <h1 class="uk"><span class="kw">Розорення гравця</span> $100, ставки по $1 на червоне. <span class="q sp-before">Який шанс подвоїти гроші?</span><span class="q sp-after">Подвоїть лише 1 гравець із 224.</span></h1>
+    <h1 class="en"><span class="kw">Gambler's ruin</span> $100, $1 bets on red. <span class="q sp-before">What is the chance of doubling?</span><span class="q sp-after">Only 1 player in 224 doubles.</span></h1>
+    <p class="lead uk sp-before">У вас $100. Ви ставите по $1 на червоне в європейській рулетці й граєте, доки не матимете $200 або доки не скінчаться гроші. Червоне випадає майже в половині спінів. Який шанс піти з казино з $200? Зафіксуйте відповідь, а потім зіграйте самі, запустіть тисячі сесій і подивіться, як ставка, ціль і багатство казино змінюють шанси.</p>
+    <p class="lead uk sp-after">Гравець із $100 ставить по $1 на червоне в європейській рулетці, доки не матиме $200 або нуль. Червоне випадає з шансом 48,6%, майже половина, але подвоїть гроші лише 1 гравець із 224, тобто 0,45%. Перевага казино лише 2,7 цента на долар, проте за 3667 ставок вона з'їдає майже все. Одна ставка $100 дала б 48,6%. Тут ви зіграєте самі, запустите тисячі сесій і побачите, чому сміливість у казино вигідніша за обережність.</p>
+    <p class="lead en sp-before">You have $100. You bet $1 at a time on red at European roulette and keep playing until you have $200 or run out of money. Red comes up in almost half the spins. What is the chance you leave the casino with $200? Lock in your answer, then play yourself, run thousands of sessions and see how the stake, the target and the casino's wealth change the odds.</p>
+    <p class="lead en sp-after">A player with $100 bets $1 at a time on red at European roulette until they have $200 or nothing. Red comes up with chance 48.6%, almost half, yet only 1 player in 224 doubles their money: 0.45%. The house edge is just 2.7 cents per dollar, but over 3,667 bets it eats nearly everything. A single $100 bet would give 48.6%. Here you play yourself, run thousands of sessions and see why in a casino boldness beats caution.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="mono" id="odd-timid">0,45%</b><span><span class="uk">ставки по $1</span><span class="en">$1 bets</span></span></div>
+      <div class="odd"><b class="mono" id="odd-bold">48,6%</b><span><span class="uk">одна ставка $100</span><span class="en">one $100 bet</span></span></div>
+      <div class="odd"><b class="mono" id="odd-dur">3667</b><span><span class="uk">ставок у середньому</span><span class="en">bets on average</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="uk">Умова</b><b class="en">The puzzle</b></a>
+      <a href="#guess"><span>1</span><b class="uk">Вгадайте</b><b class="en">Guess</b></a>
+      <a href="#game"><span>2</span><b class="uk">Зіграйте</b><b class="en">Play</b></a>
+      <a href="#sim"><span>3</span><b class="uk">5000 сесій</b><b class="en">5,000 sessions</b></a>
+      <a href="#why"><span>4</span><b class="uk">Чому так</b><b class="en">Why it works</b></a>
+      <a href="#more"><span>5</span><b class="uk">Сміливість, казино, Келлі</b><b class="en">Boldness, casino, Kelly</b></a>
+      <a href="#facts"><span>★</span><b class="uk" style="font-weight:inherit">Цікаві факти</b><b class="en" style="font-weight:inherit">Fun facts</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv" style="height:300px"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span><span class="en">The puzzle</span></span>
+    <h2><span class="uk">Вечір у казино зі $100 у кишені</span><span class="en">A night at the casino with $100</span></h2>
+    <p class="lead uk">Ви вирішили: або подвоюю гроші, або програю все, і тоді додому. Граєте найобережніше, як можна: найменшою ставкою на майже рівну гру.</p>
+    <p class="lead en">You have made up your mind: either I double my money or I lose it all, and then I go home. You play as cautiously as possible: the smallest stake on an almost even game.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Колесо</span><span class="en">The wheel</span></h3>
+        <p class="uk">У європейській рулетці 37 комірок: 18 червоних, 18 чорних і одне зелене зеро. Кулька падає в будь-яку з однаковим шансом, тож червоне випадає з шансом 18/37 ≈ 48,6%.</p>
+        <p class="en">European roulette has 37 pockets: 18 red, 18 black and one green zero. The ball lands in any of them with equal chance, so red comes up with chance 18/37 ≈ 48.6%.</p>
+        <div class="wheel-strip" id="strip" aria-hidden="true"></div></div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Ставка</span><span class="en">The bet</span></h3>
+        <p class="uk">Щоразу ви ставите $1 на червоне. Випало червоне: казино повертає ставку й доплачує $1. Чорне або зеро: ставка згоряє. Тобто +$1 або −$1.</p>
+        <p class="en">Each time you put $1 on red. Red comes up: the casino returns your stake and pays $1 more. Black or zero: the stake is lost. So it is +$1 or −$1.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Коли зупинитися</span><span class="en">When to stop</span></h3>
+        <p class="uk">Ви граєте, доки не матимете рівно $200 або доки не програєте останній долар. Інших причин піти немає: ні втоми, ні закриття казино.</p>
+        <p class="en">You play until you have exactly $200 or have lost your last dollar. There is no other reason to leave: no tiredness, no closing time.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span><span class="en">The question</span></h3>
+        <p class="uk">Який шанс, що ви підете додому з $200?</p>
+        <p class="en">What is the chance that you go home with $200?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span><span class="en">Intuition says</span></span>
+        <p class="q"><span class="uk">«Майже 50 на 50, ну хай 45%»</span><span class="en">"Nearly 50-50, say 45%"</span></p>
+        <p class="uk">Насправді шанс лише 0,45%, 1 з 224. Кожна ставка майже чесна, але таких ставок у середньому 3667, і за цей час маленька перевага казино зсуває гроші вниз сильніше, ніж їх розгойдує випадковість. Одна ставка $100 на червоне дала б 48,6%.</p>
+        <p class="en">In fact the chance is only 0.45%, 1 in 224. Each bet is almost fair, but there are 3,667 of them on average, and over that time the casino's small edge pulls the money down harder than luck swings it about. A single $100 bet on red would give 48.6%.</p>
+      </div>
+      <div class="card">
+        <h3><span class="uk">Припущення моделі</span><span class="en">Model assumptions</span></h3>
+        <ul class="rules uk">
+          <li>Колесо чесне, спіни незалежні.</li>
+          <li>Ставка завжди $1, і ви не міняєте її посеред гри.</li>
+          <li>Ви граєте до $200 або до нуля, скільки б ставок це не забрало.</li>
+        </ul>
+        <ul class="rules en">
+          <li>The wheel is fair and spins are independent.</li>
+          <li>The stake is always $1, and you never change it mid-game.</li>
+          <li>You play to $200 or to zero, however many bets that takes.</li>
+        </ul>
+        <p class="note"><span class="uk">Що буде, якщо міняти ставку, розберемо в раундах 2 і 5.</span><span class="en">What happens if you change the stake is taken apart in rounds 2 and 5.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="uk">Який шанс дійти до $200?</span><span class="en">What is the chance of reaching $200?</span></h2>
+    <p class="lead uk">Оберіть варіант, перш ніж читати далі. Старт $100, ставки по $1 на червоне, гра до $200 або до нуля.</p>
+    <p class="lead en">Pick an option before reading on. Start with $100, bet $1 on red each time, play to $200 or to zero.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <span class="note"><span class="uk">Шанс піти з $200</span><span class="en">Chance of leaving with $200</span></span>
+      <div class="presets" id="guess-opts" role="group" aria-label="Варіанти / Options"></div>
+      <div class="actions"><button class="btn pri" id="guess-go" disabled><span class="uk">Перевірити</span><span class="en">Check</span></button></div>
+      <p class="note"><span class="uk">Нагадування: червоне випадає в 18 випадках із 37, тобто з шансом 48,6%.</span><span class="en">Reminder: red comes up in 18 cases out of 37, a chance of 48.6%.</span></p>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться розбір вашої відповіді.</p>
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span><span class="en">Round 2 · Game</span></span>
+    <h2><span class="uk">Сядьте за стіл і оберіть ставку</span><span class="en">Take a seat and pick your stake</span></h2>
+    <p class="lead uk">Старт $100, ціль $200. Крутіть колесо по одному спіну або догравайте сесію до кінця. Потім змініть ставку: обережні $1 чи сміливі $100 разом? Лічильник праворуч рахує, скільки сесій закінчилися на $200.</p>
+    <p class="lead en">Start with $100, the target is $200. Spin one at a time or play the session to the end. Then change the stake: a cautious $1 or a bold $100 all at once? The counter on the right shows how many sessions ended at $200.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="pgroup"><span><span class="uk">Ставка на червоне</span><span class="en">Stake on red</span></span><div class="presets" id="stake-pick"></div></div>
+      <div class="spin-row"><span class="pocket idle" id="g-pocket">?</span><span class="last" id="g-last"></span></div>
+      <div class="status">
+        <div><span class="k"><span class="uk">У кишені</span><span class="en">In your pocket</span></span><b class="mono" id="g-bank">$100</b></div>
+        <div><span class="k"><span class="uk">Ставок</span><span class="en">Bets</span></span><b class="mono" id="g-n">0</b></div>
+        <div><span class="k"><span class="uk">Найбільше було</span><span class="en">Highest so far</span></span><b class="mono" id="g-hi">$100</b></div>
+      </div>
+      <p class="msg" id="g-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn pri" id="g-one" type="button"><span class="uk">Крутити</span><span class="en">Spin</span></button>
+        <button class="btn" id="g-end" type="button"><span class="uk">До кінця сесії</span><span class="en">To the end</span></button>
+        <button class="btn" id="g-100" type="button"><span class="uk">+100 сесій</span><span class="en">+100 sessions</span></button>
+        <button class="btn ghost" id="g-new" type="button"><span class="uk">Нова сесія</span><span class="en">New session</span></button>
+      </div>
+    </div>
+    <div class="card" style="display:grid;gap:14px">
+      <h3><span class="uk">Гроші в кишені після кожної ставки</span><span class="en">Money in your pocket after each bet</span></h3>
+      <canvas id="g-cv" style="height:220px"></canvas>
+      <div class="vs">
+        <div><span><span class="uk">Сесій до $200</span><span class="en">Sessions to $200</span></span><b class="mono" id="g-tally">–</b><span id="g-tally-s"></span></div>
+        <div><span><span class="uk">Точний шанс для цієї ставки</span><span class="en">Exact chance for this stake</span></span><b class="mono" id="g-exact">–</b><span id="g-exact-s"></span></div>
+      </div>
+      <p class="note" id="g-note"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="uk">П'ять тисяч гравців по $1</span><span class="en">Five thousand players at $1</span></h2>
+    <p class="lead uk">Кожен гравець починає з $100 і ставить по $1 на червоне до $200 або до нуля. Перемкніть на чесну монету, щоб побачити ту саму гру без зеро: там до $200 доходить рівно половина, зате сесії тривають майже втричі довше.</p>
+    <p class="lead en">Every player starts with $100 and bets $1 on red until $200 or zero. Switch to a fair coin to see the same game without the zero: there exactly half reach $200, but the sessions last almost three times longer.</p>
+  </div>
+  <div class="card">
+    <div class="presets" id="sim-pick" style="margin-bottom:16px"></div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="paths-cv" style="height:300px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--hit)"><b class="uk">дійшли до $200</b><b class="en">reached $200</b></span>
+          <span style="--c:var(--muted)"><b class="uk">програли все</b><b class="en">lost everything</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k"><span class="uk">Дійшли до $200</span><span class="en">Reached $200</span></div><div class="v mono" id="s-win" style="--c:var(--hit)">–</div><div class="s" id="s-win-s"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Ставок за сесію, у середньому</span><span class="en">Bets per session, on average</span></div><div class="v mono" id="s-dur">–</div><div class="s" id="s-dur-s"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Середній результат гравця</span><span class="en">A player's average result</span></div><div class="v mono" id="s-loss">–</div><div class="s" id="s-loss-s"></div></div>
+        <div class="actions"><button class="btn pri" id="sim-go" type="button"><span class="uk">Запустити ще раз</span><span class="en">Run again</span></button></div>
+      </div>
+    </div>
+  </div>
+  <div class="two">
+    <div class="card">
+      <h3><span class="uk">Скільки ставок тривала сесія</span><span class="en">How many bets a session lasted</span></h3>
+      <p class="note" style="margin:6px 0 12px"><span class="uk">Кожен стовпчик — сесії, що закінчилися в цьому проміжку. Хвіст праворуч довгий: деякі гравці бродять біля середини десятки тисяч ставок.</span><span class="en">Each bar counts the sessions that ended in that range. The tail on the right is long: some players wander around the middle for tens of thousands of bets.</span></p>
+      <canvas id="dur-cv" style="height:240px"></canvas>
+      <div class="legend">
+        <span style="--c:var(--muted)"><b class="uk">програли все</b><b class="en">lost everything</b></span>
+        <span style="--c:var(--hit)"><b class="uk">дійшли до $200</b><b class="en">reached $200</b></span>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="uk">Найвища точка кожної сесії</span><span class="en">The high point of each session</span></h3>
+      <p class="note" style="margin:6px 0 12px"><span class="uk">Скільки грошей гравець мав у найкращий момент, перш ніж сесія закінчилася. Багато хто бував у плюсі, але піти з плюсом правила не дозволяють.</span><span class="en">How much money a player had at their best moment before the session ended. Many were ahead at some point, but the rules do not let them leave ahead.</span></p>
+      <canvas id="hi-cv" style="height:240px"></canvas>
+      <p class="note" id="hi-txt" style="margin-top:10px"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Чотири пояснення</span><span class="en">Round 4 · Four explanations</span></span>
+    <h2><span class="uk">Маленька перевага, дуже довга гра</span><span class="en">A small edge, a very long game</span></h2>
+    <p class="lead uk">Одна ставка майже чесна. Нечесним робить гру те, скільки таких ставок доводиться зробити, щоб дійти до $200.</p>
+    <p class="lead en">A single bet is almost fair. What makes the game unfair is how many such bets it takes to reach $200.</p>
+  </div>
+  <div class="why-grid">
+    <div class="card">
+      <span class="kicker"><span class="uk">Знос проти розмаху</span><span class="en">Drift against spread</span></span>
+      <h3><span class="uk">Знос росте як n, а розмах як √n</span><span class="en">Drift grows like n, spread like √n</span></h3>
+      <div class="inline-ctl"><label for="drift-n"><span class="uk">Після ставок:</span><span class="en">After bets:</span> <b class="mono" id="drift-v"></b></label><input type="range" id="drift-n" min="0" max="100" value="62"></div>
+      <canvas id="drift-cv" style="height:220px"></canvas>
+      <p id="drift-txt"></p>
+      <p class="uk">Кожна ставка в середньому забирає 1/37 долара. За n ставок це n/37, а випадковий розмах навколо цього середнього близько √n. На початку розмах більший, і гравець може піднятися. Але знос росте швидше: після 3700 ставок він сягає $100, а розмах лише близько $61.</p>
+      <p class="en">Each bet takes 1/37 of a dollar on average. Over n bets that is n/37, while the random spread around that average is about √n. Early on the spread is bigger, and a player can climb. But the drift grows faster: after 3,700 bets it reaches $100, while the spread is only about $61.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Чесна гра</span><span class="en">A fair game</span></span>
+      <h3><span class="uk">Без зеро шанс рівно 50%</span><span class="en">Without the zero the chance is exactly 50%</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">Чесна монета</span><span class="en">A fair coin</span></span><b class="mono">50%</b><span><span class="uk">у середньому 10 000 ставок</span><span class="en">10,000 bets on average</span></span></div>
+        <div><span><span class="uk">Рулетка, 18/37</span><span class="en">Roulette, 18/37</span></span><b class="mono" id="why-r">0,45%</b><span><span class="uk">у середньому 3667 ставок</span><span class="en">3,667 bets on average</span></span></div>
+      </div>
+      <p class="uk">У чесній грі середня сума в кишені не змінюється, скільки б ви не грали. Наприкінці там або $200, або $0, тому 200 · P = 100, і P = 1/2. Загалом шанс дійти від i до N дорівнює i/N. А середня тривалість дорівнює i · (N − i) = 100 · 100 = 10 000 ставок. Варто прибрати 1 комірку з 37, і замість 50% лишається 0,45%.</p>
+      <p class="en">In a fair game the average amount in your pocket does not change, however long you play. At the end it is either $200 or $0, so 200 · P = 100 and P = 1/2. In general, the chance of getting from i to N is i/N. And the average length is i · (N − i) = 100 · 100 = 10,000 bets. Add 1 pocket out of 37 and instead of 50% you are left with 0.45%.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Рахунок втрат</span><span class="en">Counting the losses</span></span>
+      <h3><span class="uk">2,7% від усього поставленого</span><span class="en">2.7% of everything you wager</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">Ставки по $1</span><span class="en">$1 bets</span></span><b class="mono" id="loss-t">−$99,11</b><span><span class="uk">поставлено $3667</span><span class="en">$3,667 wagered</span></span></div>
+        <div><span><span class="uk">Одна ставка $100</span><span class="en">One $100 bet</span></span><b class="mono" id="loss-b">−$2,70</b><span><span class="uk">поставлено $100</span><span class="en">$100 wagered</span></span></div>
+      </div>
+      <p class="uk">Казино забирає в середньому 1/37 від кожного поставленого долара, хоч яка стратегія. Тож середня втрата дорівнює 2,7% від суми всіх ставок. Обережний гравець ганяє ті самі гроші туди-сюди 3667 разів і в середньому втрачає $99,11. Сміливий ставить $100 лише раз і втрачає в середньому $2,70. Звідси й різниця в шансах.</p>
+      <p class="en">The casino takes on average 1/37 of every dollar wagered, whatever the strategy. So the average loss is 2.7% of the total of all bets. The cautious player pushes the same money back and forth 3,667 times and loses $99.11 on average. The bold one bets $100 just once and loses $2.70 on average. That is where the gap in the odds comes from.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Відношення 19 до 18</span><span class="en">The ratio 19 to 18</span></span>
+      <h3><span class="uk">Множник, що росте як відсотки</span><span class="en">A factor that compounds like interest</span></h3>
+      <div class="vs">
+        <div><span>q / p</span><b class="mono">19/18</b><span><span class="uk">на 5,6% більше за 1</span><span class="en">5.6% more than 1</span></span></div>
+        <div><span>(19/18)<sup>100</sup></span><b class="mono" id="why-pow">≈ 223</b><span><span class="uk">у стільки разів шанс нуля вищий</span><span class="en">how many times likelier zero is</span></span></div>
+      </div>
+      <p class="uk">Програш у 19/18 рази ймовірніший за виграш. Щоб дійти до $200, треба на 100 виграшів більше, ніж програшів, а щоб до нуля, на 100 програшів більше. Ці 100 кроків множать перекіс: (19/18)<sup>100</sup> ≈ 223, як 5,6% річних за 100 років. Тому нуль ймовірніший за $200 приблизно в 223 рази, і шанс на $200 дорівнює 1/(223 + 1) = 1/224.</p>
+      <p class="en">A loss is 19/18 times as likely as a win. To reach $200 you need 100 more wins than losses; to reach zero, 100 more losses. Those 100 steps multiply the tilt: (19/18)<sup>100</sup> ≈ 223, like 5.6% interest over 100 years. So zero is about 223 times likelier than $200, and the chance of $200 is 1/(223 + 1) = 1/224.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span><span class="en">For formula lovers</span></span>
+      <h3><span class="uk">Шанс дійти до цілі і тривалість гри</span><span class="en">The chance of reaching the target and the length of the game</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Гравець має i доларів, ціль N, виграє ставку з шансом p, програє з шансом q = 1 − p. Шанс дійти до N задовольняє просте рівняння: після однієї ставки ви або на крок вище, або на крок нижче.</span><span class="en">The player has i dollars, the target is N, a bet is won with chance p and lost with chance q = 1 − p. The chance of reaching N obeys a simple equation: after one bet you are either a step up or a step down.</span></p>
+          <math display="block"><msub><mi>P</mi><mi>i</mi></msub><mo>=</mo><mi>p</mi><mo>·</mo><msub><mi>P</mi><mrow><mi>i</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>+</mo><mi>q</mi><mo>·</mo><msub><mi>P</mi><mrow><mi>i</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>,</mo><mspace width="0.6em"></mspace><msub><mi>P</mi><mn>0</mn></msub><mo>=</mo><mn>0</mn><mo>,</mo><mspace width="0.4em"></mspace><msub><mi>P</mi><mi>N</mi></msub><mo>=</mo><mn>1</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Його розв'язок, де r = q/p. Для чесної гри r = 1, і формула стає i/N.</span><span class="en">Its solution, where r = q/p. For a fair game r = 1 and the formula becomes i/N.</span></p>
+          <math display="block"><msub><mi>P</mi><mi>i</mi></msub><mo>=</mo><mfrac><mrow><msup><mi>r</mi><mi>i</mi></msup><mo>−</mo><mn>1</mn></mrow><mrow><msup><mi>r</mi><mi>N</mi></msup><mo>−</mo><mn>1</mn></mrow></mfrac><mo>,</mo><mspace width="0.6em"></mspace><mi>r</mi><mo>=</mo><mfrac><mi>q</mi><mi>p</mi></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Ціль удвічі більша за старт, N = 2i, тож дріб скорочується.</span><span class="en">The target is twice the start, N = 2i, so the fraction simplifies.</span></p>
+          <math display="block"><msub><mi>P</mi><mn>100</mn></msub><mo>=</mo><mfrac><mn>1</mn><mrow><msup><mrow><mo stretchy="false">(</mo><mn>19</mn><mo>/</mo><mn>18</mn><mo stretchy="false">)</mo></mrow><mn>100</mn></msup><mo>+</mo><mn>1</mn></mrow></mfrac><mo>≈</mo><mfrac><mn>1</mn><mrow><mn class="uk">223,9</mn><mn class="en">223.9</mn></mrow></mfrac><mo>≈</mo><mi class="hl uk">0,45%</mi><mi class="hl en">0.45%</mi></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Середня кількість ставок до кінця гри. Для чесної гри D = i(N − i).</span><span class="en">The average number of bets until the game ends. For a fair game D = i(N − i).</span></p>
+          <math display="block"><msub><mi>D</mi><mi>i</mi></msub><mo>=</mo><mfrac><mi>i</mi><mrow><mi>q</mi><mo>−</mo><mi>p</mi></mrow></mfrac><mo>−</mo><mfrac><mi>N</mi><mrow><mi>q</mi><mo>−</mo><mi>p</mi></mrow></mfrac><mo>·</mo><msub><mi>P</mi><mi>i</mi></msub></math>
+          <math display="block"><msub><mi>D</mi><mn>100</mn></msub><mo>=</mo><mn>3700</mn><mo>−</mo><mn>7400</mn><mo>·</mo><msub><mi>P</mi><mn>100</mn></msub><mo>≈</mo><mn>3667</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Тотожність Вальда: середня втрата дорівнює перевазі казино, помноженій на середню суму всіх ставок.</span><span class="en">Wald's identity: the average loss equals the house edge times the average total wagered.</span></p>
+          <math display="block"><mn>100</mn><mo>−</mo><mn>200</mn><mo>·</mo><msub><mi>P</mi><mn>100</mn></msub><mo>=</mo><mo stretchy="false">(</mo><mi>q</mi><mo>−</mo><mi>p</mi><mo stretchy="false">)</mo><mo>·</mo><msub><mi>D</mi><mn>100</mn></msub><mo>=</mo><mfrac><mn>3667</mn><mn>37</mn></mfrac><mo>≈</mo><mn class="uk">$99,11</mn><mn class="en">$99.11</mn></math>
+        </div>
+      </div>
+      <p class="uk">Ключова частина — множник r<sup>i</sup>. Коли гра хоч трохи несправедлива, r більше за 1, і r<sup>100</sup> вже величезне. Тому шанс падає не пропорційно перевазі казино, а експоненційно від кількості кроків до цілі. Удвічі менша ставка подвоює кількість кроків і підносить перекіс до квадрата.</p>
+      <p class="en">The key part is the factor r<sup>i</sup>. When the game is even slightly unfair, r is above 1, and r<sup>100</sup> is already huge. So the chance falls not in proportion to the house edge but exponentially in the number of steps to the target. Halving the stake doubles the number of steps and squares the tilt.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 5: escalation -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Ускладнюємо</span><span class="en">Round 5 · Going further</span></span>
+    <h2><span class="uk">Сміливість, нескінченне казино, подвоєння і Келлі</span><span class="en">Boldness, an infinite casino, doubling and Kelly</span></h2>
+    <p class="lead uk">Від точної теореми про найкращу стратегію в несправедливій грі до логіки «казино досить чекати» і двох практичних уроків: чому подвоєння ставок не рятує і скільки ставити, коли перевага на вашому боці.</p>
+    <p class="lead en">From an exact theorem on the best strategy in an unfair game, through the logic of "the casino only has to wait", to two practical lessons: why doubling your bets does not save you, and how much to stake when the edge is yours.</p>
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Обережно чи сміливо?</span><span class="en">Cautious or bold?</span></h3>
+        <div class="pgroup"><span><span class="uk">Ціль, старт $100</span><span class="en">Target, starting from $100</span></span><div class="presets" id="bt-pick"></div></div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th><span class="uk">Стратегія</span><span class="en">Strategy</span></th><th class="num"><span class="uk">Точний шанс</span><span class="en">Exact chance</span></th><th class="num"><span class="uk">Симуляція</span><span class="en">Simulation</span></th><th class="num"><span class="uk">Ставок</span><span class="en">Bets</span></th></tr></thead>
+          <tbody id="bt-tbl"></tbody>
+        </table></div>
+        <p class="note" id="bt-txt"></p>
+        <div class="actions"><button class="btn pri" id="bt-go" type="button"><span class="uk">Перевірити симуляцією</span><span class="en">Check by simulation</span></button></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Дубінс і Севідж, 1965</span><span class="en">Dubins and Savage, 1965</span></span>
+        <h3><span class="uk">У несправедливій грі найкраще ставити сміливо</span><span class="en">In an unfair game, bold play is best</span></h3>
+        <p class="uk">Смілива гра: щоразу ставити все, що маєте, або рівно стільки, скільки бракує до цілі, якщо це менше. Від $100 до $400 це дві ставки: $100, потім $200. Лестер Дубінс і Леонард Севідж довели, що коли кожна ставка несприятлива, жодна стратегія не дає більшого шансу дійти до цілі. Що менше ставок, то менше разів казино бере свої 2,7%.</p>
+        <p class="en">Bold play: each time, stake everything you have, or exactly what is missing to the target if that is less. From $100 to $400 that is two bets: $100, then $200. Lester Dubins and Leonard Savage proved that when every bet is unfavourable, no strategy gives a better chance of reaching the target. Fewer bets means fewer times the casino takes its 2.7%.</p>
+        <p class="uk">У чесній грі стратегія не важлива: будь-яка дає шанс i/N. А якщо гра на вашу користь, усе навпаки, і вигідно ставити помалу. Для ставок по $1 на ціль $1000 шанс менший за 10<sup>−21</sup>, і симуляція його ніколи не побачить.</p>
+        <p class="en">In a fair game the strategy does not matter: any of them gives i/N. And if the game favours you, it is the other way round, and small bets pay. For $1 bets to a $1,000 target the chance is below 10<sup>−21</sup>, and a simulation will never see it.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">А якщо мети немає?</span><span class="en">What if there is no target?</span></h3>
+        <p class="note"><span class="uk">Гравець із $100 ставить по $1 проти казино з нескінченними грошима й грає, доки не розориться. Криві показують, яка частка гравців уже без грошей після n ставок. Точний розрахунок, вісь ставок логарифмічна.</span><span class="en">A player with $100 bets $1 at a time against a casino with infinite money and plays until broke. The curves show what share of players are already broke after n bets. Exact calculation, logarithmic bets axis.</span></p>
+        <canvas id="inf-cv" style="height:240px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--hit)"><b class="uk">рулетка, 18/37</b><b class="en">roulette, 18/37</b></span>
+          <span style="--c:var(--ink)"><b class="uk">чесна монета</b><b class="en">fair coin</b></span>
+        </div>
+        <p class="note" id="inf-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Казино досить чекати</span><span class="en">The casino only has to wait</span></span>
+        <h3><span class="uk">Проти безмежного банку розоряються навіть у чесній грі</span><span class="en">Against an unlimited bank even a fair game ruins you</span></h3>
+        <p class="uk">Нехай ціль N росте до нескінченності. У формулі i/N для чесної гри шанс виграти прямує до 0, отже, розорення неминуче з імовірністю 1. Але чекати доведеться довго: середня тривалість i(N − i) теж росте без меж. Після 10 000 ставок без грошей лише 32% гравців, після мільйона 92%.</p>
+        <p class="en">Let the target N grow to infinity. In the fair-game formula i/N the chance of winning tends to 0, so ruin is certain, with probability 1. But it takes a long time: the average length i(N − i) also grows without bound. After 10,000 bets only 32% of players are broke, after a million, 92%.</p>
+        <p class="uk">У рулетці картина інша: гравець розоряється в середньому за 100 · 37 = 3700 ставок. Шанс хоч колись опинитися на $100 у плюсі дорівнює (18/19)<sup>100</sup> ≈ 0,45%, майже стільки ж, скільки в основній задачі. Казино не мусить вигравати кожну ставку. Йому досить грошей, щоб пережити вашу удачу, і часу.</p>
+        <p class="en">In roulette the picture is different: the player goes broke in 100 · 37 = 3,700 bets on average. The chance of ever being $100 ahead is (18/19)<sup>100</sup> ≈ 0.45%, almost the same as in the main puzzle. The casino does not have to win every bet. It only needs enough money to outlast your luck, and time.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Подвоювати після програшу?</span><span class="en">Double up after a loss?</span></h3>
+        <canvas id="mg-cv" style="height:220px"></canvas>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Точний шанс дійти до $200</span><span class="en">Exact chance of reaching $200</span></span><b class="big mono" id="mg-e">–</b></div>
+          <div><span class="k"><span class="uk">Симуляція, 100 000 сесій</span><span class="en">Simulation, 100,000 sessions</span></span><b class="big mono" id="mg-s" style="font-size:1.6rem">–</b></div>
+        </div>
+        <p class="note" id="mg-txt"></p>
+        <div class="actions"><button class="btn pri" id="mg-go" type="button"><span class="uk">Зіграти сесію</span><span class="en">Play a session</span></button></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Мартингейл</span><span class="en">The martingale</span></span>
+        <h3><span class="uk">Часто виграєте по $1, рідко втрачаєте все</span><span class="en">Win $1 often, lose it all rarely</span></h3>
+        <p class="uk">Система мартингейл: поставити $1, після програшу подвоїти ставку, після виграшу повернутися до $1. Кожна серія закінчується виграшем $1, якщо вистачить грошей на подвоєння. Із $100 ви витримуєте 6 програшів поспіль (1 + 2 + 4 + 8 + 16 + 32 = 63), а на сьомий подвоєний $64 уже не вистачає. Тоді ставите залишок.</p>
+        <p class="en">The martingale system: bet $1, double the stake after a loss, go back to $1 after a win. Every run ends with a $1 win, as long as you can afford to double. With $100 you survive 6 losses in a row (1 + 2 + 4 + 8 + 16 + 32 = 63), and the seventh doubled stake of $64 is out of reach. Then you bet what is left.</p>
+        <p class="uk">Шість програшів поспіль трапляються лише в 1,8% серій, тож здебільшого гроші ростуть сходинками по $1. Але щоб дійти до $200, потрібно близько сотні серій, і одна погана серія забирає все. Підсумок: 42,1%. Краще, ніж по $1, але гірше, ніж одна ставка $100, як і обіцяє теорема Дубінса і Севіджа.</p>
+        <p class="en">Six losses in a row happen in only 1.8% of runs, so mostly the money climbs in $1 steps. But reaching $200 takes about a hundred runs, and one bad run takes everything. The result: 42.1%. Better than $1 bets, but worse than a single $100 bet, just as the Dubins–Savage theorem promises.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Скільки ставити, якщо перевага ваша?</span><span class="en">How much to stake if the edge is yours?</span></h3>
+        <div class="pgroup"><span><span class="uk">Шанс виграти ставку 1 : 1</span><span class="en">Chance of winning an even-money bet</span></span><div class="presets" id="k-pick"></div></div>
+        <label class="ctl" for="k-f"><span><span class="uk">Частка капіталу на ставку:</span><span class="en">Share of capital per bet:</span> <b class="mono" id="k-fv"></b></span>
+          <input type="range" id="k-f" min="0" max="50" value="10" style="width:100%">
+        </label>
+        <canvas id="k-cv" style="height:200px"></canvas>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Медіанний капітал після 1000 ставок</span><span class="en">Median capital after 1,000 bets</span></span><b class="big mono" id="k-med" style="font-size:1.6rem">–</b></div>
+          <div><span class="k"><span class="uk">Гравців нижче старту</span><span class="en">Players below the start</span></span><b class="big mono" id="k-low" style="font-size:1.6rem">–</b></div>
+        </div>
+        <p class="note" id="k-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Критерій Келлі, 1956</span><span class="en">The Kelly criterion, 1956</span></span>
+        <h3><span class="uk">Ставити частку, а не суму</span><span class="en">Stake a share, not an amount</span></h3>
+        <p class="uk">Коли гра на вашу користь, розорення стає головним ворогом: поставите забагато, і кілька програшів поспіль виженуть вас із гри. Джон Келлі показав, що капітал найшвидше росте, якщо щоразу ставити частку f = 2p − 1. Для шансу 55% це 10% капіталу. Ставка в частках сама зменшується після програшів, тож до нуля ви не дійдете ніколи.</p>
+        <p class="en">When the game favours you, ruin becomes the main enemy: stake too much and a few losses in a row knock you out. John Kelly showed that capital grows fastest if each time you stake the share f = 2p − 1. For a 55% chance that is 10% of your capital. A stake measured as a share shrinks after losses by itself, so you never reach zero.</p>
+        <p class="uk">Ставка вдвічі більша за Келлі майже не дає росту, а ще більша веде вниз, хоч кожна ставка вигідна. Для рулетки 2p − 1 від'ємне: найкраща частка дорівнює нулю. Цей принцип узяв Едвард Торп для блекджеку, а потім для інвестицій.</p>
+        <p class="en">A stake twice the Kelly share gives almost no growth, and a bigger one leads down, although every bet is favourable. For roulette 2p − 1 is negative: the best share is zero. Edward Thorp took this principle into blackjack, and later into investing.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="uk">Що розповісти друзям</span><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1656</span>
+        <h3><span class="uk">Задача Паскаля</span><span class="en">Pascal's problem</span></h3>
+        <p class="uk">Найдавніша відома згадка задачі — лист Блеза Паскаля до П'єра Ферма 1656 року. Того ж року П'єр де Каркаві переказав її Крістіану Гюйгенсу: двоє кидають три кубики, перший отримує очко, коли випаде 11, другий — коли 14.</p>
+        <p class="en">The earliest known mention of the problem is a letter from Blaise Pascal to Pierre de Fermat in 1656. That same year Pierre de Carcavi passed it on to Christiaan Huygens: two players throw three dice, the first scores when 11 comes up, the second when 14 does.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1657</span>
+        <h3><span class="uk">П'ята задача Гюйгенса</span><span class="en">Huygens's fifth problem</span></h3>
+        <p class="uk">Гюйгенс поставив задачу останньою з п'яти в трактаті De ratiociniis in ludo aleae: у кожного по 12 фішок, програв очко — віддай фішку. Сума 11 випадає 27 способами з 216, а 14 лише 15. Відповідь: шанси на перемогу того, хто чекає 14, і того, хто чекає 11, співвідносяться як 244 140 625 до 282 429 536 481, тобто (5/9)<sup>12</sup>.</p>
+        <p class="en">Huygens set the problem as the last of five in his treatise De ratiociniis in ludo aleae: each player has 12 counters, and losing a point costs a counter. A total of 11 comes up in 27 ways out of 216, 14 in only 15. The answer: the chances of winning for the player waiting for 14 and the one waiting for 11 are as 244,140,625 to 282,429,536,481, that is (5/9)<sup>12</sup>.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1711</span>
+        <h3><span class="uk">Загальна формула</span><span class="en">The general formula</span></h3>
+        <p class="uk">Абрахам де Муавр у праці De Mensura Sortis розв'язав задачу для будь-яких капіталів і будь-яких шансів, тобто вивів ту саму формулу з r<sup>i</sup>, що в раунді 4. Назву «розорення гравця» задача отримала значно пізніше.</p>
+        <p class="en">Abraham de Moivre, in De Mensura Sortis, solved the problem for any capitals and any odds, deriving the same r<sup>i</sup> formula as in round 4. The name "gambler's ruin" was attached to the problem much later.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1965</span>
+        <h3><span class="uk">Як грати, якщо мусите</span><span class="en">How to gamble if you must</span></h3>
+        <p class="uk">Саме так називається книжка Лестера Дубінса і Леонарда Севіджа, де доведено, що в несприятливому казино смілива гра оптимальна. Ідея ілюструється так: якщо вам терміново потрібна сума, яку можна лише виграти, ставте на одну спробу якомога більше.</p>
+        <p class="en">That is the title of the book by Lester Dubins and Leonard Savage that proves bold play is optimal in an unfavourable casino. The idea in a nutshell: if you urgently need an amount you can only win, put as much as possible on as few tries as possible.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1956</span>
+        <h3><span class="uk">Формула з Bell Labs</span><span class="en">A formula from Bell Labs</span></h3>
+        <p class="uk">Джон Келлі, інженер Bell Labs, опублікував статтю «Нова інтерпретація швидкості передачі інформації», де пов'язав ставки з теорією інформації Шеннона. Історію формули і того, як її застосовували в казино та на біржі, розповідає книжка Вільяма Паундстоуна «Формула фортуни».</p>
+        <p class="en">John Kelly, an engineer at Bell Labs, published "A New Interpretation of Information Rate", linking betting to Shannon's information theory. The story of the formula and how it was used in casinos and on Wall Street is told in William Poundstone's book Fortune's Formula.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">$3667</span>
+        <h3><span class="uk">Скільки ви поставите за вечір</span><span class="en">How much you wager in one night</span></h3>
+        <p class="uk">Обережний гравець у нашій задачі в середньому робить 3667 ставок по $1, тобто ставить у 37 разів більше, ніж приніс. Якщо колесо крутиться раз на хвилину, це понад 60 годин гри без перерви, і в середньому він іде додому з 89 центами.</p>
+        <p class="en">The cautious player in our puzzle makes 3,667 bets of $1 on average, wagering 37 times what they brought. If the wheel spins once a minute, that is over 60 hours of non-stop play, and on average they go home with 89 cents.</p>
+      </article>
+  </div>
+</section>
+
+<footer>
+  <span class="uk">Задачу поставив Блез Паскаль (1656) і опублікував Крістіан Гюйгенс (1657), загальну формулу вивів Абрахам де Муавр. Оптимальність сміливої гри довели Дубінс і Севідж (1965).</span>
+  <span class="en">The problem was posed by Blaise Pascal (1656) and published by Christiaan Huygens (1657); Abraham de Moivre derived the general formula. Dubins and Savage proved bold play optimal (1965).</span>
+  <span class="mono">P = 1 / ((19/18)¹⁰⁰ + 1)</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA', { maximumFractionDigits: 0 });
+const fmtD = (x, d = 2) => x.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA', { minimumFractionDigits: d, maximumFractionDigits: d });
+const usd = (x, d = 0) => (x < 0 ? '−$' : '$') + (d ? fmtD(Math.abs(x), d) : fmt(Math.abs(Math.round(x))));
+// a probability that may be tiny: 0.45%, 0.002%, or "1 in 10^21"
+const prob = p => p >= .1 ? pct(p, 1) : p >= .001 ? pct(p, 2) : p >= 1e-5 ? pct(p, 4) : p > 0 ? '≈ 10' + sup(Math.round(Math.log10(p))) : '0%';
+const sup = n => String(n).replace('-', '⁻').replace(/\d/g, d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]);
+// Ukrainian plural forms: 1 ставка, 2 ставки, 5 ставок
+const plural = (k, one, few, many) => {
+  const a = k % 10, b = k % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+const betsW = n => L(plural(n, 'ставка', 'ставки', 'ставок'), n === 1 ? 'bet' : 'bets');
+const betsAcc = n => L(plural(n, 'ставку', 'ставки', 'ставок'), n === 1 ? 'bet' : 'bets');
+const sessW = n => L(plural(n, 'сесія', 'сесії', 'сесій'), n === 1 ? 'session' : 'sessions');
+
+/* ---------- maths ---------- */
+// European roulette: 18 red pockets of 37. A bet on red wins +1 stake, otherwise −1.
+const P = 18 / 37, Q = 19 / 37;
+const REDS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+const spin = () => Math.floor(Math.random() * 37);
+// chance of reaching N before 0 from i, unit stakes, win chance p
+function reach(i, N, p) { if (Math.abs(p - .5) < 1e-12) return i / N; const r = (1 - p) / p; return (r ** i - 1) / (r ** N - 1); }
+// average number of bets until the game ends
+function dur(i, N, p) { if (Math.abs(p - .5) < 1e-12) return i * (N - i); const d = 1 - 2 * p; return i / d - N / d * reach(i, N, p); }
+// bold play to fraction x of the target: Q(x) = p Q(2x) for x ≤ 1/2, p + q Q(2x − 1) above
+function boldReach(x, p) { let res = 0, m = 1; for (let k = 0; k < 64 && m > 1e-18; k++) { if (x >= 1 - 1e-12) { res += m; break; } if (x <= 1e-12) break; if (x <= .5) { m *= p; x *= 2; } else { res += m * p; m *= 1 - p; x = 2 * x - 1; } } return res; }
+// one session with a fixed stake s (in dollars): returns [reached, bets, high]
+function session(i, N, s, p) { let b = i, n = 0, hi = i; while (b > 0 && b < N) { b += Math.random() < p ? s : -s; n++; if (b > hi) hi = b; } return [b >= N, n, hi]; }
+function boldSession(i, N, p) { let b = i, n = 0; while (b > 0 && b < N) { const s = Math.min(b, N - b); b += Math.random() < p ? s : -s; n++; } return [b >= N, n]; }
+// martingale with a bankroll: stake doubles after a loss (but never more than you have), resets after a win
+function mgSession(i, N, p, path) { let b = i, s = 1, n = 0; if (path) path.push(b); while (b > 0 && b < N) { const st = Math.min(s, b); if (Math.random() < p) { b += st; s = 1; } else { b -= st; s *= 2; } n++; if (path) path.push(b); } return [b >= N, n]; }
+// exact martingale chance: value iteration on (bankroll, desired stake)
+function mgExact(i, N, p) {
+  const S = 8, V = Array.from({ length: N }, () => new Float64Array(S));
+  for (let it = 0; it < 5000; it++) {
+    let delta = 0;
+    for (let b = 1; b < N; b++) for (let k = 0; k < S; k++) {
+      const st = Math.min(2 ** k, b), w = b + st >= N ? 1 : V[b + st][0], l = b - st <= 0 ? 0 : V[b - st][Math.min(k + 1, S - 1)];
+      const v = p * w + (1 - p) * l; delta = Math.max(delta, Math.abs(v - V[b][k])); V[b][k] = v;
+    }
+    if (delta < 1e-13) break;
+  }
+  return V[i][0];
+}
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, Hh = c.clientHeight;
+  if (!W || !Hh) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(Hh * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, Hh);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H: Hh };
+}
+// a bankroll path between $0 and the target; paths are arrays of bankroll values, one per bet
+function pathsFrame(s, N, nMax, opt = {}) {
+  const { ctx, W, H: Hh } = s, l = opt.l || 44, r = 10, t = 12, b = 24;
+  const x = n => l + n / nMax * (W - l - r), y = v => t + (1 - v / N) * (Hh - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, N / 2, N].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v) + .5); ctx.lineTo(W - r, y(v) + .5); ctx.stroke(); ctx.fillText('$' + fmt(v), l - 6, y(v)); });
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('0', l, Hh - b + 6);
+  ctx.textAlign = 'right'; ctx.fillText(fmt(nMax) + ' ' + L('ставок', 'bets'), W - r, Hh - b + 6);
+  return { x, y };
+}
+function strokePath(ctx, path, x, y, step = 1) {
+  ctx.beginPath();
+  for (let i = 0; i < path.length; i += step) i ? ctx.lineTo(x(i), y(path[i])) : ctx.moveTo(x(0), y(path[0]));
+  const k = path.length - 1; ctx.lineTo(x(k), y(path[k]));
+  ctx.stroke();
+}
+// keep long paths light: min/max per pixel column would be overkill here, a stride is enough
+const thin = (path, maxPts) => { if (path.length <= maxPts) return { pts: path, k: 1 }; const k = Math.ceil(path.length / maxPts), out = []; for (let i = 0; i < path.length; i += k) out.push(path[i]); out.push(path[path.length - 1]); return { pts: out, k }; };
+
+/* ---------- hero: sessions play out bet by bet ---------- */
+// before the guess only the first stretch of each session is shown, never its end
+const hero = { path: [100], old: [], timer: null, pause: 0, n: 0, wins: 0 };
+function heroNew() { hero.path = [100]; }
+function heroDraw() {
+  const s = setupCanvas($('#hero-cv')); if (!s) return;
+  const solved = !window.mpSolved || mpSolved();
+  const nMax = solved ? 8000 : 400;
+  const { x, y } = pathsFrame(s, 200, nMax, { l: 40 });
+  const ctx = s.ctx, xs = n => x(Math.min(n, nMax));
+  ctx.lineWidth = 1.2;
+  if (solved) hero.old.forEach(p => { ctx.strokeStyle = p.win ? tok('--hit') : tok('--muted'); ctx.globalAlpha = .35; strokePath(ctx, p.pts, i => xs(i * p.k), y); });
+  ctx.globalAlpha = 1; ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2;
+  const cur = thin(hero.path, 1500); strokePath(ctx, cur.pts, i => xs(i * cur.k), y);
+  const last = hero.path[hero.path.length - 1];
+  ctx.fillStyle = tok('--ink'); ctx.beginPath(); ctx.arc(xs(hero.path.length - 1), y(last), 4, 0, 7); ctx.fill();
+  ctx.font = '800 22px ' + tok('--f-display'); ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  ctx.fillText('$' + last, s.W - 14, 18);
+  if (!solved) { $('#hero-cap').textContent = L('Ставка $1 на червоне, ще одна, ще одна… Гра закінчується на $200 або на нулі. Який шанс дійти до $200?', '$1 on red, and again, and again… The game ends at $200 or at zero. What is the chance of reaching $200?'); return; }
+  $('#hero-cap').textContent = hero.n
+    ? L('Сесій: ' + fmt(hero.n) + ' · до $200 дійшли ' + fmt(hero.wins) + ' · точний шанс 0,45%, 1 з 224', fmt(hero.n) + ' ' + sessW(hero.n) + ' · ' + fmt(hero.wins) + ' reached $200 · exact chance 0.45%, 1 in 224')
+    : L('Точний шанс дійти до $200: 0,45%, 1 з 224.', 'The exact chance of reaching $200: 0.45%, 1 in 224.');
+}
+function heroStep() {
+  const solved = !window.mpSolved || mpSolved();
+  if (hero.pause > 0) { hero.pause--; if (!hero.pause) heroNew(); heroDraw(); return; }
+  const per = solved ? 60 : 4, cap = solved ? Infinity : 400;
+  let b = hero.path[hero.path.length - 1];
+  for (let i = 0; i < per && b > 0 && b < 200 && hero.path.length <= cap; i++) { b += Math.random() < P ? 1 : -1; hero.path.push(b); }
+  if (b <= 0 || b >= 200 || hero.path.length > cap) {
+    if (solved && (b <= 0 || b >= 200)) { const th = thin(hero.path, 600); hero.old.push({ pts: th.pts, k: th.k, win: b >= 200 }); if (hero.old.length > 14) hero.old.shift(); hero.n++; if (b >= 200) hero.wins++; }
+    hero.pause = solved ? 8 : 4;
+  }
+  heroDraw();
+}
+function heroStart() {
+  clearInterval(hero.timer); heroNew();
+  if (reduce()) { for (let i = 0; i < 300; i++) hero.path.push(hero.path[i] + (Math.random() < P ? 1 : -1)); heroDraw(); return; }
+  heroDraw(); hero.timer = setInterval(heroStep, 50);
+}
+document.addEventListener('solved', () => { hero.pause = 0; heroNew(); heroDraw(); });
+
+/* ---------- puzzle: the wheel strip ---------- */
+function stripText() {
+  $('#strip').innerHTML = Array.from({ length: 37 }, (_, k) => '<i class="' + (k === 0 ? 'g' : REDS.has(k) ? 'r' : '') + '">' + k + '</i>').join('');
+}
+
+/* ---------- round 1: guess ---------- */
+const OPTS = [.5, .45, .35, .2, .05, .004];
+const TRUE = reach(100, 200, P);
+let pick = null, guessed = null;
+function optsText() {
+  $('#guess-opts').innerHTML = OPTS.map((v, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (pick === i) + '">' + (v < .01 ? L('менше 1%', 'under 1%') : L('близько ', 'about ') + Math.round(v * 100) + '%') + '</button>').join('');
+  $('#guess-go').disabled = pick === null;
+}
+$('#guess-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pick = +b.dataset.i; optsText(); });
+$('#guess-go').addEventListener('click', () => { if (pick === null) return; guessed = OPTS[pick]; guessText(); window.mpSolve && mpSolve(guessed); });
+function guessText() {
+  if (guessed === null) return;
+  const g = guessed;
+  const verdict = g < .01
+    ? L('Так, менше 1%. Точно 0,45%, тобто 1 шанс із 224. Інтуїція здебільшого підказує 40–50%, бо кожна окрема ставка майже чесна.', 'Yes, under 1%. Exactly 0.45%, a 1 in 224 chance. Intuition mostly says 40–50%, because each single bet is almost fair.')
+    : L('Насправді шанс не ' + Math.round(g * 100) + '%, а лише 0,45%, 1 з 224. Одна ставка майже чесна, але їх у середньому 3667, і за цей час маленька перевага казино з\'їдає майже все.', 'In fact the chance is not ' + Math.round(g * 100) + '% but just 0.45%, 1 in 224. A single bet is almost fair, but there are 3,667 of them on average, and over that time the casino\'s small edge eats almost everything.');
+  const rows = [
+    [L('Монета, по $1', 'Coin, $1 bets'), .5, 1e4],
+    [L('Рулетка, по $1', 'Roulette, $1 bets'), TRUE, dur(100, 200, P)],
+    [L('Рулетка, по $10', 'Roulette, $10 bets'), reach(10, 20, P), dur(10, 20, P)],
+    [L('Рулетка, одна по $100', 'Roulette, one $100 bet'), P, 1]
+  ].map((r, i) => '<tr><td>' + r[0] + '</td><td class="num"' + (i === 1 ? ' style="color:var(--hit);font-weight:700"' : '') + '>' + prob(r[1]) + '</td><td class="num">' + fmt(Math.round(r[2])) + '</td></tr>').join('');
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">' + pct(TRUE, 2) + '</p>' +
+    '<p>' + verdict + '</p><div class="tbl-wrap"><table><thead><tr><th>' + L('Гра', 'Game') + '</th><th class="num">' + L('Шанс', 'Chance') + '</th><th class="num">' + L('Ставок', 'Bets') + '</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<p class="note">' + L('Поворот: та сама рулетка, але одна ставка $100 замість сотні ставок по $1, і шанс зростає зі 0,45% до 48,6%. У раунді 2 спробуйте обидва варіанти.', 'The twist: the same roulette, but one $100 bet instead of hundreds of $1 bets, and the chance rises from 0.45% to 48.6%. Try both in round 2.') + '</p>';
+}
+
+/* ---------- round 2: the table ---------- */
+const STAKES = [1, 5, 10, 25, 50, 100];
+const G = { stake: 1, bank: 100, n: 0, hi: 100, path: [100], last: null, tally: {}, busy: false, timer: null };
+STAKES.forEach(s => { G.tally[s] = { games: 0, wins: 0 }; });
+const gDone = () => G.bank <= 0 || G.bank >= 200;
+function gBet() {
+  const k = spin(), red = REDS.has(k);
+  G.bank += red ? G.stake : -G.stake; G.n++; G.last = k; G.path.push(G.bank); if (G.bank > G.hi) G.hi = G.bank;
+  if (gDone()) { const t = G.tally[G.stake]; t.games++; if (G.bank >= 200) t.wins++; }
+}
+function gNew() { clearTimeout(G.timer); G.busy = false; G.bank = 100; G.n = 0; G.hi = 100; G.path = [100]; G.last = null; }
+function gPocket(fresh) {
+  const el = $('#g-pocket'), k = G.last;
+  el.className = 'pocket' + (k === null ? ' idle' : k === 0 ? ' green' : REDS.has(k) ? ' red' : '') + (fresh ? ' new' : '');
+  el.textContent = k === null ? '?' : k;
+  $('#g-last').innerHTML = k === null ? L('Колесо ще не крутилося.', 'The wheel has not spun yet.')
+    : (REDS.has(k) ? L('<b>Червоне</b>: +$' + G.stake, '<b>Red</b>: +$' + G.stake) : L(k ? '<b>Чорне</b>: −$' : '<b>Зеро</b>: −$', k ? '<b>Black</b>: −$' : '<b>Zero</b>: −$') + G.stake);
+}
+function gText() {
+  $('#stake-pick').innerHTML = STAKES.map(s => '<button type="button" data-s="' + s + '" aria-pressed="' + (s === G.stake) + '">$' + s + '</button>').join('');
+  $('#g-bank').textContent = usd(G.bank);
+  $('#g-n').textContent = fmt(G.n);
+  $('#g-hi').textContent = usd(G.hi);
+  const t = G.tally[G.stake], ex = reach(100 / G.stake, 200 / G.stake, P);
+  $('#g-tally').textContent = t.games ? fmt(t.wins) + ' / ' + fmt(t.games) : '–';
+  $('#g-tally-s').textContent = t.games ? pct(t.wins / t.games) + L(' ваших сесій зі ставкою $', ' of your sessions at $') + G.stake : L('ще жодної завершеної сесії', 'no finished sessions yet');
+  $('#g-exact').textContent = prob(ex);
+  $('#g-exact-s').textContent = L('у середньому ', 'on average ') + fmt(Math.round(dur(100 / G.stake, 200 / G.stake, P))) + ' ' + betsW(Math.round(dur(100 / G.stake, 200 / G.stake, P)));
+  let msg;
+  if (!G.n) msg = L('У вас $100, ставка $' + G.stake + ' на червоне. Натисніть «Крутити».', 'You have $100 and a $' + G.stake + ' stake on red. Press "Spin".');
+  else if (G.bank >= 200) msg = L('Ви дійшли до $200 за ' + fmt(G.n) + ' ' + betsAcc(G.n) + '. Вітаємо, таке трапляється нечасто.', 'You reached $200 in ' + fmt(G.n) + ' ' + betsW(G.n) + '. Congratulations, that does not happen often.');
+  else if (G.bank <= 0) msg = L('Гроші скінчилися після ' + fmt(G.n) + ' ' + plural(G.n, 'ставки', 'ставок', 'ставок') + '. Найбільше у вас було ' + usd(G.hi) + '.', 'The money ran out after ' + fmt(G.n) + ' ' + betsW(G.n) + '. At your best you had ' + usd(G.hi) + '.');
+  else msg = L('Після ' + fmt(G.n) + ' ' + plural(G.n, 'ставки', 'ставок', 'ставок') + ' у вас ' + usd(G.bank) + '. До $200 бракує ' + usd(200 - G.bank) + '.', 'After ' + fmt(G.n) + ' ' + betsW(G.n) + ' you have ' + usd(G.bank) + '. You are ' + usd(200 - G.bank) + ' short of $200.');
+  $('#g-msg').textContent = msg;
+  $('#g-note').textContent = L('Що менша ставка, то більше кроків до $200 і то частіше казино бере свої 2,7%. Порівняйте точні шанси для $1, $10 і $100.', 'The smaller the stake, the more steps to $200 and the more often the casino takes its 2.7%. Compare the exact chances for $1, $10 and $100.');
+  const done = gDone();
+  $('#g-one').disabled = done || G.busy; $('#g-end').disabled = done || G.busy;
+}
+function gDraw() {
+  const s = setupCanvas($('#g-cv')); if (!s) return;
+  const nMax = Math.max(G.stake >= 25 ? 10 : G.stake >= 5 ? 200 : 1000, G.path.length - 1);
+  const { x, y } = pathsFrame(s, 200, nMax, { l: 40 });
+  const ctx = s.ctx, th = thin(G.path, 2000);
+  ctx.strokeStyle = G.bank >= 200 ? tok('--hit') : tok('--ink'); ctx.lineWidth = 1.8;
+  strokePath(ctx, th.pts, i => x(i * th.k), y);
+  ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(x(G.path.length - 1), y(G.bank), 3.5, 0, 7); ctx.fill();
+}
+function gRefresh(fresh) { gPocket(fresh); gText(); gDraw(); }
+$('#g-one').addEventListener('click', () => { if (G.busy || gDone()) return; gBet(); gRefresh(true); });
+$('#g-end').addEventListener('click', () => {
+  if (G.busy || gDone()) return;
+  if (reduce()) { while (!gDone()) gBet(); gRefresh(false); return; }
+  G.busy = true; gText();
+  const step = () => { const per = Math.max(1, Math.ceil(G.path.length / 60)); for (let i = 0; i < per && !gDone(); i++) gBet(); gPocket(false); gDraw(); $('#g-bank').textContent = usd(G.bank); $('#g-n').textContent = fmt(G.n);
+    if (gDone()) { G.busy = false; gRefresh(false); } else G.timer = setTimeout(step, 30); };
+  step();
+});
+$('#g-100').addEventListener('click', () => {
+  if (G.busy) return;
+  const t = G.tally[G.stake], k = 100 / G.stake, N = 200 / G.stake;
+  for (let i = 0; i < 100; i++) { t.games++; if (session(k, N, 1, P)[0]) t.wins++; }
+  gText();
+});
+$('#g-new').addEventListener('click', () => { gNew(); gRefresh(false); });
+$('#stake-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || G.busy) return; G.stake = +b.dataset.s; gNew(); gRefresh(false); });
+
+/* ---------- round 3: five thousand sessions ---------- */
+const NS = 5000, SHOW = 40, BIN = 500, NB = 40;
+let simGame = 0, S3 = null, s3job = 0;
+const SIMG = [{ uk: 'Рулетка, 18/37', en: 'Roulette, 18/37', p: P }, { uk: 'Чесна монета, 1/2', en: 'Fair coin, 1/2', p: .5 }];
+function runSim() {
+  const job = ++s3job, p = SIMG[simGame].p;
+  S3 = { p, done: 0, wins: 0, bets: 0, paths: [], hist: [new Float64Array(NB), new Float64Array(NB)], his: new Float64Array(21) };
+  $('#sim-go').disabled = true;
+  (function chunk() {
+    if (job !== s3job) return;
+    const t0 = performance.now();
+    while (S3.done < NS && performance.now() - t0 < 30) {
+      let b = 100, n = 0, hi = 100; const keep = S3.paths.length < SHOW, path = keep ? [100] : null;
+      while (b > 0 && b < 200) { b += Math.random() < p ? 1 : -1; n++; if (b > hi) hi = b; if (keep) path.push(b); }
+      const w = b >= 200;
+      if (keep) { const th = thin(path, 700); S3.paths.push({ pts: th.pts, k: th.k, win: w }); }
+      S3.done++; S3.bets += n; if (w) S3.wins++;
+      S3.hist[w ? 1 : 0][Math.min(NB - 1, Math.floor(n / BIN))]++;
+      S3.his[Math.min(20, Math.floor(hi / 10))]++;
+    }
+    drawPaths(); drawDur(); drawHi(); simText();
+    if (S3.done < NS) requestAnimationFrame(chunk); else $('#sim-go').disabled = false;
+  })();
+}
+function simText() {
+  $('#sim-pick').innerHTML = SIMG.map((g, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === simGame) + '">' + g[lang] + '</button>').join('');
+  if (!S3 || !S3.done) return;
+  const p = S3.p, n = S3.done, exW = reach(100, 200, p), exD = dur(100, 200, p);
+  $('#s-win').textContent = pct(S3.wins / n, 2);
+  $('#s-win-s').textContent = fmt(S3.wins) + ' ' + L('з', 'of') + ' ' + fmt(n) + ' · ' + L('точно ', 'exact ') + pct(exW, 2);
+  $('#s-dur').textContent = fmt(Math.round(S3.bets / n));
+  $('#s-dur-s').textContent = L('точно ', 'exact ') + fmt(Math.round(exD));
+  $('#s-loss').textContent = usd(200 * S3.wins / n - 100, 2);
+  $('#s-loss-s').textContent = L('точно ', 'exact ') + usd(200 * exW - 100, 2) + (p < .5 ? L(' = 2,7% від ', ' = 2.7% of ') + usd(exD) + L(' ставок', ' wagered') : '');
+  let ahead = 0; for (let k = 11; k <= 20; k++) ahead += S3.his[k];
+  let up150 = 0; for (let k = 15; k <= 20; k++) up150 += S3.his[k];
+  $('#hi-txt').textContent = L('Хоч раз були в плюсі (понад $110): ' + pct(ahead / n) + ' гравців. Доходили до $150 і вище: ' + pct(up150 / n) + '.', 'Were ahead at some point (above $110): ' + pct(ahead / n) + ' of players. Reached $150 or more: ' + pct(up150 / n) + '.');
+}
+function drawPaths() {
+  const s = setupCanvas($('#paths-cv')); if (!s || !S3) return;
+  const nMax = S3.p < .5 ? 10000 : 30000, { x, y } = pathsFrame(s, 200, nMax), ctx = s.ctx;
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, s.W - 10, s.H); ctx.clip(); ctx.lineWidth = 1.1;
+  S3.paths.forEach(q => { ctx.strokeStyle = q.win ? tok('--hit') : tok('--muted'); ctx.globalAlpha = q.win ? .95 : .4; strokePath(ctx, q.pts, i => x(i * q.k), y); });
+  ctx.restore(); ctx.globalAlpha = 1;
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(L('перші ' + SHOW + ' гравців', 'the first ' + SHOW + ' players'), 50, 14);
+}
+function drawDur() {
+  const s = setupCanvas($('#dur-cv')); if (!s || !S3) return;
+  const { ctx, W, H: Hh } = s, l = 40, r = 8, t = 10, b = 26;
+  let mx = 1; for (let k = 0; k < NB; k++) mx = Math.max(mx, S3.hist[0][k] + S3.hist[1][k]);
+  const bw = (W - l - r) / NB, y = v => t + (1 - v / mx) * (Hh - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .5, 1].forEach(f => { ctx.beginPath(); ctx.moveTo(l, y(f * mx) + .5); ctx.lineTo(W - r, y(f * mx) + .5); ctx.stroke(); ctx.fillText(fmt(Math.round(f * mx)), l - 6, y(f * mx)); });
+  for (let k = 0; k < NB; k++) {
+    const a = S3.hist[0][k], w = S3.hist[1][k], x0 = l + k * bw + 1;
+    ctx.fillStyle = tok('--muted'); ctx.globalAlpha = .55; ctx.fillRect(x0, y(a), bw - 2, Hh - b - y(a)); ctx.globalAlpha = 1;
+    if (w) { ctx.fillStyle = tok('--hit'); ctx.fillRect(x0, y(a + w), bw - 2, y(a) - y(a + w)); }
+  }
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [0, 5000, 10000, 15000].forEach(v => ctx.fillText(fmt(v), l + v / BIN * bw, Hh - b + 6));
+  ctx.textAlign = 'right'; ctx.fillText('20 000+', W - r, Hh - b + 6);
+}
+function drawHi() {
+  const s = setupCanvas($('#hi-cv')); if (!s || !S3) return;
+  const { ctx, W, H: Hh } = s, l = 40, r = 8, t = 10, b = 26, n = Math.max(1, S3.done);
+  let mx = .01; for (let k = 10; k <= 20; k++) mx = Math.max(mx, S3.his[k] / n);
+  const bw = (W - l - r) / 11, y = v => t + (1 - v / mx) * (Hh - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .5, 1].forEach(f => { ctx.beginPath(); ctx.moveTo(l, y(f * mx) + .5); ctx.lineTo(W - r, y(f * mx) + .5); ctx.stroke(); ctx.fillText(Math.round(f * mx * 100) + '%', l - 6, y(f * mx)); });
+  for (let k = 10; k <= 20; k++) {
+    const v = S3.his[k] / n, x0 = l + (k - 10) * bw + 2;
+    ctx.fillStyle = k === 20 ? tok('--hit') : tok('--ink'); ctx.globalAlpha = k === 20 ? 1 : .75; ctx.fillRect(x0, y(v), bw - 4, Hh - b - y(v)); ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let k = 10; k <= 20; k += (W < 420 ? 5 : 2)) ctx.fillText('$' + k * 10, l + (k - 10 + .5) * bw, Hh - b + 6);
+}
+$('#sim-go').addEventListener('click', runSim);
+$('#sim-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; simGame = +b.dataset.i; simText(); runSim(); });
+
+/* ---------- round 4: drift against spread ---------- */
+const driftIn = $('#drift-n');
+const driftN = () => Math.round(10 ** (2 + 2.3 * +driftIn.value / 100)); // 100 … ~20 000 bets
+function driftDraw() {
+  const s = setupCanvas($('#drift-cv')); if (!s) return;
+  const { ctx, W, H: Hh } = s, l = 40, r = 10, t = 10, b = 24, NM = 20000, lo = -150, hi = 250;
+  const x = n => l + n / NM * (W - l - r), y = v => t + (1 - (v - lo) / (hi - lo)) * (Hh - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, 100, 200].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v) + .5); ctx.lineTo(W - r, y(v) + .5); ctx.stroke(); ctx.fillText('$' + v, l - 6, y(v)); });
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('0', l, Hh - b + 6); ctx.textAlign = 'right'; ctx.fillText(fmt(NM) + ' ' + L('ставок', 'bets'), W - r, Hh - b + 6);
+  // band: the mean plus/minus one standard deviation, ignoring the stop at 0 and 200
+  const band = (mu, col) => {
+    ctx.fillStyle = col; ctx.globalAlpha = .18; ctx.beginPath();
+    for (let i = 0; i <= 100; i++) { const n = NM * i / 100; ctx.lineTo(x(n), y(100 + mu * n + Math.sqrt(n))); }
+    for (let i = 100; i >= 0; i--) { const n = NM * i / 100; ctx.lineTo(x(n), y(100 + mu * n - Math.sqrt(n))); }
+    ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x(0), y(100)); ctx.lineTo(x(NM), y(100 + mu * NM)); ctx.stroke();
+  };
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t, W - l - r, Hh - t - b); ctx.clip();
+  band(0, tok('--ink')); band(-1 / 37, tok('--hit'));
+  ctx.restore();
+  const n = driftN(); ctx.strokeStyle = tok('--muted'); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x(n), t); ctx.lineTo(x(n), Hh - b); ctx.stroke(); ctx.setLineDash([]);
+}
+function driftText() {
+  const n = driftN(), d = n / 37, sd = Math.sqrt(n);
+  $('#drift-v').textContent = fmt(n);
+  $('#drift-txt').innerHTML = L('Після ' + fmt(n) + ' ' + plural(n, 'ставки', 'ставок', 'ставок') + ' знос ' + usd(d) + ', розмах ±' + usd(sd) + '. ', 'After ' + fmt(n) + ' bets the drift is ' + usd(d) + ', the spread ±' + usd(sd) + '. ') +
+    (d > sd ? L('<b>Знос уже більший.</b> Смуга рулетки (кольорова) сповзає під нуль, смуга чесної гри (сіра) лишається навколо $100.', '<b>The drift is bigger now.</b> The roulette band (coloured) slides below zero, the fair-game band (grey) stays around $100.')
+      : L('Розмах поки більший: гравець ще може опинитися будь-де.', 'The spread is still bigger: the player can still be anywhere.'));
+}
+driftIn.addEventListener('input', () => { driftText(); driftDraw(); });
+
+/* ---------- round 5: bold or timid ---------- */
+const TARGETS = [200, 300, 400, 1000];
+let bt = 0, btSim = null, btBusy = false;
+const BTS = [{ uk: 'По $1', en: '$1 bets', s: 1 }, { uk: 'По $10', en: '$10 bets', s: 10 }, { uk: 'По $50', en: '$50 bets', s: 50 }, { uk: 'Сміливо', en: 'Bold play', s: 0 }];
+function btExact(N, s) { return s ? reach(100 / s, N / s, P) : boldReach(100 / N, P); }
+function btDur(N, s) { if (s) return dur(100 / s, N / s, P); let x = 100 / N, n = 0, m = 1; for (let k = 0; k < 64 && m > 1e-15; k++) { if (x <= 1e-12 || x >= 1 - 1e-12) break; n += m; m *= x <= .5 ? P : Q; x = x <= .5 ? 2 * x : 2 * x - 1; } return n; }
+function btText() {
+  const N = TARGETS[bt];
+  $('#bt-pick').innerHTML = TARGETS.map((v, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === bt) + '">$' + fmt(v) + '</button>').join('');
+  $('#bt-tbl').innerHTML = BTS.map((g, i) => {
+    const e = btExact(N, g.s), sm = btSim && btSim.N === N ? btSim.r[i] : null;
+    return '<tr><td>' + g[lang] + '</td><td class="num"' + (g.s ? '' : ' style="color:var(--hit);font-weight:700"') + '>' + prob(e) + '</td><td class="num">' + (sm === null ? '–' : pct(sm, 2)) + '</td><td class="num">' + fmt(Math.round(btDur(N, g.s))) + '</td></tr>';
+  }).join('');
+  const steps = N === 200 ? L('одна ставка $100', 'one $100 bet') : N === 400 ? L('$100, потім $200', '$100, then $200') : N === 300 ? L('$100, далі $200 → $100 бракує, і так далі', '$100, then $200 is $100 short, and so on') : L('$100, $200, $400, далі лише те, чого бракує', '$100, $200, $400, then just what is missing');
+  $('#bt-txt').textContent = L('Сміливо: ', 'Bold: ') + steps + '. ' + L('Ставок — середня кількість до кінця гри. Симуляція: 20 000 сесій на рядок.', 'Bets is the average number until the game ends. Simulation: 20,000 sessions per row.');
+}
+$('#bt-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; bt = +b.dataset.i; btText(); btRun(); });
+function btRun() {
+  if (btBusy) return; btBusy = true; $('#bt-go').disabled = true;
+  const N = TARGETS[bt], M = 20000, r = [0, 0, 0, 0]; let gi = 0, n = 0;
+  (function chunk() {
+    const t0 = performance.now();
+    while (gi < BTS.length && performance.now() - t0 < 30) {
+      const s = BTS[gi].s;
+      for (let k = 0; k < 500; k++) if ((s ? session(100 / s, N / s, 1, P) : boldSession(100, N, P))[0]) r[gi]++;
+      n += 500; if (n >= M) { r[gi] /= M; gi++; n = 0; }
+    }
+    if (gi < BTS.length) setTimeout(chunk, 0); else { btSim = { N, r }; btBusy = false; $('#bt-go').disabled = false; btText(); }
+  })();
+}
+$('#bt-go').addEventListener('click', btRun);
+
+/* ---------- round 5: an infinitely rich casino ---------- */
+// exact distribution of the bankroll, bet by bet; the share absorbed at 0 is the ruin curve
+const INF_PTS = []; for (let e = 1; e <= 5.001; e += .1) INF_PTS.push(Math.round(10 ** e));
+let INF = null;
+function infCalc(done) {
+  const W = 1800, res = [];
+  let pi = 0;
+  (function next() {
+    if (pi === 2) { INF = res; done(); return; }
+    const p = [P, .5][pi], out = [];
+    let a = new Float64Array(W), bArr = new Float64Array(W), ruin = 0, k = 0, n = 0; a[100] = 1;
+    (function chunk() {
+      const end = Math.min(1e5, n + 4000);
+      while (n < end) {
+        n++;
+        const hi = Math.min(W - 2, 100 + n);
+        ruin += (1 - p) * a[1];
+        bArr.fill(0, 0, hi + 2);
+        for (let j = 1; j <= hi; j++) { const v = a[j]; if (!v) continue; bArr[j + 1] += p * v; if (j > 1) bArr[j - 1] += (1 - p) * v; }
+        const t = a; a = bArr; bArr = t;
+        if (n === INF_PTS[k]) { out.push([n, ruin]); k++; }
+      }
+      if (n < 1e5) setTimeout(chunk, 0); else { res.push(out); pi++; next(); }
+    })();
+  })();
+}
+function infDraw() {
+  const s = setupCanvas($('#inf-cv')); if (!s || !INF) return;
+  const { ctx, W, H: Hh } = s, l = 40, r = 14, t = 10, b = 26;
+  const x = n => l + (Math.log10(n) - 1) / 4 * (W - l - r), y = v => t + (1 - v) * (Hh - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .5, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v) + .5); ctx.lineTo(W - r, y(v) + .5); ctx.stroke(); ctx.fillText(Math.round(v * 100) + '%', l - 6, y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [10, 100, 1e3, 1e4, 1e5].forEach(n => ctx.fillText(fmt(n), x(n), Hh - b + 6));
+  [[INF[0], tok('--hit')], [INF[1], tok('--ink')]].forEach(([pts, col]) => { ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.beginPath(); pts.forEach(([n, v], i) => i ? ctx.lineTo(x(n), y(v)) : ctx.moveTo(x(n), y(v))); ctx.stroke(); });
+}
+function infText() {
+  if (!INF) { $('#inf-txt').textContent = L('Розрахунок…', 'Calculating…'); return; }
+  const at = (pts, n) => pts.find(q => q[0] === n)[1];
+  $('#inf-txt').textContent = L('Без грошей після 10 000 ставок: у рулетці ' + pct(at(INF[0], 1e4), 1) + ', у чесній грі ' + pct(at(INF[1], 1e4), 1) + '. Після 100 000: ' + pct(at(INF[0], 1e5), 1) + ' і ' + pct(at(INF[1], 1e5), 1) + '.',
+    'Broke after 10,000 bets: ' + pct(at(INF[0], 1e4), 1) + ' at roulette, ' + pct(at(INF[1], 1e4), 1) + ' in the fair game. After 100,000: ' + pct(at(INF[0], 1e5), 1) + ' and ' + pct(at(INF[1], 1e5), 1) + '.');
+}
+
+/* ---------- round 5: the martingale ---------- */
+const MG_EXACT = mgExact(100, 200, P);
+let mgPath = null, mgSim = null;
+function mgDraw() {
+  const s = setupCanvas($('#mg-cv')); if (!s) return;
+  const path = mgPath || [100], nMax = Math.max(200, path.length - 1), { x, y } = pathsFrame(s, 200, nMax, { l: 40 }), ctx = s.ctx;
+  const end = path[path.length - 1];
+  ctx.strokeStyle = end >= 200 ? tok('--hit') : tok('--ink'); ctx.lineWidth = 1.6; strokePath(ctx, path, x, y);
+}
+function mgText() {
+  $('#mg-e').textContent = pct(MG_EXACT, 1);
+  $('#mg-s').textContent = mgSim === null ? '–' : pct(mgSim, 1);
+  if (!mgPath) { $('#mg-txt').textContent = L('Натисніть «Зіграти сесію»: стартуєте з $100, ставка $1, подвоєння після кожного програшу.', 'Press "Play a session": you start with $100, a $1 stake, doubled after every loss.'); return; }
+  const end = mgPath[mgPath.length - 1], n = mgPath.length - 1;
+  let worst = 0, run = 0; for (let i = 1; i < mgPath.length; i++) { if (mgPath[i] < mgPath[i - 1]) { run++; worst = Math.max(worst, run); } else run = 0; }
+  $('#mg-txt').textContent = (end >= 200 ? L('Дійшли до $200 за ' + fmt(n) + ' ' + betsAcc(n) + '. ', 'Reached $200 in ' + fmt(n) + ' bets. ') : L('Розорення після ' + fmt(n) + ' ' + plural(n, 'ставки', 'ставок', 'ставок') + '. ', 'Ruined after ' + fmt(n) + ' bets. ')) +
+    L('Найдовша серія програшів: ' + worst + '. Сходинки вгору — виграші по $1, обриви — серії програшів.', 'Longest losing run: ' + worst + '. The steps up are $1 wins, the cliffs are losing runs.');
+}
+$('#mg-go').addEventListener('click', () => { mgPath = []; mgSession(100, 200, P, mgPath); mgText(); mgDraw(); });
+function mgRun() {
+  let n = 0, w = 0;
+  (function chunk() { const end = Math.min(1e5, n + 20000); for (; n < end; n++) if (mgSession(100, 200, P)[0]) w++; if (n < 1e5) setTimeout(chunk, 0); else { mgSim = w / 1e5; mgText(); } })();
+}
+
+/* ---------- round 5: Kelly ---------- */
+const KP = [{ p: P, uk: 'рулетка 48,6%', en: 'roulette 48.6%' }, { p: .51, uk: '51%', en: '51%' }, { p: .55, uk: '55%', en: '55%' }, { p: .6, uk: '60%', en: '60%' }];
+let kp = 2, kRes = null, kJob = 0;
+const kF = () => +$('#k-f').value / 100;
+const growth = (p, f) => p * Math.log(1 + f) + (1 - p) * Math.log(1 - f);
+function kDraw() {
+  const s = setupCanvas($('#k-cv')); if (!s) return;
+  const { ctx, W, H: Hh } = s, l = 52, r = 10, t = 10, b = 24, p = KP[kp].p, fs = Math.max(0, 2 * p - 1);
+  let gmax = Math.max(.002, growth(p, fs)), gmin = Math.min(growth(p, .5), -gmax);
+  const x = f => l + f / .5 * (W - l - r), y = g => t + (gmax - g) / (gmax - gmin) * (Hh - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ctx.beginPath(); ctx.moveTo(l, y(0) + .5); ctx.lineTo(W - r, y(0) + .5); ctx.stroke(); ctx.fillText('0', l - 6, y(0));
+  ctx.fillText('+' + dec((gmax * 100).toFixed(1)) + '%', l - 6, y(gmax) + 6);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; [0, .1, .2, .3, .4, .5].forEach(f => ctx.fillText(Math.round(f * 100) + '%', x(f), Hh - b + 6));
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t, W - l - r, Hh - t - b); ctx.clip();
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2; ctx.beginPath();
+  for (let i = 0; i <= 100; i++) { const f = .5 * i / 100; i ? ctx.lineTo(x(f), y(growth(p, f))) : ctx.moveTo(x(f), y(0)); }
+  ctx.stroke(); ctx.restore();
+  if (fs > 0) { ctx.fillStyle = tok('--hit'); ctx.beginPath(); ctx.arc(x(fs), y(growth(p, fs)), 5, 0, 7); ctx.fill(); }
+  const f = kF(); ctx.strokeStyle = tok('--muted'); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x(f), t); ctx.lineTo(x(f), Hh - b); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(L('ріст капіталу за ставку', 'growth of capital per bet'), l + 6, t);
+}
+function kRun() {
+  const job = ++kJob, p = KP[kp].p, f = kF(), M = 1000, NB2 = 1000, fin = new Float64Array(M);
+  let i = 0;
+  (function chunk() {
+    if (job !== kJob) return;
+    const end = Math.min(M, i + 250);
+    for (; i < end; i++) { let lw = 0; for (let k = 0; k < NB2; k++) lw += Math.random() < p ? Math.log(1 + f) : Math.log(1 - f); fin[i] = lw; }
+    if (i < M) { setTimeout(chunk, 0); return; }
+    const sorted = Array.from(fin).sort((a, b) => a - b);
+    kRes = { key: kp + ':' + f, med: Math.exp(sorted[M / 2]), low: sorted.filter(v => v < 0).length / M };
+    kText();
+  })();
+}
+const mult = v => v >= 1e6 ? '×' + dec(v.toExponential(1)).replace('e+', '·10^') : v >= 10 ? '×' + fmt(Math.round(v)) : '×' + dec(v.toFixed(v >= 1 ? 2 : v >= .01 ? 3 : 5));
+function kText() {
+  const p = KP[kp].p, f = kF(), fs = 2 * p - 1, g = growth(p, f);
+  $('#k-pick').innerHTML = KP.map((k, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === kp) + '">' + k[lang] + '</button>').join('');
+  $('#k-fv').textContent = Math.round(f * 100) + '%';
+  const ok = kRes && kRes.key === kp + ':' + f;
+  $('#k-med').textContent = ok ? mult(kRes.med) : '–';
+  $('#k-low').textContent = ok ? pct(kRes.low, 1) : '–';
+  $('#k-txt').textContent = (fs > 0 ? L('Частка Келлі: 2p − 1 = ' + Math.round(fs * 100) + '%. ', 'Kelly share: 2p − 1 = ' + Math.round(fs * 100) + '%. ') : L('Тут 2p − 1 < 0: будь-яка ставка тягне капітал униз, найкраще не грати. ', 'Here 2p − 1 < 0: any stake drags capital down, the best is not to play. ')) +
+    L('Ваша частка ' + Math.round(f * 100) + '%: у середньому ' + (g >= 0 ? '+' : '−') + dec(Math.abs(g * 100).toFixed(2)) + '% капіталу за ставку (медіана). Симуляція: 1000 гравців по 1000 ставок.',
+      'Your share ' + Math.round(f * 100) + '%: typically ' + (g >= 0 ? '+' : '−') + dec(Math.abs(g * 100).toFixed(2)) + '% of capital per bet (median). Simulation: 1,000 players, 1,000 bets each.');
+}
+let kT; $('#k-f').addEventListener('input', () => { kText(); kDraw(); clearTimeout(kT); kT = setTimeout(kRun, 120); });
+$('#k-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; kp = +b.dataset.i; kText(); kDraw(); kRun(); });
+
+/* ---------- static numbers that depend on the locale ---------- */
+function numsText() {
+  $('#odd-timid').textContent = pct(TRUE, 2);
+  $('#odd-bold').textContent = pct(P, 1);
+  $('#odd-dur').textContent = fmt(Math.round(dur(100, 200, P)));
+  $('#why-r').textContent = pct(TRUE, 2);
+  $('#why-pow').textContent = '≈ ' + fmt(Math.round(((19 / 18) ** 100)));
+  $('#loss-t').textContent = usd(200 * TRUE - 100, 2);
+  $('#loss-b').textContent = usd(200 * P - 100, 2);
+}
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Розорення гравця', "Gambler's Ruin");
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  stripText(); numsText(); optsText(); guessText(); gRefresh(false); heroDraw(); simText(); drawPaths(); drawDur(); drawHi(); driftText(); driftDraw(); btText(); infText(); infDraw(); mgText(); mgDraw(); kText(); kDraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+const redraw = () => { heroDraw(); gDraw(); drawPaths(); drawDur(); drawHi(); driftDraw(); infDraw(); mgDraw(); kDraw(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state: everything filled ---------- */
+applyLang();
+heroStart();
+runSim();
+setTimeout(() => { btRun(); mgRun(); kRun(); infCalc(() => { infText(); infDraw(); }); }, 80);
+})();
+</script>

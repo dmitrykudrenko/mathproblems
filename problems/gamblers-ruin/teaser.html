@@ -1,0 +1,70 @@
+<div class="tz-text">
+  <span class="eyebrow"><span class="uk">Ймовірність · рулетка і випадкове блукання</span><span class="en">Probability · roulette and a random walk</span></span>
+  <h2><a href="{{URL}}"><span class="uk">Розорення гравця</span><span class="en">Gambler's ruin</span></a></h2>
+  <p class="tz-q uk">У вас $100. Ви ставите по $1 на червоне в рулетці, доки не матимете $200 або доки не скінчаться гроші. Червоне випадає в 18 спінах із 37. Який шанс подвоїти гроші?</p>
+  <p class="tz-q en">You have $100. You bet $1 at a time on red at roulette until you have $200 or run out of money. Red comes up in 18 spins out of 37. What is the chance of doubling your money?</p>
+  <button type="button" class="tz-reveal sp-before" data-solve><span><span class="uk">Інтуїція і відповідь</span><span class="en">Intuition and answer</span></span><b><span class="uk">Показати відповідь</span><span class="en">Show the answer</span></b></button>
+  <div class="tz-ans sp-after">
+    <div><span><span class="uk">Інтуїція</span><span class="en">Intuition</span></span><b><span class="uk">майже 50%</span><span class="en">almost 50%</span></b></div>
+    <div class="r"><span><span class="uk">Насправді</span><span class="en">Actually</span></span><b><span class="uk">0,45%, 1 з 224</span><span class="en">0.45%, 1 in 224</span></b></div>
+  </div>
+  <p class="tz-d uk">Кожна ставка майже чесна, але їх тисячі, і перевага казино з'їдає майже все. Чому одна ставка $100 дає 48,6% і чому сміливість тут вигідніша за обережність.</p>
+  <p class="tz-d en">Each bet is almost fair, but there are thousands of them, and the house edge eats almost everything. Why a single $100 bet gives 48.6%, and why boldness beats caution here.</p>
+  <ul class="tz-inside uk"><li>вгадайте шанс</li><li>оберіть ставку і грайте</li><li>5000 сесій</li><li>чотири пояснення</li><li>смілива гра, мартингейл, Келлі</li></ul>
+  <ul class="tz-inside en"><li>guess the chance</li><li>pick a stake and play</li><li>5,000 sessions</li><li>four explanations</li><li>bold play, martingale, Kelly</li></ul>
+  <a class="tz-cta" href="{{URL}}"><span class="uk">Розібратися з розоренням гравця</span><span class="en">Work through gambler's ruin</span> →</a>
+</div>
+<div class="tz-stage" id="tz-gamblers-ruin">
+  <span class="tz-try"><span class="uk">Спробуйте тут</span><span class="en">Try it here</span></span>
+  <canvas style="display:block;width:100%;max-width:440px;height:200px;background:#fff;border-radius:18px" aria-hidden="true"></canvas>
+  <p class="tz-msg" aria-live="polite"></p>
+  <div class="tz-acts"><button type="button" class="tz-btn"></button></div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById('tz-gamblers-ruin');
+  const L = (uk, e) => document.documentElement.dataset.lang === 'en' ? e : uk;
+  const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), b = root.querySelector('.tz-btn');
+  const fmt = n => n.toLocaleString(L('uk-UA', 'en-US'));
+  const st = k => { const a = k % 10, h = k % 100; return a === 1 && h !== 11 ? 'ставку' : a >= 2 && a <= 4 && (h < 12 || h > 14) ? 'ставки' : 'ставок'; };
+  const st2 = k => k % 10 === 1 && k % 100 !== 11 ? 'ставки' : 'ставок';
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  let path = null, n = 0, wins = 0, timer = null;
+  function draw(upto) {
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+    if (!W) return;
+    cv.width = W * dpr; cv.height = H * dpr;
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+    const l = 40, r = 10, t = 12, bt = 12, nMax = Math.max(4000, path ? path.length : 0);
+    const x = i => l + i / nMax * (W - l - r), y = v => t + (1 - v / 200) * (H - t - bt);
+    c.font = '11px ' + (css('--f') || 'sans-serif'); c.fillStyle = '#9A9A9A'; c.strokeStyle = '#E4E4E4'; c.textAlign = 'right'; c.textBaseline = 'middle';
+    [0, 100, 200].forEach(v => { c.beginPath(); c.moveTo(l, y(v)); c.lineTo(W - r, y(v)); c.stroke(); c.fillText('$' + v, l - 6, y(v)); });
+    if (!path) return;
+    const end = Math.min(upto, path.length - 1), won = path[path.length - 1] >= 200 && end === path.length - 1;
+    c.strokeStyle = won ? (css('--signal') || '#D9318F') : (css('--ink') || '#151515'); c.lineWidth = 1.6; c.beginPath();
+    const k = Math.max(1, Math.floor(end / 800));
+    for (let i = 0; i <= end; i += k) i ? c.lineTo(x(i), y(path[i])) : c.moveTo(x(0), y(path[0]));
+    c.lineTo(x(end), y(path[end])); c.stroke();
+  }
+  function play() {
+    clearInterval(timer);
+    path = [100]; let m = 100;
+    while (m > 0 && m < 200) { m += Math.random() < 18 / 37 ? 1 : -1; path.push(m); }
+    let i = 0; b.disabled = true; msg.textContent = L('Ставка за ставкою…', 'Bet after bet…');
+    const done = () => { n++; if (m >= 200) wins++; b.disabled = false; draw(path.length); text(); };
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { done(); return; }
+    timer = setInterval(() => { i += Math.max(40, Math.ceil(path.length / 50)); if (i >= path.length - 1) { clearInterval(timer); done(); } else draw(i); }, 30);
+  }
+  function text() {
+    if (!n) { msg.textContent = L('Натисніть «Зіграти», щоб ставити по $1 на червоне до $200 або нуля.', 'Press "Play" to bet $1 on red until $200 or zero.'); b.textContent = L('Зіграти', 'Play'); return; }
+    const last = path[path.length - 1], len = path.length - 1;
+    msg.textContent = (last >= 200 ? L('$200 за ' + fmt(len) + ' ' + st(len) + '! ', '$200 in ' + fmt(len) + ' bets! ') : L('Гроші скінчилися після ' + fmt(len) + ' ' + st2(len) + '. ', 'Broke after ' + fmt(len) + ' bets. ')) +
+      L('Сесій: ' + n + ', до $200 дійшли: ' + wins + '.', n + ' ' + (n === 1 ? 'session' : 'sessions') + ', ' + wins + ' reached $200.');
+    b.textContent = L('Ще одна сесія', 'Play again');
+  }
+  b.addEventListener('click', play);
+  document.addEventListener('langchange', text);
+  window.addEventListener('resize', () => draw(path ? path.length : 0));
+  draw(0); text();
+})();
+</script>

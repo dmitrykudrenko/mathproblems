@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -94,6 +94,10 @@ TEXT = {
     "german-tank-problem": {
         "uk": (["НІМЕЦЬКІ", "ТАНКИ"], "Номери 4, 10, 15, 60. Скільки танків?"),
         "en": (["THE GERMAN", "TANK PROBLEM"], "Serials 4, 10, 15, 60. How many?"),
+    },
+    "gamblers-ruin": {
+        "uk": (["РОЗОРЕННЯ", "ГРАВЦЯ"], "$100, по $1 на червоне. Шанс на $200?"),
+        "en": (["GAMBLER'S", "RUIN"], "$100, $1 on red. The chance of $200?"),
     },
     "st-petersburg-paradox": {
         "uk": (["САНКТ-", "ПЕТЕРБУРЗЬКИЙ", "ПАРАДОКС"], "Скільки варто заплатити за гру?"),
@@ -544,6 +548,20 @@ def extra_visual(kind, x, y, lang="en"):
             out += [f'<rect x="{px}" y="{y + 140}" width="170" height="170" rx="18" fill="#fff" stroke="{INK}" stroke-width="4" stroke-dasharray="{"0" if i == 0 else "10 8"}"/>',
                     f'<text x="{px + 85}" y="{y + 196}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="36" fill="{INK}">{d}</text>',
                     f'<text x="{px + 85}" y="{y + 270}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="44" fill="{MUTED}">{"?" if i else "z z"}</text>']
+    elif kind == "gamblers-ruin":
+        # the bankroll wandering from $100 between $0 and $200; where it ends is the answer
+        out.append(f'<rect x="{x + 10}" y="{y + 10}" width="360" height="300" rx="16" fill="#fff"/>')
+        top, bot = y + 40, y + 280
+        for v, yy in ((200, top), (100, (top + bot) / 2), (0, bot)):
+            out += [f'<line x1="{x + 80}" y1="{yy}" x2="{x + 350}" y2="{yy}" stroke="#BDBDBD" stroke-width="2"/>',
+                    f'<text x="{x + 70}" y="{yy + 8}" text-anchor="end" font-family="{FONT}" font-weight="700" font-size="22" fill="{MUTED}">${v}</text>']
+        rw = random.Random(11)
+        b, pts = 100, []
+        for i in range(160):
+            pts.append(f"{x + 80 + i * 1.5:.1f},{(top + bot) / 2 - (b - 100) * 1.2:.1f}")
+            b += 1 if rw.random() < .5 else -1
+        out.append(f'<polyline points="{" ".join(pts)}" fill="none" stroke="{INK}" stroke-width="3" stroke-linejoin="round"/>')
+        out.append(f'<text x="{x + 345}" y="{y + 175}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="44" fill="{SIGNAL}">?</text>')
     return "".join(out)
 
 
@@ -578,7 +596,7 @@ def svg(kind, lang):
                   "regression-to-mean", "two-envelopes", "coin-streaks", "bertrand-paradox", "penney-game",
                   "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine", "election-poll",
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
-                  "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty"):
+                  "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
