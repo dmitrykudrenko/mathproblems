@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "survivorship-bias": "#DCE6E1", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -138,6 +138,10 @@ TEXT = {
     "bridge-and-torch": {
         "uk": (["МІСТ І", "ЛІХТАРИК"], "1, 2, 5, 10 хв. Скільки на всіх?"),
         "en": (["THE BRIDGE", "AND THE TORCH"], "1, 2, 5, 10 min. How long for all?"),
+    },
+    "braess-paradox": {
+        "uk": (["ПАРАДОКС", "БРАЕСА"], "Нова дорога. Швидше чи повільніше?"),
+        "en": (["BRAESS'S", "PARADOX"], "A new road. Faster or slower?"),
     },
     "survivorship-bias": {
         "uk": (["ПОМИЛКА ТИХ,", "ХТО ВИЖИВ"], "Куди ставити броню на літак?"),
@@ -497,6 +501,17 @@ def extra_visual(kind, x, y, lang="en"):
             out += [f'<rect x="{px - 30}" y="{y + 240}" width="60" height="44" rx="10" fill="#fff"/>',
                     f'<text x="{px}" y="{y + 271}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="22" fill="{INK}">{t}</text>']
         out.append(f'<text x="{x + 350}" y="{y + 70}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>')
+    elif kind == "braess-paradox":
+        # two routes with the new dashed shortcut A -> B; whether it helps is the answer
+        S, A, B, F = (x + 30, y + 160), (x + 190, y + 30), (x + 190, y + 290), (x + 350, y + 160)
+        def road(p, q, col, w):
+            return f'<line x1="{p[0]}" y1="{p[1]}" x2="{q[0]}" y2="{q[1]}" stroke="{col}" stroke-width="{w}" stroke-linecap="round"/>'
+        out += [road(S, A, INK, 12), road(B, F, INK, 12), road(A, F, "#9A9A9A", 12), road(S, B, "#9A9A9A", 12),
+                f'<line x1="{A[0]}" y1="{A[1] + 30}" x2="{B[0]}" y2="{B[1] - 30}" stroke="{SIGNAL}" stroke-width="6" stroke-dasharray="14 10"/>']
+        for (px, py), t in ((S, "S" if lang == "en" else "С"), (A, "A"), (B, "B"), (F, "F" if lang == "en" else "Ф")):
+            out += [f'<circle cx="{px}" cy="{py}" r="24" fill="{INK}"/>',
+                    f'<text x="{px}" y="{py + 8}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="22" fill="#fff">{t}</text>']
+        out.append(f'<text x="{x + 214}" y="{y + 176}" font-family="{FONT}" font-weight="800" font-size="44" fill="{SIGNAL}">?</text>')
     elif kind == "survivorship-bias":
         # a bomber from above with the holes found on returning planes; where the armour goes is the answer
         s, ox, oy = 1.95, x - 5, y - 30
@@ -548,7 +563,7 @@ def svg(kind, lang):
                   "regression-to-mean", "two-envelopes", "coin-streaks", "bertrand-paradox", "penney-game",
                   "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine", "election-poll",
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
-                  "twenty-five-horses", "bridge-and-torch", "survivorship-bias"):
+                  "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
