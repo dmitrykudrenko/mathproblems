@@ -14,7 +14,7 @@ Bilingual (uk/en) interactive explainers of math puzzles where intuition is wron
 
 ## New problem
 
-1. `problems/<slug>/page.html`, `teaser.html`, `meta.json` — copy the skeleton of an existing page: hero → puzzle → round 1 guess → round 2 play → round 3 simulation → round 4 why (+ formula card) → round 5 variants → 6 facts. One `<style>`, one `<script>`, no libraries, own `--tint`.
+1. `problems/<slug>/page.html`, `teaser.html`, `meta.json` — copy the skeleton of an existing page: hero → puzzle → round 1 guess → round 2 play → round 3 simulation → round 4 why in layers `mp-layer` easy → strict → deep (plain words, then tables/charts/formula card, then theory/history; deep only if there is real content). The first easy card must let anyone grasp the core, even if incomplete (say so); simple cards always go to easy → round 5 variants → 6 facts. One `<style>`, one `<script>`, no libraries, own `--tint`.
 2. Texts in `tools/og.py`, run `python3 tools/og.py` (macOS).
 3. Set `level` only after the page is written: read its hero, puzzle and rounds 1–4 with chart captions (skip the formula card, "Підтеорія"/"Трохи теорії" blocks and round 5) and take the hardest thing a reader must follow there. Anchors: 1 for everyone = arithmetic and logic only (bridge-and-torch, pirates-gold, survivorship-bias); 2 school maths = fractions, %, simple probability, powers, roots, school geometry (monty-hall, poisoned-wine, rope-around-earth); 3 advanced = E[·], variance/SD, correlation, distributions/densities, logarithms, harmonic sums, series, integrals (friendship-paradox, berkson-paradox, inspection-paradox). A simple idea with an E[d²]/E[d] hero or a CV chart is still 3. Say which level you chose and why when reporting the new problem.
 4. `python3 build.py`.
