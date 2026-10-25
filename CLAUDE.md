@@ -21,6 +21,10 @@ Bilingual (uk/en) interactive explainers of math puzzles where intuition is wron
 
 `meta.json` needs `published` and `updated` (YYYY-MM-DD) and `topics` (home-page filter keys from `TOPICS` in build.py) and `level` (1 for everyone, 2 school maths, 3 advanced: how much maths the main path through round 4 shows, charts included; the optional formula card and round 5 don't count; not how tricky it is), plus `poll` (which round-1 answers are right, for the answer stats; the page calls `mpSolve(guessed)`); bump `updated` after a real edit. They feed JSON-LD, sitemap and the RSS (`docs/feed.xml`, `docs/en/feed.xml`), whose items use only `share`, never `description`.
 
+## Glossary
+
+`glossary/` is a sub-site of terms (see README «Словник»): `terms.json` (word forms per language, one-line definition, a hook that is a small paradox, never a site puzzle's answer) and one article per `glossary/<page>/` with a simulation in the same spirit as the problems. The build underlines the first mention of each term in rounds 4–5 of every problem page. New terms need all word forms (Ukrainian cases) and verified maths like any problem.
+
 ## Checks before commit
 
 - build succeeds; `node --check` on every inline script of the uk and en builds and the hub;

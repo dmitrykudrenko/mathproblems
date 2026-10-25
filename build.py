@@ -509,7 +509,8 @@ LAYER_TEXT = {
            "hide": "Hide on all puzzles", "stub": "“%s” is hidden on all puzzles.", "show": "Show"},
 }
 LAYER_SCRIPT = """<script>
-(function () {
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
   var API = %s, SLUG = %s + "-layer", KEY = "mp-layers-hidden";
   var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
   if (!layers.length) return;
@@ -542,7 +543,7 @@ def with_layers(body, lang, slug):
     if not found:
         return body
     if [x for x in found if x not in LAYERS] or found != sorted(found, key=LAYERS.index):
-        raise SystemExit(f"problems/{slug}: mp-layer must be {', '.join(LAYERS)}, in this order")
+        raise SystemExit(f"{slug}: mp-layer must be {', '.join(LAYERS)}, in this order")
     t = LAYER_TEXT[lang]
     def head(m):
         name, desc = t[m.group(1)]
@@ -961,6 +962,7 @@ def build_problem(slug, base, metas, books):
             items.append((base + s + "/" + LANG_PATH[lang], rm["card"]["title"], rm.get("share", {}).get("description", rm["card"]["text"])))
         body = with_related(body, related_block(lang, items, hub[lang]))
         body = with_books(body, books_block(lang, refs, books, base + "books/" + LANG_PATH[lang]))
+        body = with_terms(body, lang, TERMS, base)  # last: its script must not be taken for the page script above
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static data-spoil>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
                f'</head>\n<body>\n{body.strip()}\n{LEVEL_SCRIPT}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
         write(DOCS / slug / LANG_PATH[lang] / "index.html", doc)
@@ -998,6 +1000,7 @@ def build_hub(problems, base):
         for n in LEVELS:
             body = body.replace("{{LEVEL:%d}}" % n, level_badge(lang, n, urls[lang]))
         body = body.replace("{{BOOKS}}", base + "books/" + LANG_PATH[lang])
+        body = body.replace("{{GLOSSARY}}", glossary_url(base, lang))
         body = body.replace("{{HOME_BASE}}", base).replace("{{HOME}}", urls[lang]).replace("{{FIRST}}", problems[0][2][lang])
         if lang == "en":
             body = body.replace('alt="Дмитро Кудренко" data-alt-en="Dmytro Kudrenko"', 'alt="Dmytro Kudrenko"')
@@ -1141,6 +1144,183 @@ def build_books(problems, base, books):
     return urls
 
 
+# Glossary: a small sub-site of terms (median, expected value, correlation...) that readers meet in the explanations.
+#   glossary/terms.json        one entry per term: names and word forms per language, a one-line definition, a hook
+#                              (a small paradox around the term, never a site puzzle's answer), its article and puzzles
+#   glossary/<page>/page.html  an article with a simulation; meta.json gives titles and the terms it explains
+#   glossary/index.html        the contents page, cards go into <!--TERMS-->
+# Problem pages get the first mention of every term in rounds 4-5 underlined; a click opens a card with the
+# definition, the hook and a link to the article.
+GLOSSARY = ROOT / "glossary"
+TERMS = []  # filled by build() before the problem pages
+GLOSSARY_TEXT = {
+    "uk": ("Словник", "Спробувати на симуляції", "Де це трапляється", "Інші терміни", "Усі терміни"),
+    "en": ("Glossary", "Try it in a simulation", "Where it shows up", "Other terms", "All terms"),
+}
+TERM_SCRIPT = """<script type="application/json" id="mp-terms">%s</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>"""
+
+
+def load_glossary():
+    terms = json.loads((GLOSSARY / "terms.json").read_text(encoding="utf-8"))
+    pages = {d.name: json.loads((d / "meta.json").read_text(encoding="utf-8"))
+             for d in sorted(GLOSSARY.iterdir()) if (d / "page.html").exists()}
+    for t in terms:
+        if t["page"] not in pages:
+            raise SystemExit(f"glossary/terms.json: {t['id']} points to a missing article {t['page']}")
+    return terms, pages
+
+
+def glossary_url(base, lang, page=None):
+    return base + "glossary/" + (page + "/" if page else "") + LANG_PATH[lang]
+
+
+def with_terms(body, lang, terms, base):
+    """Underline the first mention of each term in the paragraphs of rounds 4 and 5; links and buttons are skipped."""
+    used = {}
+    def link_text(text, done_ids):
+        for t in terms:
+            if t["id"] in done_ids:
+                continue
+            forms = sorted(t[lang]["forms"], key=len, reverse=True)
+            m = re.search(r"(?<![\w-])(" + "|".join(map(re.escape, forms)) + r")(?![\w-])", text, re.I)
+            if m:
+                done_ids.add(t["id"]); used[t["id"]] = t
+                return (link_text(text[:m.start()], done_ids)
+                        + f'<button type="button" class="mp-term" data-term="{t["id"]}" aria-expanded="false">{m.group(1)}</button>'
+                        + link_text(text[m.end():], done_ids))
+        return text
+    def para(m):
+        out, depth = [], 0
+        for piece in re.split(r"(<[^>]+>)", m.group(2)):
+            if piece.startswith("<"):
+                if re.match(r"<(a|button)\b", piece): depth += 1
+                elif re.match(r"</(a|button)>", piece): depth -= 1
+                out.append(piece)
+            else:
+                out.append(piece if depth else link_text(piece, done))
+        return m.group(1) + "".join(out) + "</p>"
+    done = set()
+    for sec in ("why", "scale"):
+        i = body.find(f'id="{sec}"')
+        if i == -1:
+            continue
+        j = body.index("</section>", i)
+        # scripts inside the section may hold "<p>" in strings; only the markup between them is touched
+        parts = re.split(r"(<script\b.*?</script>)", body[i:j], flags=re.S)
+        body = body[:i] + "".join(x if x.startswith("<script") else re.sub(r"(<p\b[^>]*>)(.*?)</p>", para, x, flags=re.S)
+                                  for x in parts) + body[j:]
+    if not used:
+        return body
+    data = {k: {"name": t[lang]["name"], "short": t[lang]["short"], "hook": t[lang]["hook"],
+                "url": glossary_url(base, lang, t["page"]), "link": GLOSSARY_TEXT[lang][1]} for k, t in used.items()}
+    return body + "\n" + TERM_SCRIPT % json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+
+
+def term_cards(lang, terms, base, skip=None):
+    return "\n".join(
+        f'      <li class="gl-card" id="{t["id"]}"><a href="{glossary_url(base, lang, t["page"])}"><h3>{e(t[lang]["name"])}</h3>'
+        f'<p>{e(t[lang]["short"])}</p><p class="gl-hook">{e(t[lang]["hook"])}</p></a></li>'
+        for t in terms if t["page"] != skip)
+
+
+def build_glossary(problems, base):
+    """docs/glossary/: the contents page and one article per glossary/<page>/. Returns [(urls, lastmod)] for the sitemap."""
+    terms, pages = load_glossary()
+    pmeta = {p[0]: p for p in problems}
+    home = {l: base + LANG_PATH[l] for l in LANGS}
+    out = []
+    for name, meta in pages.items():
+        for s in meta["problems"]:
+            if s not in pmeta:
+                raise SystemExit(f"glossary/{name}/meta.json: unknown problem {s}")
+        src = (GLOSSARY / name / "page.html").read_text(encoding="utf-8")
+        urls = {l: glossary_url(base, l, name) for l in LANGS}
+        for lang in LANGS:
+            m, other = meta[lang], ("en" if lang == "uk" else "uk")
+            gl, _, where, others, _ = GLOSSARY_TEXT[lang]
+            probs = "\n".join(
+                f'      <a class="mp-related-card" href="{pmeta[s][2][lang]}"><h3>{e(pmeta[s][1][lang]["card"]["title"])}</h3>'
+                f'<p>{e(pmeta[s][1][lang].get("share", {}).get("description", pmeta[s][1][lang]["card"]["text"]))}</p></a>'
+                for s in meta["problems"])
+            body = with_layers(LangStripper(src, other).strip(), lang, "glossary-" + name)
+            body = body.replace("<!--PROBLEMS-->", f'<section class="gl-sec"><h2>{where}</h2>\n    <div class="mp-related-grid">\n{probs}\n    </div></section>')
+            body = body.replace("<!--TERMS-->", f'<section class="gl-sec"><h2>{others}</h2>\n    <ul class="gl-cards">\n{term_cards(lang, terms, base, skip=name)}\n    </ul></section>')
+            body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
+            body = body.replace("{{GLOSSARY}}", glossary_url(base, lang))
+            body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
+            body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
+            style = body[:body.index("</style>") + len("</style>")]
+            body = body[len(style):]
+            ld = {"@context": "https://schema.org", "@graph": [
+                {"@type": ["WebPage", "LearningResource"], "@id": urls[lang] + "#page", "url": urls[lang], "name": m["title"],
+                 "description": m["description"], "inLanguage": lang, "isAccessibleForFree": True,
+                 "learningResourceType": ["interactive simulation", "explanation"],
+                 "about": [{"@type": "DefinedTerm", "name": t[lang]["name"], "description": t[lang]["short"],
+                            "inDefinedTermSet": glossary_url(base, lang)} for t in terms if t["page"] == name],
+                 "datePublished": meta["published"], "dateModified": meta["updated"],
+                 "author": {"@id": base + "#author"}, "isPartOf": {"@type": "WebSite", "name": SITE_NAME[lang], "url": home[lang]}},
+                author_ld(lang, base),
+                {"@type": "BreadcrumbList", "itemListElement": [
+                    {"@type": "ListItem", "position": 1, "name": SITE_NAME[lang], "item": home[lang]},
+                    {"@type": "ListItem", "position": 2, "name": gl, "item": glossary_url(base, lang)},
+                    {"@type": "ListItem", "position": 3, "name": m["name"], "item": urls[lang]}]},
+            ]}
+            h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["og_alt"], ld, base)
+            doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
+                   f'{style}\n{css_link(base)}\n</head>\n<body>\n{body.strip()}\n{CF_ANALYTICS}\n</body>\n</html>\n')
+            write(DOCS / "glossary" / name / LANG_PATH[lang] / "index.html", doc)
+        out.append((urls, meta["updated"]))
+    src = (GLOSSARY / "index.html").read_text(encoding="utf-8")
+    meta = json.loads((GLOSSARY / "index.json").read_text(encoding="utf-8"))
+    urls = {l: glossary_url(base, l) for l in LANGS}
+    for lang in LANGS:
+        m, other = meta[lang], ("en" if lang == "uk" else "uk")
+        body = LangStripper(src, other).strip()
+        body = body.replace("<!--TERMS-->", f'<ul class="gl-cards">\n{term_cards(lang, terms, base)}\n    </ul>')
+        body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
+        body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
+        body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
+        style = body[:body.index("</style>") + len("</style>")]
+        body = body[len(style):]
+        ld = {"@context": "https://schema.org", "@graph": [
+            {"@type": ["CollectionPage", "DefinedTermSet"], "@id": urls[lang], "url": urls[lang], "name": m["title"],
+             "description": m["description"], "inLanguage": lang, "author": {"@id": base + "#author"},
+             "hasDefinedTerm": [{"@type": "DefinedTerm", "name": t[lang]["name"], "description": t[lang]["short"],
+                                 "url": glossary_url(base, lang, t["page"])} for t in terms]},
+            author_ld(lang, base),
+        ]}
+        h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["og_alt"], ld, base)
+        doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
+               f'{style}\n{css_link(base)}\n</head>\n<body>\n{body.strip()}\n{CF_ANALYTICS}\n</body>\n</html>\n')
+        write(DOCS / "glossary" / LANG_PATH[lang] / "index.html", doc)
+    out.insert(0, (urls, max(p["updated"] for p in pages.values())))
+    return out
+
+
 NOT_FOUND_TEXT = {
     "uk": ("Помилка 404", "Такої сторінки немає", "Можливо, адресу змінено або в ній помилка. Ось задачі, які точно існують:", "На головну"),
     "en": ("Error 404", "This page does not exist", "The address may have changed, or there may be a typo in it. Here are the puzzles that do exist:", "Go to the home page"),
@@ -1273,16 +1453,19 @@ def build(base, out=None):
         if meta.get("level") not in LEVELS:
             raise SystemExit(f"problems/{slug}/meta.json: \"level\" must be 1, 2 or 3 (see LEVELS in build.py)")
     books = load_books()
+    global TERMS
+    TERMS = load_glossary()[0]
     problems = [build_problem(s, base, metas, books) for s, _ in metas]
     hub = build_hub(problems, base)
     build_404(problems, base)
     build_subscribed(problems, base)
     shelf = build_books(problems, base, books)
+    glossary = build_glossary(problems, base)
     build_feeds(metas, base)
 
     today = date.today().isoformat()
     entries = []
-    for urls, mod in [(hub, today), (shelf, today)] + [(p[2], p[1]["updated"]) for p in problems]:
+    for urls, mod in [(hub, today), (shelf, today)] + glossary + [(p[2], p[1]["updated"]) for p in problems]:
         for lang in LANGS:
             alts = "".join(f'\n    <xhtml:link rel="alternate" hreflang="{h}" href="{urls[h]}"/>' for h in LANGS)
             alts += f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{urls[X_DEFAULT]}"/>'
