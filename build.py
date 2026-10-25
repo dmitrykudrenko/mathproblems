@@ -491,6 +491,70 @@ def with_hints(body, lang, slug, hints):
     return body[:i] + block + body[i:]
 
 
+# Round 4 in three layers, simplest first: the page wraps its explanation cards in
+#     <div class="mp-layer" data-layer="easy|strict|deep"> ... </div>
+# and the build adds each layer's heading with a "hide on all puzzles" button and a one-line stub that brings it
+# back. Hidden layers are remembered in localStorage (mp-layers-hidden) for every page; each hide and show is
+# counted by the stats worker as "<slug>-layer" with the key "hide.<layer>" or "show.<layer>", so we can see
+# whether readers use it. Pages without layers are left as they are.
+LAYERS = ("easy", "strict", "deep")
+LAYER_TEXT = {
+    "uk": {"easy": ("На пальцях", "картинки, аналогії, маленькі числа"),
+           "strict": ("Строго", "таблиці, графіки, формули"),
+           "deep": ("Глибше", "узагальнення, теорія, історія"),
+           "hide": "Сховати на всіх задачах", "stub": "Шар «%s» приховано на всіх задачах.", "show": "Показати"},
+    "en": {"easy": ("In plain words", "pictures, analogies, small numbers"),
+           "strict": ("Rigorous", "tables, charts, formulas"),
+           "deep": ("Deeper", "generalisations, theory, history"),
+           "hide": "Hide on all puzzles", "stub": "“%s” is hidden on all puzzles.", "show": "Show"},
+}
+LAYER_SCRIPT = """<script>
+(function () {
+  var API = %s, SLUG = %s + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>"""
+
+
+def with_layers(body, lang, slug):
+    """Head and stub for every round 4 layer, plus the script once; pages without layers are returned unchanged."""
+    found = re.findall(r'<div class="mp-layer" data-layer="([a-z]+)">', body)
+    if not found:
+        return body
+    if [x for x in found if x not in LAYERS] or found != sorted(found, key=LAYERS.index):
+        raise SystemExit(f"problems/{slug}: mp-layer must be {', '.join(LAYERS)}, in this order")
+    t = LAYER_TEXT[lang]
+    def head(m):
+        name, desc = t[m.group(1)]
+        return (m.group(0) + f'\n    <div class="mp-layer-head"><span class="mp-layer-name">{name}</span>'
+                f'<span class="mp-layer-desc">{desc}</span><button type="button" class="mp-layer-hide">{t["hide"]}</button></div>'
+                f'\n    <p class="mp-layer-stub">{e(t["stub"] % name)} <button type="button" class="mp-layer-show">{t["show"]}</button></p>')
+    body = re.sub(r'<div class="mp-layer" data-layer="([a-z]+)">', head, body)
+    i = body.index('<div class="mp-layer"')
+    j = body.index("</section>", i)
+    return body[:j] + LAYER_SCRIPT % (json.dumps(STATS_API), json.dumps(slug)) + "\n" + body[j:]
+
+
 # Anonymous answer stats at the end of round 1: the first guess a browser makes on a problem goes to the
 # Cloudflare Worker in stats/ as a short key (no cookies, no IP, nothing else), and after the answer shows the
 # visitor sees how many people answered and what share got it right. The number of hints opened before the guess
@@ -889,6 +953,7 @@ def build_problem(slug, base, metas, books):
                  (m["share"]["title"], m["share"]["description"]) if "share" in m else None)
         if "i.ytimg.com" in body:
             h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
+        body = with_layers(body, lang, slug)
         body = with_discuss(with_subscribe(with_poll(with_hints(body, lang, slug, meta.get("hints")), lang, slug, meta.get("poll")), lang), lang, slug, meta["level"])
         items = []
         for s in related:
