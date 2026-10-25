@@ -93,6 +93,12 @@ python3 build.py
   `npx wrangler d1 execute mathparadoxes-stats --remote --command "SELECT slug, k, SUM(n) AS n FROM votes WHERE slug LIKE '%-lvl' GROUP BY slug, k ORDER BY slug, k"`
 - `STATS_API` у `build.py` — адреса воркера. Порожній рядок вимикає блок. Для локальної перевірки: `python3 build.py --out /tmp/site --stats-api http://localhost:8787/`.
 
+### Шари в 4-му раунді
+
+Пояснення 4-го раунду можна розкласти на три шари, від простого до складного: `<div class="mp-layer" data-layer="easy">` («На пальцях»: картинки, аналогії, маленькі числа), `strict` («Строго»: таблиці, графіки, формули), `deep` («Глибше»: узагальнення, теорія, історія), саме в такому порядку, кожен зі своїм `<div class="why-grid">` усередині. Усі шари видно одразу; заголовки, кнопку «Сховати на всіх задачах» і рядок «Шар … приховано · Показати» додає збірка. Приховані шари пам'ятаються в `mp-layers-hidden` для всіх сторінок, а кожне «сховати» і «показати» рахує той самий воркер як задачу `<slug>-layer` з ключем `hide.<шар>` або `show.<шар>`:
+  `npx wrangler d1 execute mathparadoxes-stats --remote --command "SELECT slug, k, SUM(n) AS n FROM votes WHERE slug LIKE '%-layer' GROUP BY slug, k ORDER BY slug, k"`
+Поки що шари є на сторінках Монті Голла, парадоксу дружби і 25 коней.
+
 Розгортання (одноразово, потрібен акаунт Cloudflare):
 
 ```
