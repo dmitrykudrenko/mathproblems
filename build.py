@@ -323,8 +323,8 @@ def pick_related(slug, metas):
     return sorted(others, key=lambda s: -len(tags[s] & tags[slug]))[:RELATED_COUNT]
 
 
-def related_block(lang, items, hub_url):
-    """`items` is a list of (url, title, question)."""
+def related_block(lang, items, hub_url, glossary=None):
+    """`items` is a list of (url, title, question); `glossary` is the glossary URL shown next to "all puzzles"."""
     eyebrow, title, all_label = RELATED_TEXT[lang]
     cards = "\n".join(f'    <a class="mp-related-card" href="{u}"><h3>{e(t)}</h3><p>{e(q)}</p></a>' for u, t, q in items)
     return f"""<section class="mp-related" id="related">
@@ -335,7 +335,7 @@ def related_block(lang, items, hub_url):
   <div class="mp-related-grid">
 {cards}
   </div>
-  <a class="mp-related-all" href="{hub_url}">{all_label} →</a>
+  <p class="mp-related-all"><a href="{hub_url}">{all_label} →</a>{f' <a href="{glossary}">{GLOSSARY_TEXT[lang][0]} →</a>' if glossary else ""}</p>
 </section>"""
 
 
@@ -960,7 +960,7 @@ def build_problem(slug, base, metas, books):
         for s in related:
             rm = dict(metas)[s][lang]
             items.append((base + s + "/" + LANG_PATH[lang], rm["card"]["title"], rm.get("share", {}).get("description", rm["card"]["text"])))
-        body = with_related(body, related_block(lang, items, hub[lang]))
+        body = with_related(body, related_block(lang, items, hub[lang], glossary_url(base, lang)))
         body = with_books(body, books_block(lang, refs, books, base + "books/" + LANG_PATH[lang]))
         body = with_terms(body, lang, TERMS, base)  # last: its script must not be taken for the page script above
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static data-spoil>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
@@ -1121,6 +1121,7 @@ def build_books(problems, base, books):
             parts.append(f'  <section class="shelf-group">{head_html}\n    <ul class="shelf">\n' + "\n".join(cards) + "\n    </ul>\n  </section>")
         body = LangStripper(src.replace("<!--SHELF-->", "\n".join(parts)), other).strip()
         body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
+        body = body.replace("{{GLOSSARY}}", glossary_url(base, lang))
         body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
         body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
         style = body[:body.index("</style>") + len("</style>")]
@@ -1176,7 +1177,7 @@ TERM_SCRIPT = """<script type="application/json" id="mp-terms">%s</script>
   }
   document.addEventListener("click", function (e) {
     var btn = e.target.closest(".mp-term");
-    if (btn) { if (btn === cur) close(); else open(btn); return; }
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
     if (pop && !pop.contains(e.target)) close();
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
@@ -1198,20 +1199,21 @@ def glossary_url(base, lang, page=None):
     return base + "glossary/" + (page + "/" if page else "") + LANG_PATH[lang]
 
 
-def with_terms(body, lang, terms, base):
-    """Underline the first mention of each term in the paragraphs of rounds 4 and 5; links and buttons are skipped."""
-    used = {}
-    def link_text(text, done_ids):
+def link_terms(html, lang, terms, base, done, used, card):
+    """Turn the first mention of each term (not yet in `done`) in the paragraphs of `html` into a link to its article.
+    Text inside links, buttons and scripts is left alone. With `card` the link also opens the term card on click."""
+    def link_text(text):
         for t in terms:
-            if t["id"] in done_ids:
+            if t["id"] in done:
                 continue
             forms = sorted(t[lang]["forms"], key=len, reverse=True)
             m = re.search(r"(?<![\w-])(" + "|".join(map(re.escape, forms)) + r")(?![\w-])", text, re.I)
             if m:
-                done_ids.add(t["id"]); used[t["id"]] = t
-                return (link_text(text[:m.start()], done_ids)
-                        + f'<button type="button" class="mp-term" data-term="{t["id"]}" aria-expanded="false">{m.group(1)}</button>'
-                        + link_text(text[m.end():], done_ids))
+                done.add(t["id"]); used[t["id"]] = t
+                attrs = f' class="mp-term" data-term="{t["id"]}" aria-expanded="false"' if card else ' class="gl-term"'
+                return (link_text(text[:m.start()])
+                        + f'<a href="{glossary_url(base, lang, t["page"])}"{attrs}>{m.group(1)}</a>'
+                        + link_text(text[m.end():]))
         return text
     def para(m):
         out, depth = [], 0
@@ -1221,18 +1223,22 @@ def with_terms(body, lang, terms, base):
                 elif re.match(r"</(a|button)>", piece): depth -= 1
                 out.append(piece)
             else:
-                out.append(piece if depth else link_text(piece, done))
+                out.append(piece if depth else link_text(piece))
         return m.group(1) + "".join(out) + "</p>"
-    done = set()
+    # scripts may hold "<p>" in strings; only the markup between them is touched
+    parts = re.split(r"(<script\b.*?</script>)", html, flags=re.S)
+    return "".join(x if x.startswith("<script") else re.sub(r"(<p\b[^>]*>)(.*?)</p>", para, x, flags=re.S) for x in parts)
+
+
+def with_terms(body, lang, terms, base):
+    """Link the first mention of each term in rounds 4 and 5 to its article; a click opens the term card instead."""
+    done, used = set(), {}
     for sec in ("why", "scale"):
         i = body.find(f'id="{sec}"')
         if i == -1:
             continue
         j = body.index("</section>", i)
-        # scripts inside the section may hold "<p>" in strings; only the markup between them is touched
-        parts = re.split(r"(<script\b.*?</script>)", body[i:j], flags=re.S)
-        body = body[:i] + "".join(x if x.startswith("<script") else re.sub(r"(<p\b[^>]*>)(.*?)</p>", para, x, flags=re.S)
-                                  for x in parts) + body[j:]
+        body = body[:i] + link_terms(body[i:j], lang, terms, base, done, used, card=True) + body[j:]
     if not used:
         return body
     data = {k: {"name": t[lang]["name"], "short": t[lang]["short"], "hook": t[lang]["hook"],
@@ -1267,6 +1273,11 @@ def build_glossary(problems, base):
                 f'<p>{e(pmeta[s][1][lang].get("share", {}).get("description", pmeta[s][1][lang]["card"]["text"]))}</p></a>'
                 for s in meta["problems"])
             body = with_layers(LangStripper(src, other).strip(), lang, "glossary-" + name)
+            # first mentions of the other terms become plain links (this article's own terms are skipped)
+            k = body.find('<section class="gl-layers">')
+            if k != -1:
+                own = {t["id"] for t in terms if t["page"] == name}
+                body = body[:k] + link_terms(body[k:], lang, terms, base, set(own), {}, card=False)
             body = body.replace("<!--PROBLEMS-->", f'<section class="gl-sec"><h2>{where}</h2>\n    <div class="mp-related-grid">\n{probs}\n    </div></section>')
             body = body.replace("<!--TERMS-->", f'<section class="gl-sec"><h2>{others}</h2>\n    <ul class="gl-cards">\n{term_cards(lang, terms, base, skip=name)}\n    </ul></section>')
             body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
@@ -1341,7 +1352,7 @@ def build_404(problems, base):
     <ul class="nf-list">
 {links}
     </ul>
-    <p><a class="btn" href="{base + LANG_PATH[lang]}">{home}</a></p>
+    <p><a class="btn" href="{base + LANG_PATH[lang]}">{home}</a> &nbsp; <a href="{glossary_url(base, lang)}">{GLOSSARY_TEXT[lang][0]} →</a></p>
   </section>""")
     doc = f"""<!doctype html>
 <html lang="uk" data-lang="uk">
