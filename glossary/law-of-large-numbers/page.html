@@ -1,0 +1,338 @@
+<style>
+/* Layout: glossary article in three layers: five people flipping coins, share vs gap, and dilution (plain words),
+   what the law promises, 200 players, two hospitals and when to rely on it (rigorous), the spread of the share,
+   why the gap grows like √n and Chebyshev's bound with live numbers (deeper). */
+:root { --tint: #E4F4F8; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+.ex { font-variant-numeric: tabular-nums; background: var(--paper); border-radius: 10px; padding: 10px 12px; font-size: .95rem; overflow-wrap: anywhere; }
+.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.scale div { background: var(--paper); border-radius: 10px; padding: 10px; display: grid; gap: 2px; font-size: .88rem; }
+.scale b { font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; }
+@media (max-width: 860px) { .three { grid-template-columns: 1fr; } .scale { grid-template-columns: 1fr 1fr; } }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="{{HOME}}">{{BRAND}}</a>
+    <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="{{GLOSSARY}}"><span class="uk">Словник</span><span class="en">Glossary</span></a> / <span class="uk">Закон великих чисел</span><span class="en">Law of large numbers</span></p>
+
+  <header class="gl-head">
+    <span class="eyebrow"><span class="uk">Словник · закон великих чисел</span><span class="en">Glossary · law of large numbers</span></span>
+    <h1><span class="uk">Орлів стає половина, а решки відстають дедалі більше?</span><span class="en">Heads settle at half, yet tails fall further behind?</span></h1>
+    <p class="lead uk">Під час Другої світової математик Джон Керріх опинився в таборі для інтернованих у Данії й підкинув монету 10 000 разів. Орлів випало 5 067, тобто 50,67%: майже рівно половина. Але в штуках орли випередили решки на 134. Що довше кидати, то ближче частка до половини, а розрив у монетах зазвичай тільки росте. Обидва факти правдиві одночасно, і саме в цьому суть закону великих чисел.</p>
+    <p class="lead en">During the Second World War the mathematician John Kerrich found himself in an internment camp in Denmark and flipped a coin 10,000 times. He got 5,067 heads, that is 50.67%: almost exactly half. But counted in coins, heads were 134 ahead of tails. The longer you flip, the closer the share gets to half, while the gap in coins usually just grows. Both facts are true at once, and that is the heart of the law of large numbers.</p>
+  </header>
+
+  <section class="gl-layers">
+  <div class="mp-layer" data-layer="easy">
+  <section class="gl-sec" id="flip">
+    <h2><span class="uk">Парадокс монети</span><span class="en">The coin paradox</span></h2>
+    <p class="uk">П'ятеро людей підкидають кожен свою монету. На верхньому графіку частка орлів у кожного: лінії стискаються до 50%. На нижньому — на скільки монет орлів більше, ніж решок: лінії зазвичай розповзаються від нуля. Це ті самі кидки, лише пораховані по-різному.</p>
+    <p class="en">Five people each flip their own coin. The top chart shows each person's share of heads: the lines squeeze towards 50%. The bottom one shows by how many coins heads are ahead of tails: the lines usually spread away from zero. These are the same flips, only counted differently.</p>
+    <div class="gl-panel">
+      <div class="gl-btns">
+        <button type="button" class="btn ghost" id="f10"><span class="uk">Підкинути 10 разів</span><span class="en">Flip 10 times</span></button>
+        <button type="button" class="btn ghost" id="f100"><span class="uk">Підкинути 100 разів</span><span class="en">Flip 100 times</span></button>
+        <button type="button" class="btn ghost" id="f1000"><span class="uk">Підкинути 1 000 разів</span><span class="en">Flip 1,000 times</span></button>
+        <button type="button" class="btn ghost" id="f10000"><span class="uk">Підкинути 10 000 разів</span><span class="en">Flip 10,000 times</span></button>
+        <button type="button" class="btn ghost" id="f0"><span class="uk">Почати знову</span><span class="en">Start over</span></button>
+      </div>
+      <canvas class="gl-canvas" id="share-cv" style="height:200px" aria-label="Частка орлів" data-aria-en="Share of heads"></canvas>
+      <canvas class="gl-canvas" id="gap-cv" style="height:200px" aria-label="Орлів мінус решок" data-aria-en="Heads minus tails"></canvas>
+      <div class="three">
+        <div class="gl-stat"><span><span class="uk">Кидків у кожного</span><span class="en">Flips each</span></span><b id="f-n">0</b></div>
+        <div class="gl-stat"><span><span class="uk">Частки орлів</span><span class="en">Shares of heads</span></span><b id="f-share">–</b></div>
+        <div class="gl-stat"><span><span class="uk">Середній розрив, монет</span><span class="en">Average gap, coins</span></span><b class="hit" id="f-gap">–</b></div>
+      </div>
+      <p id="f-msg" aria-live="polite"></p>
+      <p class="gl-note"><span class="uk">Вісь кидків логарифмічна: кожна поділка вдесятеро далі за попередню. Максимум 100 000 кидків на людину.</span><span class="en">The flips axis is logarithmic: each mark is ten times further than the previous one. At most 100,000 flips per person.</span></p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Не виправляє, а розбавляє</span><span class="en">It doesn't correct, it dilutes</span></h2>
+    <p class="uk">Нехай з перших 10 кидків 8 виявилися орлами: це 80%. Монета нічого не пам'ятає, тож далі орли й решки йдуть у середньому порівну. Зайві 6 орлів нікуди не діваються, але тонуть у дедалі більшій кількості нових кидків:</p>
+    <p class="en">Say 8 of the first 10 flips came up heads: that's 80%. The coin remembers nothing, so from then on heads and tails come equally on average. The 6 extra heads never go away, but they drown in an ever larger number of new flips:</p>
+    <div class="scale">
+      <div><span class="uk">10 кидків</span><span class="en">10 flips</span><b>80%</b></div>
+      <div><span class="uk">100 кидків</span><span class="en">100 flips</span><b>53%</b></div>
+      <div><span class="uk">1 000 кидків</span><span class="en">1,000 flips</span><b><span class="uk">50,3%</span><span class="en">50.3%</span></b></div>
+      <div><span class="uk">10 000 кидків</span><span class="en">10,000 flips</span><b><span class="uk">50,03%</span><span class="en">50.03%</span></b></div>
+      <div><span class="uk">мільйон кидків</span><span class="en">a million flips</span><b><span class="uk">50,0003%</span><span class="en">50.0003%</span></b></div>
+    </div>
+    <p class="uk">Ніхто не «повертає борг» решками. Частка наближається до половини лише тому, що старий надлишок стає дедалі меншою часткою від усього.</p>
+    <p class="en">Nobody "pays back" the debt with tails. The share approaches half only because the old surplus becomes an ever smaller part of the whole.</p>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="strict">
+  <section class="gl-sec">
+    <h2><span class="uk">Що саме обіцяє закон</span><span class="en">What exactly the law promises</span></h2>
+    <p class="uk">Повторюйте те саме випробування багато разів, і щоб спроби не впливали одна на одну. Подія має ймовірність p. Тоді частка спроб, у яких вона трапилася, зі зростанням кількості спроб n наближається до p. Точніше: хоч який малий допуск ви візьмете, 1% чи 0,1%, шанс вийти за нього прямує до нуля.</p>
+    <p class="en">Repeat the same trial many times, with the attempts not affecting one another. An event has probability p. Then the share of attempts in which it happens approaches p as the number of attempts n grows. More precisely: however small a tolerance you pick, 1% or 0.1%, the chance of falling outside it goes to zero.</p>
+    <ul class="gl-when">
+      <li><b><span class="uk">Обіцяє: частка → p</span><span class="en">Promises: the share → p</span></b><span><span class="uk">Частка орлів у довгій серії майже напевно близька до 50%.</span><span class="en">The share of heads in a long series is almost surely close to 50%.</span></span></li>
+      <li><b><span class="uk">Не обіцяє: розрив → 0</span><span class="en">Doesn't promise: the gap → 0</span></b><span><span class="uk">Різниця між орлами й решками в штуках зазвичай росте. Вона лише росте повільніше за кількість кидків.</span><span class="en">The difference between heads and tails in coins usually grows. It just grows more slowly than the number of flips.</span></span></li>
+      <li><b><span class="uk">Не обіцяє: «тепер має бути решка»</span><span class="en">Doesn't promise: "tails is due now"</span></b><span><span class="uk">Наступний кидок не знає про попередні. Закон працює через розбавлення, а не через виправлення.</span><span class="en">The next flip knows nothing of the previous ones. The law works through dilution, not correction.</span></span></li>
+      <li><b><span class="uk">Не обіцяє нічого для малих n</span><span class="en">Promises nothing for small n</span></b><span><span class="uk">Закон про те, що відбувається на довгій дистанції. На коротку він не дає жодних гарантій.</span><span class="en">The law is about what happens in the long run. Over a short stretch it guarantees nothing.</span></span></li>
+    </ul>
+  </section>
+
+  <section class="gl-sec" id="crowd">
+    <h2><span class="uk">Спробуйте: 200 гравців</span><span class="en">Try it: 200 players</span></h2>
+    <p class="uk">Тепер не п'ятеро, а 200 людей, і кожен підкидає монету n разів. Угорі частка орлів кожного, унизу орлів мінус решок у штуках. Пересувайте повзунок: верхня хмара стискається, нижня розповзається.</p>
+    <p class="en">Now it's 200 people instead of five, each flipping a coin n times. At the top is everyone's share of heads, at the bottom heads minus tails in coins. Move the slider: the top cloud shrinks, the bottom one spreads.</p>
+    <div class="gl-panel">
+      <label class="gl-note" for="c-in"><span class="uk">Кидків у кожного</span><span class="en">Flips each</span>: <b id="c-v"></b></label>
+      <input type="range" id="c-in" min="0" max="6" step="1" value="2">
+      <canvas class="gl-canvas" id="c-cv" style="height:300px" aria-label="Частки й розриви 200 гравців" data-aria-en="Shares and gaps of 200 players"></canvas>
+      <div class="three">
+        <div class="gl-stat"><span><span class="uk">Середній відступ частки від 50%</span><span class="en">Average distance of the share from 50%</span></span><b id="c-dev">–</b></div>
+        <div class="gl-stat"><span><span class="uk">Середній розрив, монет</span><span class="en">Average gap, coins</span></span><b class="hit" id="c-gap">–</b></div>
+        <div class="gl-stat"><span><span class="uk">Інші 200 гравців</span><span class="en">Another 200 players</span></span><button type="button" class="btn ghost" id="c-new" style="justify-self:start"><span class="uk">Підкинути заново</span><span class="en">Flip again</span></button></div>
+      </div>
+      <p id="c-msg" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="gl-sec" id="hosp">
+    <h2><span class="uk">Малі вибірки брешуть: дві лікарні</span><span class="en">Small samples lie: two hospitals</span></h2>
+    <p class="uk">Це класична задача психологів Даніеля Канемана й Амоса Тверські. В одній лікарні щодня народжується 15 дітей, в іншій 45. Хлопчики й дівчатка народжуються приблизно порівну. Де за рік буде більше днів, коли хлопчиків понад 60%? Більшість відповідає «однаково». Перевірте: кожна клітинка — один день, зафарбована — день, коли хлопчиків понад 60%.</p>
+    <p class="en">This is a classic problem by the psychologists Daniel Kahneman and Amos Tversky. One hospital has 15 births a day, another 45. Boys and girls are born about equally often. Where will there be more days in a year with over 60% boys? Most people answer "the same". Check it: each cell is one day, a filled cell is a day with more than 60% boys.</p>
+    <div class="gl-panel">
+      <canvas class="gl-canvas" id="h-cv" style="height:200px" aria-label="Дні з понад 60% хлопчиків" data-aria-en="Days with over 60% boys"></canvas>
+      <div class="three">
+        <div class="gl-stat"><span><span class="uk">Мала лікарня, 15 на день</span><span class="en">Small hospital, 15 a day</span></span><b class="hit" id="h-s">–</b></div>
+        <div class="gl-stat"><span><span class="uk">Велика лікарня, 45 на день</span><span class="en">Large hospital, 45 a day</span></span><b id="h-l">–</b></div>
+        <div class="gl-stat"><span><span class="uk">Інший рік</span><span class="en">Another year</span></span><button type="button" class="btn ghost" id="h-new" style="justify-self:start"><span class="uk">Прожити ще рік</span><span class="en">Live another year</span></button></div>
+      </div>
+      <p class="uk">У малої лікарні таких днів зазвичай удвічі більше: точний розрахунок дає в середньому 55 днів на рік проти 25. Мала вибірка частіше потрапляє в крайнощі. Тому серед найкращих і найгірших у будь-якому рейтингу так часто опиняються маленькі школи, села й команди: не завжди тому, що вони особливі, а тому, що в них мало людей.</p>
+      <p class="en">The small hospital usually has twice as many such days: the exact calculation gives 55 days a year on average against 25. A small sample lands on extremes more often. That is why small schools, villages and teams so often turn up among both the best and the worst of any ranking: not always because they are special, but because they have few people.</p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Коли на закон покладатися</span><span class="en">When to rely on the law</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="uk">Казино спокійне</span><span class="en">The casino is calm</span></b><span><span class="uk">У кожній ставці в казино невелика перевага. Мільйони незалежних ставок перетворюють її на майже гарантований дохід: частка виграшів закладу прилипає до своєї ймовірності.</span><span class="en">Each bet gives the casino a small edge. Millions of independent bets turn it into almost guaranteed income: the house's share of wins sticks to its probability.</span></span></li>
+      <li><b><span class="uk">Страхова теж, поки ризики незалежні</span><span class="en">So is the insurer, while risks are independent</span></b><span><span class="uk">Тисячі будинків, які горять незалежно один від одного, дають передбачувану суму виплат. Повінь чи землетрус б'ють по всіх одразу, і тоді закон не рятує: спроби вже не незалежні.</span><span class="en">Thousands of houses that burn independently of one another give a predictable total of payouts. A flood or an earthquake hits all of them at once, and then the law doesn't help: the attempts are no longer independent.</span></span></li>
+      <li><b><span class="uk">Гравцеві за вечір він не допоможе</span><span class="en">It won't help a player in one evening</span></b><span><span class="uk">Кількасот ставок — замало: результат вирішує везіння. Закон працює для того, хто робить мільйони ставок, тобто для казино.</span><span class="en">A few hundred bets are too few: luck decides the result. The law works for whoever makes millions of bets, that is, the casino.</span></span></li>
+      <li><b><span class="uk">Не робіть висновків з кількох випадків</span><span class="en">Don't draw conclusions from a few cases</span></b><span><span class="uk">Три вдалі угоди, п'ять відгуків, одна лікарня з 15 пологами на день — усе це малі вибірки, і крайнощі в них звичайна справа.</span><span class="en">Three good deals, five reviews, one hospital with 15 births a day: all small samples, and extremes are routine in them.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="deep">
+  <section class="gl-sec">
+    <h2><span class="uk">Наскільки розкидана частка</span><span class="en">How spread out the share is</span></h2>
+    <div class="gl-panel">
+      <p class="ex">σ<sub><span class="uk">частки</span><span class="en">share</span></sub> = √( p(1 − p) / n )</p>
+      <p class="uk">Для монети p = ½, тож розкид частки орлів 0,5/√n: після 100 кидків 5 відсоткових пунктів, після 10 000 лише 0,5. Щоб частка стала вдесятеро точнішою, потрібно в сто разів більше кидків. У симуляції з 200 гравцями зараз n = <b id="d-n">–</b>: формула дає <b id="d-sdf">–</b>, а в гравців вийшло <b id="d-sdm">–</b>.</p>
+      <p class="en">For a coin p = ½, so the spread of the share of heads is 0.5/√n: 5 percentage points after 100 flips, only 0.5 after 10,000. To make the share ten times more precise you need a hundred times more flips. In the 200-player simulation n = <b id="d-n-en">–</b> right now: the formula gives <b id="d-sdf-en">–</b>, and the players got <b id="d-sdm-en">–</b>.</p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Чому розрив росте як √n</span><span class="en">Why the gap grows like √n</span></h2>
+    <div class="gl-panel">
+      <p class="ex"><span class="uk">О − Р = 2О − n · σ(О − Р) = √n · E|О − Р| ≈ √(2n/π) ≈ 0,8 √n</span><span class="en">H − T = 2H − n · σ(H − T) = √n · E|H − T| ≈ √(2n/π) ≈ 0.8 √n</span></p>
+      <p class="uk">Кожен кидок додає до різниці +1 або −1, і ці кроки незалежні. Розкиди незалежних кроків додаються, тож після n кроків розкид різниці √n. Отже, типовий розрив після 100 кидків близько 8 монет, після 10 000 близько 80. Але поділіть на кількість кидків: 8 зі 100 — це 8%, 80 з 10 000 — лише 0,8%. Розрив росте, проте повільніше за n, тому частка все одно сходиться до половини. У Керріха розрив 134 при σ = 100 — цілком звичайний результат. У симуляції з 200 гравцями при n = <b id="d-n2">–</b> формула дає <b id="d-gf">–</b> монет, а в середньому вийшло <b id="d-gm">–</b>.</p>
+      <p class="en">Each flip adds +1 or −1 to the difference, and these steps are independent. The spreads of independent steps add up, so after n steps the spread of the difference is √n. So the typical gap is about 8 coins after 100 flips and about 80 after 10,000. But divide by the number of flips: 8 out of 100 is 8%, 80 out of 10,000 just 0.8%. The gap grows, but more slowly than n, so the share still converges to half. Kerrich's gap of 134 with σ = 100 is a perfectly ordinary result. In the 200-player simulation at n = <b id="d-n2-en">–</b> the formula gives <b id="d-gf-en">–</b> coins, and the average came out at <b id="d-gm-en">–</b>.</p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Ідея доведення: нерівність Чебишова</span><span class="en">The idea of the proof: Chebyshev's inequality</span></h2>
+    <div class="gl-panel">
+      <p class="ex">P( |X̄ − p| ≥ ε ) ≤ p(1 − p) / (n ε²)</p>
+      <p class="uk">Пафнутій Чебишов довів просту річ: величина рідко відходить від свого середнього більше ніж на кілька розкидів. Шанс відійти на ε не більший за дисперсію, поділену на ε². Дисперсія частки дорівнює p(1 − p)/n і падає зі зростанням n, тому для будь-якого ε шанс вийти за допуск прямує до нуля. Це і є закон великих чисел. Візьмімо ε = 5 пунктів: для монети межа дорівнює 100/n. При n = <b id="d-n3">–</b> Чебишов гарантує, що далі ніж на 5 пунктів від 50% опиниться не більше <b id="d-cb">–</b> гравців, а в симуляції таких <b id="d-cm">–</b>. Межа груба, зате працює для будь-яких незалежних однакових спроб, не лише для монет.</p>
+      <p class="en">Pafnuty Chebyshev proved a simple thing: a quantity rarely strays from its mean by more than a few spreads. The chance of straying by ε is at most the variance divided by ε². The variance of the share is p(1 − p)/n and falls as n grows, so for any ε the chance of falling outside the tolerance goes to zero. That is the law of large numbers. Take ε = 5 points: for a coin the bound is 100/n. At n = <b id="d-n3-en">–</b> Chebyshev guarantees that at most <b id="d-cb-en">–</b> of the players end up more than 5 points from 50%, and in the simulation it is <b id="d-cm-en">–</b>. The bound is crude, but it works for any independent identical trials, not just coins.</p>
+    </div>
+  </section>
+  </div>
+  </section>
+
+  <!--PROBLEMS-->
+
+  <!--TERMS-->
+
+  <footer>
+    <span class="uk">Математичні парадокси · автор <a href="{{HOME}}#author">Дмитро Кудренко</a></span><span class="en">Math paradoxes · by <a href="{{HOME}}#author">Dmytro Kudrenko</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const en = document.documentElement.dataset.lang === 'en', L = (uk, e) => en ? e : uk;
+  const $ = s => document.querySelector(s);
+  if (en) document.querySelectorAll('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn));
+  const css = getComputedStyle(document.documentElement);
+  const C = { ink: css.getPropertyValue('--ink').trim() || '#151515', muted: css.getPropertyValue('--muted').trim() || '#5F5F5F',
+              line: css.getPropertyValue('--line').trim() || '#E4E4E4', hit: css.getPropertyValue('--signal').trim() || '#D9318F' };
+  const nf = (v, d = 0) => (v < 0 ? '−' : '') + Math.abs(v).toLocaleString(en ? 'en-US' : 'uk-UA', { maximumFractionDigits: d, minimumFractionDigits: d });
+  const pct = (v, d = 1) => nf(100 * v, d) + '%';
+  const put = (id, v) => [id, id + '-en'].forEach(x => { const el = $('#' + x); if (el) el.textContent = v; });
+  function setup(cv) {
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (!r.width) return null;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.font = '12px Inter, system-ui, sans-serif';
+    return { g, w: r.width, h: r.height };
+  }
+  const dashed = (g, x0, x1, y) => { g.save(); g.strokeStyle = C.muted; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke(); g.restore(); };
+
+  // 1. five people flipping; D holds heads minus tails after every flip, per person
+  const P5 = 5, MAX = 100000, D = new Int32Array(P5 * MAX);
+  let nRun = 0;
+  function flip(k) {
+    k = Math.min(k, MAX - nRun);
+    for (let p = 0; p < P5; p++) {
+      let d = nRun ? D[p * MAX + nRun - 1] : 0;
+      for (let j = 0; j < k; j++) { d += Math.random() < 0.5 ? 1 : -1; D[p * MAX + nRun + j] = d; }
+    }
+    nRun += k; drawRuns();
+  }
+  function plotRuns(cv, val, yMin, yMax, ref, refLabel, yTicks) {
+    const s = setup(cv); if (!s) return;
+    const { g, w, h } = s, padL = 44, padR = 12, top = 10, bot = 22;
+    const maxN = Math.max(100, nRun), X = i => padL + Math.log10(i) / Math.log10(maxN) * (w - padL - padR);
+    const Y = v => top + (yMax - Math.min(yMax, Math.max(yMin, v))) / (yMax - yMin) * (h - top - bot);
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = C.muted; g.strokeStyle = C.line; g.textAlign = 'right';
+    yTicks.forEach(([v, t]) => { g.beginPath(); g.moveTo(padL, Y(v)); g.lineTo(w - padR, Y(v)); g.stroke(); g.fillText(t, padL - 6, Y(v) + 4); });
+    for (let t = 1; t <= maxN; t *= 10) { g.textAlign = X(t) > w - padR - 24 ? 'right' : 'center'; g.fillText(nf(t), Math.min(X(t), w - 2), h - 6); }
+    dashed(g, padL, w - padR, Y(ref));
+    if (!nRun) return;
+    g.strokeStyle = C.ink; g.lineWidth = 1.5; g.globalAlpha = 0.6;
+    for (let p = 0; p < P5; p++) {
+      g.beginPath();
+      for (let i = 1; i <= nRun; i = Math.max(i + 1, Math.floor(i * 1.004))) { const x = X(i), y = Y(val(p, i)); i === 1 ? g.moveTo(x, y) : g.lineTo(x, y); }
+      g.lineTo(X(nRun), Y(val(p, nRun))); g.stroke();
+    }
+    g.globalAlpha = 1; g.lineWidth = 1;
+  }
+  function drawRuns() {
+    const d = p => nRun ? D[p * MAX + nRun - 1] : 0;
+    $('#f-n').textContent = nf(nRun);
+    ['f10', 'f100', 'f1000', 'f10000'].forEach(id => { $('#' + id).disabled = nRun >= MAX; });
+    let lo = 1, hi = 0, gap = 0, gap100 = 0, big = 10;
+    for (let p = 0; p < P5; p++) {
+      if (nRun) { const sh = (nRun + d(p)) / (2 * nRun); lo = Math.min(lo, sh); hi = Math.max(hi, sh); }
+      gap += Math.abs(d(p)) / P5;
+      if (nRun >= 100) gap100 += Math.abs(D[p * MAX + 99]) / P5;
+      for (let i = 0; i < nRun; i++) big = Math.max(big, Math.abs(D[p * MAX + i]));
+    }
+    const dg = hi - lo < 0.01 ? 2 : 1;
+    $('#f-share').textContent = nRun ? pct(lo, dg) + ' – ' + pct(hi, dg) : '–';
+    $('#f-gap').textContent = nRun ? nf(gap, 1) : '–';
+    $('#f-msg').textContent = nRun < 100
+      ? L('Поки кидків мало, частки скачуть далеко від половини. Підкиньте ще.', 'With few flips the shares jump far from half. Flip some more.')
+      : nRun === 100
+      ? L(`Після 100 кидків частки вже недалеко від 50%, а орли й решки розходяться в середньому на ${nf(gap, 1)} монети. Підкидайте далі й стежте за обома числами.`,
+          `After 100 flips the shares are already near 50%, and heads and tails differ by ${nf(gap, 1)} coins on average. Keep flipping and watch both numbers.`)
+      : L(`Частки орлів уже між ${pct(lo, dg)} і ${pct(hi, dg)}. А середній розрив у монетах після 100 кидків був ${nf(gap100, 1)}, тепер ${nf(gap, 1)}. Частка стискається до половини, а розрив зазвичай росте, хоча в окремої людини він може випадково повернутися до нуля.`,
+          `The shares of heads are now between ${pct(lo, dg)} and ${pct(hi, dg)}. The average gap in coins was ${nf(gap100, 1)} after 100 flips and is ${nf(gap, 1)} now. The share squeezes towards half while the gap usually grows, although for one person it may happen to come back to zero.`);
+    plotRuns($('#share-cv'), (p, i) => (i + D[p * MAX + i - 1]) / (2 * i), 0, 1, 0.5, '50%', [[0, '0%'], [0.25, '25%'], [0.5, '50%'], [0.75, '75%'], [1, '100%']]);
+    const m = Math.ceil(big * 1.1 / 5) * 5;
+    plotRuns($('#gap-cv'), (p, i) => D[p * MAX + i - 1], -m, m, 0, '0', [[-m, nf(-m)], [0, '0'], [m, '+' + nf(m)]]);
+  }
+  $('#f10').onclick = () => flip(10);
+  $('#f100').onclick = () => flip(100);
+  $('#f1000').onclick = () => flip(1000);
+  $('#f10000').onclick = () => flip(10000);
+  $('#f0').onclick = () => { nRun = 0; drawRuns(); };
+
+  // 2. 200 players, each flipping 10,000 times; heads recorded at the checkpoints of the slider
+  const NS = [10, 30, 100, 300, 1000, 3000, 10000], NP = 200;
+  let H = [];
+  function crowd() {
+    H = NS.map(() => new Int32Array(NP));
+    for (let p = 0; p < NP; p++) {
+      let h = 0, t = 0;
+      for (let c = 0; c < NS.length; c++) { for (; t < NS[c]; t++) if (Math.random() < 0.5) h++; H[c][p] = h; }
+    }
+  }
+  function drawCrowd() {
+    const c = +$('#c-in').value, n = NS[c], hs = H[c];
+    $('#c-v').textContent = nf(n);
+    let dev = 0, gap = 0, ss = 0, far = 0;
+    for (let p = 0; p < NP; p++) {
+      const sh = hs[p] / n; dev += Math.abs(sh - 0.5) / NP; ss += (sh - 0.5) ** 2 / NP;
+      gap += Math.abs(2 * hs[p] - n) / NP; if (Math.abs(2 * hs[p] - n) >= 0.1 * n - 1e-9) far++;
+    }
+    $('#c-dev').textContent = nf(100 * dev, dev < 0.01 ? 2 : 1) + L(' п.', ' pts');
+    $('#c-gap').textContent = nf(gap, 1);
+    $('#c-msg').textContent = L(`При ${nf(n)} кидках частка орлів у середньому відходить від 50% на ${nf(100 * dev, dev < 0.01 ? 2 : 1)} пункта, а орлів від решок у середньому відділяє ${nf(gap, 1)} монети. Що більше кидків, то менше перше число і більше друге.`,
+                                `At ${nf(n)} flips the share of heads strays from 50% by ${nf(100 * dev, dev < 0.01 ? 2 : 1)} points on average, while heads and tails are ${nf(gap, 1)} coins apart on average. The more flips, the smaller the first number and the larger the second.`);
+    // deeper layer quotes the same players
+    const sdf = 0.5 / Math.sqrt(n), sdm = Math.sqrt(ss), d2 = n >= 1000 ? 2 : 1;
+    ['d-n', 'd-n2', 'd-n3'].forEach(id => put(id, nf(n)));
+    put('d-sdf', nf(100 * sdf, d2) + L(' п.', ' pts')); put('d-sdm', nf(100 * sdm, d2) + L(' п.', ' pts'));
+    put('d-gf', nf(Math.sqrt(2 * n / Math.PI), 1)); put('d-gm', nf(gap, 1));
+    put('d-cb', pct(Math.min(1, 100 / n), 1)); put('d-cm', pct(far / NP, 1));
+    const s = setup($('#c-cv')); if (!s) return;
+    const { g, w, h } = s, pad = 16, mid = h / 2;
+    g.clearRect(0, 0, w, h);
+    const strip = (y0, y1, lo, hi, ticks, vals, title) => {
+      const X = v => pad + (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo) * (w - 2 * pad);
+      g.fillStyle = C.muted; g.textAlign = 'left'; g.fillText(title, pad, y0 + 12);
+      g.strokeStyle = C.line; g.beginPath(); g.moveTo(pad, y1 - 18); g.lineTo(w - pad, y1 - 18); g.stroke();
+      ticks.forEach(([v, t], i) => { g.textAlign = i === 0 ? 'left' : i === ticks.length - 1 ? 'right' : 'center'; g.fillText(t, X(v), y1 - 4); });
+      g.save(); g.strokeStyle = C.muted; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(X((lo + hi) / 2), y0 + 18); g.lineTo(X((lo + hi) / 2), y1 - 18); g.stroke(); g.restore();
+      g.fillStyle = C.ink; g.globalAlpha = 0.45;
+      vals.forEach((v, i) => { const jy = y0 + 22 + ((i * 37) % 97) / 97 * (y1 - y0 - 46); g.beginPath(); g.arc(X(v), jy, 3, 0, 7); g.fill(); });
+      g.globalAlpha = 1;
+    };
+    strip(0, mid, 0, 1, [[0, '0%'], [0.25, '25%'], [0.5, '50%'], [0.75, '75%'], [1, '100%']], Array.from(hs, x => x / n), L('Частка орлів', 'Share of heads'));
+    strip(mid, h, -300, 300, [[-300, nf(-300)], [-150, nf(-150)], [0, '0'], [150, '+150'], [300, '+300']], Array.from(hs, x => 2 * x - n), L('Орлів мінус решок, монет', 'Heads minus tails, coins'));
+  }
+  $('#c-in').addEventListener('input', drawCrowd);
+  $('#c-new').onclick = () => { crowd(); drawCrowd(); };
+
+  // 3. two hospitals: days in a year with more than 60% boys
+  let HS = [], HL = [];
+  function year() {
+    const day = (b, need) => { let k = 0; for (let i = 0; i < b; i++) if (Math.random() < 0.5) k++; return k >= need; };
+    HS = []; HL = []; for (let d = 0; d < 365; d++) { HS.push(day(15, 10)); HL.push(day(45, 28)); }
+  }
+  function drawHosp() {
+    const cs = HS.filter(Boolean).length, cl = HL.filter(Boolean).length;
+    $('#h-s').textContent = nf(cs) + L(' дн.', ' days'); $('#h-l').textContent = nf(cl) + L(' дн.', ' days');
+    const s = setup($('#h-cv')); if (!s) return;
+    const { g, w, h } = s, pad = 12, cols = 73, rows = 5, cw = (w - 2 * pad) / cols, ch = Math.min(cw, (h - 60) / 10);
+    g.clearRect(0, 0, w, h);
+    [[HS, L('Мала лікарня', 'Small hospital'), 0], [HL, L('Велика лікарня', 'Large hospital'), 1]].forEach(([arr, t, k]) => {
+      const y0 = 18 + k * (h / 2);
+      g.fillStyle = C.muted; g.textAlign = 'left'; g.fillText(t, pad, y0 - 4);
+      arr.forEach((on, i) => {
+        const x = pad + (i % cols) * cw, y = y0 + 4 + Math.floor(i / cols) * ch;
+        g.fillStyle = on ? (k ? C.ink : C.hit) : C.line; g.fillRect(x + 0.5, y + 0.5, Math.max(1, cw - 1), Math.max(1, ch - 1));
+      });
+    });
+  }
+  $('#h-new').onclick = () => { year(); drawHosp(); };
+
+  crowd(); year(); flip(100);
+  const redraw = () => { drawRuns(); drawCrowd(); drawHosp(); };
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+  redraw();
+})();
+</script>
