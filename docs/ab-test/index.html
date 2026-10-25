@@ -1,0 +1,1730 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/ab-test/", "en": "/ab-test/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "ab-test";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>A/A-тест: однакові сторінки «перемагають» одна одну в 36% тестів</title>
+<meta name="description" content="Дві однакові сторінки, 5% конверсії, по 1 000 відвідувачів: у 36% тестів одна «виграє» 20%+. Шум, розподіли, p-значення і розмір вибірки для маркетологів.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/ab-test/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/ab-test/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/ab-test/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/ab-test/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="A/A-тест: дві однакові сторінки">
+<meta property="og:description" content="Та сама сторінка показується як «A» і як «B», конверсія 5%, по 1 000 відвідувачів. Як часто одна з двох однакових сторінок «переможе» на 20% або більше?">
+<meta property="og:url" content="https://mathparadoxes.com/ab-test/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/ab-test/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Дві однакові сторінки A і B з точками-відвідувачами і дашбордом «B +19%». Як часто однакові сторінки «перемагають» одна одну?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="A/A-тест: дві однакові сторінки">
+<meta name="twitter:description" content="Та сама сторінка показується як «A» і як «B», конверсія 5%, по 1 000 відвідувачів. Як часто одна з двох однакових сторінок «переможе» на 20% або більше?">
+<meta name="twitter:image" content="https://mathparadoxes.com/ab-test/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/ab-test/#page", "url": "https://mathparadoxes.com/ab-test/", "name": "A/A-тест: однакові сторінки «перемагають» одна одну в 36% тестів", "description": "Дві однакові сторінки, 5% конверсії, по 1 000 відвідувачів: у 36% тестів одна «виграє» 20%+. Шум, розподіли, p-значення і розмір вибірки для маркетологів.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "advanced", "about": {"@type": "Thing", "name": "A/B testing", "sameAs": "https://en.wikipedia.org/wiki/A/B_testing"}, "image": "https://mathparadoxes.com/ab-test/og-uk.png", "datePublished": "2026-10-25", "dateModified": "2026-10-25", "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "citation": [{"@type": "Book", "name": "Trustworthy Online Controlled Experiments", "author": [{"@type": "Person", "name": "Рон Кохаві"}, {"@type": "Person", "name": "Даян Тан"}, {"@type": "Person", "name": "Я Сю"}], "datePublished": "2020", "isbn": "9781108724265"}, {"@type": "Book", "name": "Statistics Done Wrong", "author": [{"@type": "Person", "name": "Алекс Райнгарт"}], "datePublished": "2015", "isbn": "9781593276201"}, {"@type": "Book", "name": "Мистецтво статистики. Прийняття аргументованих рішень на основі даних", "author": [{"@type": "Person", "name": "Девід Шпіґельгалтер"}], "datePublished": "2023", "isbn": "9789669486967", "publisher": {"@type": "Organization", "name": "КМ-Букс"}, "translationOfWork": {"@type": "Book", "name": "The Art of Statistics", "datePublished": "2019"}}], "workTranslation": {"@id": "https://mathparadoxes.com/ab-test/en/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "A/A-тест: дві однакові сторінки", "item": "https://mathparadoxes.com/ab-test/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/ab-test/#faq", "inLanguage": "uk", "mainEntity": [{"@type": "Question", "name": "Як часто в A/A-тесті одна сторінка «перемагає» іншу на 20%?", "acceptedAnswer": {"@type": "Answer", "text": "При конверсії 5% і 1 000 відвідувачів на кожну сторінку в 35,8% тестів, тобто більш ніж у кожному третьому. 1 000 відвідувачів дають лише близько 50 покупок, а різниця двох таких чисел звично коливається на ±10, тобто на ±20%."}}, {"@type": "Question", "name": "Скільки відвідувачів потрібно для A/B-тесту?", "acceptedAnswer": {"@type": "Answer", "text": "Залежить від базової конверсії і найменшого ліфту, який ви хочете помітити. При конверсії 5% і ліфті +10% для рівня значущості 5% і потужності 80% треба 31 234 відвідувачі на кожен варіант. Ліфт +20% потребує 8 158, бо розмір вибірки росте як 1/δ²."}}, {"@type": "Question", "name": "Що означає p < 0,05 в A/B-тесті?", "acceptedAnswer": {"@type": "Answer", "text": "Якби сторінки були однакові, такий самий або більший розрив шум давав би рідше ніж в 1 тесті з 20. Це не означає «95% імовірності, що B кращий»: частка справжніх переможців серед значущих залежить ще й від того, як часто ваші ідеї взагалі працюють, і від потужності тесту."}}, {"@type": "Question", "name": "Навіщо запускати A/A-тест?", "acceptedAnswer": {"@type": "Answer", "text": "Щоб перевірити інструмент: серед A/A-тестів «значущих» має бути близько 5%, а трафік має ділитися так, як заплановано. Якщо значущих помітно більше або поділ перекошений (наприклад, 50 000 проти 48 500 при 50/50, p ≈ 0,0000018), результатам A/B-тестів у цьому інструменті не можна вірити."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the election-poll page. Two identical landing pages side by side, visitor dots
+   lighting up as they convert and a lift counter that keeps naming a "winner", is this problem's signature object. */
+:root {
+  --tint: #EAF4E2;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --aa: #9AA0AE;
+  --band: #D3E6C4;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 2.6em; }
+canvas.duo { aspect-ratio: 6 / 5; height: auto; max-width: 480px; margin-inline: auto; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn.sm { padding: 7px 12px; font-size: .84rem; }
+.btn:disabled { opacity: .45; cursor: default; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; min-width: 0; }
+.ctl select, .ctl input[type=number] { font: inherit; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); width: 100%; min-width: 0; }
+.ctl input[type=range] { width: 240px; max-width: 100%; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+.legend b { font-weight: inherit; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.guess .val { font-family: var(--f-display); font-weight: 800; font-size: clamp(2.4rem, 7vw, 3.4rem); color: var(--day); line-height: 1; }
+.guess input[type=range] { width: 100%; accent-color: var(--day); }
+.scale { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: .72rem; color: var(--muted); }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 150px 1fr 64px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+.crow .mono { text-align: right; }
+
+/* ---------- game: real or noise ---------- */
+.game-top { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 12px; }
+.dash { background: var(--surface); border: 1.5px solid var(--line); border-radius: 16px; padding: 12px 14px; display: grid; gap: 6px; font-size: .84rem; min-width: 0; }
+.dash .hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.dash .hd b { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); }
+.dash .truth { font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--cell); color: var(--muted); white-space: nowrap; }
+.dash .truth.real { background: var(--ink); color: #fff; }
+.dash .row { display: grid; grid-template-columns: 18px 1fr auto; gap: 6px; font-variant-numeric: tabular-nums; align-items: baseline; }
+.dash .row > span:first-child { font-weight: 700; }
+.dash .row .r { color: var(--muted); font-size: .8rem; }
+.dash .lift { display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 6px; }
+.dash .lift b { font-weight: 800; font-size: 1.05rem; }
+.dash .conf { display: flex; justify-content: space-between; color: var(--muted); }
+.dash .conf b { color: var(--ink); }
+.dash .conf.sig b::after { content: " ★"; }
+.dash .pick { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; }
+.dash .pick button { border: 1px solid var(--line); background: var(--paper); border-radius: 999px; padding: 6px 4px; cursor: pointer; font-size: .8rem; font-weight: 600; }
+.dash .pick button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.dash.ok { border-color: var(--win); }
+.dash.bad { border-color: var(--loss); }
+.dash .mark { font-size: .76rem; font-weight: 700; }
+.dash.ok .mark { color: var(--win); }
+.dash.bad .mark { color: var(--loss); }
+.score { display: flex; flex-wrap: wrap; gap: 16px 28px; margin-top: 16px; align-items: end; }
+.score .k { font-size: .8rem; color: var(--muted); display: block; }
+.score b { font-family: var(--f-display); font-size: 1.5rem; font-weight: 800; }
+.msg { font-weight: 500; margin-top: 12px; max-width: 72ch; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-size: .8rem; color: var(--muted); }
+.n-row { display: grid; gap: 8px; }
+.n-row .val { font-family: var(--f-display); font-weight: 800; font-size: 1.5rem; }
+.trumpet { margin-top: 20px; }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.5rem; }
+.vs > div > span { font-size: .84rem; color: var(--muted); }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+td.em { font-weight: 700; }
+.calc { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.calc .ctl input[type=range] { width: 100%; }
+.calc-out { display: grid; gap: 6px; font-size: .92rem; }
+.calc-out .verdict { font-weight: 600; font-size: 1rem; }
+.outcomes td { font-size: .86rem; }
+.outcomes td b { display: block; }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .card { display: grid; gap: 14px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.result-row .big { font-size: clamp(1.7rem, 4vw, 2.4rem); }
+.next { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.next a { display: grid; gap: 6px; text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+.next a span { font-size: .9rem; color: var(--muted); }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 560px) {
+  .calc, .next { grid-template-columns: 1fr; }
+  .dash-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dash { padding: 10px; font-size: .78rem; }
+  .dash .row { grid-template-columns: 14px 1fr; }
+  .dash .row .r { display: none; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 96px 1fr 56px; }
+  .vs { grid-template-columns: 1fr; }
+  th, td { padding: 8px 6px; }
+  table { font-size: .82rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=f2fd0c4f">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/ab-test/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/ab-test/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i></span>Поглиблено</button><span class="mp-level-hint" hidden>Сподівання, дисперсія, кореляція, логарифми, ряди<a href="https://mathparadoxes.com/?l=3#problems">Усі задачі цього рівня →</a></span></span><a class="mp-course" href="https://mathparadoxes.com/courses/ab-testing/#ch-1"><b>Курс «Парадокси A/B-тестування»</b> · розділ 1 з 11 →</a>
+    <h1 class="uk"><span class="kw">A/A-тест</span> Дві однакові сторінки, по 1&nbsp;000 відвідувачів. <span class="q sp-before">Як часто одна «переможе» на 20%?</span><span class="q sp-after">У третині тестів.</span></h1>
+    
+    <p class="lead uk sp-before">Маркетолог показує ту саму сторінку як «A» і як «B». Справжня конверсія в обох 5%. Дашборд рахує конверсії і пише, наскільки краща сторінка-лідер. Як часто одна з двох однакових сторінок обійде іншу на 20% або більше? Зафіксуйте відповідь, а потім перевірте її у грі, на симуляції 20&nbsp;000 тестів і в поясненнях: що таке розподіл, стандартна похибка, p-значення і скільки відвідувачів насправді треба.</p>
+    <p class="lead uk sp-after">Маркетолог показує ту саму сторінку як «A» і як «B», конверсія в обох 5%. У 36% таких тестів одна сторінка «перемагає» іншу на 20% або більше. При 1&nbsp;000 відвідувачів на сторінку це звичайний шум: близько 50 конверсій розкидаються на ±7. Нижче гра, симуляція 20&nbsp;000 тестів і пояснення: розподіл, стандартна похибка, p-значення і скільки відвідувачів насправді треба.</p>
+    
+    
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="uk">35,8%</b><span><span class="uk">A/A-тестів показують «перемогу» ≥ 20%</span></span></div>
+      <div class="odd"><b class="uk">31&nbsp;234</b><span><span class="uk">відвідувачів на варіант, щоб помітити +10%</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="uk">Умова</b></a>
+      <a href="#guess"><span>1</span><b class="uk">Вгадайте</b></a>
+      <a href="#game"><span>2</span><b class="uk">Ефект чи шум?</b></a>
+      <a href="#sim"><span>3</span><b class="uk">Два дзвони</b></a>
+      <a href="#why"><span>4</span><b class="uk">Чому так</b></a>
+      <a href="#more"><span>5</span><b class="uk">Калькулятор і перевірки</b></a>
+      <a href="#facts"><span>★</span><b class="uk" style="font-weight:inherit">Цікаві факти</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas class="duo" id="hero-cv"></canvas>
+    <p class="cap sp-before"><span class="uk">Ліворуч і праворуч та сама сторінка. Кожна точка означає відвідувача, темні точки купили. Кожні кілька секунд починається новий тест на 1&nbsp;000 + 1&nbsp;000 людей. Хто «переможе»?</span></p>
+    <p class="cap sp-after"><span class="uk">Та сама сторінка ліворуч і праворуч, а «переможець» щоразу інший. Приблизно один тест із трьох показує «перемогу» на 20% або більше між однаковими сторінками.</span></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span></span>
+    <h2><span class="uk">Тест, у якому нічого не змінилося</span></h2>
+    <p class="lead uk">A/A-тест виглядає як звичайний A/B-тест, але обидва варіанти однакові. Його запускають, щоб перевірити інструмент і зрозуміти, скільки «різниці» дає сам шум.</p>
+    
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Одна сторінка, дві назви</span></h3>
+        <p class="uk">Лендінг із кнопкою «Купити». Інструмент тестування показує його половині відвідувачів як «A», а другій половині як «B». Нічого не відрізняється: ні текст, ні колір, ні ціна.</p>
+        </div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Конверсія 5%</span></h3>
+        <p class="uk">Кожен відвідувач купує з імовірністю 5%, незалежно від інших і від того, яку «версію» бачив. На кожен варіант приходить 1&nbsp;000 людей, тож у середньому буде по 50 покупок.</p>
+        </div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Дашборд</span></h3>
+        <p class="uk">Наприкінці дашборд показує конверсії і на скільки відсотків лідер кращий за іншу сторінку. Наприклад: «A 52, B 61, B +17%». Ми питаємо про «перемогу» на 20% і більше, наприклад 50 проти 60.</p>
+        </div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span></h3>
+        <p class="uk">У якій частці таких A/A-тестів одна з двох однакових сторінок матиме щонайменше на 20% більше конверсій, ніж інша?</p>
+        </div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span></span>
+        <p class="q"><span class="uk">«Рідко, кілька відсотків: сторінки ж однакові»</span></p>
+        <p class="uk">Насправді в 35,8% тестів, тобто більш ніж у кожному третьому. 50 конверсій означає маленьку вибірку, навіть якщо відвідувачів тисяча. Різниця в 10 покупок тут звичайна справа.</p>
+        
+      </div>
+      <div class="card">
+        <h3><span class="uk">Слова з дашборду</span></h3>
+        <ul class="rules uk">
+          <li><b>Конверсія:</b> частка відвідувачів, які купили. 50 покупок на 1&nbsp;000 означає 5%.</li>
+          <li><b>Ліфт</b> (lift): на скільки відсотків один варіант кращий за інший. 60 проти 50 означає +20%.</li>
+          <li><b>A/A-тест:</b> обидва варіанти однакові, тож будь-який ліфт є шумом.</li>
+        </ul>
+        
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span></span>
+    <h2><span class="uk">Як часто однакові сторінки розходяться на 20%?</span></h2>
+    <p class="lead uk">Дві однакові сторінки, конверсія 5%, по 1&nbsp;000 відвідувачів. У якій частці тестів одна з них отримає щонайменше на 20% більше конверсій?</p>
+    
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <label for="guess-in" class="note"><span class="uk">Ваша оцінка, частка тестів</span></label>
+      <div class="val mono" id="guess-v">10%</div>
+      <input type="range" id="guess-in" min="0" max="100" step="1" value="10">
+      <div class="scale"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+      <div class="actions"><button class="btn pri" id="guess-go"><span class="uk">Перевірити</span></button></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться точна відповідь і розбір вашої оцінки.</p>
+      
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Підказки</span>
+    <p class="mp-hints-intro">Важко вирішити? Відкривайте підказки по одній: спочатку легка, далі сильніша.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Рахуйте не відвідувачів, а покупки. Скільки конверсій у середньому отримає кожна сторінка? Чи вважали б ви точним опитування такої кількості людей?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>Число покупок із 1 000 відвідувачів при 5% коливається приблизно на √50 ≈ 7 в один і в інший бік. Різниця двох таких незалежних чисел коливається в √2 раза сильніше.</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>«Перемога» на 20% при 50 покупках означає різницю близько 10 покупок. Порівняйте це число з типовим розкидом різниці. Наскільки рідкісне відхилення на одне типове відхилення?</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Показати підказку 1 з 3 · легка&quot;, &quot;Показати підказку 2 з 3 · середня&quot;, &quot;Показати підказку 3 з 3 · сильна&quot;]">Показати підказку 1 з 3 · легка</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "ab-test";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "ab-test", RULE = {"right": [[30, 42]]}, MIN = 20, T = {"kicker": "Як відповідають інші", "few": "Відповідей поки замало для статистики: {n}. Ваша вже серед них.", "few_seen": "Відповідей поки замало для статистики: {n}.", "all": "Відповідей: {n}. Правильних серед них {p}.", "yes": "Ви серед тих, хто впорався.", "no": "Не засмучуйтеся: інтуїція підводить більшість.", "bar": "правильно", "note": "Рахуємо лише першу відповідь з кожного браузера, до того як він побачив розв'язок. Анонімно."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: real or noise -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span></span>
+    <h2><span class="uk">Справжній ефект чи шум?</span></h2>
+    <p class="lead uk">Ось 10 дашбордів A/B-тестів. За кожним комп'ютер навмання, як монеткою, загадав одне з двох: або сторінки однакові (обидві 5%), або B справді кращий на 10% (5,5%). Позначте, де, на вашу думку, справжній ефект, а де шум, і натисніть «Перевірити». Потім збільште кількість відвідувачів.</p>
+    
+  </div>
+  <div class="card stage">
+    <div class="game-top">
+      <div class="presets" id="g-n" role="group" aria-label="Відвідувачів на варіант / Visitors per variant"></div>
+      <div class="actions">
+        <button class="btn hit sm" id="g-check"><span class="uk">Перевірити</span></button>
+        <button class="btn ghost sm" id="g-new"><span class="uk">Нові 10 тестів</span></button>
+      </div>
+    </div>
+    <div class="dash-grid" id="g-grid"></div>
+    <div class="score" id="g-score"></div>
+    <p class="msg" id="g-msg" aria-live="polite"></p>
+    <p class="note" style="margin-top:12px"><span class="uk">«Шанс, що B кращий» рахуємо так, як його показують багато інструментів: Φ(z), де z є різницею конверсій, поділеною на її стандартну похибку. Зірочка ★ означає 95% і більше, тобто той поріг, за яким інструмент зазвичай пише «значущо». У тестах, де сторінки однакові, таке трапляється в одному тесті з двадцяти.</span></p>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span></span>
+    <h2><span class="uk">Два дзвони: шум і справжній ефект</span></h2>
+    <p class="lead uk">Комп'ютер проводить 20&nbsp;000 тестів у двох світах. У сірому світі сторінки однакові. У темному B справді кращий на 10%. Для кожного тесту він записує ліфт, який показав би дашборд, і складає ці ліфти в стовпчики. Виходять два «дзвони». Тягніть повзунок: що більше відвідувачів, то вужчі дзвони і то легше їх розрізнити.</p>
+    
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="s-n"><span><span class="uk">Відвідувачів на варіант:</span> <b class="mono" id="s-n-v"></b></span>
+        <input type="range" id="s-n" min="2" max="5.301" step="0.01" value="3">
+      </label>
+      <div class="presets" id="s-pre" role="group" aria-label="n"></div>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="bells" style="height:320px" role="img" aria-label="Histogram of observed lift for identical pages and for a real +10% effect"></canvas>
+        <div class="legend">
+          <span style="--c:var(--aa)"><b class="uk">A/A: сторінки однакові</b></span>
+          <span style="--c:var(--ink)"><b class="uk">B справді кращий на 10%</b></span>
+          <span style="--c:var(--muted)"><b class="uk">лінії: теорія, нормальна крива</b></span>
+          <span style="--c:var(--loss)"><b class="uk">пунктир: поріг p &lt; 0,05</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k"><span class="uk">Фальшиві переможці серед A/A</span></div><div class="v mono" id="t-fp">–</div><div class="s" id="t-fp-s"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Справжній ефект помічено (потужність)</span></div><div class="v mono" id="t-pw">–</div><div class="s" id="t-pw-s"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Справжній ефект виглядає як мінус</span></div><div class="v mono" id="t-neg">–</div><div class="s" id="t-neg-s"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Розмах шуму</span></div><div class="v mono" id="t-sw">–</div><div class="s" id="t-sw-s"></div></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px"><span class="uk">Насичені стовпчики за пунктиром: сірі є фальшивими переможцями, темні праворуч є справжнім ефектом, який тест помітив (потужність). Ліфт тут дорівнює різниці конверсій B − A, поділеній на очікувані 5% (при 1&nbsp;000 відвідувачів це 50 покупок). Дашборд ділить на фактичні конверсії A, картина від цього майже не змінюється. Фальшивий переможець означає A/A-тест, де будь-яка зі сторінок обійшла іншу за пороги p &lt; 0,05 (звичайний двобічний z-тест). Точні значення пораховані додаванням біноміальних імовірностей за всіма парами результатів.</span></p>
+  </div>
+
+  <div class="card trumpet">
+    <div class="actions" style="justify-content:space-between">
+      <h3><span class="uk">Труба: один A/A-тест день за днем</span></h3>
+      <button class="btn pri sm" id="tr-new"><span class="uk">Новий A/A-тест</span></button>
+    </div>
+    <p class="note" style="margin:8px 0 10px"><span class="uk">Темна лінія показує ліфт, який бачить маркетолог, поки відвідувачі накопичуються. Сірі лінії показують ще 20 таких самих тестів. Смуга охоплює 95% можливих значень шуму і звужується як 1/√n. На початку тесту дашборд показує величезні «перемоги», яких немає.</span></p>
+    <canvas id="trumpet" style="height:280px" role="img" aria-label="Lift of A/A tests over time inside a narrowing funnel"></canvas>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Пояснення</span></span>
+    <h2><span class="uk">Чому шум такий гучний</span></h2>
+    <p class="lead uk">Від монетки до формули розміру вибірки. Перший шар без формул, другий з таблицями і калькулятором, третій про теорію та історію.</p>
+    
+  </div>
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">На пальцях</span><span class="mp-layer-desc">картинки, аналогії, маленькі числа</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «На пальцях» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Ідея · монетка (спрощено)</span></span>
+      <h3><span class="uk">Кожен відвідувач підкидає дуже нечесну монетку</span></h3>
+      <p class="uk">Підкиньте дві звичайні монетки по 100 разів. Орлів буде близько 50 у кожної, але одна обійде іншу на 10 і більше орлів у 17,9% випадків. Ніхто не скаже, що одна монетка «краща».</p>
+      
+      <p class="uk">Відвідувач сторінки теж монетка, тільки «орел» випадає в 5% випадків. 1&nbsp;000 відвідувачів дають ті самі 50 покупок, але розкид більший: ±7 замість ±5, бо рідкісні події коливаються сильніше (√50 ≈ 7). Дві однакові сторінки розходяться на 10 і більше покупок у 32,9% тестів.</p>
+      
+      <div class="vs">
+        <div><span><span class="uk">Звичайний розкид однієї сторінки</span></span><b class="mono"><span class="uk">±7 = ±14%</span></b></div>
+        <div><span><span class="uk">Звичайний розкид різниці двох сторінок</span></span><b class="mono">±10 = ±20%</b></div>
+      </div>
+      <p class="uk">Різниця двох сторінок коливається в √2 ≈ 1,4 раза сильніше, ніж кожна з них: шум є в обох. Тож ±20% є не рідкісною подією, а одним «типовим відхиленням». Це спрощення, точний розрахунок у раунді 1 дає 35,8%.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Малі числа</span></span>
+      <h3><span class="uk">Рахуються конверсії, а не відвідувачі</span></h3>
+      <p class="uk">«У нас тисяча відвідувачів, це багато» звучить переконливо. Але інформацію несуть лише ті, хто купив, а таких 50. Опитування 50 людей ніхто не вважає точним, а тест на 50 конверсіях вважають.</p>
+      
+      <p class="uk">Тому сторінка з конверсією 1% потребує вп'ятеро більше трафіку, ніж сторінка з 5%, щоб помітити той самий відносний ліфт. Таблиця в шарі «Строго» це показує.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Труба</span></span>
+      <h3><span class="uk">На початку тесту можливий будь-який ліфт</span></h3>
+      <p class="uk">Після першого дня в кожного варіанта кілька покупок, і 3 проти 6 дає «+100%». Що більше людей, то вужча смуга шуму на графіку труби в раунді 3. Вона звужується як 1/√n: учетверо більше відвідувачів дають удвічі вужчу смугу.</p>
+      
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Відвідувачів на варіант</span></th><th class="num"><span class="uk">Шум різниці (95%)</span></th></tr></thead>
+          <tbody>
+            <tr><td class="num" style="text-align:left">250</td><td class="num">±76%</td></tr>
+            <tr><td class="num" style="text-align:left"><span class="uk">1&nbsp;000</span></td><td class="num">±38%</td></tr>
+            <tr><td class="num" style="text-align:left"><span class="uk">4&nbsp;000</span></td><td class="num">±19%</td></tr>
+            <tr><td class="num" style="text-align:left"><span class="uk">16&nbsp;000</span></td><td class="num uk">±9,6%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Значущість простими словами</span></span>
+      <h3><span class="uk">p &lt; 0,05 не означає «95%, що B кращий»</span></h3>
+      <p class="uk"><a href="https://mathparadoxes.com/glossary/p-value/" class="mp-term" data-term="p-value" aria-expanded="false">p-значення</a> відповідає на питання: якби сторінки були однакові, як часто шум дав би такий самий або ще більший розрив? p &lt; 0,05 означає «рідше ніж 1 раз на 20». Це твердження про шум, а не про вашу сторінку.</p>
+      
+      <p class="uk">Чи справді B кращий, залежить ще й від того, як часто ваші ідеї взагалі працюють. Якщо працює лише кожна десята, то навіть серед «значущих» переможців помітна частка фальшивих. Калькулятор є в раунді 5.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Практичне правило</span></span>
+      <h3><span class="uk">Розмір вибірки рахують до старту, а не під час тесту</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">Відвідувачів на варіант у нашій задачі</span></span><b class="mono"><span class="uk">1&nbsp;000</span></b></div>
+        <div><span><span class="uk">Треба, щоб помітити +10% при конверсії 5%</span></span><b class="mono"><span class="uk">31&nbsp;234</span></b></div>
+      </div>
+      <p class="uk">Спершу вирішіть, який найменший ліфт вам важливий. Потім порахуйте, скільки відвідувачів треба, щоб помітити його у 8 тестах із 10 (раунд 5 має калькулятор). Потім чекайте, доки тест набере цю кількість, і лише тоді дивіться на результат. Якщо стільки трафіку немає, тестуйте сміливіші зміни: ліфт +20% потребує вчетверо менше людей, ніж +10%.</p>
+      
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Строго</span><span class="mp-layer-desc">таблиці, графіки, формули</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Строго» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Стандартна похибка</span></span>
+      <h3><span class="uk">Ширина дзвона в цифрах</span></h3>
+      <p class="uk">Ширину дзвона з раунду 3 вимірює <a href="https://mathparadoxes.com/glossary/standard-error/" class="mp-term" data-term="standard-error" aria-expanded="false">стандартна похибка</a>. Для конверсії однієї сторінки вона дорівнює √(p(1 − p)/n), для різниці двох сторінок √(2p(1 − p)/n). Близько 95% результатів шуму лежать у межах ±1,96 стандартної похибки. Ось ці межі для p = 5%.</p>
+      
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>n</th><th class="num"><span class="uk">SE різниці, п. п.</span></th><th class="num">±1,96·SE, <span class="uk">п. п.</span></th><th class="num"><span class="uk">у ліфті</span></th></tr></thead>
+          <tbody id="se-tbl"></tbody>
+        </table>
+      </div>
+      <p class="note"><span class="uk">п. п. означає відсоткові пункти: 5,0% → 5,5% є різницею 0,5 п. п., тобто ліфтом +10%.</span></p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Як перевірити свій тест</span></span>
+      <h3><span class="uk">z-тест для двох конверсій</span></h3>
+      <div class="calc">
+        <label class="ctl" for="z-na"><span class="uk">Відвідувачі A</span><input type="number" id="z-na" min="1" value="1000"></label>
+        <label class="ctl" for="z-a"><span class="uk">Конверсії A</span><input type="number" id="z-a" min="0" value="50"></label>
+        <label class="ctl" for="z-nb"><span class="uk">Відвідувачі B</span><input type="number" id="z-nb" min="1" value="1000"></label>
+        <label class="ctl" for="z-b"><span class="uk">Конверсії B</span><input type="number" id="z-b" min="0" value="61"></label>
+      </div>
+      <div class="calc-out" id="z-out"></div>
+      <p class="note"><span class="uk">z = різниця конверсій, поділена на її стандартну похибку (зі спільною конверсією обох груп). p-значення двобічне, з <a href="https://mathparadoxes.com/glossary/normal-distribution/" class="mp-term" data-term="normal-distribution" aria-expanded="false">нормальної кривої</a>. <a href="https://mathparadoxes.com/glossary/confidence-interval/" class="mp-term" data-term="confidence-interval" aria-expanded="false">Довірчий інтервал</a> 95% для різниці: ±1,96 стандартної похибки. Для малих чисел нормальна крива трохи оптимістична, тому поруч стоїть точний тест Фішера.</span></p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Скільки відвідувачів треба</span></span>
+      <h3><span class="uk">Розмір вибірки на кожен варіант: α = 5%, потужність 80%</span></h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Базова конверсія</span></th><th class="num"><span class="uk">ліфт +5%</span></th><th class="num">+10%</th><th class="num">+20%</th><th class="num">+50%</th></tr></thead>
+          <tbody id="ss-tbl"></tbody>
+        </table>
+      </div>
+      <p class="uk"><a href="https://mathparadoxes.com/glossary/statistical-power/" class="mp-term" data-term="statistical-power" aria-expanded="false">Статистична потужність</a> 80% означає: якщо ефект справді такий, тест помітить його у 8 випадках із 10. Удвічі менший ліфт потребує вчетверо більше людей, бо розмір вибірки росте як 1/δ², де δ є абсолютною різницею конверсій. Швидке правило n ≈ 16·p(1 − p)/δ² дає 30&nbsp;400 для 5% і +10% замість точних 31&nbsp;234. Для малих ліфтів воно помиляється на кілька відсотків, для +50% недораховує до п'ятої частини.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Чотири результати</span></span>
+      <h3><span class="uk">Що буває з будь-яким тестом</span></h3>
+      <div class="tbl-wrap">
+        <table class="outcomes">
+          <thead><tr><th></th><th><span class="uk">Тест каже «є ефект»</span></th><th><span class="uk">Тест каже «нічого»</span></th></tr></thead>
+          <tbody>
+            <tr><td><b><span class="uk">B справді кращий</span></b></td><td><b><span class="uk">Справжній переможець</span></b><span class="uk">частка = потужність, 1 − β</span></td><td><b><span class="uk">Пропущена ідея</span></b><span class="uk">похибка II роду, β</span></td></tr>
+            <tr><td><b><span class="uk">Сторінки однакові</span></b></td><td><b><span class="uk">Фальшивий переможець</span></b><span class="uk">похибка I роду, α = 5%</span></td><td><b><span class="uk">Чесне «нічого»</span></b><span class="uk">1 − α = 95%</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="uk">Поріг p &lt; 0,05 контролює лише нижній рядок: серед A/A-тестів фальшивих переможців 5%, хоч скільки відвідувачів. Верхній рядок залежить від розміру вибірки. При 1&nbsp;000 відвідувачів на варіант ефект +10% помічається лише у 7,2% тестів.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span></span>
+      <h3><span class="uk">Похибка, z-тест, інтервал і розмір вибірки</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Число конверсій у варіанті з n відвідувачів має біноміальний розподіл. Стандартна похибка частки і різниці двох частот.</span></p>
+          <math display="block"><mi>X</mi><mo>∼</mo><mi>Bin</mi><mo stretchy="false">(</mo><mi>n</mi><mo>,</mo><mi>p</mi><mo stretchy="false">)</mo><mo>,</mo><mspace width="0.8em"></mspace><msub><mi>SE</mi><mi>p</mi></msub><mo>=</mo><msqrt><mfrac><mrow><mi>p</mi><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false">)</mo></mrow><mi>n</mi></mfrac></msqrt><mo>,</mo><mspace width="0.8em"></mspace><msub><mi>SE</mi><mi>Δ</mi></msub><mo>=</mo><msqrt><mfrac><mrow><mn>2</mn><mi>p</mi><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false">)</mo></mrow><mi>n</mi></mfrac></msqrt></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Наша задача: p = 5%, n = 1&nbsp;000. Розкид різниці в ліфті, тобто поділений на 5%.</span></p>
+          <math display="block"><mfrac><msub><mi>SE</mi><mi>Δ</mi></msub><mi>p</mi></mfrac><mo>=</mo><mfrac><msqrt><mrow><mn>2</mn><mo>·</mo><mrow><mn class="uk">0,05</mn></mrow><mo>·</mo><mrow><mn class="uk">0,95</mn></mrow><mo>/</mo><mn class="uk">1&nbsp;000</mn></mrow></msqrt><mrow><mn class="uk">0,05</mn></mrow></mfrac><mo>=</mo><mn class="uk">19,5%</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">z-тест зі спільною конверсією p̄ обох груп і двобічне p-значення; 95% довірчий інтервал для різниці.</span></p>
+          <math display="block"><mi>z</mi><mo>=</mo><mfrac><mrow><msub><mover><mi>p</mi><mo>^</mo></mover><mi>B</mi></msub><mo>−</mo><msub><mover><mi>p</mi><mo>^</mo></mover><mi>A</mi></msub></mrow><msqrt><mrow><mover><mi>p</mi><mo>¯</mo></mover><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mover><mi>p</mi><mo>¯</mo></mover><mo stretchy="false">)</mo><mo stretchy="false">(</mo><mfrac><mn>1</mn><msub><mi>n</mi><mi>A</mi></msub></mfrac><mo>+</mo><mfrac><mn>1</mn><msub><mi>n</mi><mi>B</mi></msub></mfrac><mo stretchy="false">)</mo></mrow></msqrt></mfrac><mo>,</mo><mspace width="0.8em"></mspace><mi>p</mi><mo>=</mo><mn>2</mn><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>Φ</mi><mo stretchy="false">(</mo><mo stretchy="false">|</mo><mi>z</mi><mo stretchy="false">|</mo><mo stretchy="false">)</mo><mo stretchy="false">)</mo></math>
+          <math display="block"><mi>CI</mi><mo>=</mo><msub><mover><mi>p</mi><mo>^</mo></mover><mi>B</mi></msub><mo>−</mo><msub><mover><mi>p</mi><mo>^</mo></mover><mi>A</mi></msub><mo>±</mo><mrow><mn class="uk">1,96</mn></mrow><msqrt><mrow><mfrac><mrow><msub><mover><mi>p</mi><mo>^</mo></mover><mi>A</mi></msub><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mover><mi>p</mi><mo>^</mo></mover><mi>A</mi></msub><mo stretchy="false">)</mo></mrow><msub><mi>n</mi><mi>A</mi></msub></mfrac><mo>+</mo><mfrac><mrow><msub><mover><mi>p</mi><mo>^</mo></mover><mi>B</mi></msub><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mover><mi>p</mi><mo>^</mo></mover><mi>B</mi></msub><mo stretchy="false">)</mo></mrow><msub><mi>n</mi><mi>B</mi></msub></mfrac></mrow></msqrt></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Розмір вибірки на варіант для різниці δ = p₂ − p₁, двобічного α і потужності 1 − β.</span></p>
+          <math display="block"><mi>n</mi><mo>=</mo><mfrac><msup><mrow><mo>(</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>−</mo><mi>α</mi><mo>/</mo><mn>2</mn></mrow></msub><msqrt><mrow><mn>2</mn><mover><mi>p</mi><mo>¯</mo></mover><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mover><mi>p</mi><mo>¯</mo></mover><mo stretchy="false">)</mo></mrow></msqrt><mo>+</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>−</mo><mi>β</mi></mrow></msub><msqrt><mrow><msub><mi>p</mi><mn>1</mn></msub><msub><mi>q</mi><mn>1</mn></msub><mo>+</mo><msub><mi>p</mi><mn>2</mn></msub><msub><mi>q</mi><mn>2</mn></msub></mrow></msqrt><mo>)</mo></mrow><mn>2</mn></msup><msup><mi>δ</mi><mn>2</mn></msup></mfrac></math>
+          <math display="block"><msub><mi>p</mi><mn>1</mn></msub><mo>=</mo><mn>5%</mn><mo>,</mo><mspace width="0.6em"></mspace><msub><mi>p</mi><mn>2</mn></msub><mo>=</mo><mrow><mn class="uk">5,5%</mn></mrow><mo>,</mo><mspace width="0.6em"></mspace><msub><mi>z</mi><mrow><mn class="uk">0,975</mn></mrow></msub><mo>=</mo><mrow><mn class="uk">1,96</mn></mrow><mo>,</mo><mspace width="0.6em"></mspace><msub><mi>z</mi><mrow><mn class="uk">0,8</mn></mrow></msub><mo>=</mo><mrow><mn class="uk">0,84</mn></mrow><mspace width="0.6em"></mspace><mo>⇒</mo><mspace width="0.6em"></mspace><mrow class="hl"><mi>n</mi><mo>=</mo><mn class="uk">31&nbsp;234</mn></mrow></math>
+        </div>
+      </div>
+      <p class="uk">Перший рядок пояснює, звідки береться дзвін: число конверсій є сумою тисячі «монеток». Другий дає ширину шуму в нашій задачі: одне <a href="https://mathparadoxes.com/glossary/variance/" class="mp-term" data-term="variance" aria-expanded="false">стандартне відхилення</a> різниці дорівнює майже 20% ліфту. Третій описує стандартну перевірку, яку робить калькулятор вище. Останній показує, чому учетверо менший ефект коштує в 16 разів більше відвідувачів: δ стоїть у квадраті в знаменнику.</p>
+      
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Глибше</span><span class="mp-layer-desc">узагальнення, теорія, історія</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Глибше» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Звідки дзвін</span></span>
+      <h3><span class="uk">Тисяча монеток дають нормальну криву</span></h3>
+      <canvas id="clt" style="height:180px" role="img" aria-label="Binomial distribution of conversions out of 1,000 with a normal curve on top"></canvas>
+      <p class="uk">Стовпчики показують точні біноміальні ймовірності того, скільки з 1&nbsp;000 відвідувачів куплять при конверсії 5%. Лінія показує нормальний розподіл із тим самим <a href="https://mathparadoxes.com/glossary/median-vs-mean/" class="mp-term" data-term="mean" aria-expanded="false">середнім</a> 50 і розкидом 6,9. Центральна гранична теорема каже, що сума багатьох <a href="https://mathparadoxes.com/glossary/independence/" class="mp-term" data-term="independence" aria-expanded="false">незалежних</a> дрібних випадковостей має приблизно такий розподіл, хоч якою була кожна окрема. Тому всі дзвони на цій сторінці однакової форми, змінюється лише ширина.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Трохи історії</span></span>
+      <h3><span class="uk">Фішер, Нейман і Пірсон</span></h3>
+      <p class="uk">Рональд Фішер у книжці «Статистичні методи для дослідників» (1925) запропонував дивитися на p-значення і назвав межу 1 на 20 зручною для рішення, чи вважати відхилення значущим. Для нього це була міра доказу в одному досліді.</p>
+      
+      <p class="uk">Єжи Нейман і Еґон Пірсон у статтях 1928–1933 років подивилися інакше: як на правило, яке багато разів ухвалює рішення. Вони ввели похибки першого і другого роду та потужність тесту. Сучасний A/B-тест змішує обидва погляди: p-значення від Фішера і розрахунок розміру вибірки від Неймана і Пірсона.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Прокляття переможця</span></span>
+      <h3><span class="uk">Слабкий тест, якщо щось і знаходить, перебільшує</span></h3>
+      <canvas id="curse" style="height:260px" role="img" aria-label="Average lift reported by significant tests versus visitors per variant, true lift 10%"></canvas>
+      <div class="legend">
+        <span style="--c:var(--ink)"><b class="uk">середній ліфт B/A − 1 серед значущих перемог B (точно)</b></span>
+        <span style="--c:var(--aa)"><b class="uk">справжній ліфт +10%</b></span>
+      </div>
+      <p class="uk">B справді кращий на 10%. Ми беремо лише ті тести, де B переміг значущо, і дивимося, який ліфт вони показали. При 1&nbsp;000 відвідувачів на варіант значущим буває лише той тест, де шум випадково додав багато: у середньому такі тести показують на дашборді ліфт +60%. При 5&nbsp;000 це +24,1%, і лише десь від 30&nbsp;000 значущий результат перестає брехати про розмір ефекту. Тому «переможець» малого тесту після запуску на всіх майже завжди дає менше, ніж обіцяв.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Дохід замість конверсії</span></span>
+      <h3><span class="uk">Один великий чек ламає тест</span></h3>
+      <p class="uk">Дохід на відвідувача шумить сильніше за конверсію: до випадковості «купив чи ні» додається випадковість суми чека. Якщо середній чек 50, але чеки розкидані, як це зазвичай буває (логнормально, σ = 1,2), дисперсія доходу на відвідувача більша в 4,4 раза, і для тієї самої точності треба в 4,4 раза більше відвідувачів. Одне замовлення на кілька тисяч може саме зробити «переможця».</p>
+      
+      <div class="actions"><button class="btn pri sm" id="rv-run"><span class="uk">1&nbsp;000 A/A-тестів по 10&nbsp;000 відвідувачів</span></button></div>
+      <div class="vs">
+        <div><span><span class="uk">95% A/A-тестів за конверсією в межах</span></span><b class="mono" id="rv-c">–</b><span id="rv-c-s"></span></div>
+        <div><span><span class="uk">95% A/A-тестів за доходом у межах</span></span><b class="mono" id="rv-r">–</b><span id="rv-r-s"></span></div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+<script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "ab-test" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Масштабування</span></span>
+    <h2><span class="uk">Від калькулятора до перевірки інструмента</span></h2>
+    <p class="lead uk">Спершу математика (скільки відвідувачів і скільки днів), потім логіка (що означає «значущо» і «незначущо»), потім практика (як перевірити, що сам інструмент не бреше).</p>
+    
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card stage">
+        <span class="kicker"><span class="uk">1 · Математика: калькулятор вибірки</span></span>
+        <div class="calc">
+          <label class="ctl" for="c-p"><span><span class="uk">Базова конверсія:</span> <b class="mono" id="c-p-v"></b></span><input type="range" id="c-p" min="0.5" max="30" step="0.5" value="5"></label>
+          <label class="ctl" for="c-m"><span><span class="uk">Найменший важливий ліфт:</span> <b class="mono" id="c-m-v"></b></span><input type="range" id="c-m" min="2" max="100" step="1" value="10"></label>
+          <label class="ctl" for="c-pw"><span class="uk">Потужність</span>
+            <select id="c-pw"><option value="0.5">50%</option><option value="0.8" selected>80%</option><option value="0.9">90%</option><option value="0.95">95%</option></select></label>
+          <label class="ctl" for="c-a"><span class="uk">Рівень значущості α</span>
+            <select id="c-a"><option value="0.1">10%</option><option value="0.05" selected>5%</option><option value="0.01">1%</option></select></label>
+          <label class="ctl" for="c-t"><span class="uk">Відвідувачів на день (усього)</span><input type="number" id="c-t" min="10" step="100" value="2000"></label>
+        </div>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">На кожен варіант</span></span><b class="big mono" id="c-n">–</b></div>
+          <div><span class="k"><span class="uk">Тривалість тесту</span></span><b class="big mono" id="c-d">–</b></div>
+        </div>
+        <p class="note" id="c-note"></p>
+      </div>
+      <div class="card esc-text">
+        <h3><span class="uk">Сміливість дешевша за трафік</span></h3>
+        <p class="uk">Розмір вибірки росте як 1/δ². Удвічі більший очікуваний ліфт скорочує тест учетверо. Тому сайтам із невеликим трафіком варто тестувати не відтінок кнопки, а нову пропозицію, ціну чи структуру сторінки: зміни, які можуть дати +20–50%.</p>
+        
+        <p class="uk">Тест варто вести повними тижнями, навіть якщо вибірка набралася раніше: у вихідні і в будні купують по-різному. А дивитися на результат щодня і зупинятися на першому «95%» не можна, і це окрема пастка: <a href="../ab-test-peeking/">підглядання в A/B-тест</a>.</p>
+        
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <span class="kicker"><span class="uk">2 · Логіка: скільки переможців справжні</span></span>
+        <div class="calc">
+          <label class="ctl" for="b-pr"><span><span class="uk">Ідей, які справді працюють:</span> <b class="mono" id="b-pr-v"></b></span><input type="range" id="b-pr" min="1" max="60" step="1" value="10"></label>
+          <label class="ctl" for="b-pw"><span><span class="uk">Потужність тесту:</span> <b class="mono" id="b-pw-v"></b></span><input type="range" id="b-pw" min="5" max="99" step="1" value="80"></label>
+          <label class="ctl" for="b-a"><span><span class="uk">α:</span> <b class="mono" id="b-a-v"></b></span><input type="range" id="b-a" min="1" max="20" step="1" value="5"></label>
+        </div>
+        <canvas id="b-cv" style="aspect-ratio:5/2;height:auto" role="img" aria-label="1,000 tested ideas: true winners, missed ideas and false winners"></canvas>
+        <div class="legend" style="margin-top:0">
+          <span style="--c:var(--ink)"><b class="uk">справжні переможці</b></span>
+          <span style="--c:var(--loss)"><b class="uk">фальшиві переможці</b></span>
+          <span style="--c:var(--aa)"><b class="uk">пропущені робочі ідеї</b></span>
+          <span style="--c:var(--line)"><b class="uk">чесне «нічого»</b></span>
+        </div>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Серед «значущих» справжніх</span></span><b class="big mono" id="b-out">–</b></div>
+        </div>
+        <p class="note" id="b-note"></p>
+      </div>
+      <div class="card esc-text">
+        <h3><span class="uk">«Значущо» не означає «правда», «незначущо» не означає «нічого»</span></h3>
+        <p class="uk">Уявіть 1&nbsp;000 протестованих ідей, з яких працює кожна десята. Тест із потужністю 80% знайде 80 справжніх переможців, а з 900 порожніх ідей 5%, тобто 45, «переможуть» випадково. Серед 125 значущих результатів справжніх лише 64%. За потужності 20% частка падає до 31%. Це той самий механізм, що в <a href="../false-positive/">парадоксі хибнопозитивного тесту</a>: рідкісне справжнє тоне в частих хибних.</p>
+        
+        <p class="uk">Відсутність доказу не є доказом відсутності. При 1&nbsp;000 відвідувачів на варіант ефект +10% лишається «незначущим» у 92,8% тестів. Висновок «ми перевірили, і нічого не змінилося» з такого тесту зробити не можна: він майже нічого не міг побачити.</p>
+        
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <span class="kicker"><span class="uk">3 · Практика: перевірка розподілу трафіку</span></span>
+        <div class="calc">
+          <label class="ctl" for="r-a"><span class="uk">Відвідувачі A</span><input type="number" id="r-a" min="0" value="50000"></label>
+          <label class="ctl" for="r-b"><span class="uk">Відвідувачі B</span><input type="number" id="r-b" min="0" value="48500"></label>
+          <label class="ctl" for="r-s"><span><span class="uk">Запланована частка A:</span> <b class="mono" id="r-s-v"></b></span><input type="range" id="r-s" min="10" max="90" step="5" value="50"></label>
+        </div>
+        <div class="result-row">
+          <div><span class="k">χ²</span><b class="big mono" id="r-chi">–</b></div>
+          <div><span class="k"><span class="uk">p-значення</span></span><b class="big mono" id="r-p">–</b></div>
+        </div>
+        <p class="note" id="r-note"></p>
+      </div>
+      <div class="card esc-text">
+        <h3><span class="uk">A/A-тест як огляд у лікаря</span></h3>
+        <p class="uk">Перед серйозними тестами варто прогнати кілька A/A-тестів. Якщо «значущих» результатів у них помітно більше за 5%, інструмент рахує неправильно: наприклад, один відвідувач потрапляє в обидві групи, або боти йдуть лише в одну.</p>
+        
+        <p class="uk">Друга перевірка нічого не коштує: чи справді трафік поділився так, як планували. 50&nbsp;000 проти 48&nbsp;500 при розподілі 50/50 виглядає як дрібниця, але випадково таке буває рідше ніж раз на пів мільйона. Це невідповідність розподілу (sample ratio mismatch): десь губляться відвідувачі одного варіанта, наприклад через повільне завантаження. Результатам такого тесту не можна вірити, хоч яким гарним буде ліфт.</p>
+        
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Далі в серії про A/B-тести</span></span>
+      <div class="next" style="margin-top:14px">
+        <a class="uk" href="../ab-test-peeking/"><b>Підглядання в A/B-тест</b><span>Маркетолог щовечора дивиться на дашборд і зупиняє тест на першому «95%». Як часто однакова сторінка стає «переможцем»? І що робити, якщо чекати на повну вибірку неможливо.</span></a>
+        
+        <a class="uk" href="../multiple-testing/"><b>Множинні перевірки</b><span>Тест чесний, але результат потім розбивають на 20 країн. Який шанс, що хоч одна покаже «значущу» різницю, якої немає?</span></a>
+        
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span></span>
+    <h2><span class="uk">Що розповісти колегам</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1747</span>
+        <h3><span class="uk">Перший контрольований дослід</span></h3>
+        <p class="uk">Корабельний лікар Джеймс Лінд на кораблі HMS Salisbury розділив 12 моряків із цингою на шість пар і дав кожній парі інші ліки: сидр, оцет, морську воду, два апельсини й лимон на день та інше. Швидко одужали лише ті, хто їв цитрусові. Лінд описав дослід у «Трактаті про цингу» 1753 року.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1 / 20</span>
+        <h3><span class="uk">Звідки взялися 5%</span></h3>
+        <p class="uk">Рональд Фішер у книжці «Статистичні методи для дослідників» (1925) писав, що значенню P = 0,05, тобто 1 на 20, відповідає 1,96, «або майже 2» стандартних відхилення, і що цю точку зручно брати за межу значущості. Сам Фішер пізніше радив обирати рівень значущості залежно від обставин.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">+40,6%</span></span>
+        <h3><span class="uk">Кнопка Обами</span></h3>
+        <p class="uk">У 2008 році виборчий штаб Барака Обами тестував кнопку і картинку на сторінці підписки. Кнопка «Learn More» і сімейне фото підняли конверсію з 8,26% до 11,6%. За оцінкою Дена Сірокера, директора з аналітики кампанії, це дало близько 2,9 мільйона додаткових email-адрес і приблизно 60 мільйонів доларів пожертв.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">100 млн $</span></span>
+        <h3><span class="uk">Ідея, що пів року чекала в черзі</span></h3>
+        <p class="uk">2012 року співробітник Microsoft запропонував інакше показувати заголовки реклами в Bing. Ідею вважали неважливою, і понад пів року нею ніхто не займався. Коли інженер нарешті запустив A/B-тест, дохід зріс на 12%. Роні Кохаві і Стефан Томке в Harvard Business Review (2017) оцінюють це в понад 100 мільйонів доларів на рік лише у США.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1 / 3</span>
+        <h3><span class="uk">Більшість ідей не працює</span></h3>
+        <p class="uk">Роні Кохаві з колегами в статті «Онлайн-експерименти в Microsoft» (2009) повідомили, що лише близько третини протестованих ідей покращили метрику, заради якої їх робили. Решта виявилися нейтральними або шкідливими. Саме тому малий тест, який «знаходить» переможця щоразу, має викликати підозру.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">41</span>
+        <h3><span class="uk">41 відтінок синього</span></h3>
+        <p class="uk">Дизайнер Дуглас Боумен, ідучи з Google у березні 2009 року, написав прощальний пост. Він розповів, що команда, яка не могла обрати між двома відтінками синього, протестувала 41 відтінок між ними, щоб побачити, який працює краще. Боумен навів це як приклад культури, де кожне дизайнерське рішення має довести дані.</p>
+        
+      </article>
+  </div>
+</section>
+
+<section class="mp-books" id="books">
+  <div class="mp-related-head">
+    <span class="eyebrow">Що почитати</span>
+    <h2>Книжки, де є ця задача</h2>
+  </div>
+  <div class="mp-books-grid">
+    <div class="mp-book"><h3>Мистецтво статистики. Прийняття аргументованих рішень на основі даних</h3><p class="mp-book-author">Девід Шпіґельгалтер</p><p class="mp-book-meta">КМ-Букс, 2023 · розділ 10</p></div>
+    <div class="mp-book"><h3>Trustworthy Online Controlled Experiments</h3><p class="mp-book-author">Рон Кохаві, Даян Тан, Я Сю</p><p class="mp-book-meta">2020, англійською · розділи 17 і 19</p></div>
+    <div class="mp-book"><h3>Statistics Done Wrong</h3><p class="mp-book-author">Алекс Райнгарт</p><p class="mp-book-meta">2015, англійською · розділ 2</p></div>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/books/">Усі книжки →</a>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">Ще задачі</span>
+    <h2>Інші парадокси</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/ab-test-peeking/"><h3>Підглядання в A/B-тест</h3><p>Дві однакові сторінки, тест на 30 днів, перевірка щовечора і зупинка на першому «95%». Як часто одну з однакових сторінок оголосять переможцем?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/multiple-testing/"><h3>Ріжте результат, доки щось не виграє</h3><p>Новий лист нічим не кращий за старий. Аналітик перевіряє результат у 20 країнах. Який шанс, що хоча б одна покаже «значущу» різницю?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/simpson-paradox/"><h3>Парадокс Сімпсона</h3><p>Метод A лікує і малі, і великі камені в нирках краще за метод B. Чи може B бути кращим для всіх пацієнтів разом?</p></a>
+  </div>
+  <p class="mp-related-all"><a href="https://mathparadoxes.com/">Усі задачі →</a> <a href="https://mathparadoxes.com/glossary/">Словник →</a></p>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Обговорення</span>
+    <h2>Що ви думаєте?</h2>
+    <p>Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub.</p>
+    <div class="mp-lvote"><p>Рівень «Поглиблено» відповідає задачі?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">Ні, складніше</button><button type="button" data-vote="right">Так</button><button type="button" data-vote="easier">Ні, простіше</button></div><p class="mp-lvote-thanks">Дякуємо! Це допоможе точніше ставити рівні.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "ab-test" + "-lvl", LEVEL = 3, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="ab-test" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="uk" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Розсилка</span>
+    <h2>Нові задачі, пояснення й обговорення</h2>
+    <p>Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">Форма підписки з'явиться тут найближчим часом.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+<footer>
+  <span class="uk">Дві однакові сторінки з конверсією 5% і 1&nbsp;000 відвідувачів кожна: у 35,8% тестів одна «перемагає» іншу на 20% і більше.</span>
+  
+  <span class="mono">SE = √(2p(1 − p)/n)</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const solved = () => !window.mpSolved || mpSolved();
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const pct = (p, d = 0) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => Math.round(n).toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const MINUS = '−';
+const plural = (k, one, few, many) => { const a = k % 10, b = k % 100; if (a === 1 && b !== 11) return one; if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few; return many; };
+const sgn = (v, d = 0) => { const s = (100 * Math.abs(v)).toFixed(d); return (+s === 0 ? '' : v > 0 ? '+' : MINUS) + dec(s) + '%'; };
+// a small p-value with two significant digits, no exponent: 0,0000018
+const pval = p => { if (p >= .001) return dec(p.toFixed(p >= .1 ? 2 : 3)); if (p < 1e-12) return L('< 0,000000000001', '< 0.000000000001'); const d = Math.ceil(-Math.log10(p)) + 1; return dec(p.toFixed(d)); };
+
+/* ---------- maths ---------- */
+const P0 = .05, P1 = .055, Z = 1.959964;
+function lgamma(x) { const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, .1208650973866179e-2, -.5395239384953e-5]; let y = x, t = x + 5.5; t -= (x + .5) * Math.log(t); let s = 1.000000000190015; for (const v of c) s += v / ++y; return -t + Math.log(2.5066282746310005 * s / x); }
+// erfc with fractional error below 1.2e-7 (Numerical Recipes), good for tiny p-values too
+function erfc(x) { const z = Math.abs(x), t = 1 / (1 + .5 * z), r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (.37409196 + t * (.09678418 + t * (-.18628806 + t * (.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-.82215223 + t * .17087277))))))))); return x >= 0 ? r : 2 - r; }
+const Phi = x => x >= 0 ? 1 - erfc(x / Math.SQRT2) / 2 : erfc(-x / Math.SQRT2) / 2;
+const npdf = (x, m, s) => Math.exp(-(x - m) * (x - m) / (2 * s * s)) / (s * Math.sqrt(2 * Math.PI));
+function qnorm(p) { let lo = -10, hi = 10; for (let i = 0; i < 90; i++) { const m = (lo + hi) / 2; if (Phi(m) < p) lo = m; else hi = m; } return (lo + hi) / 2; }
+// binomial pmf over mean ± 10 SD, with its cdf for exact inverse-cdf sampling
+const PMF = new Map();
+function pmfTable(n, p) {
+  const key = n + ':' + p; if (PMF.has(key)) return PMF.get(key);
+  const mu = n * p, sd = Math.sqrt(n * p * (1 - p)), lo = Math.max(0, Math.floor(mu - 10 * sd) - 3), hi = Math.min(n, Math.ceil(mu + 10 * sd) + 3);
+  const lc = lgamma(n + 1), lp = Math.log(p), lq = Math.log(1 - p), pm = new Float64Array(hi - lo + 1), cdf = new Float64Array(hi - lo + 1);
+  let s = 0; for (let k = lo; k <= hi; k++) { const v = Math.exp(lc - lgamma(k + 1) - lgamma(n - k + 1) + k * lp + (n - k) * lq); pm[k - lo] = v; s += v; cdf[k - lo] = s; }
+  const t = { lo, pm, cdf, tot: s }; PMF.set(key, t); return t;
+}
+function binom(n, p) {
+  const t = pmfTable(n, p), u = Math.random() * t.tot; let a = 0, b = t.cdf.length - 1;
+  while (a < b) { const m = (a + b) >> 1; if (t.cdf[m] < u) a = m + 1; else b = m; }
+  return t.lo + a;
+}
+// pooled two-proportion z
+function zTest(a, na, b, nb) { const pb = (a + b) / (na + nb); if (pb <= 0 || pb >= 1) return 0; return (b / nb - a / na) / Math.sqrt(pb * (1 - pb) * (1 / na + 1 / nb)); }
+// exact over all pairs (a, b): A ~ Bin(n, 5%), B ~ Bin(n, pb)
+const EX = new Map();
+function exact(n, pb) {
+  const key = n + ':' + pb; if (EX.has(key)) return EX.get(key);
+  const A = pmfTable(n, P0), B = pmfTable(n, pb); let pos = 0, neg = 0, lt = 0, tie = 0, sl = 0;
+  for (let i = 0; i < A.pm.length; i++) {
+    const x = A.pm[i]; if (x < 1e-13) continue; const a = A.lo + i;
+    for (let j = 0; j < B.pm.length; j++) {
+      const w = x * B.pm[j]; if (w < 1e-17) continue; const b = B.lo + j, z = zTest(a, n, b, n);
+      if (z > Z) { pos += w; sl += w * (a ? b / a - 1 : 0); } else if (z < -Z) neg += w;
+      if (b < a) lt += w; else if (b === a) tie += w;
+    }
+  }
+  const r = { pos, neg, lt, tie, curse: pos ? sl / pos : NaN }; EX.set(key, r); return r;
+}
+// visitors per variant for relative lift m at base p, two-sided alpha, power
+function nNeed(p, m, alpha = .05, power = .8) {
+  const p2 = p * (1 + m), pb = (p + p2) / 2, d = p2 - p, za = qnorm(1 - alpha / 2), zb = qnorm(power);
+  return Math.ceil(Math.pow(za * Math.sqrt(2 * pb * (1 - pb)) + zb * Math.sqrt(p * (1 - p) + p2 * (1 - p2)), 2) / (d * d));
+}
+// noise half-width at 95% for the gap, as a lift relative to 5%
+const swing = n => Z * Math.sqrt(2 * P0 * (1 - P0) / n) / P0;
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+function rrect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+// label on a light backing so bars do not hide it
+function tag(ctx, txt, x, y, col, align = 'left') {
+  ctx.font = '600 11px ' + tok('--f-mono'); const w = ctx.measureText(txt).width, x0 = align === 'left' ? x : align === 'right' ? x - w : x - w / 2;
+  ctx.fillStyle = tok('--surface') || '#fff'; ctx.globalAlpha = .88; ctx.fillRect(x0 - 3, y - 8, w + 6, 16); ctx.globalAlpha = 1;
+  ctx.fillStyle = col; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x0, y);
+}
+
+/* ---------- hero: two identical pages, 1,000 visitors each ---------- */
+const HN = 1000, HCOLS = 40;
+const hero = { t0: 0, raf: 0, visible: true, a: null, b: null, hist: [] };
+function heroBatch() {
+  hero.a = new Uint8Array(HN); hero.b = new Uint8Array(HN);
+  for (let i = 0; i < HN; i++) { hero.a[i] = Math.random() < P0; hero.b[i] = Math.random() < P0; }
+  hero.t0 = performance.now();
+}
+const DUR = 3400, HOLD = 2400;
+const heroCount = (arr, k) => { let s = 0; for (let i = 0; i < k; i++) s += arr[i]; return s; };
+// lift of the leader, as the puzzle defines it: winner / loser − 1
+function leader(a, b) { if (a === b) return { w: '', l: 0 }; const mx = Math.max(a, b), mn = Math.min(a, b); return { w: b > a ? 'B' : 'A', l: mn ? mx / mn - 1 : Infinity }; }
+function heroDraw(now) {
+  const s = setupCanvas($('#hero-cv')); if (!s) return;
+  const { ctx, W, H } = s, ink = tok('--ink'), muted = tok('--muted'), line = tok('--line'), cell = tok('--cell'), hit = tok('--hit'), surf = tok('--surface') || '#fff';
+  const t = reduce() ? DUR : (now || performance.now()) - hero.t0;
+  if (!reduce() && t > DUR + HOLD) { const a = heroCount(hero.a, HN), b = heroCount(hero.b, HN); hero.hist.push(leader(a, b)); if (hero.hist.length > 6) hero.hist.shift(); heroBatch(); return heroDraw(now); }
+  const k = Math.min(HN, Math.floor(HN * Math.min(1, t / DUR)));
+  const pad = 10, gap = 14, cw = (W - 2 * pad - gap) / 2, mockH = Math.min(H * .24, cw * .5);
+  const gridTop = 30 + mockH + 12, gridH = H - gridTop - 70, dc = Math.min(cw / HCOLS, gridH / (HN / HCOLS));
+  const counts = [heroCount(hero.a, k), heroCount(hero.b, k)];
+  [hero.a, hero.b].forEach((arr, side) => {
+    const x0 = pad + side * (cw + gap);
+    ctx.fillStyle = ink; ctx.font = '800 13px ' + tok('--f-display'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(side ? 'B' : 'A', x0 + cw / 2, 15);
+    // the landing page mock-up, identical on both sides
+    ctx.fillStyle = surf; rrect(ctx, x0, 30, cw, mockH, 10); ctx.fill(); ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = line; [0, 1, 2].forEach(i => { ctx.beginPath(); ctx.arc(x0 + 10 + i * 8, 39, 2.4, 0, 7); ctx.fill(); });
+    ctx.fillStyle = ink; ctx.fillRect(x0 + 10, 30 + mockH * .26, cw * .62, Math.max(4, mockH * .09));
+    ctx.fillStyle = line; ctx.fillRect(x0 + 10, 30 + mockH * .43, cw * .8, Math.max(3, mockH * .05)); ctx.fillRect(x0 + 10, 30 + mockH * .53, cw * .55, Math.max(3, mockH * .05));
+    const bh = Math.max(14, mockH * .2), bw = Math.min(cw * .5, 90);
+    ctx.fillStyle = ink; rrect(ctx, x0 + 10, 30 + mockH - bh - 10, bw, bh, bh / 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '600 ' + Math.round(Math.min(11, bh * .6)) + 'px ' + tok('--f-body'); ctx.textAlign = 'center';
+    ctx.fillText(L('Купити', 'Buy'), x0 + 10 + bw / 2, 30 + mockH - bh / 2 - 10);
+    // visitors: arrived ones are grey, buyers are dark and bigger
+    const gx = x0 + (cw - dc * HCOLS) / 2;
+    for (let i = 0; i < HN; i++) {
+      const cx = gx + (i % HCOLS + .5) * dc, cy = gridTop + (Math.floor(i / HCOLS) + .5) * dc;
+      if (i >= k) { ctx.fillStyle = cell; ctx.beginPath(); ctx.arc(cx, cy, dc * .22, 0, 7); ctx.fill(); continue; }
+      if (arr[i]) { ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(cx, cy, dc * .48, 0, 7); ctx.fill(); }
+      else { ctx.fillStyle = line; ctx.beginPath(); ctx.arc(cx, cy, dc * .3, 0, 7); ctx.fill(); }
+    }
+    ctx.fillStyle = muted; ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'center';
+    ctx.fillText(fmt(k) + L(' відвідувачів', ' visitors'), x0 + cw / 2, gridTop + dc * HN / HCOLS + 10);
+  });
+  // the dashboard line
+  const y = H - 36, ld = leader(counts[0], counts[1]), done = k >= HN;
+  ctx.font = '800 17px ' + tok('--f-display'); ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+  const lift = !ld.w ? L('нічия', 'a tie') : (ld.w + ' ' + (isFinite(ld.l) ? '+' + dec((100 * ld.l).toFixed(0)) + '%' : '+∞'));
+  const big = done && solved() && ld.l >= .2 - 1e-9;
+  ctx.fillStyle = ink; ctx.fillText('A ' + counts[0] + ' · B ' + counts[1] + ' · ', W / 2 - ctx.measureText(lift).width / 2, y);
+  ctx.fillStyle = big ? hit : ink; ctx.fillText(lift, W / 2 + ctx.measureText('A ' + counts[0] + ' · B ' + counts[1] + ' · ').width / 2, y);
+  // the last results: the "winner" keeps changing
+  if (hero.hist.length) {
+    ctx.font = '600 11px ' + tok('--f-mono');
+    const items = hero.hist.map(h => ({ t: h.w ? h.w + ' +' + (isFinite(h.l) ? dec((100 * h.l).toFixed(0)) : '∞') + '%' : '=', c: solved() && h.l >= .2 - 1e-9 ? hit : muted }));
+    const label = L('попередні: ', 'previous: '), widths = items.map(it => ctx.measureText(it.t).width + 12);
+    let x = W / 2 - (ctx.measureText(label).width + widths.reduce((s, v) => s + v, 0)) / 2;
+    ctx.textAlign = 'left'; ctx.fillStyle = muted; ctx.fillText(label, x, H - 12); x += ctx.measureText(label).width;
+    items.forEach((it, i) => { ctx.fillStyle = it.c; ctx.fillText(it.t, x, H - 12); x += widths[i]; });
+  }
+}
+function heroLoop(now) { heroDraw(now); if (!reduce() && hero.visible) hero.raf = requestAnimationFrame(heroLoop); else hero.raf = 0; }
+function heroStart() { if (hero.raf) cancelAnimationFrame(hero.raf); hero.raf = 0; if (reduce()) { heroDraw(); return; } hero.raf = requestAnimationFrame(heroLoop); }
+if ('IntersectionObserver' in window) new IntersectionObserver(es => {
+  hero.visible = es[0].isIntersecting;
+  if (hero.visible && !hero.raf && !reduce()) hero.raf = requestAnimationFrame(heroLoop);
+}).observe($('#hero-cv'));
+document.addEventListener('solved', () => { heroDraw(); });
+
+/* ---------- round 1: guess ---------- */
+// exact, from summing Binomial(1000, 5%) pairs (see the report): share of A/A tests with leader lift >= r
+const ANS = .3578, BY_R = [[.1, .6302], [.2, .3578], [.3, .1844], [.5, .0435]];
+const BY_N = [[100, .8177], [500, .5214], [1000, .3578], [2000, .1904], [5000, .0376], [10000, .0032]];
+const gIn = $('#guess-in'); let guessed = null;
+const gShow = () => { $('#guess-v').textContent = gIn.value + '%'; };
+gIn.addEventListener('input', gShow);
+$('#guess-go').addEventListener('click', () => { guessed = +gIn.value; guessText(); window.mpSolve && mpSolve(guessed); });
+function guessText() {
+  if (guessed === null) return;
+  const g = guessed / 100;
+  let v;
+  if (g < .15) v = L('Так підказує інтуїція: сторінки ж однакові. Але 1 000 відвідувачів дають лише близько 50 покупок, а 50 покупок звично розкидаються на ±7. Різниця двох таких чисел легко сягає 10, тобто 20%.', 'That is what intuition says: the pages are identical. But 1,000 visitors give only about 50 purchases, and 50 purchases routinely scatter by ±7. The gap between two such numbers easily reaches 10, that is 20%.');
+  else if (g < .3) v = L('Ви відчули, що шум помітний, але він ще гучніший. 50 покупок звично розкидаються на ±7, а різниця двох сторінок на ±10. Тож 20% є лише одним типовим відхиленням.', 'You sensed the noise is noticeable, but it is louder still. 50 purchases routinely scatter by ±7, and the gap between two pages by ±10. So 20% is just one typical deviation.');
+  else if (g <= .42) v = L('Влучно. Більш ніж кожен третій A/A-тест показує «перемогу» на 20% і більше. При 1 000 відвідувачів така різниця є звичайним шумом.', 'Spot on. More than one A/A test in three shows a "win" of 20% or more. With 1,000 visitors such a gap is ordinary noise.');
+  else v = L('Забагато, але напрям правильний: шум справді великий. «Перемога» на 20% трапляється в третині тестів, на 10% у двох третинах, а на 50% лише в 4%.', 'Too high, but the direction is right: the noise really is big. A 20% "win" happens in a third of tests, a 10% win in two thirds, and a 50% win in only 4%.');
+  const rows = [[L('Ваша оцінка', 'Your estimate'), g, 'var(--day)'], [L('Інтуїція: «рідко»', 'Intuition: "rarely"'), .05, 'var(--muted)'], [L('Насправді', 'In fact'), ANS, 'var(--hit)']];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">' + pct(ANS, 1) + '</p><p>' + v + '</p>' +
+    '<div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + pct(r[1], r[1] === ANS ? 1 : 0) + '</span></div>').join('') + '</div>' +
+    '<div class="tbl-wrap"><table><thead><tr><th>' + L('«Перемога» лідера', 'Leader\'s "win"') + '</th>' + BY_R.map(r => '<th class="num">≥ ' + pct(r[0]) + '</th>').join('') + '</tr></thead><tbody><tr><td>' + L('частка A/A-тестів', 'share of A/A tests') + '</td>' + BY_R.map(r => '<td class="num' + (r[0] === .2 ? ' em' : '') + '">' + pct(r[1], 1) + '</td>').join('') + '</tr></tbody></table></div>' +
+    '<p class="note">' + L('Точно: сума ймовірностей за всіма парами результатів (a, b) двох біноміальних розподілів Bin(1 000; 5%). Симуляція 400 000 тестів дає 36,0%. Для «перемоги» на 20% при інших розмірах: ', 'Exact: the sum of probabilities over all pairs of outcomes (a, b) of two Binomial(1,000, 5%) distributions. A simulation of 400,000 tests gives 36.0%. For a 20% "win" at other sizes: ') +
+    BY_N.map(r => fmt(r[0]) + ' → ' + pct(r[1], r[1] < .01 ? 2 : 1)).join(', ') + '.</p>';
+}
+
+/* ---------- round 2: real or noise ---------- */
+// best possible rule (exact, prior 50/50): call it real when B leads by at least t conversions
+const GN = [1000, 10000, 31000, 100000], BEST = { 1000: [3, .600], 10000: [26, .789], 31000: [78, .921], 100000: [248, .994] };
+const game = { n: 1000, items: [], picks: [], shown: false };
+function gameNew() {
+  game.items = Array.from({ length: 10 }, () => { const real = Math.random() < .5; return { real, a: binom(game.n, P0), b: binom(game.n, real ? P1 : P0) }; });
+  game.picks = Array(10).fill(null); game.shown = false; gameRender();
+}
+function gameRender() {
+  const n = game.n;
+  $('#g-n').innerHTML = GN.map(v => '<button type="button" data-n="' + v + '" aria-pressed="' + (v === n) + '">' + fmt(v) + L(' на варіант', ' per variant') + '</button>').join('');
+  $('#g-grid').innerHTML = game.items.map((it, i) => {
+    const z = zTest(it.a, n, it.b, n), ch = Phi(z), lift = it.a ? it.b / it.a - 1 : 0, pk = game.picks[i];
+    const right = game.shown && pk !== null && (pk === 'r') === it.real, wrong = game.shown && pk !== null && !right;
+    const truth = game.shown ? '<span class="truth' + (it.real ? ' real' : '') + '">' + (it.real ? L('B +10% насправді', 'B +10% for real') : L('однакові', 'identical')) + '</span>' : '<span class="truth">?</span>';
+    const row = (k, c) => '<div class="row"><span>' + k + '</span><span>' + fmt(c) + ' / ' + fmt(n) + '</span><span class="r">' + pct(c / n, 2) + '</span></div>';
+    return '<div class="dash' + (right ? ' ok' : wrong ? ' bad' : '') + '"><div class="hd"><b>' + L('Тест ', 'Test ') + (i + 1) + '</b>' + truth + '</div>' + row('A', it.a) + row('B', it.b) +
+      '<div class="lift"><span>' + L('Ліфт B', 'Lift of B') + '</span><b>' + sgn(lift, 1) + '</b></div>' +
+      '<div class="conf' + (ch >= .95 ? ' sig' : '') + '"><span>' + L('Шанс, що B кращий', 'Chance B is better') + '</span><b>' + pct(ch) + '</b></div>' +
+      '<div class="pick"><button type="button" data-i="' + i + '" data-p="r" aria-pressed="' + (pk === 'r') + '">' + L('Ефект', 'Real') + '</button><button type="button" data-i="' + i + '" data-p="n" aria-pressed="' + (pk === 'n') + '">' + L('Шум', 'Noise') + '</button></div>' +
+      (game.shown ? '<span class="mark">' + (pk === null ? L('без відповіді', 'no answer') : right ? L('правильно', 'right') : L('помилка', 'wrong')) + '</span>' : '') + '</div>';
+  }).join('');
+  const [t, acc] = BEST[n];
+  if (!game.shown) {
+    const done = game.picks.filter(p => p !== null).length;
+    $('#g-score').innerHTML = '';
+    $('#g-msg').textContent = L('Позначено ' + done + ' з 10. Підказка: звертайте увагу і на ліфт, і на «шанс, що B кращий». Коли закінчите, натисніть «Перевірити».', done + ' of 10 marked. Tip: look at both the lift and the "chance B is better". When you are done, press "Check".');
+    return;
+  }
+  const answered = game.items.filter((_, i) => game.picks[i] !== null).length;
+  const mine = game.items.filter((it, i) => game.picks[i] !== null && (game.picks[i] === 'r') === it.real).length;
+  const stat = game.items.filter(it => (it.b - it.a >= t) === it.real).length;
+  const fakeStar = game.items.filter(it => !it.real && Phi(zTest(it.a, n, it.b, n)) >= .9).length;
+  const cell = (k, v) => '<div><span class="k">' + k + '</span><b class="mono">' + v + '</b></div>';
+  $('#g-score').innerHTML = cell(L('Ви', 'You'), mine + ' / ' + answered) + cell(L('Найкраще правило на цих 10', 'Best rule on these 10'), stat + ' / 10') + cell(L('Найкраще правило в середньому', 'Best rule on average'), pct(acc)) + cell(L('Монетка', 'A coin'), '50%');
+  const rule = L('Найкраще можливе правило: «ефект, якщо B має щонайменше на ' + t + ' ' + plural(t, 'конверсію', 'конверсії', 'конверсій') + ' більше» (ліфт +' + dec((100 * t / (n * P0)).toFixed(0)) + '%). ', 'The best possible rule: "real if B has at least ' + t + ' more conversions" (a lift of +' + (100 * t / (n * P0)).toFixed(0) + '%). ');
+  $('#g-msg').textContent = rule + (n === 1000
+    ? L('При 1 000 відвідувачів навіть воно вгадує лише 60% у середньому: ледь краще за монетку. Шум у ±38% просто ховає ефект у +10%. ', 'With 1,000 visitors even it gets only 60% right on average: barely better than a coin. Noise of ±38% simply hides a +10% effect. ')
+    : n === 100000 ? L('При 100 000 відвідувачів шум ±3,8% і ефект +10% видно майже завжди. ', 'With 100,000 visitors the noise is ±3.8% and a +10% effect shows almost every time. ')
+    : L('При ' + fmt(n) + ' відвідувачів шум ±' + dec((100 * swing(n)).toFixed(1)) + '%, і вгадувати стає легше. ', 'With ' + fmt(n) + ' visitors the noise is ±' + (100 * swing(n)).toFixed(1) + '%, and guessing gets easier. ')) +
+    (fakeStar ? L('Тестів з однаковими сторінками, де «шанс, що B кращий» 90% і більше: ' + fakeStar + '.', 'Tests with identical pages that show a "chance B is better" of 90% or more: ' + fakeStar + '.') : '');
+}
+$('#g-grid').addEventListener('click', e => { const b = e.target.closest('button[data-p]'); if (!b || game.shown) return; const i = +b.dataset.i; game.picks[i] = game.picks[i] === b.dataset.p ? null : b.dataset.p; gameRender(); });
+$('#g-n').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; game.n = +b.dataset.n; gameNew(); });
+$('#g-check').addEventListener('click', () => { game.shown = true; gameRender(); });
+$('#g-new').addEventListener('click', gameNew);
+
+/* ---------- round 3: two bells ---------- */
+const SR = 20000, XLO = -.6, XHI = .8;
+const SPRE = [1000, 10000, 31234, 100000];
+const sim = { n: 1000, aa: null, ab: null, stats: null };
+const sIn = $('#s-n');
+function simRun() {
+  const n = sim.n, aa = new Int32Array(SR), ab = new Int32Array(SR);
+  let fp = 0, pw = 0, lt = 0, tie = 0;
+  for (let r = 0; r < SR; r++) {
+    let a = binom(n, P0), b = binom(n, P0); aa[r] = b - a; if (Math.abs(zTest(a, n, b, n)) > Z) fp++;
+    a = binom(n, P0); b = binom(n, P1); ab[r] = b - a; if (zTest(a, n, b, n) > Z) pw++; if (b < a) lt++; else if (b === a) tie++;
+  }
+  sim.aa = aa; sim.ab = ab; sim.stats = { fp: fp / SR, pw: pw / SR, lt: lt / SR, tie: tie / SR };
+}
+function simText() {
+  const n = sim.n, st = sim.stats, e1 = exact(n, P1), e0 = exact(n, P0);
+  $('#s-n-v').textContent = fmt(n);
+  $('#s-pre').innerHTML = SPRE.map(v => '<button type="button" data-n="' + v + '" aria-pressed="' + (v === n) + '">' + fmt(v) + '</button>').join('');
+  $('#t-fp').textContent = pct(st.fp, 1);
+  $('#t-fp-s').textContent = L('точно ' + pct(e0.pos + e0.neg, 1) + ': поріг p < 0,05 тримає 5% за будь-якого n', 'exact ' + pct(e0.pos + e0.neg, 1) + ': the p < 0.05 threshold keeps it at 5% for any n');
+  $('#t-pw').textContent = pct(st.pw, 1);
+  $('#t-pw-s').textContent = L('точно ' + pct(e1.pos, 1) + '; для 80% треба 31 234', 'exact ' + pct(e1.pos, 1) + '; 80% needs 31,234');
+  $('#t-neg').textContent = pct(st.lt, 1);
+  $('#t-neg-s').textContent = L('B < A; точно ' + pct(e1.lt, 1) + ', ще ' + pct(e1.tie, 1) + ' нічиїх', 'B < A; exact ' + pct(e1.lt, 1) + ', plus ' + pct(e1.tie, 1) + ' ties');
+  $('#t-sw').textContent = '±' + dec((100 * swing(n)).toFixed(swing(n) < .1 ? 1 : 0)) + '%';
+  $('#t-sw-s').textContent = L('у таких межах ліфт 95% A/A-тестів', 'the lift of 95% of A/A tests stays inside');
+}
+function simDraw() {
+  const s = setupCanvas($('#bells')); if (!s || !sim.aa) return;
+  const { ctx, W, H } = s, n = sim.n, l = 24, r = 24, t = 22, b = 30;
+  const ink = tok('--ink'), aaC = tok('--aa'), muted = tok('--muted'), loss = tok('--loss'), line = tok('--line');
+  const X = v => l + (v - XLO) / (XHI - XLO) * (W - l - r);
+  const step = 1 / (n * P0), sd0 = Math.sqrt(2 * P0 * (1 - P0) / n) / P0, sd1 = Math.sqrt(P0 * (1 - P0) + P1 * (1 - P1)) / Math.sqrt(n) / P0;
+  const k = Math.max(1, Math.round(sd0 / 5 / step)), bw = k * step;
+  // bins over integer differences d: [bin·k, bin·k + k − 1], centre (bin·k + (k − 1)/2)·step
+  const hist = arr => { const m = new Map(); let out = 0; for (const d of arr) { const v = d * step; if (v < XLO - bw || v > XHI + bw) { out++; continue; } const bi = Math.floor(d / k); m.set(bi, (m.get(bi) || 0) + 1); } return { m, out }; };
+  const h0 = hist(sim.aa), h1 = hist(sim.ab);
+  let ymax = Math.max(bw * npdf(0, 0, sd0), bw * npdf(.1, .1, sd1));
+  h0.m.forEach(c => ymax = Math.max(ymax, c / SR)); h1.m.forEach(c => ymax = Math.max(ymax, c / SR));
+  ymax *= 1.08;
+  const Y = f => H - b - f / ymax * (H - t - b);
+  const T = swing(n);
+  // axis
+  ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.font = '11px ' + tok('--f-mono');
+  for (let v = -.6; v <= .8 + 1e-9; v += .2) { ctx.beginPath(); ctx.moveTo(X(v), t); ctx.lineTo(X(v), H - b); ctx.stroke(); if (W >= 480 || Math.round(v * 100) % 40 === 0) ctx.fillText(Math.abs(v) < 1e-9 ? '0' : sgn(v), X(v), H - b + 6); }
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(L('ліфт B →', 'lift of B →'), W - r, H - 1);
+  // bars: the grey world filled; the real-effect world as a dark outline with a light fill; tails beyond the threshold stronger
+  const binsOf = h => [...h.m.entries()].sort((u, v) => u[0] - v[0]).map(([bi, c]) => { const lo = bi * k * step - step / 2; return { lo, hi: lo + bw, f: c / SR }; }).filter(q => q.hi > XLO && q.lo < XHI);
+  const cx0 = v => Math.max(l, Math.min(W - r, X(v)));
+  binsOf(h0).forEach(q => { const c = (q.lo + q.hi) / 2; ctx.fillStyle = aaC; ctx.globalAlpha = Math.abs(c) > T ? 1 : .5; ctx.fillRect(cx0(q.lo) + .3, Y(q.f), Math.max(.6, cx0(q.hi) - cx0(q.lo) - .6), H - b - Y(q.f)); });
+  const b1 = binsOf(h1);
+  b1.forEach(q => { const c = (q.lo + q.hi) / 2; ctx.fillStyle = ink; ctx.globalAlpha = c > T ? .7 : .1; ctx.fillRect(cx0(q.lo), Y(q.f), Math.max(.6, cx0(q.hi) - cx0(q.lo)), H - b - Y(q.f)); });
+  ctx.globalAlpha = 1; ctx.strokeStyle = ink; ctx.lineWidth = 1.3; ctx.beginPath();
+  b1.forEach((q, i) => { if (!i) ctx.moveTo(cx0(q.lo), H - b); ctx.lineTo(cx0(q.lo), Y(q.f)); ctx.lineTo(cx0(q.hi), Y(q.f)); if (i === b1.length - 1) ctx.lineTo(cx0(q.hi), H - b); });
+  ctx.stroke();
+  // theory: normal curves scaled to the bin width
+  const curve = (m, sd, col) => { ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); for (let i = 0; i <= 300; i++) { const v = XLO + (XHI - XLO) * i / 300, y = Y(bw * npdf(v, m, sd)); i ? ctx.lineTo(X(v), y) : ctx.moveTo(X(v), y); } ctx.stroke(); };
+  curve(0, sd0, muted); ctx.setLineDash([]); curve(.1, sd1, ink);
+  // the significance threshold on both sides
+  ctx.strokeStyle = loss; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+  [-T, T].forEach(v => { if (v > XLO && v < XHI) { ctx.beginPath(); ctx.moveTo(X(v), t - 6); ctx.lineTo(X(v), H - b); ctx.stroke(); } });
+  ctx.setLineDash([]);
+  if (T < XHI) tag(ctx, L('значущо →', 'significant →'), Math.min(X(T) + 4, W - r - 90), t - 8, loss);
+  // world labels beside their peaks
+  const p0 = Y(Math.max(bw * npdf(0, 0, sd0), ...[...h0.m.values()].map(c => c / SR))), p1 = Y(Math.max(bw * npdf(.1, .1, sd1)));
+  tag(ctx, L('однакові', 'identical'), X(0) - 6, Math.max(t + 10, p0 - 10), muted, 'right');
+  tag(ctx, L('B +10%', 'B +10%'), X(.1) + 6, Math.max(t + 26, p1 - 10), ink, 'left');
+  const out = (h0.out + h1.out) / (2 * SR);
+  if (out > .005) { ctx.fillStyle = muted; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = '11px ' + tok('--f-mono'); ctx.fillText(L('за межами графіка: ', 'off the chart: ') + pct(out), l + 2, t - 16); }
+}
+function setN(n) { sim.n = n; sIn.value = Math.log10(n).toFixed(2); simRun(); simText(); simDraw(); }
+// two significant digits from the log slider
+const niceN = x => { const v = Math.pow(10, x), e = Math.pow(10, Math.max(0, Math.floor(Math.log10(v)) - 1)); return Math.round(v / e) * e; };
+let sRaf = 0;
+sIn.addEventListener('input', () => { if (sRaf) return; sRaf = requestAnimationFrame(() => { sRaf = 0; sim.n = niceN(+sIn.value); simRun(); simText(); simDraw(); }); });
+$('#s-pre').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setN(+b.dataset.n); });
+
+/* ---------- round 3: the trumpet ---------- */
+const TRN = 10000, TRSTEP = 10, TRK = 20;
+let trPaths = null;
+function trRun() {
+  trPaths = [];
+  for (let p = 0; p <= TRK; p++) {
+    let a = 0, b = 0; const pts = [];
+    for (let i = 1; i <= TRN; i++) { if (Math.random() < P0) a++; if (Math.random() < P0) b++; if (i >= 60 && i % TRSTEP === 0) pts.push((b - a) / (i * P0)); }
+    trPaths.push(pts);
+  }
+  trDraw();
+}
+function trDraw() {
+  const s = setupCanvas($('#trumpet')); if (!s || !trPaths) return;
+  const { ctx, W, H } = s, l = 46, r = 26, t = 12, b = 30, YL = 1;
+  const ink = tok('--ink'), muted = tok('--muted'), line = tok('--line'), band = tok('--band'), aaC = tok('--aa');
+  const X = n => l + n / TRN * (W - l - r), Y = v => t + (YL - Math.max(-YL, Math.min(YL, v))) / (2 * YL) * (H - t - b);
+  ctx.fillStyle = band; ctx.beginPath();
+  for (let n = 60; n <= TRN; n += 20) { const y = Y(swing(n)); n === 60 ? ctx.moveTo(X(n), y) : ctx.lineTo(X(n), y); }
+  for (let n = TRN; n >= 60; n -= 20) ctx.lineTo(X(n), Y(-swing(n)));
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = muted; ctx.lineWidth = 1.2; ctx.setLineDash([4, 3]);
+  [1, -1].forEach(sg => { ctx.beginPath(); for (let n = 60; n <= TRN; n += 20) { const y = Y(sg * swing(n)); n === 60 ? ctx.moveTo(X(n), y) : ctx.lineTo(X(n), y); } ctx.stroke(); });
+  ctx.setLineDash([]);
+  ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = '11px ' + tok('--f-mono');
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [-1, -.5, 0, .5, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(l, Y(v)); ctx.lineTo(W - r, Y(v)); ctx.stroke(); ctx.fillText(v ? sgn(v) : '0', l - 6, Y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [0, 2500, 5000, 7500, 10000].forEach(n => ctx.fillText(fmt(n), X(n), H - b + 6));
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(L('відвідувачів на варіант →', 'visitors per variant →'), W - r, H - 1);
+  const path = (pts, col, w, a) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.globalAlpha = a; ctx.beginPath(); pts.forEach((v, i) => { const n = 60 + i * TRSTEP; i ? ctx.lineTo(X(n), Y(v)) : ctx.moveTo(X(n), Y(v)); }); ctx.stroke(); ctx.globalAlpha = 1; };
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t, W - l - r, H - t - b); ctx.clip();
+  for (let p = 1; p <= TRK; p++) path(trPaths[p], aaC, 1, .4);
+  path(trPaths[0], ink, 2.4, 1);
+  ctx.restore();
+  // the funnel width at two points
+  [[1000, L('±38% при 1 000', '±38% at 1,000')], [10000, L('±' + dec((100 * swing(10000)).toFixed(1)) + '% при 10 000', '±' + (100 * swing(10000)).toFixed(1) + '% at 10,000')]].forEach(([n, txt], i) =>
+    tag(ctx, txt, i ? X(n) - 4 : X(n) + 6, Y(swing(n)) - 10, muted, i ? 'right' : 'left'));
+  const last = trPaths[0][trPaths[0].length - 1], early = trPaths[0][Math.round((1000 - 60) / TRSTEP)];
+  tag(ctx, L('цей тест при 1 000: ', 'this test at 1,000: ') + sgn(early) + L(', наприкінці: ', ', at the end: ') + sgn(last, 1), l + 6, H - b - 12, ink);
+}
+$('#tr-new').addEventListener('click', trRun);
+
+/* ---------- round 4: tables ---------- */
+function tablesText() {
+  $('#se-tbl').innerHTML = [1000, 5000, 10000, 31234, 100000].map(n => {
+    const se = Math.sqrt(2 * P0 * (1 - P0) / n);
+    return '<tr><td class="num" style="text-align:left">' + fmt(n) + '</td><td class="num">' + dec((100 * se).toFixed(2)) + '</td><td class="num">±' + dec((196 * se).toFixed(2)) + '</td><td class="num">±' + dec((100 * Z * se / P0).toFixed(1)) + '%</td></tr>';
+  }).join('');
+  $('#ss-tbl').innerHTML = [.01, .02, .05, .1, .2].map(p => '<tr><td>' + pct(p) + '</td>' + [.05, .1, .2, .5].map(m => '<td class="num' + (p === .05 && m === .1 ? ' em' : '') + '">' + fmt(nNeed(p, m)) + '</td>').join('') + '</tr>').join('');
+}
+// the z-test calculator, with Fisher's exact test alongside
+function fisher(a, na, b, nb) {
+  const K = a + b, N = na + nb; if (N > 4e6) return NaN;
+  const lc = (n, k) => lgamma(n + 1) - lgamma(k + 1) - lgamma(n - k + 1), base = lc(N, K), lp = x => lc(na, x) + lc(nb, K - x) - base;
+  const p0 = lp(a); let s = 0;
+  for (let x = Math.max(0, K - nb); x <= Math.min(K, na); x++) { const v = lp(x); if (v <= p0 + 1e-7) s += Math.exp(v); }
+  return Math.min(1, s);
+}
+function zCalc() {
+  const na = Math.max(1, Math.round(+$('#z-na').value || 0)), nb = Math.max(1, Math.round(+$('#z-nb').value || 0));
+  const a = Math.min(na, Math.max(0, Math.round(+$('#z-a').value || 0))), b = Math.min(nb, Math.max(0, Math.round(+$('#z-b').value || 0)));
+  const pa = a / na, pb = b / nb, z = zTest(a, na, b, nb), p = erfc(Math.abs(z) / Math.SQRT2), fp = fisher(a, na, b, nb);
+  const se = Math.sqrt(pa * (1 - pa) / na + pb * (1 - pb) / nb), lo = pb - pa - Z * se, hi = pb - pa + Z * se;
+  const pp = v => (v > 0 ? '+' : v < 0 ? MINUS : '') + dec((100 * Math.abs(v)).toFixed(2));
+  const rel = pa > 0 ? L('; у ліфті приблизно від ', '; as a lift roughly from ') + sgn(lo / pa) + L(' до ', ' to ') + sgn(hi / pa) : '';
+  const sig = p < .05, verdict = !isFinite(z) || (a + b === 0) ? L('Поки немає жодної конверсії.', 'No conversions yet.')
+    : sig ? L('Значущо: якби сторінки були однакові, такий розрив траплявся б рідше ніж раз на 20. Перевірте ще, чи тест набрав заплановану вибірку і чи не підглядали ви.', 'Significant: if the pages were identical, a gap like this would happen less than once in 20. Also check that the test reached its planned sample and that you did not peek.')
+    : L('Незначущо: такий розрив шум дає ' + (p > .2 ? 'часто' : 'не так уже й рідко') + ', приблизно в ' + pct(p) + ' A/A-тестів. Це не доказ, що різниці немає: можливо, тест замалий.', 'Not significant: noise produces a gap like this ' + (p > .2 ? 'often' : 'not that rarely') + ', in about ' + pct(p) + ' of A/A tests. This does not prove there is no difference: the test may simply be too small.');
+  $('#z-out').innerHTML = '<div>' + L('Конверсія: A ', 'Conversion: A ') + pct(pa, 2) + ', B ' + pct(pb, 2) + (pa > 0 ? L(', ліфт ', ', lift ') + sgn(pb / pa - 1, 1) : '') + '</div>' +
+    '<div class="mono">z = ' + dec(z.toFixed(2)).replace('-', MINUS) + ' · p = ' + pval(p) + (isFinite(fp) ? L(' · Фішер: p = ', ' · Fisher: p = ') + pval(fp) : '') + '</div>' +
+    '<div>' + L('95% довірчий інтервал різниці: від ', '95% confidence interval of the difference: from ') + pp(lo) + L(' до ', ' to ') + pp(hi) + L(' п. п.', ' pp') + rel + '</div>' +
+    '<div class="verdict">' + verdict + '</div>';
+}
+['#z-na', '#z-a', '#z-nb', '#z-b'].forEach(id => $(id).addEventListener('input', zCalc));
+
+/* ---------- round 4 deep: the binomial and the normal curve ---------- */
+function cltDraw() {
+  const s = setupCanvas($('#clt')); if (!s) return;
+  const { ctx, W, H } = s, l = 8, r = 8, t = 10, b = 24, lo = 25, hi = 75, T = pmfTable(1000, P0), sd = Math.sqrt(1000 * P0 * (1 - P0));
+  const X = k => l + (k - lo) / (hi - lo) * (W - l - r), ymax = npdf(50, 50, sd) * 1.15, Y = v => H - b - v / ymax * (H - t - b), w = (W - l - r) / (hi - lo);
+  ctx.fillStyle = tok('--aa');
+  for (let k = lo; k <= hi; k++) { const v = T.pm[k - T.lo]; ctx.fillRect(X(k) - w * .4, Y(v), w * .8, H - b - Y(v)); }
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2; ctx.beginPath();
+  for (let i = 0; i <= 200; i++) { const x = lo + (hi - lo) * i / 200, y = Y(npdf(x, 50, sd)); i ? ctx.lineTo(X(x), y) : ctx.moveTo(X(x), y); }
+  ctx.stroke();
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.font = '11px ' + tok('--f-mono');
+  [30, 40, 50, 60, 70].forEach(k => ctx.fillText(k, X(k), H - b + 6));
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText(L('покупок з 1 000', 'purchases of 1,000'), W - r, t);
+}
+
+/* ---------- round 4 deep: the winner's curse (exact) ---------- */
+const CN = [1000, 2000, 3000, 5000, 7000, 10000, 15000, 20000, 31234, 50000, 100000];
+let curse = null;
+function curseCalc() { curse = CN.map(n => { const e = exact(n, P1); return { n, m: e.curse, pw: e.pos }; }); curseDraw(); }
+function curseDraw() {
+  const s = setupCanvas($('#curse')); if (!s || !curse) return;
+  const { ctx, W, H } = s, l = 46, r = 26, t = 14, b = 30, ymax = .65;
+  const X = n => l + (Math.log10(n) - 3) / 2 * (W - l - r), Y = v => t + (ymax - v) / ymax * (H - t - b);
+  const ink = tok('--ink'), muted = tok('--muted'), line = tok('--line'), aaC = tok('--aa');
+  ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = '11px ' + tok('--f-mono'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [.1, .2, .3, .4, .5, .6].forEach(v => { ctx.beginPath(); ctx.moveTo(l, Y(v)); ctx.lineTo(W - r, Y(v)); ctx.stroke(); ctx.fillText('+' + Math.round(100 * v) + '%', l - 6, Y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [1000, 3000, 10000, 30000, 100000].forEach(n => ctx.fillText(fmt(n), X(n), H - b + 6));
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(L('відвідувачів на варіант →', 'visitors per variant →'), W - r, H - 1);
+  ctx.strokeStyle = aaC; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(l, Y(.1)); ctx.lineTo(W - r, Y(.1)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.beginPath(); curse.forEach((c, i) => i ? ctx.lineTo(X(c.n), Y(c.m)) : ctx.moveTo(X(c.n), Y(c.m))); ctx.stroke();
+  curse.forEach(c => { ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(X(c.n), Y(c.m), 4, 0, 7); ctx.fill(); });
+  [0, 3, 8].forEach(i => { const c = curse[i]; tag(ctx, sgn(c.m, 1) + L(', потужність ', ', power ') + pct(c.pw), X(c.n) + 8, Y(c.m) - 12, ink, 'left'); });
+}
+
+/* ---------- round 4 deep: revenue per visitor ---------- */
+const RV_S = 1.2, RV_MU = Math.log(50) - RV_S * RV_S / 2, RV_N = 10000, RV_R = 1000;
+function randn() { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); }
+let rv = null;
+function rvRun() {
+  const lc = [], lr = [];
+  for (let r = 0; r < RV_R; r++) {
+    const ca = binom(RV_N, P0), cb = binom(RV_N, P0); let ra = 0, rb = 0;
+    for (let i = 0; i < ca; i++) ra += Math.exp(RV_MU + RV_S * randn());
+    for (let i = 0; i < cb; i++) rb += Math.exp(RV_MU + RV_S * randn());
+    lc.push(Math.abs(cb - ca) / ca); lr.push(Math.abs(rb - ra) / ra);
+  }
+  const q = a => a.sort((x, y) => x - y)[Math.floor(.95 * a.length)];
+  rv = { c: q(lc), r: q(lr) }; rvText();
+}
+function rvText() {
+  const tc = Z * Math.sqrt(2 * (1 - P0) / P0 / RV_N), tr = Z * Math.sqrt(2 * (Math.exp(RV_S * RV_S) / P0 - 1) / RV_N);
+  $('#rv-c').textContent = rv ? '±' + dec((100 * rv.c).toFixed(1)) + '%' : '–';
+  $('#rv-r').textContent = rv ? '±' + dec((100 * rv.r).toFixed(1)) + '%' : '–';
+  $('#rv-c-s').textContent = L('теорія ±', 'theory ±') + dec((100 * tc).toFixed(1)) + '%';
+  $('#rv-r-s').textContent = L('теорія ±', 'theory ±') + dec((100 * tr).toFixed(1)) + '%' + L(', тобто в ', ', that is ') + dec((tr / tc).toFixed(1)) + L(' раза ширше', ' times wider');
+}
+$('#rv-run').addEventListener('click', rvRun);
+
+/* ---------- round 5: sample size calculator ---------- */
+function calcText() {
+  const p = +$('#c-p').value / 100, m = +$('#c-m').value / 100, pw = +$('#c-pw').value, a = +$('#c-a').value, T = Math.max(10, +$('#c-t').value || 0);
+  const n = nNeed(p, m, a, pw), days = Math.ceil(2 * n / T), d = p * m, thumb = 16 * p * (1 - p) / (d * d);
+  $('#c-p-v').textContent = dec(p * 100) + '%';
+  $('#c-m-v').textContent = '+' + Math.round(m * 100) + '%';
+  $('#c-n').textContent = fmt(n);
+  $('#c-d').textContent = days > 3650 ? L('> 10 років', '> 10 years') : fmt(days) + ' ' + L(plural(days, 'день', 'дні', 'днів'), days === 1 ? 'day' : 'days');
+  $('#c-note').textContent = L('Усього ' + fmt(2 * n) + ' відвідувачів: конверсія ' + dec(p * 100) + '% → ' + dec((100 * p * (1 + m)).toFixed(2)) + '%. Удвічі сміливіший ліфт (+' + Math.round(200 * m) + '%) потребує ' + fmt(nNeed(p, Math.min(2 * m, 5), a, pw)) + ' на варіант. Швидке правило 16·p(1 − p)/δ² для α = 5% і 80%: ' + fmt(thumb) + '.',
+    fmt(2 * n) + ' visitors in total: conversion ' + (p * 100) + '% → ' + (100 * p * (1 + m)).toFixed(2) + '%. A lift twice as bold (+' + Math.round(200 * m) + '%) needs ' + fmt(nNeed(p, Math.min(2 * m, 5), a, pw)) + ' per variant. The quick rule 16·p(1 − p)/δ² for α = 5% and 80%: ' + fmt(thumb) + '.');
+}
+['#c-p', '#c-m', '#c-pw', '#c-a', '#c-t'].forEach(id => $(id).addEventListener('input', calcText));
+
+/* ---------- round 5: how many winners are real ---------- */
+function baseText() {
+  const pr = +$('#b-pr').value / 100, pw = +$('#b-pw').value / 100, a = +$('#b-a').value / 100;
+  const tp = pr * pw, fp = (1 - pr) * a, share = tp / (tp + fp);
+  $('#b-pr-v').textContent = Math.round(pr * 100) + '%'; $('#b-pw-v').textContent = Math.round(pw * 100) + '%'; $('#b-a-v').textContent = Math.round(a * 100) + '%';
+  $('#b-out').textContent = pct(share);
+  $('#b-note').textContent = L('З 1 000 ідей: ' + fmt(1000 * tp) + ' справжніх переможців, ' + fmt(1000 * fp) + ' фальшивих, ' + fmt(1000 * pr * (1 - pw)) + ' робочих ідей тест пропустив. Частка = ' + fmt(1000 * tp) + ' / (' + fmt(1000 * tp) + ' + ' + fmt(1000 * fp) + ').',
+    'Of 1,000 ideas: ' + fmt(1000 * tp) + ' true winners, ' + fmt(1000 * fp) + ' false ones, and the test missed ' + fmt(1000 * pr * (1 - pw)) + ' working ideas. Share = ' + fmt(1000 * tp) + ' / (' + fmt(1000 * tp) + ' + ' + fmt(1000 * fp) + ').');
+  const s = setupCanvas($('#b-cv')); if (!s) return;
+  const { ctx, W, H } = s, cols = 50, rows = 20, c = Math.min(W / cols, H / rows), x0 = (W - c * cols) / 2;
+  const nr = Math.round(1000 * pr), ntp = Math.round(1000 * tp), nfp = Math.round(1000 * fp);
+  const col = [tok('--ink'), tok('--aa'), tok('--loss'), tok('--line')];
+  for (let i = 0; i < 1000; i++) {
+    // column-major so each group forms a block: true winners, missed, false winners, the rest
+    const k = i < ntp ? 0 : i < nr ? 1 : i < nr + nfp ? 2 : 3, cx = Math.floor(i / rows), cy = i % rows;
+    ctx.fillStyle = col[k]; ctx.fillRect(x0 + cx * c + .6, cy * c + .6, c - 1.2, c - 1.2);
+  }
+}
+['#b-pr', '#b-pw', '#b-a'].forEach(id => $(id).addEventListener('input', baseText));
+
+/* ---------- round 5: sample ratio mismatch ---------- */
+const round2 = v => { const e = Math.pow(10, Math.max(0, Math.floor(Math.log10(v)) - 1)); return Math.round(v / e) * e; };
+function srmText() {
+  const a = Math.max(0, Math.round(+$('#r-a').value || 0)), b = Math.max(0, Math.round(+$('#r-b').value || 0)), q = +$('#r-s').value / 100, N = a + b;
+  $('#r-s-v').textContent = Math.round(q * 100) + '/' + Math.round(100 - q * 100);
+  if (!N) { $('#r-chi').textContent = '–'; $('#r-p').textContent = '–'; $('#r-note').textContent = ''; return; }
+  const ea = N * q, eb = N * (1 - q), chi = (a - ea) ** 2 / ea + (b - eb) ** 2 / eb, p = erfc(Math.sqrt(chi / 2));
+  $('#r-chi').textContent = dec(chi.toFixed(2));
+  $('#r-p').textContent = pval(p);
+  $('#r-note').textContent = p < .001
+    ? L('Червоний прапорець. Випадково такий перекіс трапляється з імовірністю ' + pval(p) + ', тобто приблизно раз на ' + fmt(round2(1 / p)) + '. Шукайте, де губляться відвідувачі, і не довіряйте ліфту.', 'Red flag. By chance a skew like this happens with probability ' + pval(p) + ', about once in ' + fmt(round2(1 / p)) + '. Look for where visitors get lost, and do not trust the lift.')
+    : p < .05 ? L('Підозріло: p < 0,05. Перевірте налаштування поділу трафіку.', 'Suspicious: p < 0.05. Check how traffic is split.')
+    : L('Поділ виглядає нормально: таке відхилення від плану шум дає часто.', 'The split looks fine: noise produces a deviation like this often.');
+}
+['#r-a', '#r-b', '#r-s'].forEach(id => $(id).addEventListener('input', srmText));
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('A/A-тест: однакові сторінки «перемагають» одна одну', 'The A/A Test: Why Identical Pages "Beat" Each Other');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  gShow(); guessText(); gameRender(); simText(); tablesText(); zCalc(); rvText(); calcText(); baseText(); srmText();
+  redraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang || lang; applyLang(); });
+function redraw() { heroDraw(); simDraw(); trDraw(); cltDraw(); curseDraw(); baseText(); }
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state: everything filled ---------- */
+heroBatch();
+gameNew();
+simRun();
+trRun();
+applyLang();
+heroStart();
+setTimeout(() => { curseCalc(); rvRun(); }, 60);
+})();
+</script>
+
+<script type="application/json" id="mp-terms">{"p-value": {"name": "p-значення", "short": "Як часто сам лише випадок дав би розрив щонайменше такий, як у вас, якби різниці насправді не було.", "hook": "Коли ефекту немає зовсім, p < 0,05 випадає так само часто, як p між 0,50 і 0,55.", "url": "https://mathparadoxes.com/glossary/p-value/", "link": "Спробувати на симуляції"}, "standard-error": {"name": "Стандартна похибка", "short": "Наскільки зазвичай промахується середнє чи частка, пораховані з вибірки: σ, поділене на корінь з розміру вибірки.", "hook": "Щоб удвічі зменшити похибку, треба вчетверо більше даних.", "url": "https://mathparadoxes.com/glossary/standard-error/", "link": "Спробувати на симуляції"}, "normal-distribution": {"name": "Нормальний розподіл", "short": "Розподіл у формі дзвона: більшість значень біля середнього, а що далі від нього, то рідше.", "hook": "Кожна кулька на дошці Гальтона падає навмання, а тисячі кульок щоразу складаються в той самий дзвін.", "url": "https://mathparadoxes.com/glossary/normal-distribution/", "link": "Спробувати на симуляції"}, "confidence-interval": {"name": "Довірчий інтервал", "short": "Діапазон навколо виміряного числа, побудований методом, що накриває справжнє значення в обраній частці вибірок, наприклад у 95%.", "hook": "Із двадцяти чесних 95% інтервалів у середньому один промахується, і жоден не знає, чи це він.", "url": "https://mathparadoxes.com/glossary/confidence-interval/", "link": "Спробувати на симуляції"}, "statistical-power": {"name": "Статистична потужність", "short": "Імовірність, що тест помітить справжній ефект заданого розміру. Потужність 80% означає: один робочий ефект із п'яти тест пропустить.", "hook": "Слабкий A/B-тест, який таки знайшов ефект, майже завжди його перебільшує: справжні +10% на дашборді стають +24%.", "url": "https://mathparadoxes.com/glossary/statistical-power/", "link": "Спробувати на симуляції"}, "variance": {"name": "Дисперсія і стандартне відхилення", "short": "Міра розкиду: наскільки значення в середньому відходять від середнього. Стандартне відхилення — корінь з дисперсії, у тих самих одиницях.", "hook": "Два міста з однаковою середньою температурою: в одному весь рік близько +15, в іншому то −20, то +50.", "url": "https://mathparadoxes.com/glossary/variance/", "link": "Спробувати на симуляції"}, "mean": {"name": "Середнє", "short": "Сума всіх значень, поділена на їхню кількість: скільки дісталося б кожному, якби поділити порівну.", "hook": "Майже кожна людина має більше ніг, ніж у середньому: середнє трохи менше за дві.", "url": "https://mathparadoxes.com/glossary/median-vs-mean/", "link": "Спробувати на симуляції"}, "independence": {"name": "Незалежність", "short": "Події незалежні, якщо знання про одну не змінює шансів іншої.", "hook": "Після п'яти орлів поспіль решка не стає ймовірнішою: монета нічого не пам'ятає.", "url": "https://mathparadoxes.com/glossary/independence/", "link": "Спробувати на симуляції"}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'uk' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+</body>
+</html>
