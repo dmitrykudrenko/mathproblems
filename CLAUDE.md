@@ -25,6 +25,10 @@ Bilingual (uk/en) interactive explainers of math puzzles where intuition is wron
 
 `glossary/` is a sub-site of terms (see README «Словник»): `terms.json` (word forms per language, one-line definition, a hook that is a small paradox, never a site puzzle's answer) and one article per `glossary/<page>/` with a simulation in the same spirit as the problems. The build underlines the first mention of each term in rounds 4–5 of every problem page. New terms need all word forms (Ukrainian cases) and verified maths like any problem.
 
+## Courses
+
+`courses/` holds themed paths for one audience (see README «Курси»): `courses/<name>/page.html` + `meta.json` (`audience`, `level`, `chapters` with the catalogue `problems` each chapter sends to). A course tells one story in chapters, adapts classic problems to the audience's world in short interactive cases, and links to catalogue problems (`<!--PROBLEM:slug-->`, `{{P:slug}}`) and glossary terms (`<!--TERMS:…-->`, auto-linked first mentions); it ends with a checklist. Never duplicate a catalogue problem as a new problem for a course: adapt it as a case and link the classic page. Takeaways that state a linked problem's answer go in `<div class="cs-after" data-after="slug">`. Cases need verified maths like problems. The build adds the home-page "Courses" block, `/courses/`, and a "Course … · chapter k of N" pill on each problem a course uses. OG image: an entry `course-<name>` in `tools/og.py`.
+
 ## Checks before commit
 
 - build succeeds; `node --check` on every inline script of the uk and en builds and the hub;

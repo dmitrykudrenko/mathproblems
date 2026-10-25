@@ -913,7 +913,7 @@ def build_problem(slug, base, metas, books):
                       f'<a class="brand" href="{hub[lang]}" style="text-decoration:none">{BRAND_MARK}{SITE_NAME[lang]}</a>', body, count=1)
         style = body[:body.index("</style>") + len("</style>")]
         body = body[len(style):]
-        body = body.replace('<header class="hero">\n  <div>', '<header class="hero">\n  <div>\n    ' + level_badge(lang, meta["level"], hub[lang]), 1)
+        body = body.replace('<header class="hero">\n  <div>', '<header class="hero">\n  <div>\n    ' + level_badge(lang, meta["level"], hub[lang]) + course_strip(lang, slug, base), 1)
         ld = {"@context": "https://schema.org", "@graph": [
             {
                 "@type": ["WebPage", "LearningResource"],
@@ -1001,6 +1001,7 @@ def build_hub(problems, base):
             body = body.replace("{{LEVEL:%d}}" % n, level_badge(lang, n, urls[lang]))
         body = body.replace("{{BOOKS}}", base + "books/" + LANG_PATH[lang])
         body = body.replace("{{GLOSSARY}}", glossary_url(base, lang))
+        body = body.replace("<!--COURSES-->", courses_block(lang, base)).replace("{{COURSES}}", course_url(base, lang))
         body = body.replace("{{HOME_BASE}}", base).replace("{{HOME}}", urls[lang]).replace("{{FIRST}}", problems[0][2][lang])
         if lang == "en":
             body = body.replace('alt="Дмитро Кудренко" data-alt-en="Dmytro Kudrenko"', 'alt="Dmytro Kudrenko"')
@@ -1332,6 +1333,228 @@ def build_glossary(problems, base):
     return out
 
 
+# ---------- courses ----------
+# courses/<name>/page.html + meta.json: a path for one audience through catalogue problems and glossary terms,
+# with its own short cases. The build fills <!--PROBLEM:slug--> (a card with the question and a solved chip),
+# <!--TERMS:a,b--> (glossary cards), <!--PROGRESS-->, <!--MORE-->, {{P:slug}} (problem URL), {{HOME}}, {{BRAND}},
+# {{COURSES}} and {{GLOSSARY}}. A <div class="cs-after" data-after="slug"> stays hidden until that problem is solved.
+COURSES = ROOT / "courses"
+COURSE_LIST = []  # [(name, meta)], filled by build() before the problem pages
+COURSE_TEXT = {
+    "uk": {"courses": "Курси", "course": "Курс", "chapter": "розділ %d з %d", "solved": "розв'язано ✓", "todo": "ще не розв'язано",
+           "progress": "Розв'язано <b>0</b> з %d задач курсу", "show": "Показати висновок",
+           "gate": "Висновок відкриється, коли ви розв'яжете задачу вище. Або", "more": "Що далі", "all": "Усі курси",
+           "glossary": "Словник термінів", "catalogue": "Усі задачі", "chapters": "%d розділів · %d задач з каталогу",
+           "hub": "Тематичні шляхи для різних читачів: історія, адаптовані кейси, задачі з каталогу і терміни зі словника."},
+    "en": {"courses": "Courses", "course": "Course", "chapter": "chapter %d of %d", "solved": "solved ✓", "todo": "not solved yet",
+           "progress": "Solved <b>0</b> of %d course puzzles", "show": "Show the takeaway",
+           "gate": "The takeaway opens once you solve the puzzle above. Or", "more": "What next", "all": "All courses",
+           "glossary": "Glossary of terms", "catalogue": "All puzzles", "chapters": "%d chapters · %d catalogue puzzles",
+           "hub": "Themed paths for different readers: a story, adapted cases, puzzles from the catalogue and terms from the glossary."},
+}
+COURSE_SCRIPT = """<script>
+(function () {
+  var T = %s;
+  function solved(s) { try { return !!localStorage.getItem("mp-solved:" + s); } catch (e) { return false; } }
+  document.querySelectorAll(".cs-after").forEach(function (el) {
+    var g = document.createElement("p"); g.className = "cs-gate";
+    var b = document.createElement("button"); b.type = "button"; b.textContent = T.show;
+    b.addEventListener("click", function () { el.classList.add("open"); g.hidden = true; });
+    g.append(T.gate + " ", b); el.before(g); el._gate = g;
+  });
+  function paint() {
+    document.querySelectorAll(".cs-status").forEach(function (el) {
+      var ok = solved(el.dataset.slug); el.textContent = ok ? T.solved : T.todo; el.classList.toggle("ok", ok);
+    });
+    document.querySelectorAll(".cs-after").forEach(function (el) {
+      if (solved(el.dataset.after)) { el.classList.add("open"); el._gate.hidden = true; }
+    });
+    var p = document.querySelector(".cs-progress");
+    if (p) {
+      var all = p.dataset.slugs.split(" "), n = all.filter(solved).length;
+      p.querySelector("b").textContent = n; p.querySelector(".cs-bar i").style.width = (100 * n / all.length) + "%%";
+    }
+  }
+  paint();
+  window.addEventListener("pageshow", paint);
+  window.addEventListener("storage", paint);
+})();
+</script>"""
+
+
+def load_courses():
+    if not COURSES.exists():
+        return []
+    out = [(d.name, json.loads((d / "meta.json").read_text(encoding="utf-8")))
+           for d in sorted(COURSES.iterdir()) if (d / "page.html").exists() and (d / "meta.json").exists()]
+    out.sort(key=lambda c: (c[1].get("order", 99), c[0]))
+    return out
+
+
+def course_url(base, lang, name=None):
+    return base + "courses/" + (name + "/" if name else "") + LANG_PATH[lang]
+
+
+def course_slugs(meta):
+    """Catalogue problems of a course in chapter order, each once."""
+    seen = []
+    for ch in meta["chapters"]:
+        for s in ch.get("problems", []):
+            if s not in seen:
+                seen.append(s)
+    return seen
+
+
+def course_strip(lang, slug, base):
+    """'Course «…» · chapter k of N →' lines for a problem page, one per course that sends readers to it."""
+    out = []
+    for name, meta in COURSE_LIST:
+        chs = meta["chapters"]
+        for i, ch in enumerate(chs):
+            if slug in ch.get("problems", []):
+                t = COURSE_TEXT[lang]
+                out.append(f'<a class="mp-course" href="{course_url(base, lang, name)}#{ch["id"]}">'
+                           f'<b>{t["course"]} «{e(meta[lang]["name"])}»</b> · {t["chapter"] % (i + 1, len(chs))} →</a>')
+                break
+    return "".join(out)
+
+
+def course_card(lang, name, meta, base):
+    t = COURSE_TEXT[lang]
+    n = sum(1 for ch in meta["chapters"] if ch["id"] != "checklist")
+    m = re.search(r"--tint:\s*(#[0-9A-Fa-f]{6})", (COURSES / name / "page.html").read_text(encoding="utf-8"))
+    tint = f' style="--tint: {m.group(1)}"' if m else ""
+    return (f'<a class="mp-course-card" href="{course_url(base, lang, name)}"{tint}>'
+            f'<span class="eyebrow">{t["course"]} · {e(meta["audience"][lang])}</span>'
+            f'<h3>{e(meta[lang]["card"]["title"])}</h3><p>{e(meta[lang]["card"]["text"])}</p>'
+            f'<span class="mp-course-meta">{t["chapters"] % (n, len(course_slugs(meta)))}</span></a>')
+
+
+def courses_block(lang, base):
+    """The 'Courses' strip on the home page, above the catalogue."""
+    if not COURSE_LIST:
+        return ""
+    t = COURSE_TEXT[lang]
+    cards = "\n".join(course_card(lang, n, m, base) for n, m in COURSE_LIST)
+    return (f'<section class="mp-courses" id="courses">\n  <div class="mp-courses-head"><h2>{t["courses"]}</h2><p>{t["hub"]}</p></div>\n'
+            f'  <div class="mp-course-grid">\n{cards}\n  </div>\n</section>')
+
+
+def build_courses(problems, base):
+    """docs/courses/: the contents page and one page per course. Returns [(urls, lastmod)] for the sitemap."""
+    pmeta = {p[0]: p for p in problems}
+    tmap = {t["id"]: t for t in TERMS}
+    home = {l: base + LANG_PATH[l] for l in LANGS}
+    out = []
+    for name, meta in COURSE_LIST:
+        for ch in meta["chapters"]:
+            for s in ch.get("problems", []):
+                if s not in pmeta:
+                    raise SystemExit(f"courses/{name}/meta.json: unknown problem {s}")
+        src = (COURSES / name / "page.html").read_text(encoding="utf-8")
+        urls = {l: course_url(base, l, name) for l in LANGS}
+        slugs = course_slugs(meta)
+        for lang in LANGS:
+            m, other, t = meta[lang], ("en" if lang == "uk" else "uk"), COURSE_TEXT[lang]
+            body = LangStripper(src, other).strip()
+            # first mention of each glossary term in the chapters opens the term card; done before the problem and
+            # term cards go in, since those are links themselves
+            k = body.find('class="cs-ch')
+            used = {}
+            if k != -1:
+                body = body[:k] + link_terms(body[k:], lang, TERMS, base, set(), used, card=True)
+            def problem(mo):
+                s = mo.group(1)
+                if s not in pmeta:
+                    raise SystemExit(f"courses/{name}/page.html: unknown problem {s}")
+                pm = pmeta[s][1][lang]
+                return (f'<a class="cs-problem" href="{pmeta[s][2][lang]}"><span class="cs-status" data-slug="{s}"></span>'
+                        f'<h3>{e(pm["card"]["title"])}</h3><p>{e(pm.get("share", {}).get("description", pm["card"]["text"]))}</p></a>')
+            body = re.sub(r"<!--PROBLEM:([\w-]+)-->", problem, body)
+            def terms(mo):
+                ids = [x.strip() for x in mo.group(1).split(",")]
+                for i in ids:
+                    if i not in tmap:
+                        raise SystemExit(f"courses/{name}/page.html: unknown term {i}")
+                return ('<ul class="gl-cards cs-terms">' + "".join(
+                    f'<li class="gl-card"><a href="{glossary_url(base, lang, tmap[i]["page"])}"><h3>{e(tmap[i][lang]["name"])}</h3>'
+                    f'<p>{e(tmap[i][lang]["short"])}</p></a></li>' for i in ids) + "</ul>")
+            body = re.sub(r"<!--TERMS:([\w,\s-]+)-->", terms, body)
+            def purl(mo):
+                if mo.group(1) not in pmeta:
+                    raise SystemExit(f"courses/{name}/page.html: unknown problem {mo.group(1)}")
+                return pmeta[mo.group(1)][2][lang]
+            body = re.sub(r"\{\{P:([\w-]+)\}\}", purl, body)
+            body = body.replace("<!--PROGRESS-->", f'<div class="cs-progress" data-slugs="{" ".join(slugs)}"><span>{t["progress"] % len(slugs)}</span>'
+                                                   f'<span class="cs-bar"><i></i></span></div>')
+            more = (f'<section class="cs-ch cs-more"><h2>{t["more"]}</h2><p class="mp-related-all">'
+                    f'<a href="{course_url(base, lang)}">{t["all"]} →</a><a href="{glossary_url(base, lang)}">{t["glossary"]} →</a>'
+                    f'<a href="{home[lang]}#problems">{t["catalogue"]} →</a></p></section>')
+            body = body.replace("<!--MORE-->", more)
+            body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
+            body = body.replace("{{COURSES}}", course_url(base, lang)).replace("{{GLOSSARY}}", glossary_url(base, lang))
+            body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
+            body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
+            style = body[:body.index("</style>") + len("</style>")]
+            body = body[len(style):]
+            img = urls[lang] + f"og-{lang}.png" if (COURSES / name / "assets" / f"og-{lang}.png").exists() else base + f"og-{lang}.png"
+            ld = {"@context": "https://schema.org", "@graph": [
+                {"@type": ["Course", "LearningResource"], "@id": urls[lang] + "#course", "url": urls[lang], "name": m["name"],
+                 "description": m["description"], "inLanguage": lang, "isAccessibleForFree": True,
+                 "educationalLevel": LEVEL_LD[meta["level"]], "audience": {"@type": "Audience", "audienceType": meta["audience"][lang]},
+                 "provider": {"@id": base + "#author"}, "author": {"@id": base + "#author"}, "image": img,
+                 "datePublished": meta["published"], "dateModified": meta["updated"],
+                 "hasPart": [{"@type": "LearningResource", "name": pmeta[s][1][lang]["card"]["title"], "url": pmeta[s][2][lang]} for s in slugs],
+                 "isPartOf": {"@type": "WebSite", "name": SITE_NAME[lang], "url": home[lang]}},
+                author_ld(lang, base),
+                {"@type": "BreadcrumbList", "itemListElement": [
+                    {"@type": "ListItem", "position": 1, "name": SITE_NAME[lang], "item": home[lang]},
+                    {"@type": "ListItem", "position": 2, "name": t["courses"], "item": course_url(base, lang)},
+                    {"@type": "ListItem", "position": 3, "name": m["name"], "item": urls[lang]}]},
+            ]}
+            h = head(lang, urls, m["title"], m["description"], img, m["og_alt"], ld, base)
+            script = COURSE_SCRIPT % json.dumps({"solved": t["solved"], "todo": t["todo"], "show": t["show"], "gate": t["gate"]}, ensure_ascii=False)
+            if used:
+                data = {k2: {"name": v[lang]["name"], "short": v[lang]["short"], "hook": v[lang]["hook"],
+                             "url": glossary_url(base, lang, v["page"]), "link": GLOSSARY_TEXT[lang][1]} for k2, v in used.items()}
+                script += "\n" + TERM_SCRIPT % json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+            doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
+                   f'{style}\n{css_link(base)}\n</head>\n<body>\n{body.strip()}\n{script}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
+            write(DOCS / "courses" / name / LANG_PATH[lang] / "index.html", doc)
+        for f in (COURSES / name / "assets").iterdir() if (COURSES / name / "assets").exists() else []:
+            if f.suffix == ".png" and f.name.startswith("og-"):
+                shutil.copy(f, DOCS / "courses" / name / f.name)
+        out.append((urls, meta["updated"]))
+    if not COURSE_LIST:
+        return out
+    src = (COURSES / "index.html").read_text(encoding="utf-8")
+    meta = json.loads((COURSES / "index.json").read_text(encoding="utf-8"))
+    urls = {l: course_url(base, l) for l in LANGS}
+    for lang in LANGS:
+        m, other = meta[lang], ("en" if lang == "uk" else "uk")
+        body = LangStripper(src, other).strip()
+        body = body.replace("<!--COURSES-->", '<div class="mp-course-grid">\n' + "\n".join(course_card(lang, n, cm, base) for n, cm in COURSE_LIST) + "\n</div>")
+        body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
+        body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
+        body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
+        style = body[:body.index("</style>") + len("</style>")]
+        body = body[len(style):]
+        ld = {"@context": "https://schema.org", "@graph": [
+            {"@type": "CollectionPage", "@id": urls[lang], "url": urls[lang], "name": m["title"], "description": m["description"],
+             "inLanguage": lang, "author": {"@id": base + "#author"},
+             "mainEntity": {"@type": "ItemList", "itemListElement": [
+                 {"@type": "ListItem", "position": i + 1, "url": course_url(base, lang, n), "name": cm[lang]["name"]}
+                 for i, (n, cm) in enumerate(COURSE_LIST)]}},
+            author_ld(lang, base),
+        ]}
+        h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["og_alt"], ld, base)
+        doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
+               f'{style}\n{css_link(base)}\n</head>\n<body>\n{body.strip()}\n{CF_ANALYTICS}\n</body>\n</html>\n')
+        write(DOCS / "courses" / LANG_PATH[lang] / "index.html", doc)
+    out.insert(0, (urls, max(cm["updated"] for _, cm in COURSE_LIST)))
+    return out
+
+
 NOT_FOUND_TEXT = {
     "uk": ("Помилка 404", "Такої сторінки немає", "Можливо, адресу змінено або в ній помилка. Ось задачі, які точно існують:", "На головну"),
     "en": ("Error 404", "This page does not exist", "The address may have changed, or there may be a typo in it. Here are the puzzles that do exist:", "Go to the home page"),
@@ -1466,17 +1689,24 @@ def build(base, out=None):
     books = load_books()
     global TERMS
     TERMS = load_glossary()[0]
+    global COURSE_LIST
+    COURSE_LIST = load_courses()
+    for name, cm in COURSE_LIST:
+        for k in ("published", "updated"):
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", cm.get(k, "")):
+                raise SystemExit(f"courses/{name}/meta.json: \"{k}\" must be a YYYY-MM-DD date")
     problems = [build_problem(s, base, metas, books) for s, _ in metas]
     hub = build_hub(problems, base)
     build_404(problems, base)
     build_subscribed(problems, base)
     shelf = build_books(problems, base, books)
     glossary = build_glossary(problems, base)
+    courses = build_courses(problems, base)
     build_feeds(metas, base)
 
     today = date.today().isoformat()
     entries = []
-    for urls, mod in [(hub, today), (shelf, today)] + glossary + [(p[2], p[1]["updated"]) for p in problems]:
+    for urls, mod in [(hub, today), (shelf, today)] + glossary + courses + [(p[2], p[1]["updated"]) for p in problems]:
         for lang in LANGS:
             alts = "".join(f'\n    <xhtml:link rel="alternate" hreflang="{h}" href="{urls[h]}"/>' for h in LANGS)
             alts += f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{urls[X_DEFAULT]}"/>'
