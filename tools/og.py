@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -170,6 +170,10 @@ TEXT = {
     "multiple-testing": {
         "uk": (["20 СЕГМЕНТІВ"], "Ефекту немає. Шанс «відкриття»?"),
         "en": (["20 SEGMENTS"], "No real effect. Odds of a 'discovery'?"),
+    },
+    "course-ab-testing": {
+        "uk": (["КУРС: ПАРАДОКСИ", "A/B-ТЕСТІВ"], "B +17%. Що далі?"),
+        "en": (["COURSE: A/B", "TEST PARADOXES"], "B +17%. Now what?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -628,6 +632,15 @@ def extra_visual(kind, x, y, lang="en"):
                     f'<line x1="{tx + 40 + c - 20:.1f}" y1="{ty + 25}" x2="{tx + 40 + c + 20:.1f}" y2="{ty + 25}" stroke="{INK}" stroke-width="4" stroke-linecap="round"/>',
                     f'<circle cx="{tx + 40 + c:.1f}" cy="{ty + 25}" r="5" fill="{INK}"/>']
         out.append(f'<text x="{x + 360}" y="{y + 350}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">?</text>')
+    elif kind == "course-ab-testing":
+        # a dashboard tile with a big lift and a confidence bar; whether to trust it is the course
+        out += [f'<rect x="{x + 10}" y="{y + 20}" width="360" height="250" rx="18" fill="#fff"/>',
+                f'<text x="{x + 40}" y="{y + 70}" font-family="{FONT}" font-weight="700" font-size="22" fill="{MUTED}">{'A  5,00%   B  5,85%' if lang == 'uk' else 'A  5.00%   B  5.85%'}</text>',
+                f'<text x="{x + 40}" y="{y + 150}" font-family="{FONT}" font-weight="800" font-size="72" fill="{INK}">B +17%</text>',
+                f'<rect x="{x + 40}" y="{y + 190}" width="300" height="16" rx="8" fill="#E4E4E4"/>',
+                f'<rect x="{x + 40}" y="{y + 190}" width="282" height="16" rx="8" fill="{INK}"/>',
+                f'<text x="{x + 40}" y="{y + 240}" font-family="{FONT}" font-weight="700" font-size="22" fill="{MUTED}">94%</text>',
+                f'<text x="{x + 360}" y="{y + 330}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="44" fill="{SIGNAL}">?</text>']
     return "".join(out)
 
 
@@ -639,7 +652,7 @@ def svg(kind, lang):
     for i, l in enumerate(lines):
         parts.append(f'<text x="70" y="{190 + i * (big + 4)}" font-family="{FONT}" font-weight="800" font-size="{big}" letter-spacing="-2" fill="{INK}">{l}</text>')
     parts.append(f'<text x="72" y="{190 + len(lines) * (big + 4) + 18}" font-family="{FONT}" font-weight="500" font-size="32" fill="{MUTED}">{sub}</text>')
-    if kind != "hub":
+    if kind != "hub" and not kind.startswith("course-"):
         y = 500
         parts.append(f'<rect x="72" y="{y - 62}" width="112" height="78" rx="16" fill="#fff" stroke="{SIGNAL}" stroke-width="3" stroke-dasharray="9 7"/>')
         parts.append(f'<text x="128" y="{y}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="56" fill="{SIGNAL}">?</text>')
@@ -663,7 +676,7 @@ def svg(kind, lang):
                   "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine", "election-poll",
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
                   "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin", "berkson-paradox",
-                  "ab-test", "ab-test-peeking", "multiple-testing"):
+                  "ab-test", "ab-test-peeking", "multiple-testing", "course-ab-testing"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
@@ -689,7 +702,7 @@ def render(kind, lang, out):
 
 if __name__ == "__main__":
     for kind in TEXT:
-        folder = ROOT / ("hub" if kind == "hub" else f"problems/{kind}") / "assets"
+        folder = ROOT / ("hub" if kind == "hub" else f"courses/{kind[7:]}" if kind.startswith("course-") else f"problems/{kind}") / "assets"
         folder.mkdir(parents=True, exist_ok=True)
         for old in folder.glob("og-src-*.svg"):
             old.unlink()
