@@ -121,8 +121,8 @@ img { max-width: 100%; }
 [hidden] { display: none !important; }
 </style>
 <style>
-/* Layout: glossary article. Hero with the hook, the definition on a die, a die whose running average creeps to 3.5,
-   a lottery seen by a player and by the organiser, when expected value is a good guide. Shared glossary styles in site.css. */
+/* Layout: glossary article in three layers: the die paradox (plain words), the definition, a lottery and when to
+   trust expected value (rigorous), linearity, waiting for a six and the law of large numbers (deeper). */
 :root { --tint: #FFF1D6; }
 :root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
 * { box-sizing: border-box; }
@@ -138,7 +138,7 @@ h1, h2, h3, p, ul { margin: 0; }
 @media (max-width: 860px) { .three { grid-template-columns: 1fr; } }
 footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
 </style>
-<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=e96afc61">
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=095d64f2">
 </head>
 <body>
 <div class="wrap">
@@ -158,15 +158,12 @@ footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-s
     
   </header>
 
-  <section class="gl-sec">
-    <h2><span class="uk">Як його порахувати</span></h2>
-    <p class="uk">Кожен можливий результат помножте на його шанс і все складіть. Виходить середнє, до якого наближатиметься ваш результат, якщо повторювати те саме дуже багато разів.</p>
-    
-    <p class="ex">1 · ⅙ + 2 · ⅙ + 3 · ⅙ + 4 · ⅙ + 5 · ⅙ + 6 · ⅙ = 21/6 = <b>3,5</b></p>
-  </section>
-
+  <section class="gl-layers">
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">На пальцях</span><span class="mp-layer-desc">картинки, аналогії, маленькі числа</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «На пальцях» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
   <section class="gl-sec" id="die">
-    <h2><span class="uk">Спробуйте: кидайте кубик</span></h2>
+    <h2><span class="uk">Парадокс кубика</span></h2>
     <p class="uk">Жоден кидок не дає 3,5. Але середнє всіх кидків повзе саме туди. Спершу воно стрибає, а за тисячу кидків майже прилипає до лінії.</p>
     
     <div class="gl-panel">
@@ -184,6 +181,50 @@ footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-s
       </div>
       <p class="gl-note"><span class="uk">Вісь кидків логарифмічна: кожна поділка вдесятеро далі за попередню.</span></p>
     </div>
+  <script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "glossary-expected-value" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+  <section class="gl-sec">
+    <ul class="gl-when">
+      <li><b><span class="uk">«Очікуване» не означає «типове»</span></b><span><span class="uk">У лотереї вище сподівання виграшу 10 ₴, але майже кожен квиток не виграє нічого. Сподівання — це середнє, а не те, що найчастіше трапляється. Різниця та сама, що між середнім і медіаною.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Строго</span><span class="mp-layer-desc">таблиці, графіки, формули</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Строго» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <section class="gl-sec">
+    <h2><span class="uk">Як його порахувати</span></h2>
+    <p class="uk">Кожен можливий результат помножте на його шанс і все складіть. Виходить середнє, до якого наближатиметься ваш результат, якщо повторювати те саме дуже багато разів.</p>
+    
+    <p class="ex">1 · ⅙ + 2 · ⅙ + 3 · ⅙ + 4 · ⅙ + 5 · ⅙ + 6 · ⅙ = 21/6 = <b><span class="uk">3,5</span></b></p>
   </section>
 
   <section class="gl-sec" id="lottery">
@@ -211,16 +252,44 @@ footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-s
       <li><b><span class="uk">Вірте, коли повторів дуже багато</span></b><span><span class="uk">Казино, страхова, лотерея роблять мільйони однакових ставок. Їхній підсумок майже точно дорівнює сподіванню, тож вони заробляють без жодного везіння.</span></span></li>
       <li><b><span class="uk">Не покладайтеся, коли ставка одна</span></b><span><span class="uk">Ви не зіграєте мільйон разів. Страховка для вас має від'ємне сподівання, інакше страхова збанкрутувала б. І все одно вона розумна: захищає від одного випадку, який може вас розорити.</span></span></li>
       <li><b><span class="uk">Обережно, коли можна вилетіти з гри</span></b><span><span class="uk">Навіть вигідна в середньому гра небезпечна, якщо ставите все: можна програти до нуля раніше, ніж «середнє» встигне спрацювати.</span></span></li>
-      <li><b><span class="uk">Сподівання сум просто додаються</span></b><span><span class="uk">Навіть якщо величини залежать одна від одної. Сто людей тягнуть навмання свої капелюхи з купи: у середньому рівно один дістане свій, хоч людей десять, хоч мільйон. Кожен має шанс 1/n, і n таких шансів дають 1.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Глибше</span><span class="mp-layer-desc">узагальнення, теорія, історія</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Глибше» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <section class="gl-sec">
+    <h2><span class="uk">Сподівання сум додаються, навіть для залежних величин</span></h2>
+    <div class="gl-panel">
+      <p class="ex">E[X + Y] = E[X] + E[Y]</p>
+      <p class="uk">Це правило не вимагає незалежності, і саме тому воно таке сильне. Візьміть n людей, які тягнуть навмання свої капелюхи з купи. Нехай Iᵢ = 1, якщо людина i дістала свій капелюх, інакше 0. Кожна має шанс 1/n, тож E[Iᵢ] = 1/n. Кількість щасливчиків — це сума I₁ + … + Iₙ, і її сподівання n · 1/n = 1. Події залежні (якщо перші дев'ять дістали свої, десятий теж дістане свій), але додаванню сподівань це не заважає.</p>
+      
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Чому до шістки в середньому 6 кидків</span></h2>
+    <div class="gl-panel">
+      <p class="ex">E = 1 + ⅚ · E ⇒ E = 6</p>
+      <p class="uk">Перший кидок робимо завжди. З шансом ⅙ це шістка, і все. З шансом ⅚ ні, і тоді ми опиняємося на старті: попереду ще в середньому E кидків, бо кубик нічого не пам'ятає. Звідси рівняння вище. Загалом для події з шансом p чекати доводиться в середньому 1/p спроб.</p>
+      
+    </div>
+    <ul class="gl-when">
+{six}
     </ul>
   </section>
 
   <section class="gl-sec">
-    <h2><span class="uk">Ще кілька несподіванок</span></h2>
-    <ul class="gl-when">
-      <li><b><span class="uk">До першої шістки в середньому 6 кидків</span></b><span><span class="uk">Шанс шістки 1/6, тож чекати доводиться в середньому 6 кидків. Але найчастіше шістка випадає вже з першого разу: це найімовірніший результат, хоч і лише 1/6.</span></span></li>
-      <li><b><span class="uk">«Очікуване» не означає «типове»</span></b><span><span class="uk">У лотереї вище сподівання виграшу 10 ₴, але майже кожен квиток не виграє нічого. Сподівання — це середнє, а не те, що найчастіше трапляється. Різниця та сама, що між середнім і медіаною.</span></span></li>
-    </ul>
+    <h2><span class="uk">Як швидко середнє наближається до 3,5</span></h2>
+    <div class="gl-panel">
+      <p class="ex uk">σ² = E[X²] − (E[X])² = 91/6 − 3,5² ≈ 2,92 · σ ≈ 1,71 · розкид середнього = σ / √n</p>
+      
+      <p class="uk">Один кидок відхиляється від 3,5 в середньому на 1,71. Середнє n кидків — у √n разів менше: після 10 кидків приблизно на 0,54, після 100 на 0,17, після 1 000 на 0,05. Щоб стати вдесятеро точнішим, треба кинути в сто разів більше. Це закон великих чисел, і саме через нього казино спокійне, а окремий гравець — ні.</p>
+      
+    </div>
+  </section>
+  </div>
   </section>
 
   <section class="gl-sec"><h2>Де це трапляється</h2>

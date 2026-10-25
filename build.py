@@ -509,7 +509,8 @@ LAYER_TEXT = {
            "hide": "Hide on all puzzles", "stub": "“%s” is hidden on all puzzles.", "show": "Show"},
 }
 LAYER_SCRIPT = """<script>
-(function () {
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
   var API = %s, SLUG = %s + "-layer", KEY = "mp-layers-hidden";
   var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
   if (!layers.length) return;
@@ -542,7 +543,7 @@ def with_layers(body, lang, slug):
     if not found:
         return body
     if [x for x in found if x not in LAYERS] or found != sorted(found, key=LAYERS.index):
-        raise SystemExit(f"problems/{slug}: mp-layer must be {', '.join(LAYERS)}, in this order")
+        raise SystemExit(f"{slug}: mp-layer must be {', '.join(LAYERS)}, in this order")
     t = LAYER_TEXT[lang]
     def head(m):
         name, desc = t[m.group(1)]
@@ -1265,7 +1266,7 @@ def build_glossary(problems, base):
                 f'      <a class="mp-related-card" href="{pmeta[s][2][lang]}"><h3>{e(pmeta[s][1][lang]["card"]["title"])}</h3>'
                 f'<p>{e(pmeta[s][1][lang].get("share", {}).get("description", pmeta[s][1][lang]["card"]["text"]))}</p></a>'
                 for s in meta["problems"])
-            body = LangStripper(src, other).strip()
+            body = with_layers(LangStripper(src, other).strip(), lang, "glossary-" + name)
             body = body.replace("<!--PROBLEMS-->", f'<section class="gl-sec"><h2>{where}</h2>\n    <div class="mp-related-grid">\n{probs}\n    </div></section>')
             body = body.replace("<!--TERMS-->", f'<section class="gl-sec"><h2>{others}</h2>\n    <ul class="gl-cards">\n{term_cards(lang, terms, base, skip=name)}\n    </ul></section>')
             body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
