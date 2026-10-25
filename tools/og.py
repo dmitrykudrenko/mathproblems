@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "lake-escape": "#D7ECEF", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -158,6 +158,10 @@ TEXT = {
     "berkson-paradox": {
         "uk": (["ПАРАДОКС", "БЕРКСОНА"], "Врода і доброта серед побачень?"),
         "en": (["BERKSON'S", "PARADOX"], "Looks and kindness of your dates?"),
+    },
+    "lake-escape": {
+        "uk": (["ВТЕЧА", "ЧЕРЕЗ ОЗЕРО"], "Вихователь учетверо швидший. Як утекти?"),
+        "en": (["THE LAKE", "ESCAPE"], "The teacher is 4× faster. How to escape?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -578,6 +582,14 @@ def extra_visual(kind, x, y, lang="en"):
             out.append(f'<circle cx="{cx + a * k:.1f}" cy="{cy - b * k:.1f}" r="{4.2 if on else 3.4}" fill="{INK}" fill-opacity="{.85 if on else .22}"/>')
         out.append(f'<line x1="{cx - 2.6 * k:.1f}" y1="{cy - (0.7416 + 2.6) * k:.1f}" x2="{cx + 3.4 * k:.1f}" y2="{cy - (0.7416 - 3.4) * k:.1f}" stroke="{INK}" stroke-width="3" stroke-dasharray="10 8"/>')
         out.append(f'<text x="{x + 350}" y="{y + 60}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">r = ?</text>')
+    elif kind == "lake-escape":
+        # the lake, the swimmer in the middle and the teacher on the shore; the escape route is the answer, so it is not drawn
+        cx, cy, R = x + 190, y + 160, 140
+        out += [f'<circle cx="{cx}" cy="{cy}" r="{R}" fill="#fff" stroke="{INK}" stroke-width="4"/>',
+                f'<circle cx="{cx}" cy="{cy}" r="13" fill="{INK}"/>',
+                f'<circle cx="{cx}" cy="{cy - R}" r="17" fill="{MUTED}"/>',
+                f'<text x="{cx}" y="{cy + 64}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>',
+                f'<text x="{cx + 30}" y="{cy - R - 22}" font-family="{FONT}" font-weight="800" font-size="30" fill="{INK}">×4</text>']
     return "".join(out)
 
 
@@ -612,7 +624,7 @@ def svg(kind, lang):
                   "regression-to-mean", "two-envelopes", "coin-streaks", "bertrand-paradox", "penney-game",
                   "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine", "election-poll",
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
-                  "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin", "berkson-paradox"):
+                  "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin", "berkson-paradox", "lake-escape"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
