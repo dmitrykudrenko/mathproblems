@@ -1,0 +1,58 @@
+<div class="tz-text">
+  <span class="eyebrow"><span class="uk">Статистика · A/B-тести</span><span class="en">Statistics · A/B testing</span></span>
+  <h2><a href="{{URL}}"><span class="uk">A/A-тест: дві однакові сторінки</span><span class="en">The A/A test: two identical pages</span></a></h2>
+  <p class="tz-q uk">Та сама сторінка показується як «A» і як «B», конверсія 5%, по 1 000 відвідувачів. Як часто одна з них «переможе» іншу на 20% або більше?</p>
+  <p class="tz-q en">The same page is shown as "A" and as "B", converting at 5%, with 1,000 visitors each. How often will one of them "beat" the other by 20% or more?</p>
+  <button type="button" class="tz-reveal sp-before" data-solve><span><span class="uk">Інтуїція і відповідь</span><span class="en">Intuition and answer</span></span><b><span class="uk">Показати відповідь</span><span class="en">Show the answer</span></b></button>
+  <div class="tz-ans sp-after">
+    <div><span><span class="uk">Інтуїція</span><span class="en">Intuition</span></span><b><span class="uk">рідко, кілька %</span><span class="en">rarely, a few %</span></b></div>
+    <div class="r"><span><span class="uk">Насправді</span><span class="en">Actually</span></span><b><span class="uk">35,8%</span><span class="en">35.8%</span></b></div>
+  </div>
+  <p class="tz-d uk">Чому 1 000 відвідувачів означає лише 50 покупок, як шум малює «переможців» і скільки трафіку насправді треба, щоб помітити +10%.</p>
+  <p class="tz-d en">Why 1,000 visitors means only 50 purchases, how noise paints "winners", and how much traffic you really need to spot +10%.</p>
+  <a class="tz-cta" href="{{URL}}"><span class="uk">Розібратися з A/B-тестами</span><span class="en">Work through A/B testing</span> →</a>
+</div>
+<div class="tz-stage" id="tz-ab-test">
+  <span class="tz-try"><span class="uk">Спробуйте тут</span><span class="en">Try it here</span></span>
+  <canvas style="display:block;width:100%;max-width:420px;height:150px;background:var(--paper);border-radius:18px" aria-hidden="true"></canvas>
+  <p class="tz-msg" aria-live="polite"></p>
+  <div class="tz-acts"><button type="button" class="tz-btn"></button></div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById('tz-ab-test');
+  const L = (uk, e) => document.documentElement.dataset.lang === 'en' ? e : uk;
+  const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), b = root.querySelector('.tz-btn');
+  const N = 1000, P = .05, COLS = 40;
+  let runs = 0, a = null, c = null, hist = [];
+  function test() { a = new Uint8Array(N); c = new Uint8Array(N); for (let i = 0; i < N; i++) { a[i] = Math.random() < P; c[i] = Math.random() < P; } }
+  const sum = v => v.reduce((s, x) => s + x, 0);
+  function draw() {
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight; if (!W) return;
+    cv.width = W * dpr; cv.height = H * dpr;
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const css = getComputedStyle(document.documentElement), ink = css.getPropertyValue('--ink').trim() || '#151515', line = '#D6DAE2';
+    const half = (W - 30) / 2, d = Math.min(half / COLS, (H - 34) / (N / COLS));
+    [a, c].forEach((arr, s) => {
+      const x0 = 10 + s * (half + 10);
+      g.fillStyle = ink; g.font = '700 12px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(s ? 'B' : 'A', x0 + half / 2, 12);
+      for (let i = 0; i < N; i++) {
+        const on = arr && arr[i];
+        g.fillStyle = on ? ink : line; g.beginPath(); g.arc(x0 + (i % COLS + .5) * d, 26 + (Math.floor(i / COLS) + .5) * d, on ? d * .48 : d * .26, 0, 2 * Math.PI); g.fill();
+      }
+    });
+  }
+  function text() {
+    if (!a) { msg.textContent = L('Дві однакові сторінки, по 1 000 відвідувачів, конверсія 5%. Запустіть A/A-тест і подивіться, яку «перемогу» покаже дашборд.', 'Two identical pages, 1,000 visitors each, 5% conversion. Run an A/A test and see what "win" the dashboard shows.'); b.textContent = L('Запустити A/A-тест', 'Run an A/A test'); return; }
+    const x = sum(a), y = sum(c), mx = Math.max(x, y), mn = Math.min(x, y), l = mn ? mx / mn - 1 : 0;
+    const lift = x === y ? L('нічия', 'a tie') : (y > x ? 'B' : 'A') + ' +' + Math.round(100 * l) + '%';
+    const big = hist.filter(v => v >= .2 - 1e-9).length;
+    msg.textContent = 'A ' + x + ' · B ' + y + ' · ' + lift + '. ' + L('Тестів: ' + runs + ', з «перемогою» на 20% і більше: ' + big + '.', 'Tests: ' + runs + ', with a "win" of 20% or more: ' + big + '.');
+    b.textContent = L('Ще один A/A-тест', 'Another A/A test');
+  }
+  b.addEventListener('click', () => { test(); runs++; const x = sum(a), y = sum(c), mn = Math.min(x, y); hist.push(mn ? Math.max(x, y) / mn - 1 : (x === y ? 0 : 1)); draw(); text(); });
+  document.addEventListener('langchange', () => { draw(); text(); });
+  window.addEventListener('resize', draw);
+  draw(); text();
+})();
+</script>

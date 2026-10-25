@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/glossary/statistical-power/", "en": "/glossary/statistical-power/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = null;
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+
+<title>Статистична потужність простими словами: симуляція A/B-тестів</title>
+<meta name="description" content="Кнопка справді краща на 10%, а слабкий тест або нічого не бачить, або показує +24%. Проведіть 2000 A/B-тестів і побачте, що міряє потужність.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/glossary/statistical-power/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/glossary/statistical-power/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/glossary/statistical-power/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/glossary/statistical-power/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Статистична потужність простими словами: симуляція A/B-тестів">
+<meta property="og:description" content="Кнопка справді краща на 10%, а слабкий тест або нічого не бачить, або показує +24%. Проведіть 2000 A/B-тестів і побачте, що міряє потужність.">
+<meta property="og:url" content="https://mathparadoxes.com/glossary/statistical-power/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Статистична потужність: чому слабкий тест перебільшує свої перемоги?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Статистична потужність простими словами: симуляція A/B-тестів">
+<meta name="twitter:description" content="Кнопка справді краща на 10%, а слабкий тест або нічого не бачить, або показує +24%. Проведіть 2000 A/B-тестів і побачте, що міряє потужність.">
+<meta name="twitter:image" content="https://mathparadoxes.com/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/glossary/statistical-power/#page", "url": "https://mathparadoxes.com/glossary/statistical-power/", "name": "Статистична потужність простими словами: симуляція A/B-тестів", "description": "Кнопка справді краща на 10%, а слабкий тест або нічого не бачить, або показує +24%. Проведіть 2000 A/B-тестів і побачте, що міряє потужність.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "explanation"], "about": [{"@type": "DefinedTerm", "name": "Статистична потужність", "description": "Імовірність, що тест помітить справжній ефект заданого розміру. Потужність 80% означає: один робочий ефект із п'яти тест пропустить.", "inDefinedTermSet": "https://mathparadoxes.com/glossary/"}], "datePublished": "2026-10-25", "dateModified": "2026-10-25", "author": {"@id": "https://mathparadoxes.com/#author"}, "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "Словник", "item": "https://mathparadoxes.com/glossary/"}, {"@type": "ListItem", "position": 3, "name": "Статистична потужність", "item": "https://mathparadoxes.com/glossary/statistical-power/"}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: glossary article in three layers: 2,000 A/B tests of a button that really is 10% better, where only lucky tests
+   "win" and they exaggerate (plain words), what power depends on, a curve and a table (rigorous), type M and type S
+   errors and where the 80% convention comes from (deeper). */
+:root { --tint: #F7EDD8; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+.ex { font-variant-numeric: tabular-nums; background: var(--paper); border-radius: 10px; padding: 10px 12px; font-size: .95rem; overflow-wrap: anywhere; }
+.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.gl-stat b { font-variant-numeric: tabular-nums; }
+.key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .88rem; color: var(--muted); }
+.key i { display: inline-block; width: 14px; height: 10px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+.key i.dash { height: 0; border-top: 2px dashed var(--ink); border-radius: 0; }
+.tbl-wrap { overflow-x: auto; background: var(--paper); border-radius: 14px; }
+.tbl { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .95rem; }
+.tbl th, .tbl td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; white-space: normal; vertical-align: bottom; }
+.tbl tr:last-child td { border-bottom: 0; }
+@media (max-width: 860px) { .three { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .tbl { font-size: .85rem; } .tbl th, .tbl td { padding: 8px 6px; } .tbl th { font-size: .68rem; } }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=095d64f2">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="https://mathparadoxes.com/"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+    <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="https://mathparadoxes.com/glossary/statistical-power/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="https://mathparadoxes.com/glossary/statistical-power/en/" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="https://mathparadoxes.com/glossary/"><span class="uk">Словник</span></a> / <span class="uk">Статистична потужність</span></p>
+
+  <header class="gl-head">
+    <span class="eyebrow"><span class="uk">Словник · статистична потужність</span></span>
+    <h1><span class="uk">Чому слабкий тест перебільшує свої перемоги?</span></h1>
+    <p class="lead uk">Нова кнопка справді краща: з нею купує 5,5% відвідувачів замість 5%, тобто на 10% більше. Ви запускаєте A/B-тест і чекаєте на дашборді «+10%». Якщо відвідувачів мало, тест здебільшого не помітить нічого. А коли таки покаже переможця, «приріст» буде вдвічі-втричі більшим за справжній. Скільки шансів у тесту помітити справжній ефект, міряє статистична потужність.</p>
+    
+  </header>
+
+  <section class="gl-layers">
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">На пальцях</span><span class="mp-layer-desc">картинки, аналогії, маленькі числа</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «На пальцях» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <section class="gl-sec" id="winners">
+    <h2><span class="uk">Парадокс переможця</span></h2>
+    <p class="uk">Комп'ютер 2000 разів проводить той самий A/B-тест кнопки, яка насправді краща на 10%. Кожен стовпчик показує, скільки тестів побачили на дашборді такий «приріст». Пурпурові — тести, що вийшли статистично значущими: саме їх приносять на нараду як «перемогу». Змінюйте кількість відвідувачів на кожен варіант.</p>
+    
+    <div class="gl-panel">
+      <label class="gl-note" for="w-n"><span class="uk">Відвідувачів на кожен варіант</span>: <b id="w-nv"></b></label>
+      <input type="range" id="w-n" min="0" max="8" step="1" value="3">
+      <canvas class="gl-canvas" id="w-cv" style="height:280px" aria-label="Розподіл «приросту» у 2000 тестах" data-aria-en="Distribution of the lift in 2,000 tests"></canvas>
+      <p class="key"><span><i style="background:var(--line)"></i><span class="uk">тест не знайшов різниці</span></span><span><i style="background:var(--signal)"></i><span class="uk">«переможець»: значущий результат</span></span><span><i class="dash"></i><span class="uk">справжній ефект, +10%</span></span></p>
+      <div class="three">
+        <div class="gl-stat"><span><span class="uk">Тест помітив ефект</span></span><b id="w-pow">–</b></div>
+        <div class="gl-stat"><span><span class="uk">Середній «приріст» у переможців</span></span><b class="hit" id="w-lift">–</b></div>
+        <div class="gl-stat"><span><span class="uk">Тест сказав «різниці немає»</span></span><b id="w-miss">–</b></div>
+      </div>
+      <p id="w-msg" aria-live="polite"></p>
+      <div class="gl-btns"><button type="button" class="btn ghost" id="w-new"><span class="uk">Провести ще 2000 тестів</span></button></div>
+    </div>
+  <script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "glossary-statistical-power" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Планка вища за ефект</span></h2>
+    <p class="uk">Найпростіше пояснення, трохи спрощене. Щоб тест визнав різницю значущою, вона має бути більшою за звичайний шум. За 1000 відвідувачів на варіант шум великий, і планка значущості лежить десь на «+40%». Справжні +10% до неї не дотягують. Перестрибнути планку можуть лише ті тести, де шум випадково додав ще 30 відсоткових пунктів. Тому кожен «переможець» тут — щасливчик, і його приріст завжди перебільшений.</p>
+    
+    <p class="uk">Частку тестів, які помічають справжній ефект заданого розміру, називають <b>статистичною потужністю</b>, або потужністю тесту. Потужність 20% означає: якщо ідея справді працює саме настільки, тест визнає її в одному випадку з п'яти.</p>
+    
+    <ul class="gl-when">
+      <li><b><span class="uk">Тиша — ще не порожнеча</span></b><span><span class="uk">За потужності 20% тест чотири рази з п'яти скаже «різниці немає», хоча ідея робоча. Слабкий тест без результату не доводить, що зміна марна: він просто нічого не побачив.</span></span></li>
+      <li><b><span class="uk">Перемога — ще не розмір</span></b><span><span class="uk">Коли слабкий тест таки знайшов ефект, вірте напрямку, але не цифрі. Наступний, більший тест майже завжди покаже менше. Це не «ефект вигорів», а чесна оцінка замість щасливої.</span></span></li>
+      <li><b><span class="uk">Потужність рахують до тесту</span></b><span><span class="uk">Вона залежить від того, який ефект ви хочете помітити, від базової конверсії і від кількості відвідувачів. Порахуйте її заздалегідь, і ви знатимете, чи має тест взагалі сенс.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Строго</span><span class="mp-layer-desc">таблиці, графіки, формули</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Строго» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <section class="gl-sec" id="curve">
+    <h2><span class="uk">Від чого залежить потужність</span></h2>
+    <p class="uk">Лінія показує потужність тесту залежно від кількості відвідувачів на кожен варіант (шкала логарифмічна: кожна поділка вдесятеро більша). Звичайне правило — планувати тест так, щоб потужність була щонайменше 80%. Подивіться, як далеко праворуч відсувається ця точка, коли ефект малий або конверсія низька.</p>
+    
+    <div class="gl-panel">
+      <div class="gl-two">
+        <div><label class="gl-note" for="c-p"><span class="uk">Базова конверсія</span>: <b id="c-pv"></b></label><input type="range" id="c-p" min="1" max="20" step="1" value="5" style="width:100%"></div>
+        <div><label class="gl-note" for="c-e"><span class="uk">Справжній ефект нової версії</span>: <b id="c-ev"></b></label><input type="range" id="c-e" min="5" max="50" step="1" value="10" style="width:100%"></div>
+      </div>
+      <canvas class="gl-canvas" id="c-cv" style="height:260px" aria-label="Потужність тесту залежно від кількості відвідувачів" data-aria-en="Power of the test against the number of visitors"></canvas>
+      <div class="gl-two">
+        <div class="gl-stat"><span><span class="uk">Потрібно для 80% · на варіант</span></span><b id="c-n80">–</b></div>
+        <div class="gl-stat"><span><span class="uk">Потужність за 10 000 на варіант</span></span><b id="c-p10">–</b></div>
+      </div>
+      <p class="ex" id="c-fx"></p>
+      <p class="gl-note"><span class="uk">Формула для двобічного тесту з рівнем значущості 5% і потужністю 80%: 1,96 відповідає 5%, 0,84 — 80%. Для малих чисел вона трохи наближена, але точний розрахунок через біноміальний розподіл дає майже ті самі значення: для 5% → 5,5% і 31 234 відвідувачів на варіант потужність рівно 80,0%.</span></p>
+    </div>
+    <p class="uk">Квадрат у знаменнику робить малі ефекти дорогими. Удвічі менший ефект потребує вчетверо більше відвідувачів. Тому, коли трафіку мало, краще тестувати сміливі зміни, а не відтінок кнопки.</p>
+    
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Таблиця для кнопки 5% → 5,5%</span></h2>
+    <p class="uk">Точний розрахунок через біноміальний розподіл, без симуляції. «Планка» — найменший приріст, з яким тест за 5% конверсії у варіанті A вже визнає B значущо кращим. Останній стовпчик — середній приріст на дашборді серед значущих перемог B.</p>
+    
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th><span class="uk">Відвідувачів на варіант</span></th><th><span class="uk">Потужність</span></th><th><span class="uk">Планка значущості</span></th><th><span class="uk">Приріст у переможців</span></th></tr></thead>
+        <tbody id="t-body"></tbody>
+      </table>
+    </div>
+    <p class="uk">Поки потужність нижча за 50%, планка вища за сам ефект, і кожна перемога неминуче перебільшує. Коли потужність доходить до 80%, переможці показують у середньому +11,4%, вже близько до правди.</p>
+    
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Що з цим робити</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="uk">Спершу ефект, потім трафік</span></b><span><span class="uk">Вирішіть, який найменший ефект вам ще цікавий, і порахуйте, скільки відвідувачів треба для 80%. Якщо це пів року трафіку, тест у такому вигляді не має сенсу.</span></span></li>
+      <li><b><span class="uk">Мало трафіку — сміливіші зміни</span></b><span><span class="uk">Ефект +30% помітити приблизно у вісім разів дешевше, ніж +10%: за 5% конверсії треба близько 3800 відвідувачів на варіант замість 31 000. На малому сайті тестуйте нову пропозицію чи ціну, а не колір кнопки.</span></span></li>
+      <li><b><span class="uk">Більше подій — більша потужність</span></b><span><span class="uk">Важить кількість конверсій, а не відвідувачів. Клік по кнопці трапляється частіше за покупку, тож тест на кліки потужніший. Але й міряє він інше.</span></span></li>
+      <li><b><span class="uk">«Не значуще» ≠ «не працює»</span></b><span><span class="uk">Перш ніж закрити ідею, подивіться, яку потужність мав тест. За 20% він пропустив би й робочу ідею чотири рази з п'яти.</span></span></li>
+      <li><b><span class="uk">Перемогу слабкого тесту перевіряють</span></b><span><span class="uk">Повторіть тест або продовжте його до запланованого розміру. Чекайте, що приріст зменшиться, і плануйте бюджет на меншу цифру.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Глибше</span><span class="mp-layer-desc">узагальнення, теорія, історія</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Глибше» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <section class="gl-sec" id="typem">
+    <h2><span class="uk">Помилки типу M і типу S</span></h2>
+    <p class="uk">Статистики Ендрю Ґелман і Джон Карлін 2014 року запропонували дивитися не лише на потужність, а й на дві інші помилки. Помилка типу M (magnitude, розмір) — у скільки разів значущий результат у середньому перебільшує справжній ефект. Помилка типу S (sign, знак) — яка частка значущих результатів показує ефект з протилежним знаком. Лінія нижче — теорія для нормального наближення, пурпурова точка — ваші 2000 тестів з першої симуляції.</p>
+    
+    <div class="gl-panel">
+      <canvas class="gl-canvas" id="m-cv" style="height:260px" aria-label="Перебільшення ефекту залежно від потужності" data-aria-en="Exaggeration of the effect against power"></canvas>
+      <div class="gl-two">
+        <div class="gl-stat"><span><span class="uk">Перебільшення · ваші тести</span></span><b class="hit" id="m-got">–</b></div>
+        <div class="gl-stat"><span><span class="uk">Значущих з неправильним знаком</span></span><b id="m-s">–</b></div>
+      </div>
+      <p class="gl-note"><span class="uk">Тут перебільшення рахують через різницю конверсій: середня |p̂<sub>B</sub> − p̂<sub>A</sub>| серед значущих тестів, поділена на справжні 0,5 відсоткового пункту. Дашборд, що показує приріст у відсотках, ділить ще й на випадкову конверсію A, тому там перебільшення трохи більше, як у таблиці вище.</span></p>
+    </div>
+    <p class="uk">За нормального наближення перебільшення залежить лише від потужності: за 80% — у 1,12 раза, за 50% — у 1,41, за 20% — у 2,26, за 10% — у 3,71. А за потужності 6% кожен п'ятий значущий результат має неправильний знак: тест «доводить», що краща версія гірша. Тож потужність — це не лише шанс знайти ефект, а й міра того, наскільки знахідці можна вірити.</p>
+    
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Звідки взялися 80%</span></h2>
+    <p class="uk">Слово «потужність» і помилку другого роду ввели Єжи Нейман і Еґон Пірсон у статті 1933 року про найефективніші тести. Помилка першого роду — побачити ефект, якого немає; другого — пропустити справжній. Потужність дорівнює одиниці мінус імовірність помилки другого роду.</p>
+    
+    <p class="uk">Психолог Джейкоб Коен 1962 року перевірив статті журналу Journal of Abnormal and Social Psychology за 1960 рік і з'ясував, що для ефектів середнього розміру потужність досліджень була в середньому близько 0,48: майже як підкинути монету. У книжці про аналіз потужності (друге видання 1988 року) він запропонував як умовність 80%, коли немає кращих підстав. Логіка така: за рівня значущості 5% і пропуску 20% хибна тривога вважається приблизно вчетверо гіршою за пропущений ефект.</p>
+    
+    <p class="uk">За пів століття мало що змінилося. 2013 року Кетрін Баттон із колегами в журналі Nature Reviews Neuroscience оцінили 730 досліджень із 49 метааналізів у нейронауці: медіанна потужність — 21%. А ще 1995 року статистики Даґлас Олтмен і Мартін Бленд у BMJ дали цьому явищу назву, яку варто пам'ятати після кожного «незначущого» тесту: «Відсутність доказів — не доказ відсутності».</p>
+    
+  </section>
+  </div>
+  </section>
+
+  <section class="gl-sec"><h2>Де це трапляється</h2>
+    <div class="mp-related-grid">
+      <a class="mp-related-card" href="https://mathparadoxes.com/ab-test/"><h3>A/A-тест: дві однакові сторінки</h3><p>Та сама сторінка показується як «A» і як «B», конверсія 5%, по 1 000 відвідувачів. Як часто одна з двох однакових сторінок «переможе» на 20% або більше?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/ab-test-peeking/"><h3>Підглядання в A/B-тест</h3><p>Дві однакові сторінки, тест на 30 днів, перевірка щовечора і зупинка на першому «95%». Як часто одну з однакових сторінок оголосять переможцем?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/false-positive/"><h3>Парадокс хибнопозитивного тесту</h3><p>Хворобу має 1% людей. Тест точний на 99%, і ваш результат позитивний. Який шанс, що ви справді хворі?</p></a>
+    </div></section>
+
+  <section class="gl-sec"><h2>Інші терміни</h2>
+    <ul class="gl-cards">
+      <li class="gl-card" id="median"><a href="https://mathparadoxes.com/glossary/median-vs-mean/"><h3>Медіана</h3><p>Число посередині: якщо всіх вишикувати за зростанням, половина буде нижче, половина вище.</p><p class="gl-hook">До бару заходить мільйонер, і середній дохід відвідувачів злітає, а медіана ледь ворухнеться.</p></a></li>
+      <li class="gl-card" id="mean"><a href="https://mathparadoxes.com/glossary/median-vs-mean/"><h3>Середнє</h3><p>Сума всіх значень, поділена на їхню кількість: скільки дісталося б кожному, якби поділити порівну.</p><p class="gl-hook">Майже кожна людина має більше ніг, ніж у середньому: середнє трохи менше за дві.</p></a></li>
+      <li class="gl-card" id="expected-value"><a href="https://mathparadoxes.com/glossary/expected-value/"><h3>Математичне сподівання</h3><p>Середній результат, якого можна чекати, якщо повторювати те саме дуже багато разів.</p><p class="gl-hook">У грального кубика сподівання 3,5, хоча такої грані немає.</p></a></li>
+      <li class="gl-card" id="correlation"><a href="https://mathparadoxes.com/glossary/correlation/"><h3>Кореляція</h3><p>Число від −1 до +1, що показує, наскільки дві величини рухаються разом.</p><p class="gl-hook">Улітку ростуть і продаж морозива, і кількість утоплень. Морозиво тут ні до чого: обох розганяє спека.</p></a></li>
+      <li class="gl-card" id="variance"><a href="https://mathparadoxes.com/glossary/variance/"><h3>Дисперсія і стандартне відхилення</h3><p>Міра розкиду: наскільки значення в середньому відходять від середнього. Стандартне відхилення — корінь з дисперсії, у тих самих одиницях.</p><p class="gl-hook">Два міста з однаковою середньою температурою: в одному весь рік близько +15, в іншому то −20, то +50.</p></a></li>
+      <li class="gl-card" id="normal-distribution"><a href="https://mathparadoxes.com/glossary/normal-distribution/"><h3>Нормальний розподіл</h3><p>Розподіл у формі дзвона: більшість значень біля середнього, а що далі від нього, то рідше.</p><p class="gl-hook">Кожна кулька на дошці Гальтона падає навмання, а тисячі кульок щоразу складаються в той самий дзвін.</p></a></li>
+      <li class="gl-card" id="law-of-large-numbers"><a href="https://mathparadoxes.com/glossary/law-of-large-numbers/"><h3>Закон великих чисел</h3><p>Що більше повторень, то ближче частка результату до його справжньої ймовірності.</p><p class="gl-hook">Частка орлів підповзає до 50%, а різниця між орлами й решками в штуках зазвичай росте.</p></a></li>
+      <li class="gl-card" id="conditional-probability"><a href="https://mathparadoxes.com/glossary/conditional-probability/"><h3>Умовна ймовірність</h3><p>Шанс події за умови, що вже відомо щось інше.</p><p class="gl-hook">Майже всі баскетболісти НБА високі, але майже всі високі люди не баскетболісти.</p></a></li>
+      <li class="gl-card" id="independence"><a href="https://mathparadoxes.com/glossary/independence/"><h3>Незалежність</h3><p>Події незалежні, якщо знання про одну не змінює шансів іншої.</p><p class="gl-hook">Після п&#x27;яти орлів поспіль решка не стає ймовірнішою: монета нічого не пам&#x27;ятає.</p></a></li>
+      <li class="gl-card" id="logarithm"><a href="https://mathparadoxes.com/glossary/logarithm/"><h3>Логарифм</h3><p>Скільки разів треба помножити основу саму на себе, щоб отримати число: log₂ 8 = 3, бо 2 · 2 · 2 = 8.</p><p class="gl-hook">Аркуш паперу, складений навпіл 42 рази, був би товщим за відстань до Місяця.</p></a></li>
+      <li class="gl-card" id="sampling-bias"><a href="https://mathparadoxes.com/glossary/sampling-bias/"><h3>Зміщена вибірка</h3><p>Вибірка, у яку одні потрапляють частіше за інших, тож вона погано описує всіх.</p><p class="gl-hook">1936 року журнал опитав мільйони американців і все одно помилився з переможцем виборів.</p></a></li>
+      <li class="gl-card" id="p-value"><a href="https://mathparadoxes.com/glossary/p-value/"><h3>p-значення</h3><p>Як часто сам лише випадок дав би розрив щонайменше такий, як у вас, якби різниці насправді не було.</p><p class="gl-hook">Коли ефекту немає зовсім, p &lt; 0,05 випадає так само часто, як p між 0,50 і 0,55.</p></a></li>
+      <li class="gl-card" id="confidence-interval"><a href="https://mathparadoxes.com/glossary/confidence-interval/"><h3>Довірчий інтервал</h3><p>Діапазон навколо виміряного числа, побудований методом, що накриває справжнє значення в обраній частці вибірок, наприклад у 95%.</p><p class="gl-hook">Із двадцяти чесних 95% інтервалів у середньому один промахується, і жоден не знає, чи це він.</p></a></li>
+      <li class="gl-card" id="standard-error"><a href="https://mathparadoxes.com/glossary/standard-error/"><h3>Стандартна похибка</h3><p>Наскільки зазвичай промахується середнє чи частка, пораховані з вибірки: σ, поділене на корінь з розміру вибірки.</p><p class="gl-hook">Щоб удвічі зменшити похибку, треба вчетверо більше даних.</p></a></li>
+    </ul></section>
+
+  <footer>
+    <span class="uk">Математичні парадокси · автор <a href="https://mathparadoxes.com/#author">Дмитро Кудренко</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const en = document.documentElement.dataset.lang === 'en', L = (uk, e) => en ? e : uk;
+  const $ = s => document.querySelector(s);
+  if (en) document.querySelectorAll('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn));
+  const css = getComputedStyle(document.documentElement);
+  const C = { ink: css.getPropertyValue('--ink').trim() || '#151515', muted: css.getPropertyValue('--muted').trim() || '#5F5F5F',
+              line: css.getPropertyValue('--line').trim() || '#E4E4E4', hit: css.getPropertyValue('--signal').trim() || '#D9318F' };
+  const loc = en ? 'en-US' : 'uk-UA';
+  const nf = (v, d = 1) => (v < 0 && Math.abs(v) >= 0.5 * 10 ** -d ? '−' : '') + Math.abs(v).toLocaleString(loc, { maximumFractionDigits: d, minimumFractionDigits: d });
+  const int = v => Math.round(v).toLocaleString(loc);
+  const pct = (v, d = 1) => nf(100 * v, d) + '%';
+  const lift = (v, d = 0) => (v >= 0 ? '+' : '−') + nf(Math.abs(100 * v), d) + '%';
+  const still = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function setup(cv) {
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (!r.width) return null;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.font = '12px Inter, system-ui, sans-serif';
+    return { g, w: r.width, h: r.height };
+  }
+  const erf = x => { const t = 1 / (1 + 0.3275911 * Math.abs(x)), y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return x < 0 ? -y : y; };
+  const Phi = x => 0.5 * (1 + erf(x / Math.SQRT2));
+  const phi = x => Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI);
+  const Z = 1.959964, Z80 = 0.841621;
+  // exact binomial sampler: the pmf around the mean is built once per n (ratios outward from the mode), then inverted
+  function sampler(n, p) {
+    const m = Math.floor((n + 1) * p), sd = Math.sqrt(n * p * (1 - p)), lo = Math.max(0, Math.floor(m - 10 * sd - 5)), hi = Math.min(n, Math.ceil(m + 10 * sd + 5));
+    const w = new Float64Array(hi - lo + 1); w[m - lo] = 1;
+    for (let k = m; k < hi; k++) w[k + 1 - lo] = w[k - lo] * (n - k) / (k + 1) * p / (1 - p);
+    for (let k = m; k > lo; k--) w[k - 1 - lo] = w[k - lo] * k / (n - k + 1) * (1 - p) / p;
+    let s = 0; for (let i = 0; i < w.length; i++) { s += w[i]; w[i] = s; }
+    for (let i = 0; i < w.length; i++) w[i] /= s;
+    return () => { const u = Math.random(); let a = 0, b = w.length - 1; while (a < b) { const c = (a + b) >> 1; if (w[c] < u) a = c + 1; else b = c; } return lo + a; };
+  }
+  // pooled two-sided z-test, the one most A/B tools use
+  const zstat = (a, b, n) => { const pp = (a + b) / (2 * n); return pp <= 0 || pp >= 1 ? 0 : (b - a) / n / Math.sqrt(pp * (1 - pp) * 2 / n); };
+
+  // 1. 2,000 tests of a button that is truly +10% (5% → 5.5%)
+  const NS = [500, 1000, 2000, 5000, 10000, 20000, 31000, 50000, 100000], PA = 0.05, PB = 0.055, T = 2000;
+  let tests = [], target = 0, raf = 0, sA = null, sB = null;
+  function newTests() {
+    const n = NS[+$('#w-n').value];
+    sA = sampler(n, PA); sB = sampler(n, PB); tests = []; target = T;
+    cancelAnimationFrame(raf);
+    if (still()) { grow(T); drawWinners(); } else step();
+  }
+  function grow(k) {
+    const n = NS[+$('#w-n').value];
+    for (let i = 0; i < k && tests.length < target; i++) {
+      const a = sA(), b = sB(), z = zstat(a, b, n);
+      tests.push({ lift: a ? b / a - 1 : 9, d: (b - a) / n, sig: Math.abs(z) > Z });
+    }
+  }
+  function step() { grow(80); drawWinners(); if (tests.length < target) raf = requestAnimationFrame(step); }
+  function summary() {
+    const sig = tests.filter(t => t.sig), pos = sig.filter(t => t.d > 0);
+    return { k: tests.length, pow: sig.length / Math.max(1, tests.length), lift: pos.length ? pos.reduce((s, t) => s + t.lift, 0) / pos.length : NaN,
+             m: sig.length ? sig.reduce((s, t) => s + Math.abs(t.d), 0) / sig.length / (PB - PA) : NaN, s: sig.length ? (sig.length - pos.length) / sig.length : 0 };
+  }
+  function drawWinners() {
+    const n = NS[+$('#w-n').value], S = summary();
+    $('#w-nv').textContent = int(n);
+    $('#w-pow').textContent = pct(S.pow, 0);
+    $('#w-lift').textContent = isNaN(S.lift) ? '–' : lift(S.lift);
+    $('#w-miss').textContent = pct(1 - S.pow, 0);
+    const bar = Z * Math.sqrt(2 * 0.0525 * 0.9475 / n) / PA;
+    if (S.k >= T) $('#w-msg').textContent = S.pow < 0.5
+      ? L(`Справжній ефект +10%, а «переможці» показують у середньому ${lift(S.lift)}. Перемагають лише ті тести, яким пощастило з шумом: планка значущості тут близько ${lift(bar)}, вища за сам ефект. А ${pct(1 - S.pow, 0)} тестів не помітили нічого, хоча кнопка справді краща.`,
+          `The real effect is +10%, yet the "winners" show ${lift(S.lift)} on average. Only tests that got lucky with noise win: the significance bar here is about ${lift(bar)}, higher than the effect itself. And ${pct(1 - S.pow, 0)} of the tests noticed nothing, although the button really is better.`)
+      : S.pow < 0.9 ? L(`Уже краще: ефект помітили ${pct(S.pow, 0)} тестів, і перебільшення менше, ${lift(S.lift)} замість +10%. Але кожен ${Math.round(1 / (1 - S.pow))}-й тест усе ще пропускає робочу кнопку.`,
+          `Better: ${pct(S.pow, 0)} of the tests noticed the effect, and the exaggeration is smaller, ${lift(S.lift)} instead of +10%. But one test in ${Math.round(1 / (1 - S.pow))} still misses a button that works.`)
+      : L(`Тепер тест майже ніколи не пропускає ефект, а переможці показують чесні ${lift(S.lift)}. Ціна — ${int(n)} відвідувачів на кожен варіант.`,
+          `Now the test almost never misses the effect, and the winners show an honest ${lift(S.lift)}. The price: ${int(n)} visitors per variant.`);
+    else $('#w-msg').textContent = L(`Тестів проведено: ${int(S.k)}…`, `Tests run: ${int(S.k)}…`);
+    drawTypeM(S);
+    const s = setup($('#w-cv')); if (!s) return;
+    const { g, w, h } = s, pl = 12, pr = 12, pt = 30, pb = 24, lo = -0.6, hi = 1.4, bins = 80, bw = (hi - lo) / bins;
+    const X = v => pl + (v - lo) / (hi - lo) * (w - pl - pr);
+    const ns = new Array(bins).fill(0), ys = new Array(bins).fill(0);
+    tests.forEach(t => { const i = Math.max(0, Math.min(bins - 1, Math.floor((t.lift - lo) / bw))); if (t.sig && t.d > 0) ys[i]++; else ns[i]++; });
+    const peak = Math.max(30, ...ns.map((v, i) => v + ys[i])), H = h - pt - pb, px = (w - pl - pr) / bins;
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = C.muted; g.textAlign = 'center';
+    const ticks = w < 500 ? [-0.5, 0, 0.5, 1] : [-0.5, -0.25, 0, 0.25, 0.5, 0.75, 1, 1.25];
+    ticks.forEach(t => g.fillText(lift(t), X(t), h - 6));
+    g.strokeStyle = C.line; g.lineWidth = 1; g.beginPath(); g.moveTo(X(0), pt - 6); g.lineTo(X(0), h - pb); g.stroke();
+    for (let i = 0; i < bins; i++) {
+      const x = pl + i * px, a = ns[i] / peak * H, b = ys[i] / peak * H;
+      if (ns[i]) { g.fillStyle = C.line; g.fillRect(x, h - pb - a, Math.max(1, px - 1), a); }
+      if (ys[i]) { g.fillStyle = C.hit; g.fillRect(x, h - pb - a - b, Math.max(1, px - 1), b); }
+    }
+    g.strokeStyle = C.ink; g.lineWidth = 2; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(X(0.1), pt - 6); g.lineTo(X(0.1), h - pb); g.stroke(); g.setLineDash([]);
+    g.fillStyle = C.ink; g.textAlign = 'left'; g.fillText('+10%', X(0.1) + 5, pt - 12);
+    if (!isNaN(S.lift)) {
+      const x = X(Math.min(hi, S.lift));
+      g.strokeStyle = C.hit; g.lineWidth = 2; g.beginPath(); g.moveTo(x, pt + 2); g.lineTo(x, h - pb); g.stroke();
+      g.fillStyle = C.hit; const lab = L('переможці ', 'winners ') + lift(S.lift);
+      g.textAlign = x + g.measureText(lab).width + 8 > w ? 'right' : 'left'; g.fillText(lab, g.textAlign === 'right' ? x - 5 : x + 5, pt + 12);
+    }
+    g.lineWidth = 1;
+  }
+  $('#w-n').addEventListener('input', newTests);
+  $('#w-new').onclick = newTests;
+
+  // 2. power curve against n (normal approximation, unpooled)
+  const power = (p1, p2, n) => { const se = Math.sqrt((p1 * (1 - p1) + p2 * (1 - p2)) / n), d = Math.abs(p2 - p1); return Phi(d / se - Z) + Phi(-d / se - Z); };
+  function drawCurve() {
+    const p1 = $('#c-p').value / 100, e = $('#c-e').value / 100, p2 = p1 * (1 + e);
+    $('#c-pv').textContent = nf(100 * p1, 0) + '%'; $('#c-ev').textContent = '+' + nf(100 * e, 0) + '%';
+    const n80 = (Z + Z80) ** 2 * (p1 * (1 - p1) + p2 * (1 - p2)) / (p2 - p1) ** 2;
+    $('#c-n80').textContent = int(Math.ceil(n80));
+    $('#c-p10').textContent = pct(power(p1, p2, 10000), 0);
+    $('#c-fx').textContent = L(`n ≈ (1,96 + 0,84)² · [p₁(1 − p₁) + p₂(1 − p₂)] / (p₂ − p₁)² = 7,85 · [${nf(p1, 3)} · ${nf(1 - p1, 3)} + ${nf(p2, 4)} · ${nf(1 - p2, 4)}] / ${nf(p2 - p1, 4)}² ≈ ${int(Math.ceil(n80))}`,
+      `n ≈ (1.96 + 0.84)² · [p₁(1 − p₁) + p₂(1 − p₂)] / (p₂ − p₁)² = 7.85 · [${nf(p1, 3)} · ${nf(1 - p1, 3)} + ${nf(p2, 4)} · ${nf(1 - p2, 4)}] / ${nf(p2 - p1, 4)}² ≈ ${int(Math.ceil(n80))}`);
+    const s = setup($('#c-cv')); if (!s) return;
+    const { g, w, h } = s, pl = 40, pr = 14, pt = 12, pb = 24, l0 = 2, l1 = 7;
+    const X = n => pl + (Math.log10(n) - l0) / (l1 - l0) * (w - pl - pr), Y = v => pt + (1 - v) * (h - pt - pb);
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = C.muted; g.strokeStyle = C.line; g.lineWidth = 1; g.textAlign = 'right';
+    [0, 0.2, 0.4, 0.6, 0.8, 1].forEach(v => { g.beginPath(); g.moveTo(pl, Y(v)); g.lineTo(w - pr, Y(v)); g.stroke(); g.fillText(pct(v, 0), pl - 6, Y(v) + 4); });
+    g.textAlign = 'center';
+    const lab = en ? ['100', '1k', '10k', '100k', '1M', '10M'] : ['100', '1 тис.', '10 тис.', '100 тис.', '1 млн', '10 млн'];
+    for (let k = l0; k <= l1; k++) { if (w < 420 && k === l1) continue; g.textAlign = k === l1 ? 'right' : k === l0 ? 'left' : 'center'; g.fillText(lab[k - l0], k === l1 ? w - pr : X(10 ** k), h - 6); }
+    g.textAlign = 'left';
+    g.strokeStyle = C.ink; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(pl, Y(0.8)); g.lineTo(w - pr, Y(0.8)); g.stroke(); g.setLineDash([]);
+    g.lineWidth = 2.5; g.beginPath();
+    for (let i = 0; i <= 300; i++) { const n = 10 ** (l0 + (l1 - l0) * i / 300), y = Y(power(p1, p2, n)); i ? g.lineTo(X(n), y) : g.moveTo(X(n), y); }
+    g.stroke(); g.lineWidth = 1;
+    if (n80 <= 10 ** l1) {
+      const x = X(n80); g.fillStyle = C.ink; g.beginPath(); g.arc(x, Y(0.8), 5, 0, 7); g.fill();
+      g.textAlign = x > w - 120 ? 'right' : 'left'; g.fillText('80% · ' + int(Math.ceil(n80)), x + (g.textAlign === 'right' ? -8 : 8), Y(0.8) - 8);
+    }
+  }
+  $('#c-p').addEventListener('input', drawCurve); $('#c-e').addEventListener('input', drawCurve);
+
+  // table: exact binomial values (computed in Python, pooled z-test, two-sided 5%)
+  const TBL = [[1000, 0.0790, 0.42, 0.598], [2000, 0.1089, 0.29, 0.394], [5000, 0.2020, 0.18, 0.241], [10000, 0.3541, 0.126, 0.173],
+               [20000, 0.6111, 0.088, 0.130], [31234, 0.8002, 0.070, 0.114], [50000, 0.9436, 0.055, 0.104], [100000, 0.9989, 0.039, 0.100]];
+  $('#t-body').innerHTML = TBL.map(([n, pw, bar, l]) => `<tr><td>${int(n)}</td><td>${pct(pw)}</td><td>${lift(bar, bar < 0.15 ? 1 : 0)}</td><td>${lift(l, l < 0.15 ? 1 : 0)}</td></tr>`).join('');
+
+  // 3. type M against power: d̂ ~ N(D, 1), significant if |d̂| > 1.96
+  const typeM = D => { const p1 = 1 - Phi(Z - D), p2 = Phi(-Z - D), pw = p1 + p2; return { pw, m: (D * p1 + phi(Z - D) - D * p2 + phi(-Z - D)) / pw / D, s: p2 / pw }; };
+  const CURVE = []; for (let i = 0; i <= 400; i++) { const D = 0.05 + i * 0.012; CURVE.push(typeM(D)); }
+  function drawTypeM(S) {
+    $('#m-got').textContent = isNaN(S.m) ? '–' : L('у ', '') + nf(S.m, 2) + L(' раза', '×');
+    $('#m-s').textContent = pct(S.s, 1);
+    const s = setup($('#m-cv')); if (!s) return;
+    const { g, w, h } = s, pl = 34, pr = 14, pt = 12, pb = 24, ymax = 8;
+    const X = v => pl + v * (w - pl - pr), Y = m => pt + (ymax - m) / (ymax - 1) * (h - pt - pb);
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = C.muted; g.strokeStyle = C.line; g.lineWidth = 1; g.textAlign = 'right';
+    [1, 2, 4, 6, 8].forEach(m => { g.beginPath(); g.moveTo(pl, Y(m)); g.lineTo(w - pr, Y(m)); g.stroke(); g.fillText('×' + m, pl - 6, Y(m) + 4); });
+    g.textAlign = 'center';
+    [0, 0.2, 0.4, 0.6, 0.8, 1].forEach(v => g.fillText(pct(v, 0), X(v), h - 6));
+    g.textAlign = 'right'; g.fillText(L('потужність →', 'power →'), w - pr, h - pb - 6);
+    g.strokeStyle = C.ink; g.lineWidth = 2.5; g.beginPath(); let first = true;
+    CURVE.forEach(c => { if (c.m > ymax) return; const x = X(c.pw), y = Y(c.m); first ? g.moveTo(x, y) : g.lineTo(x, y); first = false; });
+    g.stroke(); g.lineWidth = 1;
+    if (S.k >= T && !isNaN(S.m) && S.m <= ymax) { g.fillStyle = C.hit; g.beginPath(); g.arc(X(S.pow), Y(S.m), 6, 0, 7); g.fill(); }
+  }
+
+  newTests(); drawCurve();
+  const redraw = () => { drawWinners(); drawCurve(); };
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+})();
+</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+</body>
+</html>
