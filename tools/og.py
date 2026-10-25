@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -158,6 +158,18 @@ TEXT = {
     "berkson-paradox": {
         "uk": (["ПАРАДОКС", "БЕРКСОНА"], "Врода і доброта серед побачень?"),
         "en": (["BERKSON'S", "PARADOX"], "Looks and kindness of your dates?"),
+    },
+    "ab-test": {
+        "uk": (["A/A-ТЕСТ"], "Дві однакові сторінки. Хто переможе?"),
+        "en": (["THE A/A TEST"], "Two identical pages. Who wins?"),
+    },
+    "ab-test-peeking": {
+        "uk": (["ПІДГЛЯДАННЯ", "В A/B-ТЕСТ"], "Щодня дивитися на p-value?"),
+        "en": (["PEEKING AT", "A/B TESTS"], "Checking p-values every day?"),
+    },
+    "multiple-testing": {
+        "uk": (["20 СЕГМЕНТІВ"], "Ефекту немає. Шанс «відкриття»?"),
+        "en": (["20 SEGMENTS"], "No real effect. Odds of a 'discovery'?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -578,6 +590,44 @@ def extra_visual(kind, x, y, lang="en"):
             out.append(f'<circle cx="{cx + a * k:.1f}" cy="{cy - b * k:.1f}" r="{4.2 if on else 3.4}" fill="{INK}" fill-opacity="{.85 if on else .22}"/>')
         out.append(f'<line x1="{cx - 2.6 * k:.1f}" y1="{cy - (0.7416 + 2.6) * k:.1f}" x2="{cx + 3.4 * k:.1f}" y2="{cy - (0.7416 - 3.4) * k:.1f}" stroke="{INK}" stroke-width="3" stroke-dasharray="10 8"/>')
         out.append(f'<text x="{x + 350}" y="{y + 60}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">r = ?</text>')
+    elif kind == "ab-test":
+        # two identical landing pages with their conversion counts; which one "wins" is the question
+        for k, (lab, conv) in enumerate((("A", 52), ("B", 61))):
+            px = x + 20 + k * 185
+            out += [f'<rect x="{px}" y="{y + 10}" width="160" height="230" rx="14" fill="#fff" stroke="{INK}" stroke-width="3"/>',
+                    f'<rect x="{px + 18}" y="{y + 34}" width="124" height="14" rx="7" fill="#D6D6D6"/>',
+                    f'<rect x="{px + 18}" y="{y + 60}" width="96" height="10" rx="5" fill="#E4E4E4"/>',
+                    f'<rect x="{px + 18}" y="{y + 80}" width="110" height="10" rx="5" fill="#E4E4E4"/>',
+                    f'<rect x="{px + 30}" y="{y + 160}" width="100" height="40" rx="10" fill="{INK}"/>',
+                    f'<text x="{px + 80}" y="{y + 132}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="44" fill="{INK}">{lab}</text>',
+                    f'<text x="{px + 80}" y="{y + 280}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="30" fill="{MUTED}">{conv} / 1000</text>']
+        out.append(f'<text x="{x + 360}" y="{y + 325}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">+?%</text>')
+    elif kind == "ab-test-peeking":
+        # a wandering daily z-score with the significance band; how often it escapes is the answer
+        top, bot = y + 30, y + 290
+        mid = (top + bot) / 2
+        out += [f'<rect x="{x + 10}" y="{y + 10}" width="360" height="300" rx="18" fill="#fff"/>',
+                f'<line x1="{x + 30}" y1="{mid - 70}" x2="{x + 350}" y2="{mid - 70}" stroke="{INK}" stroke-width="2" stroke-dasharray="8 7"/>',
+                f'<line x1="{x + 30}" y1="{mid + 70}" x2="{x + 350}" y2="{mid + 70}" stroke="{INK}" stroke-width="2" stroke-dasharray="8 7"/>',
+                f'<line x1="{x + 30}" y1="{mid}" x2="{x + 350}" y2="{mid}" stroke="#D6D6D6" stroke-width="2"/>']
+        for seed, op in ((3, .25), (8, .25), (21, 1)):
+            rw = random.Random(seed); s_, pts = 0.0, []
+            for d in range(1, 31):
+                s_ += rw.gauss(0, 1)
+                pts.append(f"{x + 30 + d * 10.6:.1f},{mid - max(-2.8, min(2.8, s_ / d ** .5)) * 40:.1f}")
+            out.append(f'<polyline points="{" ".join(pts)}" fill="none" stroke="{INK}" stroke-opacity="{op}" stroke-width="3" stroke-linejoin="round"/>')
+        out.append(f'<text x="{x + 360}" y="{y + 345}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">p &lt; 0.05 ?</text>')
+    elif kind == "multiple-testing":
+        # twenty segment tiles, each with an interval around zero; how many light up is the question
+        rw = random.Random(4)
+        for i in range(20):
+            tx, ty = x + 14 + (i % 4) * 90, y + 10 + (i // 4) * 60
+            c = max(-16, min(16, rw.gauss(0, 1) * 9))
+            out += [f'<rect x="{tx}" y="{ty}" width="80" height="50" rx="10" fill="#fff"/>',
+                    f'<line x1="{tx + 40}" y1="{ty + 8}" x2="{tx + 40}" y2="{ty + 42}" stroke="#D6D6D6" stroke-width="2"/>',
+                    f'<line x1="{tx + 40 + c - 20:.1f}" y1="{ty + 25}" x2="{tx + 40 + c + 20:.1f}" y2="{ty + 25}" stroke="{INK}" stroke-width="4" stroke-linecap="round"/>',
+                    f'<circle cx="{tx + 40 + c:.1f}" cy="{ty + 25}" r="5" fill="{INK}"/>']
+        out.append(f'<text x="{x + 360}" y="{y + 350}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">?</text>')
     return "".join(out)
 
 
@@ -612,7 +662,8 @@ def svg(kind, lang):
                   "regression-to-mean", "two-envelopes", "coin-streaks", "bertrand-paradox", "penney-game",
                   "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine", "election-poll",
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
-                  "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin", "berkson-paradox"):
+                  "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin", "berkson-paradox",
+                  "ab-test", "ab-test-peeking", "multiple-testing"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))

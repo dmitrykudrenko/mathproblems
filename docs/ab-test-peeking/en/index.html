@@ -1,0 +1,1867 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/ab-test-peeking/", "en": "/ab-test-peeking/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "ab-test-peeking";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>Peeking at A/B Tests: Daily Checks Turn 5% Into 28% False Winners</title>
+<meta name="description" content="Check an A/B test every evening and stop at &quot;95%&quot;, and identical pages &quot;win&quot; 28% of the time. A game, a simulation, and what to do when you can&#x27;t wait.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/ab-test-peeking/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/ab-test-peeking/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/ab-test-peeking/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/ab-test-peeking/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="Peeking at an A/B test">
+<meta property="og:description" content="Two identical pages, a 30-day test, a check every evening and a stop at the first &quot;95%&quot;. How often is one of the identical pages declared the winner?">
+<meta property="og:url" content="https://mathparadoxes.com/ab-test-peeking/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/ab-test-peeking/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The &quot;confidence&quot; line of an A/A test wanders for 30 evenings and touches the 95% mark. How often do identical pages &quot;win&quot; if you check every day?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Peeking at an A/B test">
+<meta name="twitter:description" content="Two identical pages, a 30-day test, a check every evening and a stop at the first &quot;95%&quot;. How often is one of the identical pages declared the winner?">
+<meta name="twitter:image" content="https://mathparadoxes.com/ab-test-peeking/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/ab-test-peeking/en/#page", "url": "https://mathparadoxes.com/ab-test-peeking/en/", "name": "Peeking at A/B Tests: Daily Checks Turn 5% Into 28% False Winners", "description": "Check an A/B test every evening and stop at \"95%\", and identical pages \"win\" 28% of the time. A game, a simulation, and what to do when you can't wait.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "advanced", "about": {"@type": "Thing", "name": "Sequential analysis", "sameAs": "https://en.wikipedia.org/wiki/Sequential_analysis"}, "image": "https://mathparadoxes.com/ab-test-peeking/og-en.png", "datePublished": "2026-10-25", "dateModified": "2026-10-25", "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "citation": [{"@type": "Book", "name": "Trustworthy Online Controlled Experiments", "author": [{"@type": "Person", "name": "Ron Kohavi"}, {"@type": "Person", "name": "Diane Tang"}, {"@type": "Person", "name": "Ya Xu"}], "datePublished": "2020", "isbn": "9781108724265"}, {"@type": "Book", "name": "The Art of Statistics", "author": [{"@type": "Person", "name": "David Spiegelhalter"}], "datePublished": "2019", "isbn": "9780241398630"}], "translationOfWork": {"@id": "https://mathparadoxes.com/ab-test-peeking/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "Peeking at an A/B test", "item": "https://mathparadoxes.com/ab-test-peeking/en/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/ab-test-peeking/en/#faq", "inLanguage": "en", "mainEntity": [{"@type": "Question", "name": "Why can't I stop an A/B test as soon as the tool shows 95%?", "acceptedAnswer": {"@type": "Answer", "text": "The 95% only covers a single check planned in advance. Each extra look gives the noise one more chance to cross the line. If you look at an A/A test with identical pages for 30 evenings and stop at the first \"95%\", a winner is declared in 28% of tests, not 5%."}}, {"@type": "Question", "name": "Why is it 28% and not 1 − 0.95³⁰ = 79%?", "acceptedAnswer": {"@type": "Answer", "text": "The checks are not independent. The data accumulate, so today's result almost entirely repeats yesterday's: the correlation between evenings k and m is √(k/m). Most false stops happen early, when there is little data and the result swings the most, and late evenings add few new chances."}}, {"@type": "Question", "name": "How can I peek at a test honestly?", "acceptedAnswer": {"@type": "Answer", "text": "Plan the number of looks and the days before the start and use stricter bounds. For 5 looks, Pocock's bound is |z| > 2.41 at each one; O'Brien–Fleming's starts at 4.56 and ends at 2.04. Both keep false winners at 5%. Another route is sequential tests with \"always valid\" p-values, as in Optimizely's Stats Engine."}}, {"@type": "Question", "name": "What do I do if there is no time to collect the sample I need?", "acceptedAnswer": {"@type": "Answer", "text": "There is no free way, but there are options with a known price: test bolder changes (an effect twice as big needs about four times fewer people), remove noise with pre-test data (CUPED), use a more frequent metric, knowingly accept 90% instead of 95%, or use a multi-armed bandit if the goal is to earn rather than to learn. If none of this is possible, decide without an \"experiment\" and keep a holdout group."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the Berkson and election-poll pages. A "confidence" line that wanders evening after evening and plants a flag the first time it touches 95% is this problem's signature object. */
+:root {
+  --tint: #F6E7D8;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --path: #A3A9B8;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); }
+#hero-cv { height: 330px; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.card > * { min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:disabled { opacity: .4; cursor: default; filter: none; transform: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+.dash-demo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+.dash-demo div { background: var(--paper); border-radius: 10px; padding: 8px 10px; display: grid; }
+.dash-demo span { font-size: .74rem; color: var(--muted); }
+.dash-demo b { font-size: 1.15rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.guess .val { font-family: var(--f-display); font-weight: 800; font-size: clamp(2.4rem, 7vw, 3.4rem); line-height: 1; }
+.guess input[type=range] { width: 100%; }
+.scale { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: .72rem; color: var(--muted); }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 170px 1fr 56px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+.crow .mono { text-align: right; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.dash { background: var(--paper); border-radius: 14px; padding: 14px 16px; display: grid; gap: 10px; }
+.dash-top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; font-size: .84rem; color: var(--muted); }
+.dash-top b { color: var(--ink); }
+.dash table td, .dash table th { padding: 6px 8px; }
+.dash-sum { display: flex; gap: 22px; flex-wrap: wrap; align-items: baseline; }
+.dash-sum .k { display: block; font-size: .78rem; color: var(--muted); }
+.dash-sum b { font-family: var(--f-display); font-size: 1.5rem; font-weight: 800; }
+.dash-sum .hot b { color: var(--hit); }
+.msg { min-height: 3em; font-weight: 500; }
+#g-cv { height: 240px; }
+.tally td.bad { color: var(--loss); font-weight: 700; }
+#g-robot-out { min-width: 0; }
+#g-robot-out th.num, .tally th.num { white-space: normal; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.7rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.tiles.two { grid-template-columns: 1fr 1fr; }
+#c-looks { height: 340px; }
+#c-spag { height: 320px; }
+.lock { position: relative; }
+html[data-spoil]:not(.solved) .lock .lockable { filter: blur(10px); pointer-events: none; user-select: none; }
+.lock-msg { position: absolute; inset: 0; z-index: 2; display: grid; place-content: start center; padding-top: 140px !important; justify-items: center; gap: 12px; text-align: center; padding: 20px; }
+.lock-msg p { font-weight: 600; max-width: 34ch; background: var(--surface); border-radius: 10px; padding: 8px 12px; }
+.sim-block + .sim-block { margin-top: 20px; }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; align-content: start; }
+.vs b { font-family: var(--f-display); font-size: 1.5rem; }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .82rem; color: var(--muted); }
+#c-trumpet { height: 230px; }
+#c-bounds { height: 300px; }
+.bnd-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
+.bnd-grid > * { min-width: 0; }
+
+/* ---------- tools ---------- */
+.tools { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.tools .card { display: grid; gap: 14px; align-content: start; }
+.tools .wide { grid-column: 1 / -1; }
+.tools .card > p { font-size: .95rem; }
+.price { border-left: 3px solid var(--line); padding-left: 12px; font-size: .9rem; color: var(--muted); }
+.price b { color: var(--ink); }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.result-row .big { font-size: clamp(1.6rem, 4vw, 2.2rem); }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+td.hl { color: var(--hit); font-weight: 700; }
+#c-bandit { height: 170px; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .tools, .bnd-grid { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .vs { grid-template-columns: 1fr; }
+  .tiles.two { grid-template-columns: 1fr; }
+  .crow { grid-template-columns: 110px 1fr 48px; }
+  th, td { padding: 8px 6px; }
+  .dash table td, .dash table th { padding: 5px 4px; font-size: .82rem; }
+  .dash .vis { display: none; }
+  #hero-cv { height: 290px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=47255110">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/en/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/ab-test-peeking/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/ab-test-peeking/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i></span>Advanced</button><span class="mp-level-hint" hidden>Expected value, variance, correlation, logarithms, series<a href="https://mathparadoxes.com/en/?l=3#problems">All puzzles of this level →</a></span></span>
+    
+    <h1 class="en"><span class="kw">Peeking at A/B tests</span> Two identical pages. You check the results every evening. <span class="q sp-before">How often does one "win"?</span><span class="q sp-after">More than one test in four.</span></h1>
+    
+    
+    <p class="lead en sp-before">A marketer runs a 30-day test and opens the dashboard every evening. As soon as the tool shows "95% confidence", they stop the test and declare a winner. But pages A and B are identical. What is the chance that within 30 evenings one of them "wins" anyway? Lock in your answer, then check it with a game, a simulation and the explanations. At the end there is an honest answer to "what if I can't wait".</p>
+    <p class="lead en sp-after">If you look at the dashboard every evening and stop at the first "95%", identical pages "win" in 28% of tests, not 5%. Each look gives the noise another chance to cross the line. The 95% only covers a single check planned in advance. Check it with the game and the simulation, and round 5 has seven honest ways to avoid waiting for months, each with its price.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b>28%</b><span><span class="en">false winners when you look every evening</span></span></div>
+      <div class="odd"><b>5%</b><span><span class="en">if you look once, on day 30</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="en">The puzzle</b></a>
+      <a href="#guess"><span>1</span><b class="en">Guess</b></a>
+      <a href="#game"><span>2</span><b class="en">The impatient marketer</b></a>
+      <a href="#sim"><span>3</span><b class="en">Thousands of tests</b></a>
+      <a href="#why"><span>4</span><b class="en">Why it works</b></a>
+      <a href="#more"><span>5</span><b class="en">I can't wait</b></a>
+      <a href="#facts"><span>★</span><b class="en" style="font-weight:inherit">Fun facts</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv"></canvas>
+    <p class="cap sp-before"><span class="en">Each line is one A/A test: two identical pages, 30 evenings. The line is the dashboard's "confidence". A flag goes up the first evening it reaches 95%. How often does that happen?</span></p>
+    <p class="cap sp-after"><span class="en">Each line is one A/A test. About 28% of the lines get a flag, though the pages are identical. On day 30 only 5% of tests are above the 95% line.</span></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">The puzzle</span></span>
+    <h2><span class="en">A test checked every evening</span></h2>
+    
+    <p class="lead en">This is the second page of a series on A/B tests. The first one, <a href="../../ab-test/en/">"Two identical pages"</a>, shows how noise creates "winners" on its own. Here it is the same noise, plus one habit: looking at the result every day.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="en">An A/A test</span></h3>
+        
+        <p class="en">Pages A and B are identical. Every visitor buys with probability 5% on either page. There is no real difference.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="en">Traffic and plan</span></h3>
+        
+        <p class="en">Each page gets 1,000 new visitors a day. The test is planned for 30 days, which is 30,000 per page.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="en">The habit</span></h3>
+        
+        <p class="en">Every evening the marketer opens the dashboard. The tool runs the standard test for two conversion rates and shows "confidence". The first evening it reaches 95% (p &lt; 0.05), the test is stopped and the leading page is declared the winner, whether it is A or B.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="en">The question</span></h3>
+        
+        <p class="en">What is the chance that within 30 evenings one of the identical pages is declared the winner?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="en">Intuition says</span></span>
+        <p class="q"><span class="en">"5%: that is exactly what 95% confidence means"</span></p>
+        
+        <p class="en">In fact it is 28%. The five percent apply to one look planned in advance. Here there are thirty looks, and each one gives the noise a new chance to cross the line.</p>
+      </div>
+      <div class="card">
+        <h3><span class="en">What the dashboard shows</span></h3>
+        <div class="dash-demo">
+          <div><span><span class="en">Visitors A · B</span></span><b class="mono en">4,000 · 4,000</b></div>
+          <div><span><span class="en">Purchases A · B</span></span><b class="mono">193 · 228</b></div>
+          <div><span><span class="en">Lift of B</span></span><b class="mono">+18%</b></div>
+          <div><span><span class="en">Confidence</span></span><b class="mono">91%</b></div>
+        </div>
+        
+        <ul class="rules en">
+          <li>"Confidence" is 1 − p, where p is the p-value.</li>
+          <li>p &lt; 0.05 reads: if the pages were identical, a gap this big would appear less than 1 time in 20.</li>
+          <li>That is a promise about one look. It says nothing about thirty looks.</li>
+        </ul>
+        <p class="note"><span class="en">Model: a two-sided z-test for two proportions with a pooled conversion estimate; the number of purchases is random (binomial). Either page can become the winner.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="en">How many identical pages will "win"?</span></h2>
+    
+    <p class="lead en">An A/A test, 30 evenings, a check every evening and a stop at the first "95%". In what share of such tests is a winner declared?</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <label for="guess-p" class="note"><span class="en">Your estimate: share of tests with a "winner"</span></label>
+      <div class="val mono" id="guess-v">50%</div>
+      <input type="range" id="guess-p" min="0" max="100" value="50" step="1">
+      <div class="scale"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+      <div class="actions"><button class="btn pri" id="guess-go"><span class="en">Check</span></button></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      
+      <p class="note en">A breakdown of your estimate will appear here.</p>
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Hints</span>
+    <p class="mp-hints-intro">Hard to decide? Open the hints one at a time: the easy one first, then stronger ones.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>If you buy one lottery ticket a day for a month, does your chance of winning stay the same as with one ticket?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>On each evening alone the chance of a false "95%" is 5%. But the evenings are not independent: the data on day 20 are 95% the same as on day 19.</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>So the answer lies between 5% and 1 − 0.95³⁰ = 79%. Which end is it closer to, if late evenings add almost no new data?</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Show hint 1 of 3 · easy&quot;, &quot;Show hint 2 of 3 · medium&quot;, &quot;Show hint 3 of 3 · strong&quot;]">Show hint 1 of 3 · easy</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "ab-test-peeking";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "ab-test-peeking", RULE = {"right": [[22, 34]]}, MIN = 20, T = {"kicker": "How others answer", "few": "Too few answers for stats yet: {n}. Yours is one of them.", "few_seen": "Too few answers for stats yet: {n}.", "all": "Answers so far: {n}. {p} of them are right.", "yes": "You are among those who got it.", "no": "Don't worry: intuition fails most people here.", "bar": "right", "note": "Only the first answer from each browser counts, given before it saw the solution. Anonymous."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 2 · The game</span></span>
+    <h2><span class="en">The impatient marketer</span></h2>
+    
+    <p class="lead en">The computer secretly decides: either the pages are identical, or B really is 10% better (5.5% instead of 5%). You don't know which. Step through the evenings and stop the test when you decide there is a winner. Then switch to the honest marketer, who looks only on day 30, and compare the scores.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="seg" id="g-mode" role="group" aria-label="Режим / Mode">
+        <button type="button" data-m="imp" aria-pressed="true"><span class="en">Impatient: every evening</span></button>
+        <button type="button" data-m="hon" aria-pressed="false"><span class="en">Honest: day 30 only</span></button>
+      </div>
+      <div class="dash">
+        <div class="dash-top"><span id="g-title"></span><span id="g-day"></span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th></th><th class="num vis"><span class="en">Visitors</span></th><th class="num"><span class="en">Purchases</span></th><th class="num"><span class="en">Conversion</span></th></tr></thead>
+            <tbody id="g-tbl"></tbody>
+          </table>
+        </div>
+        <div class="dash-sum" id="g-sum"></div>
+      </div>
+      <canvas id="g-cv" aria-label="Confidence by evening" role="img"></canvas>
+      <div class="actions" id="g-acts">
+        <button class="btn pri" id="g-next" type="button"><span class="en">Next evening</span></button>
+        <button class="btn ghost" id="g-auto" type="button"></button>
+        <button class="btn hit" id="g-stop" type="button"><span class="en">Stop and declare the winner</span></button>
+        <button class="btn pri" id="g-skip" type="button"><span class="en">Jump to day 30</span></button>
+        <button class="btn" id="g-new" type="button"><span class="en">New test</span></button>
+      </div>
+    </div>
+    <div class="card" style="display:grid;gap:14px;align-content:start">
+      <h3><span class="en">What happened</span></h3>
+      <p class="msg" id="g-msg" aria-live="polite"></p>
+      <div class="tally tbl-wrap" id="g-tally"></div>
+      <p class="note"><span class="en">A "false winner" means you declared a winner though the pages were identical. "Real effect found" means B really was better and you declared B the winner.</span></p>
+      <div class="sp-after" style="display:grid;gap:10px;min-width:0">
+        <button class="btn ghost" id="g-robot" type="button"><span class="en">Let a robot play 2,000 tests each way</span></button>
+        <div id="g-robot-out"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="en">Thousands of A/A tests and the exact curve</span></h2>
+    
+    <p class="lead en">We run thousands of A/A tests on the same 30,000 visitors per page and change only how often someone looks: once, twice, every evening, every hour or after every visitor. The line is the exact calculation, the dots are a simulation with random purchases.</p>
+  </div>
+  <div class="card lock">
+    <div class="lock-msg sp-before">
+      <p><span class="en">Lock in your answer in round 1 first: these charts show it.</span></p>
+      <button type="button" class="sp-skip" data-solve><span class="en">Show the answer</span></button>
+    </div>
+    <div class="lockable">
+      <div class="sim-block">
+        <h3><span class="en">The more often you look, the more false winners</span></h3>
+        <div class="sim-grid" style="margin-top:14px">
+          <div>
+            <canvas id="c-looks" aria-label="False-winner rate by number of looks" role="img"></canvas>
+            <div class="legend">
+              <span style="--c:var(--ink)"><b class="en">exact calculation</b></span>
+              <span style="--c:var(--path)"><b class="en">simulation</b></span>
+              <span style="--c:var(--hit)"><b class="en">every evening, 30 looks</b></span>
+            </div>
+            <p class="note" id="looks-note" style="margin-top:8px"></p>
+          </div>
+          <div class="tiles">
+            <div class="tile"><div class="k"><span class="en">One look, on day 30</span></div><div class="v mono" id="t-once">–</div><div class="s" id="t-once-s"></div></div>
+            <div class="tile" style="--c:var(--hit)"><div class="k"><span class="en">Every evening, 30 evenings</span></div><div class="v mono" id="t-daily">–</div><div class="s" id="t-daily-s"></div></div>
+            <div class="tile"><div class="k"><span class="en">Every hour, 720 looks</span></div><div class="v mono" id="t-hour">–</div><div class="s" id="t-hour-s"></div></div>
+            <div class="tile"><div class="k"><span class="en">After every pair of visitors</span></div><div class="v mono" id="t-visit">–</div><div class="s" id="t-visit-s"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="sim-block">
+        <h3><span class="en">200 A/A tests day by day</span></h3>
+        <p class="note" style="margin-top:6px"><span class="en">Each line shows how far B is behind or ahead of A, in units of noise (z). The ±1.96 bounds mean "95% confidence". A dot marks the evening a line first leaves the band: that is when the impatient marketer would stop the test.</span></p>
+        <div class="sim-grid" style="margin-top:14px">
+          <div>
+            <canvas id="c-spag" aria-label="200 random z-score paths over 30 days" role="img"></canvas>
+            <div class="actions" style="margin-top:12px"><button class="btn pri" id="spag-new" type="button"><span class="en">New 200 tests</span></button></div>
+          </div>
+          <div class="tiles">
+            <div class="tile" style="--c:var(--hit)"><div class="k"><span class="en">Crossed a bound at least once</span></div><div class="v mono" id="s-any">–</div><div class="s" id="s-any-s"></div></div>
+            <div class="tile"><div class="k"><span class="en">Outside the bounds on day 30</span></div><div class="v mono" id="s-end">–</div><div class="s"><span class="en">theory: 5.0%</span></div></div>
+            <div class="tile"><div class="k"><span class="en">Typical evening of a false stop</span></div><div class="v mono" id="s-med">–</div><div class="s" id="s-med-s"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 4 · Why it works</span></span>
+    <h2><span class="en">Where the extra winners come from</span></h2>
+    
+    <p class="lead en">First in plain words, then strictly: the random walk, tables and the bounds that honestly keep 5% with several looks. At the end some theory, including why Bayesian dashboards don't save you either.</p>
+  </div>
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">In plain words</span><span class="mp-layer-desc">pictures, analogies, small numbers</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“In plain words” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">The core, simplified</span></span>
+      <h3><span class="en">Every look is one more lottery ticket</span></h3>
+      <div class="vs">
+        <div><span><span class="en">One look</span></span><b class="mono">5%</b></div>
+        <div class="bb"><span><span class="en">30 looks</span></span><b class="mono">28%</b></div>
+        <div><span><span class="en">30 independent tickets</span></span><b class="mono">79%</b></div>
+      </div>
+      
+      <p class="en">Each evening the noise gets a new chance to cross the 95% line by accident. One look is one ticket with a 1-in-20 chance of a fake prize. Thirty looks are thirty tickets, and the chances pile up. This is simplified: the tickets are not <a href="https://mathparadoxes.com/glossary/independence/en/" class="mp-term" data-term="independence" aria-expanded="false">independent</a>, because today's data almost entirely repeat yesterday's. That is why it comes to 28%, not 1 − 0.95³⁰ = 79%.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">What 95% promises</span></span>
+      <h3><span class="en">A promise about one look, planned in advance</span></h3>
+      
+      <p class="en">The tool computes confidence as if tonight were the only check, agreed before the start. It does not know that you looked yesterday and will look tomorrow. If you set the date in advance and look once, identical pages "win" in 5% of tests, as promised. If you stop at the first "95%", you yourself pick the evening that is luckiest for the noise.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">The trumpet</span></span>
+      <h3><span class="en">The first days swing the most</span></h3>
+      <canvas id="c-trumpet" aria-label="Lift of B over A as visitors accumulate in one A/A test" role="img"></canvas>
+      <div class="actions"><button class="btn ghost" id="tr-new" type="button"><span class="en">Another A/A test</span></button></div>
+      
+      <p class="en">The lift of B over A in one A/A test as visitors accumulate. The grey band is the ordinary spread of noise (±1.96 <a href="https://mathparadoxes.com/glossary/standard-error/en/" class="mp-term" data-term="standard-error" aria-expanded="false">standard errors</a>). After day one ±38% surprises nobody; after 30 days the spread narrows to ±7%. An early "win" of +25% looks impressive, but it is within the noise. More about this trumpet on the first page of the series, <a href="../../ab-test/en/">"Two identical pages"</a>.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Picking the peak</span></span>
+      <h3><span class="en">Stopping at a high means choosing the high</span></h3>
+      
+      <p class="en">Picture a roulette player who leaves the casino the minute they are ahead. The game is fair, but they will often report "I left ahead". A test is the same: you watch a wandering curve and record the result exactly when it is at a peak. That is why false stops cluster at the start: about 59% of them happen in the first week, when there is the least data.</p>
+      
+      <p class="en">The same habit inflates real effects too: a test stopped at a peak shows a bigger lift than the true one.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Rigorous</span><span class="mp-layer-desc">tables, charts, formulas</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Rigorous” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">The random walk</span></span>
+      <h3><span class="en">The sum of noise wanders, and the bound grows like √n</span></h3>
+      
+      <p class="en">Let Sₖ be how many purchases B is ahead of A by evening k. Each day a new independent piece of noise is added, so Sₖ is a random walk. Its spread grows like √k, and the test divides by it: z = Sₖ / (σ√k). On any single evening |z| &gt; 1.96 happens with probability 5%. But a walk that touches the curve ±1.96σ√k at least once in 30 steps is much more common.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="en">Evenly spaced looks</span></th><th class="num">1</th><th class="num">2</th><th class="num">5</th><th class="num">10</th><th class="num">30</th><th class="num">100</th></tr></thead>
+          <tbody>
+            <tr><td><span class="en">False winners</span></td><td class="num en">5.0%</td><td class="num en">8.3%</td><td class="num en">14.2%</td><td class="num en">19.3%</td><td class="num hl en">28.0%</td><td class="num en">37.4%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note"><span class="en">Exact calculation for the normal approximation. The answer depends only on the number of evenly spaced looks, not on the traffic.</span></p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Why not 79%</span></span>
+      <h3><span class="en">Neighbouring evenings are almost the same</span></h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="en">Pair of evenings</span></th><th class="num"><span class="en">Shared data</span></th><th class="num"><span class="en">Correlation of z</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="en">1st and 2nd</span></td><td class="num">50%</td><td class="num en">0.71</td></tr>
+            <tr><td><span class="en">10th and 11th</span></td><td class="num">91%</td><td class="num en">0.95</td></tr>
+            <tr><td><span class="en">29th and 30th</span></td><td class="num">97%</td><td class="num en">0.98</td></tr>
+            <tr><td><span class="en">1st and 30th</span></td><td class="num">3%</td><td class="num en">0.18</td></tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <p class="en">The <a href="https://mathparadoxes.com/glossary/correlation/en/" class="mp-term" data-term="correlation" aria-expanded="false">correlation</a> between z on evening k and on evening m &gt; k is √(k/m). Late in the test a new evening adds only a few percent of new data, so the new "ticket" is almost a copy of yesterday's. Early on the evenings differ a lot, and that is where most false winners are born.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">Bounds that keep 5%</span></span>
+      <h3><span class="en">Five planned looks: three ways to draw the bound</span></h3>
+      <div class="bnd-grid">
+        <div>
+          <div class="presets" id="bnd-pick"></div>
+          <canvas id="c-bounds" style="margin-top:12px" aria-label="z-score paths with three stopping bounds at five looks" role="img"></canvas>
+          <div class="actions" style="margin-top:10px"><button class="btn ghost" id="bnd-new" type="button"><span class="en">New 300 tests</span></button></div>
+        </div>
+        <div style="display:grid;gap:12px;align-content:start">
+          <div class="result-row">
+            <div><span class="k"><span class="en">False winners in the simulation</span></span><b class="big mono" id="bnd-rate">–</b></div>
+          </div>
+          <p class="note" id="bnd-txt"></p>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th><span class="en">Day</span></th><th class="num">95%</th><th class="num"><span class="en">Pocock</span></th><th class="num"><span class="en">O'Brien–Fleming</span></th></tr></thead>
+              <tbody>
+                <tr><td>6</td><td class="num en">1.96</td><td class="num en">2.41</td><td class="num en">4.56</td></tr>
+                <tr><td>12</td><td class="num en">1.96</td><td class="num en">2.41</td><td class="num en">3.23</td></tr>
+                <tr><td>18</td><td class="num en">1.96</td><td class="num en">2.41</td><td class="num en">2.63</td></tr>
+                <tr><td>24</td><td class="num en">1.96</td><td class="num en">2.41</td><td class="num en">2.28</td></tr>
+                <tr><td>30</td><td class="num en">1.96</td><td class="num en">2.41</td><td class="num en">2.04</td></tr>
+                <tr><td><span class="en">False overall</span></td><td class="num en">14.2%</td><td class="num en">5.0%</td><td class="num en">5.0%</td></tr>
+                <tr><td><span class="en">Max sample</span></td><td class="num">–</td><td class="num">+23%</td><td class="num">+3%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="note"><span class="en">The numbers are bounds for |z|. Pocock's 2.41 corresponds to 98.4% confidence at every look. "Max sample" is how many more visitors you must plan for to keep 80% power, compared with a single look.</span></p>
+        </div>
+      </div>
+      
+      <p class="en">Stuart Pocock (1977) proposed one stricter bound for all looks. Peter O'Brien and Thomas Fleming (1979) made the early bounds very strict and the last one almost ordinary: stopping on day 6 takes a huge gap, but on day 30 you lose almost nothing. Both schemes are set so that over all five looks a false winner appears in 5% of A/A tests.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">For formula lovers</span></span>
+      <h3><span class="en">A test every evening and the chance of crossing the bound at least once</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Evening k: each page has nₖ = 1,000·k visitors, purchase shares p̂_A and p̂_B, pooled share p̄. The dashboard computes z and the confidence.</span></p>
+          <math display="block"><msub><mi>z</mi><mi>k</mi></msub><mo>=</mo><mfrac><mrow><msub><mover><mi>p</mi><mo>^</mo></mover><mi>B</mi></msub><mo>−</mo><msub><mover><mi>p</mi><mo>^</mo></mover><mi>A</mi></msub></mrow><msqrt><mrow><mover><mi>p</mi><mo>¯</mo></mover><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mover><mi>p</mi><mo>¯</mo></mover><mo stretchy="false">)</mo><mo>·</mo><mn>2</mn><mo>/</mo><msub><mi>n</mi><mi>k</mi></msub></mrow></msqrt></mfrac><mo>,</mo><mspace width="0.8em"></mspace><mtext class="lbl en">confidence</mtext><mo>=</mo><mn>2</mn><mi>Φ</mi><mo stretchy="false">(</mo><mo>|</mo><msub><mi>z</mi><mi>k</mi></msub><mo>|</mo><mo stretchy="false">)</mo><mo>−</mo><mn>1</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">With no effect zₖ behaves like Sₖ/√k, where Sₖ is a sum of k independent standard normal steps. One look gives 5%. The chance of crossing at least once in K looks is computed step by step: the density of Sₖ inside the band is convolved with a normal step, and whatever leaves the band is set aside.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><munder><mo movablelimits="false">max</mo><mrow><mi>k</mi><mo>≤</mo><mn>30</mn></mrow></munder><mo>|</mo><msub><mi>S</mi><mi>k</mi></msub><mo>|</mo><mo>/</mo><msqrt><mi>k</mi></msqrt><mo>&gt;</mo><mn class="en">1.96</mn><mo stretchy="false">)</mo><mo>=</mo><mn class="hl en">0.280</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Bounds that keep 5% over K = 5 looks: Pocock uses one c for every k, O'Brien–Fleming uses a bound that falls like 1/√k.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mo>∃</mo><mi>k</mi><mo>:</mo><mo>|</mo><msub><mi>z</mi><mi>k</mi></msub><mo>|</mo><mo>&gt;</mo><msub><mi>c</mi><mi>k</mi></msub><mo stretchy="false">)</mo><mo>=</mo><mn class="en">0.05</mn><mo>,</mo><mspace width="0.8em"></mspace><msub><mi>c</mi><mi>k</mi></msub><mo>=</mo><mn class="en">2.413</mn><mspace width="0.6em"></mspace><mtext class="lbl en">or</mtext><mspace width="0.6em"></mspace><msub><mi>c</mi><mi>k</mi></msub><mo>=</mo><mn class="en">2.040</mn><msqrt><mrow><mn>5</mn><mo>/</mo><mi>k</mi></mrow></msqrt></math>
+        </div>
+      </div>
+      
+      <p class="en">We computed these probabilities by step-by-step integration on a fine grid and checked them with a simulation that draws exact binomial purchase counts: 400,000 A/A tests with the habit from the puzzle gave 28.1%, and the Pocock and O'Brien–Fleming bounds gave 5.0% and 5.1% over 200,000 tests each.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Deeper</span><span class="mp-layer-desc">generalisations, theory, history</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Deeper” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">Without a limit</span></span>
+      <h3><span class="en">Look forever and a "winner" is certain</span></h3>
+      
+      <p class="en">The law of the iterated <a href="https://mathparadoxes.com/glossary/logarithm/en/" class="mp-term" data-term="logarithm" aria-expanded="false">logarithm</a> (Aleksandr Khinchin, 1924) says that a random walk Sₙ reaches the height √(2n ln ln n) again and again. That height grows faster than 1.96·√n, so the walk will sooner or later cross any fixed bound for z with probability 1. It grows slowly: 30 looks give 28%, 100 looks 37%, hourly checks for a month about 50%. But there is no ceiling.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Tests you are allowed to peek at</span></span>
+      <h3><span class="en">From Wald to "always valid" p-values</span></h3>
+      
+      <p class="en">During the Second World War Abraham Wald invented the sequential probability ratio test (SPRT): after each observation, decide "enough" or "more". Its bounds are designed precisely for continuous peeking. A modern version, mSPRT, was described by Ramesh Johari, Pete Koomen, Leonid Pekelis and David Walsh in "Peeking at A/B Tests" (2017). It gives "always valid" <a href="https://mathparadoxes.com/glossary/p-value/en/" class="mp-term" data-term="p-value" aria-expanded="false">p-values</a>: you can look at them any time and false winners stay within 5%. The price is that for a fixed test size this approach is less sensitive than one planned look.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Bayesian dashboards</span></span>
+      <h3><span class="en">"95% chance to beat" does not protect against peeking either</span></h3>
+      
+      <p class="en">Many tools show not a p-value but a "chance that B beats A". It is often said you can look at it as much as you like. Let's check: A/A tests, a uniform Beta(1, 1) prior, a winner is declared when either page's chance reaches 95%.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="en">A/A tests, 95% bar</span></th><th class="num"><span class="en">One look</span></th><th class="num"><span class="en">Every evening</span></th></tr></thead>
+          <tbody id="bayes-tbl">
+            <tr><td><span class="en">Either page "wins"</span></td><td class="num en">10.1%</td><td class="num en">46.7%</td></tr>
+            <tr><td><span class="en">Only B "wins"</span></td><td class="num en">5.0%</td><td class="num en">23.8%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="actions"><button class="btn ghost" id="bayes-run" type="button"><span class="en">Check on 20,000 tests</span></button></div>
+      <p class="note" id="bayes-out"><span class="en">Table: 200,000 simulated A/A tests.</span></p>
+      
+      <p class="en">A Bayesian probability honestly describes what you know on any evening. But the rule "stop at 95%" once again picks the peak of the walk. The Bayesian answer is different: decide by expected loss, that is, how many conversions you lose if you pick the wrong page. When the pages are almost the same, the loss from a mistake is small too. That is a sensible business rule, but it does not promise 5% false winners.</p>
+    </div>
+
+  </div>
+  </div>
+
+<script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "ab-test-peeking" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+<!-- ROUND 5: toolkit -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 5 · I can't wait</span></span>
+    <h2><span class="en">No time for the full sample. Now what?</span></h2>
+    
+    <p class="lead en">The honest answer: there is no free way. Every tool below costs something: more visitors, bolder changes, a weaker conclusion or risk. Example numbers: 5% conversion, we want to detect +10%, the usual standard (5% false winners, 80% power). How many visitors that takes, and why, is explained on <a href="../../ab-test/en/">the first page of the series</a>.</p>
+  </div>
+  <div class="tools">
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">1 · Plan the looks in advance</span></span>
+      <h3><span class="en">You may peek if you agree on it before the start</span></h3>
+      
+      <p class="en">Choose the number of looks and the days in advance, and use stricter bounds. O'Brien–Fleming lets you stop early if the effect is big and takes almost nothing away at the end. Choose the number of looks:</p>
+      <div class="presets" id="plan-k"></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="en">Rule</span></th><th class="num"><span class="en">False winners</span></th><th class="num"><span class="en">Bound |z| at the last look</span></th><th class="num"><span class="en">Max sample</span></th><th class="num"><span class="en">Average sample if B really is +10%</span></th></tr></thead>
+          <tbody id="plan-tbl"></tbody>
+        </table>
+      </div>
+      <p class="price"><span class="en"><b>Price:</b> planning for 3–30% more visitors at most, and discipline: looks only on the planned days. In return, when the effect is real, the test ends 18–22% earlier on average. Samples are relative to a single look with 80% power.</span></p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">2 · Test bolder changes</span></span>
+      <h3><span class="en">An effect twice as big needs four times fewer people</span></h3>
+      <div class="controls" style="margin-bottom:0">
+        <label class="ctl" for="cal-p"><span><span class="en">Current conversion:</span> <b class="mono" id="cal-p-v"></b></span><input type="range" id="cal-p" min="0" max="20" step="1" value="9"></label>
+        <label class="ctl" for="cal-d"><span><span class="en">Effect we want to detect:</span> <b class="mono" id="cal-d-v"></b></span><input type="range" id="cal-d" min="0" max="14" step="1" value="3"></label>
+        <label class="ctl" for="cal-t"><span><span class="en">Visitors per page per day:</span> <b class="mono" id="cal-t-v"></b></span><input type="range" id="cal-t" min="0" max="12" step="1" value="5"></label>
+      </div>
+      <div class="result-row">
+        <div><span class="k"><span class="en">Needed per page</span></span><b class="big mono" id="cal-n">–</b></div>
+        <div><span class="k"><span class="en">Days of testing</span></span><b class="big mono" id="cal-days">–</b></div>
+      </div>
+      <p class="note" id="cal-note"></p>
+      <p class="price"><span class="en"><b>Price:</b> you won't see small improvements. A bold change is harder to come up with, and if it only gives +3%, the test will miss it.</span></p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">3 · Remove noise with "before" data</span></span>
+      <h3><span class="en">CUPED: compare the change, not raw numbers</span></h3>
+      
+      <p class="en">If the same users visited the site before the test, their "before" behaviour explains part of the spread "during". The CUPED method (Alex Deng, Ya Xu, Ron Kohavi, Toby Walker, Microsoft, 2013) subtracts this predictable part. The remaining spread is multiplied by 1 − ρ², where ρ is the correlation of the metric before and during the test.</p>
+      <label class="ctl" for="cu-r"><span><span class="en">Correlation of "before" and "during" ρ:</span> <b class="mono" id="cu-r-v"></b></span><input type="range" id="cu-r" min="0" max="9" step="1" value="5"></label>
+      <div class="result-row">
+        <div><span class="k"><span class="en">Noise left</span></span><b class="big mono" id="cu-v">–</b></div>
+        <div><span class="k"><span class="en">Days instead of</span> <span id="cu-was"></span></span><b class="big mono" id="cu-days">–</b></div>
+      </div>
+      <p class="price"><span class="en"><b>Price:</b> you need data on the same people before the test. New visitors from ads have none, and a binary "bought / didn't" usually correlates weakly with the past. At Bing the method cut the variance roughly in half.</span></p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">4 · A more sensitive metric</span></span>
+      <h3><span class="en">A click happens more often than a purchase</span></h3>
+      <div class="presets" id="met-pick"></div>
+      <div class="result-row">
+        <div><span class="k"><span class="en">Needed per page for +10%</span></span><b class="big mono" id="met-n">–</b></div>
+      </div>
+      <p class="note" id="met-note"></p>
+      <p class="price"><span class="en"><b>Price:</b> it is a proxy. More clicks on a button do not guarantee more money: a flashy button can bring in the curious, who don't buy. Check the link between the proxy and revenue separately.</span></p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">5 · A weaker standard, knowingly</span></span>
+      <h3><span class="en">Fewer visitors for more mistakes</span></h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="en">Standard</span></th><th class="num"><span class="en">Sample</span></th><th class="num"><span class="en">False</span></th><th class="num"><span class="en">Missed</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="en">95% and power 80%</span></td><td class="num">100%</td><td class="num">5%</td><td class="num">20%</td></tr>
+            <tr><td><span class="en">90% and power 80%</span></td><td class="num">79%</td><td class="num">10%</td><td class="num">20%</td></tr>
+            <tr><td><span class="en">95% and power 50%</span></td><td class="num">49%</td><td class="num">5%</td><td class="num">50%</td></tr>
+            <tr><td><span class="en">90% and power 50%</span></td><td class="num">34%</td><td class="num">10%</td><td class="num">50%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <p class="en">"False" is the share of A/A tests with a winner, "missed" is the share of real +10% effects the test fails to see. For our example that is 31,234, 24,603, 15,288 and 10,767 visitors per page.</p>
+      <p class="price"><span class="en"><b>Price:</b> this is a business decision, not a statistics trick. It is honest if you write the standard down before the start and look once. For cheap changes that are easy to roll back, 90% is often perfectly reasonable.</span></p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">6 · The goal is to earn, not to learn</span></span>
+      <h3><span class="en">A multi-armed bandit shifts traffic to the better page</span></h3>
+      
+      <p class="en">Thompson sampling splits the traffic each day in proportion to each page's chance of being the better one. Simulation: 2,000 visitors a day, 30 days, A gives 5%.</p>
+      <div class="presets" id="ban-pick"></div>
+      <canvas id="c-bandit" aria-label="Share of traffic sent to B by day" role="img"></canvas>
+      <div class="result-row">
+        <div><span class="k"><span class="en">Purchases lost: 50/50</span></span><b class="big mono" id="ban-fix">–</b></div>
+        <div><span class="k"><span class="en">Lost: bandit</span></span><b class="big mono" id="ban-ts">–</b></div>
+      </div>
+      <p class="note" id="ban-note"></p>
+      <p class="price"><span class="en"><b>Price:</b> a weaker conclusion. The worse page gets few visitors, so you know its conversion poorly. If the effect changes over time (novelty, weekends), the bandit can lock onto an accidental leader.</span></p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">7 · If none of this is possible</span></span>
+      <h3><span class="en">Don't call it an experiment</span></h3>
+      
+      <p class="en">Sometimes there is too little traffic for any test. Then it is more honest to decide on judgement, user research and experience, ship the change and watch the metrics. Keep a holdout: a small share of traffic that keeps seeing the old version for another month.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="en">10% holdout, 2,000 people a day, 30 days</span></th><th class="num"><span class="en">Detected</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="en">New version 30% worse</span></td><td class="num en">&gt; 99.9%</td></tr>
+            <tr><td><span class="en">20% worse</span></td><td class="num">96%</td></tr>
+            <tr><td><span class="en">10% better</span></td><td class="num">37%</td></tr>
+            <tr><td><span class="en">5% better</span></td><td class="num">13%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="price"><span class="en"><b>Price:</b> you won't learn whether the change helped. A holdout catches a disaster, not a small gain. But you don't fool yourself with a "95%" that isn't there.</span></p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">Logic: peeking is multiple testing in time</span></span>
+      
+      <p class="en">Thirty looks at one test and twenty segments of one test work the same way: the more chances you give the noise, the more often it wins. The only difference is that evenings resemble each other while independent segments don't, so segments inflate the error even more. That is the third page of the series, <a href="../../multiple-testing/en/">"Multiple testing"</a>. And how noise creates "winners" even with a single look is shown on the first one, <a href="../../ab-test/en/">"Two identical pages"</a>.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="en">Things to tell your colleagues</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1945</span>
+        <h3><span class="en">A classified test</span></h3>
+        
+        <p class="en">Abraham Wald developed sequential analysis in 1943 in Columbia University's Statistical Research Group, when the US Navy asked for help with quality control of munitions. The method saved so many inspections that its use was restricted during the war. Wald published it openly in 1945 in the Annals of Mathematical Statistics.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1969</span>
+        <h3><span class="en">An error that keeps growing</span></h3>
+        
+        <p class="en">Peter Armitage, C. McPherson and B. Rowe, in "Repeated significance tests on accumulating data" (Journal of the Royal Statistical Society, Series A, 1969), computed how repeated checks at the 5% level keep increasing the chance of a false alarm. Their calculations became the basis for the bounds later proposed by Pocock and by O'Brien and Fleming.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1977</span>
+        <h3><span class="en">Bounds from clinical trials</span></h3>
+        
+        <p class="en">Stuart Pocock published group sequential methods in Biometrika in 1977, and Peter O'Brien and Thomas Fleming their scheme in Biometrics in 1979. Interim analyses of drug trials have used such bounds ever since: a committee can stop a trial early without inflating the chance of a false discovery.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2010</span>
+        <h3><span class="en">"How Not To Run an A/B Test"</span></h3>
+        
+        <p class="en">That is the title of an essay by Evan Miller dated 18 April 2010, after which web developers and marketers started talking about the peeking problem. His main advice: fix the sample size in advance and don't stop the test early, or use a sequential or Bayesian design.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2015</span>
+        <h3><span class="en">A dashboard you are allowed to watch</span></h3>
+        
+        <p class="en">On 21 January 2015 Optimizely moved all customers to Stats Engine, built with statisticians from Stanford: sequential tests plus control of the false discovery rate. In its explanation the company gave an example: if you look at a test every 500 visitors, the chance of falsely declaring a winner rises to 26%.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">0,71</span>
+        <h3><span class="en">Stopped at a peak</span></h3>
+        
+        <p class="en">Dirk Bassler and colleagues (JAMA, 2010) compared 91 clinical trials stopped early for benefit with 424 similar trials that ran to the end. The stopped ones showed a stronger effect: a ratio of relative risks of 0.71. The overestimate was largest in trials with fewer than 500 events, that is, where there was the least data.</p>
+      </article>
+  </div>
+</section>
+
+<section class="mp-books" id="books">
+  <div class="mp-related-head">
+    <span class="eyebrow">Further reading</span>
+    <h2>Books that discuss this puzzle</h2>
+  </div>
+  <div class="mp-books-grid">
+    <div class="mp-book"><h3>Trustworthy Online Controlled Experiments</h3><p class="mp-book-author">Ron Kohavi, Diane Tang, Ya Xu</p><p class="mp-book-meta">2020 · chapter 3, p. 42</p></div>
+    <div class="mp-book"><h3>The Art of Statistics</h3><p class="mp-book-author">David Spiegelhalter</p><p class="mp-book-meta">2019 · chapter 10</p></div>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/books/en/">All books →</a>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">More puzzles</span>
+    <h2>Other paradoxes</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/multiple-testing/en/"><h3>Slice it until something wins</h3><p>The new email is no better than the old one. The analyst checks the result in 20 countries. What is the chance at least one shows a &quot;significant&quot; difference?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/ab-test/en/"><h3>The A/A test: two identical pages</h3><p>The same page is shown as &quot;A&quot; and as &quot;B&quot;, converting at 5%, with 1,000 visitors each. How often will one of two identical pages &quot;win&quot; by 20% or more?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/simpson-paradox/en/"><h3>Simpson&#x27;s paradox</h3><p>Treatment A beats treatment B for small kidney stones and for large ones. Can B be better for all the patients together?</p></a>
+  </div>
+  <p class="mp-related-all"><a href="https://mathparadoxes.com/en/">All puzzles →</a> <a href="https://mathparadoxes.com/glossary/en/">Glossary →</a></p>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Discussion</span>
+    <h2>What do you think?</h2>
+    <p>Share your own explanation, an objection or a variant of the puzzle. You need a GitHub account to comment.</p>
+    <div class="mp-lvote"><p>Is “Advanced” the right level for this puzzle?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">No, harder</button><button type="button" data-vote="right">Yes</button><button type="button" data-vote="easier">No, easier</button></div><p class="mp-lvote-thanks">Thank you! This helps set the levels right.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "ab-test-peeking" + "-lvl", LEVEL = 3, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="ab-test-peeking" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="en" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Newsletter</span>
+    <h2>New puzzles, explanations and discussions</h2>
+    <p>I keep adding new puzzles, new ways to explain them and write-ups of the discussions they start. Leave your email and I'll write when something new is out. No spam, one-click unsubscribe.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">The sign-up form will appear here soon.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+<footer>
+  
+  <span class="en">Peeking at a test: every look gives the noise one more chance. 30 evening checks at 95% give 28% false winners instead of 5%.</span>
+  <span class="mono">P(max |Sₖ|/√k &gt; 1.96) = 0.28</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isSolved = () => !window.mpSolved || mpSolved();
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => Math.round(n).toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const sgn = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(Math.round(100 * v)) + '%';
+
+/* ---------- maths ---------- */
+const Z = 1.959964, DAY = 1000, DAYS = 30, P0 = .05, PB = .055;
+const Phi = x => { // standard normal CDF (Abramowitz–Stegun 7.1.26 via erf)
+  const t = 1 / (1 + .3275911 * Math.abs(x) / Math.SQRT2), y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - .284496736) * t + .254829592) * t * Math.exp(-x * x / 2);
+  return x >= 0 ? (1 + y) / 2 : (1 - y) / 2;
+};
+function lgamma(x) { const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, .1208650973866179e-2, -.5395239384953e-5]; let y = x, t = x + 5.5; t -= (x + .5) * Math.log(t); let s = 1.000000000190015; for (const v of c) s += v / ++y; return -t + Math.log(2.5066282746310005 * s / x); }
+// cumulative binomial table, drawn from by inversion: exact binomial purchase counts
+const TABS = new Map();
+function table(n, p) {
+  const key = n + '|' + p; let t = TABS.get(key); if (t) return t;
+  t = new Float64Array(n + 1);
+  const lc = lgamma(n + 1), lp = Math.log(p), lq = Math.log(1 - p); let s = 0;
+  for (let i = 0; i <= n; i++) { s += Math.exp(lc - lgamma(i + 1) - lgamma(n - i + 1) + i * lp + (n - i) * lq); t[i] = s; }
+  t[n] = 1; TABS.set(key, t); return t;
+}
+function draw(t) { const u = Math.random(); let lo = 0, hi = t.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (t[m] < u) lo = m + 1; else hi = m; } return lo; }
+// pooled two-proportion z for a purchases of n on A and b purchases of n on B
+function zOf(a, b, n) { const s = a + b; if (s === 0 || s === 2 * n) return 0; const q = s / (2 * n); return (b - a) / n / Math.sqrt(q * (1 - q) * 2 / n); }
+const conf = z => 2 * Phi(Math.abs(z)) - 1;
+// one test: 30 evenings of 1,000 new visitors per page
+function testPath(pB = P0) {
+  const ta = table(DAY, P0), tb = table(DAY, pB), out = []; let a = 0, b = 0;
+  for (let d = 1; d <= DAYS; d++) { a += draw(ta); b += draw(tb); out.push({ a, b, n: d * DAY, z: zOf(a, b, d * DAY) }); }
+  return out;
+}
+const firstCross = (path, c = Z) => path.findIndex(s => Math.abs(s.z) > c);
+// exact share of A/A tests with a false winner after K evenly spaced looks at |z| > 1.96 (normal approximation,
+// step-by-step integration on a fine grid); depends only on K
+const EXACT = [0.05,0.0831,0.1073,0.1262,0.1417,0.1548,0.1662,0.1763,0.1852,0.1934,0.2007,0.2075,0.2138,0.2196,0.2251,0.2302,0.235,0.2395,0.2438,0.2479,0.2518,0.2555,0.259,0.2624,0.2657,0.2688,0.2718,0.2747,0.2775,0.2802,0.2828,0.2853,0.2877,0.2901,0.2924,0.2946,0.2968,0.2989,0.3009,0.3029,0.3049,0.3068,0.3086,0.3104,0.3122,0.3139,0.3156,0.3173,0.3189,0.3205,0.322,0.3235,0.325,0.3265,0.3279,0.3293,0.3307,0.332,0.3333,0.3346,0.3359,0.3372,0.3384,0.3396,0.3408,0.342,0.3432,0.3443,0.3454,0.3465,0.3476,0.3487,0.3497,0.3508,0.3518,0.3528,0.3538,0.3548,0.3558,0.3567,0.3577,0.3586,0.3595,0.3605,0.3614,0.3622,0.3631,0.364,0.3648,0.3657,0.3665,0.3673,0.3682,0.369,0.3698,0.3706,0.3713,0.3721,0.3729,0.3736];
+const ANSWER = EXACT[29];
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W) return null;
+  c.width = W * dpr; c.height = H * dpr;
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono'); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  return { ctx, W, H };
+}
+// confidence on a log scale of p: 0%, 50%, 80%, 90%, 95%, 99% are evenly spread; capped at 99.7%
+const CMAX = 2.5, cy = c => Math.min(CMAX, -Math.log10(Math.max(1e-9, 1 - c)));
+const CTICKS = [0, .5, .8, .9, .95, .99];
+function confAxes(ctx, X, Y, l, r, W, H, b, withDays = true) {
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1;
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  CTICKS.forEach(c => { if (c === .95) return; ctx.beginPath(); ctx.moveTo(l, Y(cy(c))); ctx.lineTo(W - r, Y(cy(c))); ctx.stroke(); ctx.fillText(Math.round(c * 100) + '%', l - 6, Y(cy(c))); });
+  if (withDays) { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; [1, 10, 20, 30].forEach(d => ctx.fillText(d, X(d), H - b + 6)); }
+  // the 95% line
+  ctx.strokeStyle = tok('--ink'); ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(l, Y(cy(.95))); ctx.lineTo(W - r, Y(cy(.95))); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = tok('--ink'); ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ctx.fillText('95%', l - 6, Y(cy(.95)));
+  ctx.font = '11px ' + tok('--f-mono');
+}
+function flag(ctx, x, y, text, col) {
+  const up = y > 36, top = up ? y - 31 : y + 16; // near the top edge the flag hangs below the point
+  ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, up ? y - 30 : y + 31); ctx.stroke();
+  ctx.font = '700 10px ' + tok('--f-mono');
+  const w = ctx.measureText(text).width + 10, left = x + w > ctx.canvas.clientWidth - 4 ? x - w : x;
+  ctx.fillStyle = col; ctx.fillRect(left, top, w, 15);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(text, left + 5, top + 7.5);
+  ctx.beginPath(); ctx.arc(x, y, 3.2, 0, 7); ctx.fillStyle = col; ctx.fill();
+  ctx.font = '11px ' + tok('--f-mono');
+}
+
+/* ---------- hero: confidence lines of A/A tests, a flag at the first 95% ---------- */
+const SPD = .22; // seconds per evening
+const hero = { past: [], cur: testPath(), t0: performance.now(), raf: 0, visible: true, tests: 0, flags: 0 };
+(() => { for (let i = 0; i < 7; i++) hero.past.push(testPath()); })();
+function heroDraw(now) {
+  const s = setupCanvas($('#hero-cv')); if (!s) return;
+  const { ctx, W, H } = s, solved = isSolved();
+  const l = 42, r = 14, t = 46, b = 26;
+  const X = d => l + (d - 1) / (DAYS - 1) * (W - l - r), Y = v => t + (1 - v / CMAX) * (H - t - b);
+  let dayF = reduce() ? DAYS : ((now || performance.now()) - hero.t0) / 1000 / SPD;
+  if (!reduce() && dayF > DAYS + 6) {
+    hero.tests++; if (firstCross(hero.cur) >= 0) hero.flags++;
+    hero.past.push(hero.cur); if (hero.past.length > 7) hero.past.shift();
+    hero.cur = testPath(); hero.t0 = now || performance.now(); dayF = 0;
+  }
+  ctx.fillStyle = tok('--surface'); ctx.beginPath(); ctx.roundRect ? ctx.roundRect(0, 0, W, H, 16) : ctx.rect(0, 0, W, H); ctx.fill();
+  confAxes(ctx, X, Y, l, r, W, H, b);
+  const line = (path, upto, col, w, alpha) => {
+    ctx.globalAlpha = alpha; ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath();
+    const last = Math.min(upto, DAYS);
+    for (let d = 1; d <= Math.ceil(last); d++) {
+      const v = cy(conf(path[d - 1].z));
+      if (d > last) { const pv = cy(conf(path[d - 2].z)), f = last - (d - 1); ctx.lineTo(X(d - 1 + f), Y(pv + (v - pv) * f)); }
+      else d === 1 ? ctx.moveTo(X(1), Y(v)) : ctx.lineTo(X(d), Y(v));
+    }
+    ctx.stroke(); ctx.globalAlpha = 1;
+  };
+  const pathCol = tok('--path'), ink = tok('--ink'), hit = tok('--hit');
+  hero.past.forEach(p => {
+    line(p, DAYS, pathCol, 1.3, .45);
+    const k = firstCross(p); if (k >= 0) { ctx.fillStyle = solved ? hit : ink; ctx.globalAlpha = .7; ctx.beginPath(); ctx.arc(X(k + 1), Y(cy(conf(p[k].z))), 3, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+  });
+  line(hero.cur, Math.max(1, dayF), ink, 2.6, 1);
+  const k = firstCross(hero.cur);
+  if (k >= 0 && dayF >= k + 1) flag(ctx, X(k + 1), Y(cy(conf(hero.cur[k].z))), L('ПЕРЕМОЖЕЦЬ!', 'WINNER!'), solved ? hit : ink);
+  // header
+  const d = Math.max(1, Math.min(DAYS, Math.floor(dayF))), st = hero.cur[d - 1];
+  ctx.fillStyle = ink; ctx.font = '600 12px ' + tok('--f-mono'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(L('A/A-тест · вечір ', 'A/A test · evening ') + d, 14, 18);
+  ctx.fillStyle = tok('--muted'); ctx.font = '11px ' + tok('--f-mono');
+  ctx.fillText('A ' + dec((100 * st.a / st.n).toFixed(2)) + '% · B ' + dec((100 * st.b / st.n).toFixed(2)) + '% · ' + L('впевненість ', 'confidence ') + Math.round(100 * conf(st.z)) + '%', 14, 34);
+  if (solved && hero.tests) {
+    ctx.textAlign = 'right'; ctx.fillStyle = hit; ctx.font = '600 12px ' + tok('--f-mono');
+    ctx.fillText(L('з прапорцем: ', 'flagged: ') + hero.flags + ' / ' + hero.tests, W - 14, 18);
+  }
+}
+function heroLoop(now) { heroDraw(now); if (!reduce() && hero.visible) hero.raf = requestAnimationFrame(heroLoop); else hero.raf = 0; }
+function heroStart() {
+  if (hero.raf) cancelAnimationFrame(hero.raf);
+  hero.raf = 0;
+  if (reduce()) { heroDraw(); return; }
+  hero.raf = requestAnimationFrame(heroLoop);
+}
+if ('IntersectionObserver' in window) new IntersectionObserver(es => {
+  hero.visible = es[0].isIntersecting;
+  if (hero.visible && !hero.raf && !reduce()) hero.raf = requestAnimationFrame(heroLoop);
+}).observe($('#hero-cv'));
+
+/* ---------- round 1: guess ---------- */
+const guessIn = $('#guess-p');
+let guessed = null;
+const guessShow = () => { $('#guess-v').textContent = guessIn.value + '%'; };
+guessIn.addEventListener('input', guessShow);
+$('#guess-go').addEventListener('click', () => { guessed = +guessIn.value; guessText(); window.mpSolve && mpSolve(guessed); });
+function guessText() {
+  if (guessed === null) return;
+  const g = guessed;
+  let v;
+  if (g <= 8) v = L('Так підказує інтуїція: адже інструмент пише «95%». Але 95% обіцяють лише один погляд. Тридцять поглядів дають шумові тридцять шансів, і однакові сторінки «перемагають» у 28% тестів.', 'That is what intuition says: the tool does say "95%". But the 95% only covers one look. Thirty looks give the noise thirty chances, and identical pages "win" in 28% of tests.');
+  else if (g < 22) v = L('Ви відчули, що щоденні погляди шкодять, але шкода більша: 28%. Більш ніж кожен четвертий A/A-тест закінчується «переможцем».', 'You sensed that daily looks do harm, but the harm is bigger: 28%. More than one A/A test in four ends with a "winner".');
+  else if (g <= 34) v = L('Влучно. Близько 28%: більш ніж кожен четвертий A/A-тест закінчується «переможцем», хоча сторінки однакові.', 'Spot on. About 28%: more than one A/A test in four ends with a "winner", though the pages are identical.');
+  else if (g <= 65) v = L('Забагато, хоча напрям правильний. Сусідні вечори майже однакові, бо дані накопичуються, тож нові погляди здебільшого повторюють старі. Виходить 28%.', 'Too high, though the direction is right. Neighbouring evenings are almost the same because the data accumulate, so new looks mostly repeat old ones. It comes to 28%.');
+  else v = L('Схоже, ви перемножили шанси як незалежні: 1 − 0,95³⁰ = 79%. Але вечори не незалежні: сьогоднішні дані майже повністю повторюють вчорашні. Тому 28%.', 'It looks like you multiplied the chances as if independent: 1 − 0.95³⁰ = 79%. But the evenings are not independent: today\'s data almost entirely repeat yesterday\'s. Hence 28%.');
+  const rows = [
+    [L('Ваша оцінка', 'Your estimate'), g / 100, 'var(--day)'],
+    [L('Насправді', 'Actually'), ANSWER, 'var(--hit)'],
+    [L('Інтуїція: один погляд', 'Intuition: one look'), .05, 'var(--muted)'],
+    [L('30 незалежних поглядів', '30 independent looks'), 1 - Math.pow(.95, 30), 'var(--line)']
+  ];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">28%</p>' +
+    '<p>' + v + '</p><div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + Math.round(100 * r[1]) + '%</span></div>').join('') +
+    '</div><p class="note">' + L('Точний розрахунок: 28,0%. Симуляція 400 000 A/A-тестів з випадковими покупками: 28,1%.', 'Exact calculation: 28.0%. A simulation of 400,000 A/A tests with random purchases: 28.1%.') + '</p>';
+}
+
+/* ---------- round 2: the impatient marketer ---------- */
+const blank = () => ({ n: 0, aa: 0, ab: 0, fake: 0, real: 0, wrong: 0, missed: 0 });
+const G = { mode: 'imp', real: false, path: null, day: 0, over: false, verdict: null, stopDay: 0, auto: 0, tally: { imp: blank(), hon: blank() }, robot: null };
+function gameNew(prefill) {
+  G.real = Math.random() < .5;
+  do { G.path = testPath(G.real ? PB : P0); } while (prefill && firstCross(G.path) >= 0 && firstCross(G.path) < 6);
+  G.day = prefill ? 5 : (G.mode === 'imp' ? 1 : 0); G.over = false; G.verdict = null; G.stopDay = 0;
+  stopAuto(); gameText(); gameDraw();
+}
+function gameEnd(declared) {
+  const st = G.path[G.day - 1], T = G.tally[G.mode];
+  G.over = true; G.stopDay = G.day; stopAuto();
+  const leaderB = st.b >= st.a;
+  T.n++; G.real ? T.ab++ : T.aa++;
+  if (declared) { if (!G.real) T.fake++; else if (leaderB) T.real++; else T.wrong++; }
+  else if (G.real) T.missed++;
+  G.verdict = { declared, leaderB };
+  gameText(); gameDraw();
+}
+function gameNext() {
+  if (G.over) return;
+  if (G.day < DAYS) G.day++;
+  if (G.day === DAYS) gameEnd(Math.abs(G.path[DAYS - 1].z) > Z);
+  else { gameText(); gameDraw(); }
+}
+function stopAuto() { if (G.auto) { clearInterval(G.auto); G.auto = 0; } }
+function gameAuto() {
+  if (G.over || G.auto) return;
+  G.auto = setInterval(() => {
+    gameNext();
+    if (G.over || (G.mode === 'imp' && Math.abs(G.path[G.day - 1].z) > Z)) { stopAuto(); gameText(); }
+  }, reduce() ? 10 : 260);
+  gameText();
+}
+$('#g-next').addEventListener('click', gameNext);
+$('#g-auto').addEventListener('click', () => { G.auto ? (stopAuto(), gameText()) : gameAuto(); });
+$('#g-stop').addEventListener('click', () => { if (!G.over && G.day) gameEnd(true); });
+$('#g-skip').addEventListener('click', () => { if (G.over) return; G.day = DAYS; gameEnd(Math.abs(G.path[DAYS - 1].z) > Z); });
+$('#g-new').addEventListener('click', () => gameNew(false));
+$('#g-mode').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.dataset.m === G.mode) return;
+  G.mode = b.dataset.m; $$('#g-mode button').forEach(x => x.setAttribute('aria-pressed', x === b)); gameNew(false);
+});
+function gameText() {
+  const hidden = G.mode === 'hon' && !G.over, st = G.day ? G.path[G.day - 1] : null;
+  $('#g-title').innerHTML = '<b>' + L('Тест: кнопка «Купити» A проти B', 'Test: "Buy" button A vs B') + '</b>';
+  $('#g-day').textContent = G.mode === 'hon' && !G.over ? L('дашборд закрито до 30-го дня', 'dashboard closed until day 30') : L('вечір ', 'evening ') + G.day + L(' з 30', ' of 30');
+  const cell = (v, show) => show ? v : '–';
+  const rows = [['A', st ? st.a : 0], ['B', st ? st.b : 0]];
+  $('#g-tbl').innerHTML = rows.map(r => '<tr><td><b>' + r[0] + '</b></td><td class="num vis">' + cell(fmt(st ? st.n : 0), !hidden) + '</td><td class="num">' + cell(fmt(r[1]), !hidden) + '</td><td class="num">' + cell(st ? dec((100 * r[1] / st.n).toFixed(2)) + '%' : '–', !hidden) + '</td></tr>').join('');
+  if (st && !hidden) {
+    const lead = st.b >= st.a ? 'B' : 'A', lift = st.b >= st.a ? (st.a ? st.b / st.a - 1 : 0) : (st.b ? st.a / st.b - 1 : 0), c = conf(st.z), hot = c > .95;
+    $('#g-sum').innerHTML = '<div><span class="k">' + L('Лідер', 'Leader') + '</span><b>' + lead + ' ' + sgn(lift) + '</b></div><div class="' + (hot ? 'hot' : '') + '"><span class="k">' + L('Впевненість', 'Confidence') + '</span><b class="mono">' + (100 * c).toFixed(0) + '%</b></div><div><span class="k">p</span><b class="mono">' + dec((1 - c).toFixed(3)) + '</b></div>';
+  } else $('#g-sum').innerHTML = '<div><span class="k">' + L('Лідер', 'Leader') + '</span><b>?</b></div><div><span class="k">' + L('Впевненість', 'Confidence') + '</span><b>?</b></div>';
+  // buttons
+  const imp = G.mode === 'imp';
+  $('#g-next').hidden = !imp || G.over; $('#g-auto').hidden = !imp || G.over; $('#g-stop').hidden = !imp || G.over; $('#g-skip').hidden = imp || G.over;
+  $('#g-auto').textContent = G.auto ? L('Пауза', 'Pause') : L('Гортати далі', 'Keep going');
+  // message
+  let m;
+  if (G.over) {
+    const v = G.verdict, truth = G.real ? L('B справді краща на 10%.', 'B really was 10% better.') : L('Сторінки були однакові.', 'The pages were identical.');
+    if (v.declared && !G.real) m = L('Ви оголосили переможцем ' + (v.leaderB ? 'B' : 'A') + ' на ' + G.stopDay + '-й вечір. ' + truth + ' Це фальшивий переможець: його створив шум.', 'You declared ' + (v.leaderB ? 'B' : 'A') + ' the winner on evening ' + G.stopDay + '. ' + truth + ' This is a false winner: the noise made it.');
+    else if (v.declared && v.leaderB) m = L('Ви оголосили переможцем B на ' + G.stopDay + '-й вечір. ' + truth + ' Справжній ефект знайдено.', 'You declared B the winner on evening ' + G.stopDay + '. ' + truth + ' A real effect found.');
+    else if (v.declared) m = L('Ви оголосили переможцем A на ' + G.stopDay + '-й вечір, але насправді краща на 10% була B. Шум перевернув знак.', 'You declared A the winner on evening ' + G.stopDay + ', but in fact B was 10% better. The noise flipped the sign.');
+    else if (G.real) m = L('За 30 днів впевненість не сягнула 95%, переможця немає. ' + truth + ' Тест ефект пропустив, так буває приблизно в 1 тесті з 5.', 'In 30 days the confidence did not reach 95%, no winner. ' + truth + ' The test missed the effect, which happens in about 1 test in 5.');
+    else m = L('За 30 днів впевненість не сягнула 95%, переможця немає. ' + truth + ' Правильний висновок.', 'In 30 days the confidence did not reach 95%, no winner. ' + truth + ' The right conclusion.');
+    m += ' ' + L('Блідий хвіст на графіку показує, що було б далі.', 'The faint tail on the chart shows what would have happened next.');
+  } else if (!imp) m = L('Чесний маркетолог визначив дату заздалегідь і не відкриває дашборд до 30-го дня. Тоді діє правило: переможець є, якщо впевненість на 30-й день вища за 95%.', 'The honest marketer set the date in advance and does not open the dashboard until day 30. Then the rule applies: there is a winner if the confidence on day 30 is above 95%.');
+  else if (st && conf(st.z) > .95) m = L('Дашборд показує понад 95%! За правилом нетерплячого маркетолога час зупинитися й оголосити переможця. Або гортайте далі.', 'The dashboard shows over 95%! By the impatient marketer\'s rule it is time to stop and declare the winner. Or keep going.');
+  else m = L('Впевненість ще нижча за 95%. Гортайте вечори і зупиніть тест, коли вирішите. На 30-й день тест закінчиться сам.', 'Confidence is still below 95%. Step through the evenings and stop the test when you decide. On day 30 the test ends by itself.');
+  $('#g-msg').textContent = m;
+  // tallies
+  const I = G.tally.imp, H = G.tally.hon, tr = (name, f, cls) => '<tr><td>' + name + '</td><td class="num' + cls + '">' + f(I) + '</td><td class="num' + cls + '">' + f(H) + '</td></tr>';
+  $('#g-tally').innerHTML = '<table><thead><tr><th>' + L('Ваш рахунок', 'Your score') + '</th><th class="num">' + L('Нетерплячий', 'Impatient') + '</th><th class="num">' + L('Чесний', 'Honest') + '</th></tr></thead><tbody>' +
+    tr(L('Тестів зіграно', 'Tests played'), T => T.n, '') +
+    tr(L('Фальшиві переможці з A/A-тестів', 'False winners of the A/A tests'), T => T.fake + ' / ' + T.aa, ' bad') +
+    tr(L('Справжній ефект знайдено', 'Real effect found'), T => T.real + ' / ' + T.ab, '') + '</tbody></table>';
+  robotText();
+}
+function gameDraw() {
+  const s = setupCanvas($('#g-cv')); if (!s) return;
+  const { ctx, W, H } = s, l = 42, r = 12, t = 34, b = 22;
+  const X = d => l + (d - 1) / (DAYS - 1) * (W - l - r), Y = v => t + (1 - v / CMAX) * (H - t - b);
+  confAxes(ctx, X, Y, l, r, W, H, b);
+  if (G.mode === 'hon' && !G.over) {
+    ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '600 12px ' + tok('--f-mono');
+    ctx.fillText(L('графік закрито до 30-го дня', 'chart closed until day 30'), (l + W - r) / 2, (t + H - b) / 2); return;
+  }
+  const seg = (from, to, col, w, alpha) => { ctx.globalAlpha = alpha; ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath();
+    for (let d = from; d <= to; d++) { const y = Y(cy(conf(G.path[d - 1].z))); d === from ? ctx.moveTo(X(d), y) : ctx.lineTo(X(d), y); } ctx.stroke(); ctx.globalAlpha = 1; };
+  if (G.over && G.stopDay < DAYS) seg(G.stopDay, DAYS, tok('--path'), 1.5, .8);
+  if (G.day) seg(1, G.day, tok('--ink'), 2.4, 1);
+  for (let d = 1; d <= G.day; d++) { const c = conf(G.path[d - 1].z); ctx.fillStyle = c > .95 ? tok('--hit') : tok('--ink'); ctx.beginPath(); ctx.arc(X(d), Y(cy(c)), c > .95 ? 3.6 : 2.2, 0, 7); ctx.fill(); }
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(L('впевненість за вечорами', 'confidence by evening'), l, 6);
+  if (G.over && G.verdict.declared) flag(ctx, X(G.stopDay), Y(cy(conf(G.path[G.stopDay - 1].z))), (G.verdict.leaderB ? 'B' : 'A') + L(' переміг', ' wins'), G.real && G.verdict.leaderB ? tok('--win') : tok('--loss'));
+}
+// a robot plays both habits on many tests
+$('#g-robot').addEventListener('click', () => {
+  const R = 2000, out = { imp: blank(), hon: blank() };
+  for (let i = 0; i < R; i++) for (const k of ['imp', 'hon']) {
+    const real = i % 2 === 1, p = testPath(real ? PB : P0), T = out[k];
+    const at = k === 'imp' ? firstCross(p) : (Math.abs(p[DAYS - 1].z) > Z ? DAYS - 1 : -1);
+    T.n++; real ? T.ab++ : T.aa++;
+    if (at >= 0) { const bWins = p[at].b >= p[at].a; if (!real) T.fake++; else if (bWins) T.real++; else T.wrong++; } else if (real) T.missed++;
+  }
+  G.robot = out; robotText();
+});
+function robotText() {
+  const o = G.robot; if (!o) { $('#g-robot-out').innerHTML = ''; return; }
+  const row = (k, name) => { const T = o[k], wins = T.fake + T.real + T.wrong;
+    return '<tr><td>' + name + '</td><td class="num">' + pct(T.fake / T.aa, 0) + '</td><td class="num">' + pct(T.real / T.ab, 0) + '</td><td class="num">' + pct(T.real / wins, 0) + '</td></tr>'; };
+  $('#g-robot-out').innerHTML = '<div class="tbl-wrap"><table><thead><tr><th></th><th class="num">' + L('Фальшиві в A/A', 'False in A/A') + '</th><th class="num">' + L('Ефект знайдено', 'Effect found') + '</th><th class="num">' + L('Справжніх серед переможців', 'Real among winners') + '</th></tr></thead><tbody>' +
+    row('imp', L('Нетерплячий', 'Impatient')) + row('hon', L('Чесний', 'Honest')) + '</tbody></table></div><p class="note">' +
+    L('По 1 000 A/A-тестів і 1 000 тестів зі справжнім ефектом +10% на кожен спосіб. Нетерплячий частіше «знаходить» ефект, але серед його переможців помітно більше фальшивих.', '1,000 A/A tests and 1,000 tests with a real +10% effect for each habit. The impatient one "finds" the effect more often, but many more of their winners are fake.') + '</p>';
+}
+
+/* ---------- round 3: false winners by number of looks ---------- */
+const SIMK = [1, 2, 3, 5, 10, 20, 30, 50, 100, 720, 30000];
+const simRes = {}; SIMK.forEach(k => simRes[k] = { hit: 0, n: 0 });
+const RUNS = { 720: 1500, 30000: 400 };
+// headline values from large offline simulations (8,000 and 6,000 runs, SE ≈ 0.6 pp); the page's own runs are smaller and wobble
+const REF = { 720: .51, 30000: .59 };
+function lookSizes(K) { const s = []; for (let j = 1; j <= K; j++) s.push(Math.round(30000 * j / K) - Math.round(30000 * (j - 1) / K)); return s; }
+function oneRun(K) {
+  if (K === 30000) { // after every pair of visitors, from the first one
+    let a = 0, b = 0;
+    for (let n = 1; n <= 30000; n++) { if (Math.random() < P0) a++; if (Math.random() < P0) b++; if (Math.abs(zOf(a, b, n)) > Z) return 1; }
+    return 0;
+  }
+  const sz = lookSizes(K); let a = 0, b = 0, n = 0;
+  for (const m of sz) { const tb = table(m, P0); a += draw(tb); b += draw(tb); n += m; if (Math.abs(zOf(a, b, n)) > Z) return 1; }
+  return 0;
+}
+let simQueue = [], simTimer = 0;
+function simStart() {
+  SIMK.forEach(k => simRes[k] = { hit: 0, n: 0 });
+  simQueue = SIMK.map(k => ({ k, left: RUNS[k] || 4000 }));
+  if (!simTimer) simTick();
+}
+function simTick() {
+  const t0 = performance.now();
+  while (simQueue.length && performance.now() - t0 < 14) {
+    const job = simQueue[0], R = simRes[job.k];
+    for (let i = 0; i < 50 && job.left > 0; i++, job.left--) { R.hit += oneRun(job.k); R.n++; }
+    if (job.left <= 0) simQueue.shift();
+  }
+  looksDraw(); looksText();
+  simTimer = simQueue.length ? setTimeout(simTick, 0) : 0;
+}
+function looksText() {
+  const r = k => simRes[k].n ? simRes[k].hit / simRes[k].n : NaN, s = k => simRes[k].n ? L('симуляція: ', 'simulation: ') + pct(r(k)) + L(' з ', ' of ') + fmt(simRes[k].n) : '';
+  $('#t-once').textContent = pct(EXACT[0]); $('#t-once-s').textContent = L('точно; ', 'exact; ') + s(1);
+  $('#t-daily').textContent = pct(ANSWER); $('#t-daily-s').textContent = L('точно; ', 'exact; ') + s(30);
+  $('#t-hour').textContent = '≈ ' + pct(REF[720], 0); $('#t-hour-s').textContent = s(720);
+  $('#t-visit').textContent = '≈ ' + pct(REF[30000], 0); $('#t-visit-s').textContent = s(30000);
+  $('#looks-note').textContent = L('Скрізь 30 000 відвідувачів на сторінку і межа 95%, погляди рівномірні. Симуляція: 4 000 тестів на точку, для щогодинних поглядів 1 500, для перевірки після кожного відвідувача 400. Точна лінія закінчується на 100 поглядах, далі лише симуляція.', 'Always 30,000 visitors per page and a 95% bar, looks evenly spaced. Simulation: 4,000 tests per dot, 1,500 for hourly looks, 400 for a check after every visitor. The exact line ends at 100 looks; beyond that it is simulation only.');
+}
+function looksDraw() {
+  const s = setupCanvas($('#c-looks')); if (!s) return;
+  const { ctx, W, H } = s, l = 42, r = 16, t = 16, b = 40, XM = Math.log10(30000);
+  const X = k => l + Math.log10(k) / XM * (W - l - r), Y = v => t + (1 - v / .7) * (H - t - b);
+  const ink = tok('--ink'), mut = tok('--muted'), hit = tok('--hit'), path = tok('--path');
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = mut; ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .1, .2, .3, .4, .5, .6, .7].forEach(v => { ctx.beginPath(); ctx.moveTo(l, Y(v)); ctx.lineTo(W - r, Y(v)); ctx.stroke(); ctx.fillText(Math.round(v * 100) + '%', l - 6, Y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const narrow = W < 420;
+  [[1, '1'], [10, '10'], [30, '30'], [100, '100'], [720, '720'], [30000, narrow ? '30K' : fmt(30000)]].forEach(([k, txt]) => { ctx.beginPath(); ctx.moveTo(X(k), t); ctx.lineTo(X(k), H - b); ctx.stroke(); ctx.fillText(txt, X(k), H - b + 5); });
+  ctx.textAlign = 'right'; ctx.fillText(L('кількість поглядів за 30 днів (лог. шкала) →', 'number of looks in 30 days (log scale) →'), W - r, H - 14);
+  // the promised 5%
+  ctx.strokeStyle = mut; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(l, Y(.05)); ctx.lineTo(W - r, Y(.05)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = mut; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(L('обіцяні 5%', 'promised 5%'), W - r - 4, Y(.05) - 3);
+  // exact line
+  ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.beginPath();
+  EXACT.forEach((v, i) => i ? ctx.lineTo(X(i + 1), Y(v)) : ctx.moveTo(X(1), Y(v))); ctx.stroke();
+  // simulated dots
+  SIMK.forEach(k => {
+    const R = simRes[k]; if (!R.n) return; const v = R.hit / R.n;
+    if (k === 30) return;
+    ctx.fillStyle = tok('--surface'); ctx.strokeStyle = k > 100 ? ink : path; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(k), Y(v), k > 100 ? 5.5 : 4.5, 0, 7); ctx.fill(); ctx.stroke();
+    if (k > 100) { ctx.fillStyle = ink; ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      ctx.fillText((k === 720 ? L('щогодини ', 'hourly ') : L('кожен ', 'every ')) + pct(REF[k], 0), X(k) - 4, Y(v) - 8); ctx.font = '11px ' + tok('--f-mono'); }
+  });
+  // every evening
+  const v30 = simRes[30].n ? simRes[30].hit / simRes[30].n : ANSWER;
+  ctx.fillStyle = hit; ctx.beginPath(); ctx.arc(X(30), Y(ANSWER), 7, 0, 7); ctx.fill();
+  ctx.strokeStyle = hit; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(30), Y(v30), 4, 0, 7); ctx.stroke();
+  ctx.fillStyle = hit; ctx.font = '800 14px ' + tok('--f-display'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(L('щовечора 28%', 'every evening 28%'), X(30) + 9, Y(ANSWER) + 6);
+  ctx.font = '11px ' + tok('--f-mono');
+}
+
+/* ---------- round 3: spaghetti of z paths ---------- */
+let spag = [];
+function spagRun() { spag = Array.from({ length: 200 }, () => testPath()); spagText(); spagDraw(); }
+function spagText() {
+  const cr = spag.map(p => firstCross(p)), any = cr.filter(k => k >= 0), end = spag.filter(p => Math.abs(p[DAYS - 1].z) > Z).length;
+  $('#s-any').textContent = pct(any.length / spag.length, 0); $('#s-any-s').textContent = L('у цих 200; точно 28,0%', 'in these 200; exact 28.0%');
+  $('#s-end').textContent = pct(end / spag.length, 0);
+  $('#s-med').textContent = L('5-й вечір', 'evening 5');
+  $('#s-med-s').textContent = L('медіана, точно; 59% фальшивих зупинок у перший тиждень', 'median, exact; 59% of false stops in the first week');
+}
+function spagDraw() {
+  const s = setupCanvas($('#c-spag')); if (!s) return;
+  const { ctx, W, H } = s, l = 36, r = 12, t = 12, b = 24, ZM = 3.6;
+  const X = d => l + (d - 1) / (DAYS - 1) * (W - l - r), Y = z => t + (ZM - z) / (2 * ZM) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [-3, -2, -1, 0, 1, 2, 3].forEach(z => { ctx.beginPath(); ctx.moveTo(l, Y(z)); ctx.lineTo(W - r, Y(z)); ctx.stroke(); ctx.fillText((z > 0 ? '+' : z < 0 ? '−' : '') + Math.abs(z), l - 6, Y(z)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; [1, 10, 20, 30].forEach(d => ctx.fillText(d, X(d), H - b + 6));
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t, W - l - r, H - t - b); ctx.clip();
+  // every path in grey; a crossing path gets a magenta last step and a dot where it first leaves the band
+  ctx.strokeStyle = tok('--path'); ctx.lineWidth = 1; ctx.globalAlpha = .3;
+  spag.forEach(p => { ctx.beginPath(); p.forEach((st, i) => i ? ctx.lineTo(X(i + 1), Y(st.z)) : ctx.moveTo(X(1), Y(st.z))); ctx.stroke(); });
+  ctx.globalAlpha = 1; ctx.strokeStyle = tok('--hit'); ctx.fillStyle = tok('--hit'); ctx.lineWidth = 2;
+  spag.forEach(p => { const k = firstCross(p); if (k < 0) return;
+    if (k) { ctx.beginPath(); ctx.moveTo(X(k), Y(p[k - 1].z)); ctx.lineTo(X(k + 1), Y(p[k].z)); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(X(k + 1), Y(p[k].z), 3.4, 0, 7); ctx.fill(); });
+  ctx.restore();
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 1.6; ctx.setLineDash([6, 4]);
+  [Z, -Z].forEach(z => { ctx.beginPath(); ctx.moveTo(l, Y(z)); ctx.lineTo(W - r, Y(z)); ctx.stroke(); });
+  ctx.setLineDash([]); ctx.fillStyle = tok('--ink'); ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+  ctx.fillText(L('впевненість 95%', '95% confidence'), W - r - 4, Y(Z) - 3); ctx.font = '11px ' + tok('--f-mono');
+}
+$('#spag-new').addEventListener('click', spagRun);
+
+/* ---------- round 4: the trumpet ---------- */
+let trum = null;
+function trumRun() { // relative lift of B every 100 visitors per page
+  const t100 = table(100, P0), pts = []; let a = 0, b = 0;
+  for (let n = 100; n <= 30000; n += 100) { a += draw(t100); b += draw(t100); pts.push({ n, lift: a ? b / a - 1 : 0 }); }
+  trum = pts; trumDraw();
+}
+function trumDraw() {
+  const s = setupCanvas($('#c-trumpet')); if (!s || !trum) return;
+  const { ctx, W, H } = s, l = 42, r = 12, t = 12, b = 22, M = .6;
+  const X = n => l + (n - 100) / (30000 - 100) * (W - l - r), Y = v => t + (M - v) / (2 * M) * (H - t - b);
+  // ±1.96 standard errors of the relative lift
+  ctx.fillStyle = tok('--cell'); ctx.beginPath();
+  for (let n = 300; n <= 30000; n += 100) { const e = Math.min(M, Z * Math.sqrt(2 * (1 - P0) / (P0 * n))); n === 300 ? ctx.moveTo(X(n), Y(e)) : ctx.lineTo(X(n), Y(e)); }
+  for (let n = 30000; n >= 300; n -= 100) { const e = Math.min(M, Z * Math.sqrt(2 * (1 - P0) / (P0 * n))); ctx.lineTo(X(n), Y(-e)); }
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [-.5, 0, .5].forEach(v => { ctx.beginPath(); ctx.moveTo(l, Y(v)); ctx.lineTo(W - r, Y(v)); ctx.stroke(); ctx.fillText((v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v * 100) + '%', l - 6, Y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; [1, 10, 20, 30].forEach(d => ctx.fillText(L('день ', 'day ') + d, Math.min(W - r - 20, Math.max(l + 20, X(d * 1000))), H - b + 6));
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t, W - l - r, H - t - b); ctx.clip();
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2; ctx.beginPath();
+  trum.forEach((p, i) => i ? ctx.lineTo(X(p.n), Y(p.lift)) : ctx.moveTo(X(p.n), Y(p.lift))); ctx.stroke(); ctx.restore();
+}
+$('#tr-new').addEventListener('click', trumRun);
+
+/* ---------- round 4: three bounds at five looks ---------- */
+const BND = {
+  naive: { c: [Z, Z, Z, Z, Z], uk: 'Щоразу 95%', en: 'Every time 95%' },
+  poc: { c: [2.413, 2.413, 2.413, 2.413, 2.413], uk: 'Покок', en: 'Pocock' },
+  obf: { c: [1, 2, 3, 4, 5].map(k => 2.0401 * Math.sqrt(5 / k)), uk: 'О\'Браєн–Флемінг', en: 'O\'Brien–Fleming' }
+};
+const LOOK_DAYS = [6, 12, 18, 24, 30];
+let bndSel = 'naive', bndPaths = [];
+function bndRun() { bndPaths = Array.from({ length: 300 }, () => testPath()); bndText(); bndDraw(); }
+const bndHit = (p, c) => LOOK_DAYS.findIndex((d, i) => Math.abs(p[d - 1].z) > c[i]);
+function bndText() {
+  $('#bnd-pick').innerHTML = Object.keys(BND).map(k => '<button type="button" data-b="' + k + '" aria-pressed="' + (k === bndSel) + '">' + BND[k][lang] + '</button>').join('');
+  const c = BND[bndSel].c, hits = bndPaths.filter(p => bndHit(p, c) >= 0).length;
+  $('#bnd-rate').textContent = pct(hits / bndPaths.length, 0);
+  $('#bnd-txt').textContent = {
+    naive: L('Звичайна межа на кожному з п\'яти поглядів. Точно: 14,2% фальшивих переможців.', 'The ordinary bound at each of the five looks. Exact: 14.2% false winners.'),
+    poc: L('Одна суворіша межа 2,41 на всіх поглядах. Точно: 5,0% за всі п\'ять поглядів.', 'One stricter bound of 2.41 at every look. Exact: 5.0% over all five looks.'),
+    obf: L('Дуже сувора на початку, майже звичайна наприкінці. Точно: 5,0% за всі п\'ять поглядів.', 'Very strict at the start, almost ordinary at the end. Exact: 5.0% over all five looks.')
+  }[bndSel] + ' ' + L('На графіку 300 A/A-тестів.', 'The chart shows 300 A/A tests.');
+}
+function bndDraw() {
+  const s = setupCanvas($('#c-bounds')); if (!s) return;
+  const { ctx, W, H } = s, l = 36, r = 12, t = 12, b = 24, ZM = 4.8;
+  const X = d => l + (d - 1) / (DAYS - 1) * (W - l - r), Y = z => t + (ZM - z) / (2 * ZM) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [-4, -2, 0, 2, 4].forEach(z => { ctx.beginPath(); ctx.moveTo(l, Y(z)); ctx.lineTo(W - r, Y(z)); ctx.stroke(); ctx.fillText((z > 0 ? '+' : z < 0 ? '−' : '') + Math.abs(z), l - 6, Y(z)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; LOOK_DAYS.forEach(d => ctx.fillText(d, X(d), H - b + 6));
+  const c = BND[bndSel].c;
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t, W - l - r, H - t - b); ctx.clip();
+  ctx.strokeStyle = tok('--path'); ctx.lineWidth = 1; ctx.globalAlpha = .25;
+  bndPaths.forEach(p => { ctx.beginPath(); for (let d = 1; d <= DAYS; d++) { const y = Y(p[d - 1].z); d === 1 ? ctx.moveTo(X(1), y) : ctx.lineTo(X(d), y); } ctx.stroke(); });
+  ctx.globalAlpha = 1; ctx.fillStyle = tok('--hit');
+  bndPaths.forEach(p => { const k = bndHit(p, c); if (k < 0) return; const d = LOOK_DAYS[k]; ctx.beginPath(); ctx.arc(X(d) + (p[0].a * 7) % 9 - 4, Y(p[d - 1].z), 3.2, 0, 7); ctx.fill(); });
+  ctx.restore();
+  // bound marks at the five looks for all three rules, the chosen one bold
+  Object.keys(BND).forEach(k => {
+    const on = k === bndSel; ctx.strokeStyle = on ? tok('--ink') : tok('--muted'); ctx.globalAlpha = on ? 1 : .45; ctx.lineWidth = on ? 3 : 1.5;
+    LOOK_DAYS.forEach((d, i) => [1, -1].forEach(sg => { const y = Y(sg * Math.min(ZM - .05, BND[k].c[i])); ctx.beginPath(); ctx.moveTo(X(d) - 9, y); ctx.lineTo(X(d) + 9, y); ctx.stroke(); }));
+    if (on) { ctx.setLineDash([4, 4]); ctx.lineWidth = 1.2; [1, -1].forEach(sg => { ctx.beginPath(); LOOK_DAYS.forEach((d, i) => { const y = Y(sg * Math.min(ZM - .05, BND[k].c[i])); i ? ctx.lineTo(X(d), y) : ctx.moveTo(X(d), y); }); ctx.stroke(); }); ctx.setLineDash([]); }
+  });
+  ctx.globalAlpha = 1;
+}
+$('#bnd-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; bndSel = b.dataset.b; bndText(); bndDraw(); });
+$('#bnd-new').addEventListener('click', bndRun);
+
+/* ---------- round 4: Bayesian "chance to beat" with daily looks ---------- */
+function pBeat(a, b, n) { // P(rate B > rate A) for Beta(1 + a, 1 + n − a) and Beta(1 + b, 1 + n − b), normal approximation
+  const m = x => (1 + x) / (n + 2), v = x => (1 + x) * (1 + n - x) / ((n + 2) * (n + 2) * (n + 3));
+  return Phi((m(b) - m(a)) / Math.sqrt(v(a) + v(b)));
+}
+$('#bayes-run').addEventListener('click', () => {
+  const R = 20000; let once = 0, daily = 0, onceB = 0, dailyB = 0;
+  for (let i = 0; i < R; i++) {
+    const p = testPath(); let any = false, anyB = false, q = .5;
+    for (const st of p) { q = pBeat(st.a, st.b, st.n); if (q > .95 || q < .05) any = true; if (q > .95) anyB = true; }
+    if (any) daily++; if (anyB) dailyB++; if (q > .95 || q < .05) once++; if (q > .95) onceB++;
+  }
+  $('#bayes-out').textContent = L('Ваша перевірка, ' + fmt(R) + ' A/A-тестів: будь-яка сторінка ' + pct(once / R) + ' за одного погляду і ' + pct(daily / R) + ' щовечора; лише B ' + pct(onceB / R) + ' і ' + pct(dailyB / R) + '.', 'Your check, ' + fmt(R) + ' A/A tests: either page ' + pct(once / R) + ' with one look and ' + pct(daily / R) + ' every evening; only B ' + pct(onceB / R) + ' and ' + pct(dailyB / R) + '.');
+});
+
+/* ---------- round 5: plan the looks ---------- */
+// boundaries that keep 5% over K evenly spaced looks, and sample sizes relative to one look with 80% power
+// (normal approximation, step-by-step integration; R = max sample, A = average sample when B really is better)
+const PLAN = {
+  1: { naive: .05, poc: 1.96, obf: 1.96, pocR: 1, pocA: 1, obfR: 1, obfA: 1 },
+  2: { naive: .0831, poc: 2.1783, obf: 1.9774, pocR: 1.1104, pocA: .8529, obfR: 1.0078, obfA: .9022 },
+  3: { naive: .1073, poc: 2.2895, obf: 2.004, pocR: 1.1663, pocA: .8185, obfR: 1.0174, obfA: .8562 },
+  5: { naive: .1417, poc: 2.4132, obf: 2.0401, pocR: 1.2284, pocA: .799, obfR: 1.0284, obfA: .8176 },
+  10: { naive: .1934, poc: 2.555, obf: 2.0865, pocR: 1.3003, pocA: .795, obfR: 1.0399, obfA: .7913 },
+  30: { naive: .2802, poc: 2.731, obf: 2.1447, pocR: 1.3946, pocA: .8136, obfR: 1.0503, obfA: .7754 }
+};
+let planK = 5;
+function planText() {
+  $('#plan-k').innerHTML = Object.keys(PLAN).map(k => '<button type="button" data-k="' + k + '" aria-pressed="' + (+k === planK) + '">' + k + ' ' + (lang === 'en' ? (+k === 1 ? 'look' : 'looks') : (+k === 1 ? 'погляд' : +k < 5 ? 'погляди' : 'поглядів')) + '</button>').join('');
+  const P = PLAN[planK], d2 = v => dec(v.toFixed(2)), rel = v => (v >= 1 ? '+' : '−') + Math.round(Math.abs(v - 1) * 100) + '%';
+  const one = planK === 1;
+  const rows = [
+    [L('Щоразу 95%', 'Every time 95%'), '<td class="num">' + pct(P.naive) + '</td>', d2(Z), '–', '–'],
+    [L('Покок', 'Pocock'), '<td class="num">' + pct(.05) + '</td>', d2(P.poc), rel(P.pocR), rel(P.pocA)],
+    [L('О\'Браєн–Флемінг', 'O\'Brien–Fleming'), '<td class="num">' + pct(.05) + '</td>', d2(P.obf) + (one ? '' : ' (' + L('перший ', 'first ') + d2(P.obf * Math.sqrt(planK)) + ')'), rel(P.obfR), rel(P.obfA)]
+  ];
+  $('#plan-tbl').innerHTML = rows.map(r => '<tr><td>' + r[0] + '</td>' + r[1] + '<td class="num">' + r[2] + '</td><td class="num">' + r[3] + '</td><td class="num">' + r[4] + '</td></tr>').join('');
+}
+$('#plan-k').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; planK = +b.dataset.k; planText(); });
+
+/* ---------- round 5: sample size, CUPED, metric ---------- */
+const BASES = [.005, .01, .015, .02, .025, .03, .035, .04, .045, .05, .06, .07, .08, .09, .1, .12, .14, .16, .18, .2, .25];
+const MDES = [.03, .05, .075, .1, .125, .15, .2, .25, .3, .4, .5, .6, .75, .9, 1];
+const TRAF = [100, 200, 300, 500, 700, 1000, 1500, 2000, 3000, 5000, 7000, 10000, 20000];
+const ZB = .841621;
+// visitors per page for a two-sided 5% test with 80% power (same formula as the first page of the series)
+function needN(p1, rel, za = Z, zb = ZB) {
+  const p2 = p1 * (1 + rel), pb = (p1 + p2) / 2, d = p2 - p1;
+  return Math.ceil(Math.pow(za * Math.sqrt(2 * pb * (1 - pb)) + zb * Math.sqrt(p1 * (1 - p1) + p2 * (1 - p2)), 2) / (d * d));
+}
+const cal = { p: $('#cal-p'), d: $('#cal-d'), t: $('#cal-t') };
+const days = (n, t) => Math.ceil(n / t);
+const dayWord = k => lang === 'en' ? (k === 1 ? 'day' : 'days') : (k % 10 === 1 && k % 100 !== 11 ? 'день' : (k % 10 >= 2 && k % 10 <= 4 && (k % 100 < 12 || k % 100 > 14)) ? 'дні' : 'днів');
+const relTxt = v => '+' + dec(+(v * 100).toFixed(1)) + '%';
+function calText() {
+  const p = BASES[+cal.p.value], m = MDES[+cal.d.value], t = TRAF[+cal.t.value];
+  $('#cal-p-v').textContent = dec(+(p * 100).toFixed(1)) + '%';
+  $('#cal-d-v').textContent = relTxt(m);
+  $('#cal-t-v').textContent = fmt(t);
+  const n = needN(p, m), dd = days(n, t);
+  $('#cal-n').textContent = fmt(n); $('#cal-days').textContent = fmt(dd);
+  const m2 = Math.min(2 * m, 2), n2 = needN(p, m2);
+  $('#cal-note').textContent = L('Ефект ' + relTxt(m2) + ' замість ' + relTxt(m) + ': ' + fmt(n2) + ' на сторінку, ' + fmt(days(n2, t)) + ' ' + dayWord(days(n2, t)) + ', у ' + dec((n / n2).toFixed(1)) + ' раза менше. Потрібна вибірка приблизно обернено пропорційна квадрату ефекту.', 'An effect of ' + relTxt(m2) + ' instead of ' + relTxt(m) + ': ' + fmt(n2) + ' per page, ' + fmt(days(n2, t)) + ' ' + dayWord(days(n2, t)) + ', ' + (n / n2).toFixed(1) + ' times fewer. The sample needed is roughly inversely proportional to the square of the effect.');
+  cuText(); metText();
+}
+Object.values(cal).forEach(i => i.addEventListener('input', calText));
+const cuR = $('#cu-r');
+function cuText() {
+  const rho = +cuR.value / 10, f = 1 - rho * rho, p = BASES[+cal.p.value], m = MDES[+cal.d.value], t = TRAF[+cal.t.value], n = needN(p, m);
+  $('#cu-r-v').textContent = dec(rho.toFixed(1));
+  $('#cu-v').textContent = Math.round(f * 100) + '%';
+  $('#cu-was').textContent = fmt(days(n, t));
+  $('#cu-days').textContent = fmt(Math.ceil(n * f / t));
+}
+cuR.addEventListener('input', cuText);
+const METS = [{ uk: 'Покупка, 2%', en: 'Purchase, 2%', p: .02 }, { uk: 'Додали в кошик, 8%', en: 'Add to cart, 8%', p: .08 }, { uk: 'Клік на кнопку, 20%', en: 'Button click, 20%', p: .2 }];
+let metI = 0;
+function metText() {
+  $('#met-pick').innerHTML = METS.map((q, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === metI) + '">' + q[lang] + '</button>').join('');
+  const n = needN(METS[metI].p, .1), n0 = needN(.02, .1), t = TRAF[+cal.t.value];
+  $('#met-n').textContent = fmt(n);
+  $('#met-note').textContent = L('При ' + fmt(t) + ' відвідувачах на сторінку за день це ' + fmt(days(n, t)) + ' ' + dayWord(days(n, t)) + '. ', 'At ' + fmt(t) + ' visitors per page a day that is ' + fmt(days(n, t)) + ' ' + dayWord(days(n, t)) + '. ') +
+    (metI ? L('Покупці потрібно ' + fmt(n0) + ', тобто в ' + dec((n0 / n).toFixed(1)) + ' раза більше.', 'A purchase needs ' + fmt(n0) + ', that is ' + (n0 / n).toFixed(1) + ' times more.') : L('Рідкісна подія: покупок мало, тому відносний шум великий.', 'A rare event: there are few purchases, so the relative noise is large.'));
+}
+$('#met-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; metI = +b.dataset.i; metText(); });
+
+/* ---------- round 5: a bandit vs a fixed 50/50 split ---------- */
+const BANS = [{ uk: 'B +20%', en: 'B +20%', p: .06 }, { uk: 'B +10%', en: 'B +10%', p: .055 }, { uk: 'B = A', en: 'B = A', p: .05 }];
+let banI = 0, banRes = null;
+function binomB(n, p) { let k = 0; for (let i = 0; i < n; i++) if (Math.random() < p) k++; return k; }
+function banRun() {
+  const pB = BANS[banI].p, R = 200, perDay = 2000, best = Math.max(P0, pB), share = new Float64Array(DAYS), some = [];
+  let lost = 0, loser = 0;
+  for (let r = 0; r < R; r++) {
+    let a = 0, na = 0, b = 0, nb = 0; const mine = [];
+    for (let d = 0; d < DAYS; d++) {
+      let sB = d === 0 ? .5 : pBeatN(a, na, b, nb); sB = Math.min(.99, Math.max(.01, sB));
+      share[d] += sB / R; mine.push(sB);
+      const kb = Math.round(perDay * sB), ka = perDay - kb;
+      a += binomB(ka, P0); na += ka; b += binomB(kb, pB); nb += kb;
+    }
+    lost += na * (best - P0) + nb * (best - pB); loser += pB > P0 ? na : pB < P0 ? nb : Math.min(na, nb);
+    if (r < 6) some.push(mine);
+  }
+  banRes = { lost: lost / R, fixed: perDay * DAYS / 2 * (best - Math.min(P0, pB)), loser: loser / R, share, some };
+  banText(); banDraw();
+}
+function pBeatN(a, na, b, nb) {
+  const ma = (1 + a) / (na + 2), mb = (1 + b) / (nb + 2), va = (1 + a) * (1 + na - a) / ((na + 2) * (na + 2) * (na + 3)), vb = (1 + b) * (1 + nb - b) / ((nb + 2) * (nb + 2) * (nb + 3));
+  return Phi((mb - ma) / Math.sqrt(va + vb));
+}
+function banText() {
+  $('#ban-pick').innerHTML = BANS.map((q, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === banI) + '">' + q[lang] + '</button>').join('');
+  if (!banRes) return;
+  $('#ban-fix').textContent = fmt(banRes.fixed); $('#ban-ts').textContent = fmt(banRes.lost);
+  $('#ban-note').textContent = banI < 2
+    ? L('Середнє з 200 симуляцій. Бандит віддав гіршій сторінці A лише ' + fmt(banRes.loser) + ' відвідувачів з 60 000, тест 50/50 віддав би 30 000. Лінія показує середню частку трафіку на B за днями, тонкі лінії окремі запуски.', 'Average of 200 simulations. The bandit gave the worse page A only ' + fmt(banRes.loser) + ' visitors out of 60,000; a 50/50 test would give it 30,000. The line is the average share of traffic sent to B by day, the thin lines are single runs.')
+    : L('Сторінки однакові, втрачати нічого. Але окремі запуски (тонкі лінії) все одно дрейфують до випадкового «лідера», і висновок «B краща» з такого трафіку робити не можна.', 'The pages are identical, so there is nothing to lose. But single runs (thin lines) still drift towards an accidental "leader", and you cannot conclude "B is better" from such traffic.');
+}
+function banDraw() {
+  const s = setupCanvas($('#c-bandit')); if (!s || !banRes) return;
+  const { ctx, W, H } = s, l = 40, r = 10, t = 10, b = 22;
+  const X = d => l + d / (DAYS - 1) * (W - l - r), Y = v => t + (1 - v) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .5, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(l, Y(v)); ctx.lineTo(W - r, Y(v)); ctx.stroke(); ctx.fillText(Math.round(v * 100) + '%', l - 6, Y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; [1, 10, 20, 30].forEach(d => ctx.fillText(L('день ', 'day ') + d, Math.min(W - r - 22, Math.max(l + 22, X(d - 1))), H - b + 6));
+  ctx.strokeStyle = tok('--path'); ctx.lineWidth = 1; ctx.globalAlpha = .7;
+  banRes.some.forEach(m => { ctx.beginPath(); m.forEach((v, d) => d ? ctx.lineTo(X(d), Y(v)) : ctx.moveTo(X(0), Y(v))); ctx.stroke(); });
+  ctx.globalAlpha = 1; ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2.5; ctx.beginPath();
+  banRes.share.forEach((v, d) => d ? ctx.lineTo(X(d), Y(v)) : ctx.moveTo(X(0), Y(v))); ctx.stroke();
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(L('частка трафіку на B', 'share of traffic to B'), W - r - 4, Y(0) - 4);
+}
+$('#ban-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; banI = +b.dataset.i; banRun(); });
+
+/* ---------- language, redraw, opening state ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Підглядання в A/B-тест', 'Peeking at A/B Tests');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  guessShow(); guessText(); gameText(); looksText(); spagText(); bndText(); planText(); calText(); banText();
+  redraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang || lang; applyLang(); });
+const redraw = () => { heroDraw(); gameDraw(); looksDraw(); spagDraw(); trumDraw(); bndDraw(); banDraw(); };
+document.addEventListener('solved', () => { heroDraw(); gameText(); looksDraw(); });
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+gameNew(true);
+spagRun(); trumRun(); bndRun();
+applyLang();
+heroStart();
+setTimeout(() => { simStart(); banRun(); }, 60);
+})();
+</script>
+
+<script type="application/json" id="mp-terms">{"independence": {"name": "Independence", "short": "Events are independent if knowing about one doesn't change the chances of the other.", "hook": "After five heads in a row tails is no more likely: the coin remembers nothing.", "url": "https://mathparadoxes.com/glossary/independence/en/", "link": "Try it in a simulation"}, "standard-error": {"name": "Standard error", "short": "How far an average or a rate computed from a sample usually misses the truth: σ divided by the square root of the sample size.", "hook": "Halving the error takes four times as much data.", "url": "https://mathparadoxes.com/glossary/standard-error/en/", "link": "Try it in a simulation"}, "correlation": {"name": "Correlation", "short": "A number from −1 to +1 showing how closely two quantities move together.", "hook": "In summer both ice cream sales and drownings go up. Ice cream isn't to blame: the heat drives both.", "url": "https://mathparadoxes.com/glossary/correlation/en/", "link": "Try it in a simulation"}, "logarithm": {"name": "Logarithm", "short": "How many times you multiply the base by itself to get a number: log₂ 8 = 3, because 2 · 2 · 2 = 8.", "hook": "A sheet of paper folded in half 42 times would be thicker than the distance to the Moon.", "url": "https://mathparadoxes.com/glossary/logarithm/en/", "link": "Try it in a simulation"}, "p-value": {"name": "p-value", "short": "How often chance alone would produce a gap at least as big as yours if there were really no difference.", "hook": "When there is no effect at all, p below 0.05 turns up as often as p between 0.50 and 0.55.", "url": "https://mathparadoxes.com/glossary/p-value/en/", "link": "Try it in a simulation"}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'en' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+</body>
+</html>
