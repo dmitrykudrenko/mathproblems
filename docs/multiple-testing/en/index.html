@@ -375,7 +375,7 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
 
 <div class="topbar">
   <a class="brand" href="https://mathparadoxes.com/en/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
-  <nav class="mp-nav" aria-label="Sections" data-slug="multiple-testing" data-me="{&quot;s&quot;: &quot;multiple-testing&quot;, &quot;n&quot;: {&quot;uk&quot;: &quot;Ріжте результат, доки щось не виграє&quot;, &quot;en&quot;: &quot;Slice it until something wins&quot;}, &quot;u&quot;: {&quot;uk&quot;: &quot;https://mathparadoxes.com/multiple-testing/&quot;, &quot;en&quot;: &quot;https://mathparadoxes.com/multiple-testing/en/&quot;}}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Menu"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Continue: <b></b></a><a href="https://mathparadoxes.com/en/#all" aria-current="page">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/">Glossary</a></div></nav>
+  <nav class="mp-nav" aria-label="Sections" data-t="{&quot;cont&quot;: &quot;Continue&quot;, &quot;course&quot;: &quot;Continue the course&quot;}" data-slug="multiple-testing" data-me="{&quot;s&quot;: &quot;multiple-testing&quot;, &quot;n&quot;: {&quot;uk&quot;: &quot;Ріжте результат, доки щось не виграє&quot;, &quot;en&quot;: &quot;Slice it until something wins&quot;}, &quot;u&quot;: {&quot;uk&quot;: &quot;https://mathparadoxes.com/multiple-testing/&quot;, &quot;en&quot;: &quot;https://mathparadoxes.com/multiple-testing/en/&quot;}}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Menu"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Continue: <b></b></a><a href="https://mathparadoxes.com/en/#all" aria-current="page">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/">Glossary</a></div></nav>
   <nav class="seg lang" id="lang" aria-label="Мова / Language">
     <a href="https://mathparadoxes.com/multiple-testing/" hreflang="uk" lang="uk" data-l="uk">UA</a>
     <a href="https://mathparadoxes.com/multiple-testing/en/" hreflang="en" lang="en" data-l="en">EN</a>
@@ -1819,15 +1819,25 @@ heroStart();
   if (!nav) return;
   var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
   try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
-  var me = nav.dataset.slug;
-  // a puzzle page puts itself first in the list of recently opened puzzles
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
   if (me) {
     list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
     try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
   }
-  function solved(s) { try { return !!localStorage.getItem("mp-solved:" + s); } catch (e) { return false; } }
-  var next = list.filter(function (p) { return p.s !== me && !solved(p.s); })[0], a = nav.querySelector(".mp-cont");
-  if (next) { a.href = next.u[lang]; a.querySelector("b").textContent = next.n[lang]; a.hidden = false; }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
   var btn = nav.querySelector(".mp-burger");
   function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
   btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });

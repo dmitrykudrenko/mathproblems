@@ -973,12 +973,13 @@ def _mark_text(doc, lang):
 
 
 # Site menu: every page with a top bar gets links to the puzzles, the courses and the glossary next to the language
-# switch (a ☰ button on phones), plus "Continue: <puzzle>" for the latest puzzle opened and not solved yet, and the
-# same links at the very bottom. Filled in by build() before anything is written.
+# switch (a ☰ button on phones), plus "Continue" for the latest thing opened and not finished: a puzzle not solved
+# yet, or a course with some but not all chapters done (it links to the first chapter left). The same links sit at
+# the very bottom. Filled in by build() before anything is written.
 SITE_NAV = {}
 NAV_TEXT = {
-    "uk": {"problems": "Задачі", "courses": "Курси", "glossary": "Словник", "continue": "Продовжити", "menu": "Меню", "nav": "Розділи"},
-    "en": {"problems": "Puzzles", "courses": "Courses", "glossary": "Glossary", "continue": "Continue", "menu": "Menu", "nav": "Sections"},
+    "uk": {"problems": "Задачі", "courses": "Курси", "glossary": "Словник", "continue": "Продовжити", "course": "Продовжити курс", "menu": "Меню", "nav": "Розділи"},
+    "en": {"problems": "Puzzles", "courses": "Courses", "glossary": "Glossary", "continue": "Continue", "course": "Continue the course", "menu": "Menu", "nav": "Sections"},
 }
 NAV_SCRIPT = """<script>
 (function () {
@@ -986,15 +987,25 @@ NAV_SCRIPT = """<script>
   if (!nav) return;
   var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
   try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
-  var me = nav.dataset.slug;
-  // a puzzle page puts itself first in the list of recently opened puzzles
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
   if (me) {
     list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
     try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
   }
-  function solved(s) { try { return !!localStorage.getItem("mp-solved:" + s); } catch (e) { return false; } }
-  var next = list.filter(function (p) { return p.s !== me && !solved(p.s); })[0], a = nav.querySelector(".mp-cont");
-  if (next) { a.href = next.u[lang]; a.querySelector("b").textContent = next.n[lang]; a.hidden = false; }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
   var btn = nav.querySelector(".mp-burger");
   function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
   btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
@@ -1011,11 +1022,14 @@ def with_site_nav(doc, lang, path):
     page = rel[1:] in (("index.html",), ("en", "index.html"))  # docs/<x>/index.html or docs/<x>/en/index.html
     home = rel in (("index.html",), ("en", "index.html"))
     me = SITE_NAV["problems"].get(rel[0]) if page else None
+    if rel[0] == "courses" and rel[2:] in (("index.html",), ("en", "index.html")):
+        me = SITE_NAV["courses"].get(rel[1])  # a course's own page, not its subpages
     here = "courses" if rel[0] == "courses" else "glossary" if rel[0] == "glossary" else "problems" if home or me else ""
+    words = e(json.dumps({"cont": t["continue"], "course": t["course"]}, ensure_ascii=False))
     links = [("problems", base + LANG_PATH[lang] + "#all"), ("courses", course_url(base, lang)), ("glossary", glossary_url(base, lang))]
     items = "".join(f'<a href="{u}"{" aria-current=\"page\"" if k == here else ""}>{t[k]}</a>' for k, u in links)
-    data = f' data-slug="{rel[0]}" data-me="{e(json.dumps(me, ensure_ascii=False))}"' if me else ""
-    nav = (f'<nav class="mp-nav" aria-label="{t["nav"]}"{data}>'
+    data = f' data-slug="{me["s"]}" data-me="{e(json.dumps(me, ensure_ascii=False))}"' if me else ""
+    nav = (f'<nav class="mp-nav" aria-label="{t["nav"]}" data-t="{words}"{data}>'
            f'<button type="button" class="mp-burger" aria-expanded="false" aria-label="{t["menu"]}"><i></i><i></i><i></i></button>'
            f'<div class="mp-nav-list"><a class="mp-cont" href="#" hidden>{t["continue"]}: <b></b></a>{items}</div></nav>\n  ')
     doc, n = re.subn(r'(<div class="topbar">.*?)(<nav\b[^>]*\bid="lang")', lambda m: m.group(1) + nav + m.group(2), doc, count=1, flags=re.S)
@@ -2036,7 +2050,10 @@ def build(base, out=None):
             if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", cm.get(k, "")):
                 raise SystemExit(f"courses/{name}/meta.json: \"{k}\" must be a YYYY-MM-DD date")
     SITE_NAV.update(base=base, problems={s: {"s": s, "n": {l: m[l]["card"]["title"] for l in LANGS},
-                                               "u": {l: base + s + "/" + LANG_PATH[l] for l in LANGS}} for s, m in metas})
+                                               "u": {l: base + s + "/" + LANG_PATH[l] for l in LANGS}} for s, m in metas},
+                    courses={c: {"s": "course:" + c, "n": {l: cm[l]["name"] for l in LANGS},
+                                 "u": {l: course_url(base, l, c) for l in LANGS},
+                                 "c": [ch["id"] for ch in cm["chapters"] if ch.get("check", True)]} for c, cm in COURSE_LIST})
     problems = [build_problem(s, base, metas, books) for s, _ in metas]
     hub = build_hub(problems, base)
     build_404(problems, base)
