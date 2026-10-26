@@ -550,10 +550,12 @@ def extra_visual(kind, x, y, lang="en"):
         for j in range(4):
             for i in range(6):
                 px, py = x + 40 + i * 62, y + 30 + j * 72
-                eye = "#3B7DD8" if rnd.random() < .5 else "#7A4A2A"
-                out += [f'<circle cx="{px}" cy="{py}" r="24" fill="#fff" stroke="{INK}" stroke-width="2"/>',
-                        f'<circle cx="{px - 9}" cy="{py - 3}" r="5" fill="{eye}"/>',
-                        f'<circle cx="{px + 9}" cy="{py - 3}" r="5" fill="{eye}"/>']
+                # big irises in a bright blue and a near-black brown, so the two read apart even on a small card
+                eye = "#1F7AE0" if rnd.random() < .5 else "#5A3214"
+                out.append(f'<circle cx="{px}" cy="{py}" r="24" fill="#fff" stroke="{INK}" stroke-width="2"/>')
+                for d in (-10, 10):
+                    out += [f'<circle cx="{px + d}" cy="{py - 2}" r="8" fill="{eye}"/>',
+                            f'<circle cx="{px + d + 2.5}" cy="{py - 4.5}" r="2.2" fill="#fff"/>']
         out.append(f'<text x="{x + 360}" y="{y + 320}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>')
     elif kind == "twenty-five-horses":
         # five lanes of five numbered horses; the number of races is the answer
