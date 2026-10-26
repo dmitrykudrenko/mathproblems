@@ -1323,7 +1323,7 @@ def term_cards(lang, terms, base, skip=None):
 
 
 def term_groups(lang, terms, groups, base):
-    """The contents page: a book-style contents (a column per theme, its terms as plain links to their cards),
+    """The contents page: a folded book-style contents (a column per theme, its terms as plain links to their cards),
     then each themed section with its why line and cards."""
     tmap = {t["id"]: t for t in terms}
     nav = "".join(
@@ -1334,7 +1334,10 @@ def term_groups(lang, terms, groups, base):
         f'  <section class="gl-sec gl-group" id="{g["id"]}"><h2>{e(g[lang]["name"])}</h2><p>{e(g[lang]["why"])}</p>\n'
         f'    <ul class="gl-cards">\n{term_cards(lang, [tmap[i] for i in g["terms"]], base)}\n    </ul></section>'
         for g in groups)
-    return f'<nav class="gl-toc" aria-label="{GLOSSARY_TEXT[lang][0]}">{nav}</nav>\n{secs}'
+    # folded into one quiet line (as the course dictionary), so the term names don't stand twice on screen
+    names = " · ".join(e(g[lang]["name"]) for g in groups)
+    return (f'<details class="gl-toc-box"><summary><b>{"Зміст" if lang == "uk" else "Contents"}</b><span class="words">{names}</span></summary>'
+            f'<nav class="gl-toc" aria-label="{GLOSSARY_TEXT[lang][0]}">{nav}</nav></details>\n{secs}')
 
 
 def build_glossary(problems, base):
