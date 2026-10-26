@@ -1004,7 +1004,7 @@ def build_problem(slug, base, metas, books):
                       f'<a class="brand" href="{hub[lang]}" style="text-decoration:none">{BRAND_MARK}{SITE_NAME[lang]}</a>', body, count=1)
         style = body[:body.index("</style>") + len("</style>")]
         body = body[len(style):]
-        body = body.replace('<header class="hero">\n  <div>', '<header class="hero">\n  <div>\n    ' + level_badge(lang, meta["level"], hub[lang]) + course_strip(lang, slug, base), 1)
+        body = body.replace('<header class="hero">\n  <div>', '<header class="hero">\n  <div>\n    <div class="mp-meta">' + level_badge(lang, meta["level"], hub[lang]) + course_strip(lang, slug, base) + "</div>", 1)
         ld = {"@context": "https://schema.org", "@graph": [
             {
                 "@type": ["WebPage", "LearningResource"],
