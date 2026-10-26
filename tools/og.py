@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "lake-escape": "#D7ECEF", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-data-traps": "#F2EBDD", "lake-escape": "#D7ECEF", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -174,6 +174,10 @@ TEXT = {
     "course-ab-testing": {
         "uk": (["КУРС: ПАРАДОКСИ", "A/B-ТЕСТІВ"], "B +17%. Що далі?"),
         "en": (["COURSE: A/B", "TEST PARADOXES"], "B +17%. Now what?"),
+    },
+    "course-data-traps": {
+        "uk": (["КУРС: ЯК НЕ ОБДУРИТИ", "СЕБЕ ДАНИМИ"], "Середній чек +24%. Чому вірити?"),
+        "en": (["COURSE: DON'T FOOL", "YOURSELF WITH DATA"], "Average order +24%. What to trust?"),
     },
     "lake-escape": {
         "uk": (["ВТЕЧА", "ЧЕРЕЗ ОЗЕРО"], "Вихователь учетверо швидший. Як утекти?"),
@@ -645,6 +649,18 @@ def extra_visual(kind, x, y, lang="en"):
                 f'<rect x="{x + 40}" y="{y + 190}" width="282" height="16" rx="8" fill="{INK}"/>',
                 f'<text x="{x + 40}" y="{y + 240}" font-family="{FONT}" font-weight="700" font-size="22" fill="{MUTED}">94%</text>',
                 f'<text x="{x + 360}" y="{y + 330}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="44" fill="{SIGNAL}">?</text>']
+    elif kind == "course-data-traps":
+        # a quarterly report tile: four lines, each true, each a trap the course explains
+        rows = [("Середній чек", "+24%"), ("Задоволені", "92%"), ("Із застосунком", "×2,3"), ("Ретаргетинг", "ROAS 12")] if lang == "uk" else \
+               [("Average order", "+24%"), ("Satisfied", "92%"), ("With the app", "×2.3"), ("Retargeting", "ROAS 12")]
+        out += [f'<rect x="{x + 10}" y="{y + 20}" width="360" height="270" rx="18" fill="#fff"/>',
+                f'<text x="{x + 36}" y="{y + 62}" font-family="{FONT}" font-weight="700" font-size="18" fill="{MUTED}">{"ЗВІТ ЗА III КВАРТАЛ" if lang == "uk" else "Q3 REPORT"}</text>']
+        for i, (a, b) in enumerate(rows):
+            yy = y + 112 + i * 52
+            out += [f'<line x1="{x + 36}" y1="{yy - 32}" x2="{x + 344}" y2="{yy - 32}" stroke="#E4E4E4" stroke-width="2"/>',
+                    f'<text x="{x + 36}" y="{yy}" font-family="{FONT}" font-weight="600" font-size="22" fill="{INK}">{a}</text>',
+                    f'<text x="{x + 344}" y="{yy}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="26" fill="{INK}">{b}</text>']
+        out.append(f'<text x="{x + 360}" y="{y + 350}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="44" fill="{SIGNAL}">?</text>')
     elif kind == "lake-escape":
         # the lake, the swimmer in the middle and the teacher on the shore; the escape route is the answer, so it is not drawn
         cx, cy, R = x + 190, y + 160, 140
@@ -688,7 +704,7 @@ def svg(kind, lang):
                   "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine", "election-poll",
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
                   "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin", "berkson-paradox",
-                  "ab-test", "ab-test-peeking", "multiple-testing", "course-ab-testing", "lake-escape"):
+                  "ab-test", "ab-test-peeking", "multiple-testing", "course-ab-testing", "course-data-traps", "lake-escape"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
