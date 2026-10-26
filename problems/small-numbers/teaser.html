@@ -1,0 +1,65 @@
+<div class="tz-text">
+  <span class="eyebrow"><span class="uk">Статистика · розмір вибірки</span><span class="en">Statistics · sample size</span></span>
+  <h2><a href="{{URL}}"><span class="uk">Найнебезпечніше рівняння</span><span class="en">The most dangerous equation</span></a></h2>
+  <p class="tz-q uk">Найменше хворіють у тихих сільських округах. Чисте повітря? Чи щось інше?</p>
+  <p class="tz-q en">Disease is rarest in quiet rural counties. Clean air? Or something else?</p>
+  <button type="button" class="tz-reveal sp-before" data-solve><span><span class="uk">Інтуїція і відповідь</span><span class="en">Intuition and answer</span></span><b><span class="uk">Показати відповідь</span><span class="en">Show the answer</span></b></button>
+  <div class="tz-ans sp-after">
+    <div><span><span class="uk">Інтуїція</span><span class="en">Intuition</span></span><b><span class="uk">Чисте повітря</span><span class="en">Clean air</span></b></div>
+    <div class="r"><span><span class="uk">Насправді</span><span class="en">Actually</span></span><b><span class="uk">Найхворіші теж малі</span><span class="en">The sickest are small too</span></b></div>
+  </div>
+  <p class="tz-d uk">Задача про малі числа: чому найкращі й найгірші місця будь-якого рейтингу займають найменші округи, школи й лікарні, і скільки даних треба, щоб шум ущух.</p>
+  <p class="tz-d en">A puzzle about small numbers: why the smallest counties, schools and hospitals take both the best and the worst places in any ranking, and how much data it takes to quiet the noise.</p>
+  <a class="tz-cta" href="{{URL}}"><span class="uk">Розібратися з малими числами</span><span class="en">Work through small numbers</span> →</a>
+</div>
+<div class="tz-stage" id="tz-small-numbers">
+  <span class="tz-try"><span class="uk">Спробуйте тут</span><span class="en">Try it here</span></span>
+  <canvas style="display:block;width:100%;max-width:300px;height:240px" aria-hidden="true"></canvas>
+  <p class="tz-msg" aria-live="polite"></p>
+  <div class="tz-acts"><button type="button" class="tz-btn"></button><button type="button" class="tz-btn"></button></div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById('tz-small-numbers');
+  const en = () => document.documentElement.dataset.lang === 'en';
+  const L = (uk, e) => en() ? e : uk;
+  const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), btns = root.querySelectorAll('.tz-btn');
+  const col = (name, fb) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb;
+  // 100 counties, population 1,000…1,000,000 (log-uniform), the same true risk 25 per 100,000; cases are Poisson
+  const pois = m => { let k = 0, p = Math.exp(-m), c = p; const u = Math.random(); while (u > c && k < 2000) { k++; p *= m / k; c += p; } return k; };
+  let cs = [], shown = false;
+  function roll() {
+    cs = Array.from({ length: 100 }, () => { const n = Math.round(10 ** (3 + 3 * Math.random())), x = pois(n * 25e-5); return { n, r: x / n * 1e5, t: Math.random(), g: '' }; });
+    const o = [...cs].sort((a, b) => a.r - b.r || a.t - b.t);
+    o.slice(0, 10).forEach(c => c.g = 'lo'); o.slice(-10).forEach(c => c.g = 'hi');
+  }
+  function draw() {
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+    if (!W) return;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const ink = col('--ink', '#151515'), sig = col('--signal', '#D9318F'), soft = col('--line', '#E4E4E4');
+    const cell = Math.min(W, H) / 10, ox = (W - cell * 10) / 2, oy = (H - cell * 10) / 2;
+    cs.forEach((c, i) => {
+      const side = cell * (.28 + .66 * (Math.log10(c.n) - 3) / 3), cx = ox + (i % 10 + .5) * cell, cy = oy + (Math.floor(i / 10) + .5) * cell;
+      ctx.fillStyle = c.g === 'lo' ? ink : c.g === 'hi' && shown ? sig : soft;
+      ctx.fillRect(cx - side / 2, cy - side / 2, side, side);
+    });
+  }
+  const small = a => a.filter(c => c.n < 1e4).length;
+  function text() {
+    const lo = cs.filter(c => c.g === 'lo'), hi = cs.filter(c => c.g === 'hi');
+    msg.textContent = shown
+      ? L('Пурпурові: 10 найхворіших, з них малих (до 10 000 людей) ' + small(hi) + '. Темні: 10 найздоровіших, малих ' + small(lo) + '. Справжній ризик у всіх однаковий.', 'Magenta: the 10 sickest, ' + small(hi) + ' of them small (under 10,000 people). Dark: the 10 healthiest, ' + small(lo) + ' small. The true risk is the same everywhere.')
+      : L('100 округів, розмір квадрата показує населення. Темні: 10 найздоровіших, з них малих ' + small(lo) + '. А де найхворіші?', '100 counties; square size shows population. Dark: the 10 healthiest, ' + small(lo) + ' of them small. Where are the sickest?');
+    btns[0].textContent = L('Нова країна', 'New country');
+    btns[1].textContent = L('Показати найхворіші', 'Show the sickest');
+    btns[1].disabled = shown;
+  }
+  btns[0].addEventListener('click', () => { roll(); shown = false; draw(); text(); });
+  btns[1].addEventListener('click', () => { shown = true; draw(); text(); });
+  document.addEventListener('langchange', () => { draw(); text(); });
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
+  roll(); draw(); text();
+})();
+</script>

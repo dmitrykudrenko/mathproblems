@@ -1,0 +1,1011 @@
+<title>Багаторукий бандит</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same running order as regression-to-mean. The two slot machines with their win tallies are this problem's signature object.
+   Sources for the history and facts: Thompson, Biometrika 25 (1933) 285–294; Robbins, Bull. AMS 58 (1952) 527–535;
+   Gittins, JRSS B 41 (1979) 148–177, and Whittle's discussion of it (pp. 164–177); Lai & Robbins, Adv. Appl. Math. 6 (1985) 4–22;
+   Bartlett et al., Pediatrics 76 (1985) 479–487 (ECMO, randomised play-the-winner); Chapelle & Li, NIPS 24 (2011).
+   All numbers on the page: exact binomial sums and exact dynamic programming over (wins, losses) states, checked by simulation. */
+:root {
+  --tint: #F8E3EC;
+  --paper: #FBF5F8;
+  --surface: #FFFFFF;
+  --ink: #23161C;
+  --muted: #6B5A62;
+  --line: #E7D9DF;
+  --day: #2E2A8C;
+  --day-ink: #F3F2FF;
+  --hit: #D9318F;
+  --hit-soft: #FBE3F0;
+  --cell: #EEE6EA;
+  --c-ts: #1F6FB2;
+  --c-greedy: #B07A12;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; max-width: 260px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #fff; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+.big.day { color: var(--day); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 14px; height: 3px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.opts .btn { font-weight: 700; font-size: 1.3rem; padding: 16px; font-family: var(--f-display); }
+.opts .btn[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 170px 1fr 56px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 18px; }
+.machines { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.mach > * { min-width: 0; }
+.mach { border: 2px solid var(--ink); border-radius: 16px; padding: 14px; display: grid; gap: 10px; text-align: center; background: var(--tint); }
+.mach h3 { font-size: .95rem; }
+.mach .rate { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.1; }
+.mach .rate.best { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; }
+.mach .cnt { font-family: var(--f-mono); font-size: .82rem; color: var(--muted); }
+.mach .btn { width: 100%; }
+.status { display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.35rem; font-weight: 800; }
+.msg { min-height: 3em; font-weight: 500; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.5rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.6rem; }
+.vs .a b { color: var(--day); }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .84rem; color: var(--muted); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+th.num { white-space: normal; }
+tr.hl td { background: var(--tint); }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 1fr 48px; }
+  .crow > span:first-child { grid-column: 1 / -1; }
+  .vs { grid-template-columns: 1fr; }
+  .machines { gap: 10px; }
+  .mach { padding: 10px; }
+  th, td { padding: 7px 4px; }
+  table { font-size: .8rem; }
+  th { font-size: .7rem; }
+  .mach .btn { padding: 10px 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+<div class="topbar">
+  <span class="brand">60% vs 50% · explore or exploit</span>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <h1 class="uk"><span class="kw">Багаторукий бандит</span> Два автомати, по 10 спроб на кожен. <span class="q sp-before">Як часто ви оберете гірший?</span><span class="q sp-after">Майже кожного третього разу.</span></h1>
+    <h1 class="en"><span class="kw">The multi-armed bandit</span> Two slot machines, 10 pulls on each. <span class="q sp-before">How often do you pick the worse one?</span><span class="q sp-after">Almost one time in three.</span></h1>
+    <p class="lead uk sp-before">Один автомат виграє в 60% спроб, другий у 50%, але який із них кращий, невідомо. План простий: смикнути кожен по 10 разів, а решту з сотні спроб грати на тому, що виграв більше. Як часто такий план застрягне на гіршому автоматі? Зафіксуйте відповідь, а потім перевірте її в грі, на симуляції і в поясненнях.</p>
+    <p class="lead uk sp-after">Десять спроб замало, щоб відрізнити 60% від 50%: кращий автомат часто програє тест або ділить нічию. Тест 10 + 10 обирає гірший автомат у 32,8% випадків, і ця помилка вже не виправляється. Як грати краще, показують гра, симуляція і пояснення нижче.</p>
+    <p class="lead en sp-before">One machine wins 60% of the time, the other 50%, but you don't know which is which. The plan is simple: pull each one 10 times, then spend the rest of your 100 pulls on the one that won more. How often does this plan get stuck on the worse machine? Lock in your answer, then check it with a game, a simulation and the explanations.</p>
+    <p class="lead en sp-after">Ten pulls are too few to tell 60% from 50%: the better machine often loses the test or ties it. The 10 + 10 test picks the worse machine 32.8% of the time, and the mistake is never undone. The game, the simulation and the explanations below show how to play better.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="uk">32,8%</b><b class="en">32.8%</b><span><span class="uk">тестів 10 + 10 обирають гірший автомат</span><span class="en">of 10 + 10 tests pick the worse machine</span></span></div>
+      <div class="odd"><b class="uk">3,3 / 3,6</b><b class="en">3.3 / 3.6</b><span><span class="uk">втрачених виграшів зі 100 спроб: семплювання Томпсона проти плану 10 + 10</span><span class="en">wins lost out of 100 pulls: Thompson sampling vs the 10 + 10 plan</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="uk">Умова</b><b class="en">The puzzle</b></a>
+      <a href="#guess"><span>1</span><b class="uk">Вгадайте</b><b class="en">Guess</b></a>
+      <a href="#game"><span>2</span><b class="uk">100 спроб</b><b class="en">100 pulls</b></a>
+      <a href="#sim"><span>3</span><b class="uk">Перегони стратегій</b><b class="en">Strategy race</b></a>
+      <a href="#why"><span>4</span><b class="uk">Чому так</b><b class="en">Why it works</b></a>
+      <a href="#more"><span>5</span><b class="uk">Ресторани, тести, реклама</b><b class="en">Restaurants, tests, ads</b></a>
+      <a href="#facts"><span>★</span><b class="uk" style="font-weight:inherit">Цікаві факти</b><b class="en" style="font-weight:inherit">Fun facts</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-chart" style="height:280px"></canvas>
+    <p class="cap"><span class="uk">Два автомати, які смикають по черзі. Під кожним рахунок: виграші / спроби. Котрий із них кращий?</span><span class="en">Two machines pulled in turn. Under each: wins / pulls. Which one is better?</span></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span><span class="en">The puzzle</span></span>
+    <h2><span class="uk">Уявіть: перед вами два автомати</span><span class="en">Picture this: two slot machines in front of you</span></h2>
+    <p class="lead uk">Ігровий автомат з ручкою збоку англійською звуть «одноруким бандитом». Коли автоматів кілька, а кращий треба знайти під час гри, виходить «багаторукий бандит», одна з головних задач теорії рішень.</p>
+    <p class="lead en">A slot machine with a lever on its side is nicknamed a "one-armed bandit". With several machines, and the best one to be found while you play, you get the "multi-armed bandit", one of the central problems of decision theory.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Автомати</span><span class="en">The machines</span></h3>
+        <p class="uk">Один автомат виграє в 60% спроб, другий у 50%. Кожна спроба незалежна, як кидок монети. Котрий із них кращий, вам не кажуть.</p>
+        <p class="en">One machine wins 60% of the time, the other 50%. Every pull is independent, like a coin toss. Nobody tells you which machine is the better one.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Розвідка</span><span class="en">Exploring</span></h3>
+        <p class="uk">Ви смикаєте кожен автомат по 10 разів і рахуєте виграші.</p>
+        <p class="en">You pull each machine 10 times and count the wins.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Гра</span><span class="en">Playing</span></h3>
+        <p class="uk">Решту 80 спроб із сотні ви віддаєте автомату, який виграв більше. Якщо нічия, обираєте кидком монети.</p>
+        <p class="en">You give the remaining 80 of your 100 pulls to the machine that won more. If it's a tie, you toss a coin.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span><span class="en">The question</span></h3>
+        <p class="uk">Як часто цей план віддасть 80 спроб гіршому автомату?</p>
+        <p class="en">How often does this plan hand the 80 pulls to the worse machine?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span><span class="en">Intuition says</span></span>
+        <p class="q"><span class="uk">«Різниця 10 пунктів чимала. За 10 спроб кращий майже завжди вирветься вперед»</span><span class="en">"Ten points is a big gap. In 10 pulls the better machine will almost always pull ahead"</span></p>
+        <p class="uk">Насправді кращий автомат виграє тест лише в 59% випадків, у 16% буде нічия, а в 25% попереду опиниться гірший. Разом із половиною нічиїх план обирає гірший автомат у 32,8% випадків.</p>
+        <p class="en">In fact the better machine wins the test only 59% of the time, 16% are ties, and in 25% the worse one comes out ahead. Adding half the ties, the plan picks the worse machine 32.8% of the time.</p>
+      </div>
+      <div class="card">
+        <h3><span class="uk">Припущення</span><span class="en">Assumptions</span></h3>
+        <ul class="rules uk">
+          <li>Імовірності виграшу не змінюються з часом.</li>
+          <li>Спроби незалежні: автомат не «пам'ятає» попередніх.</li>
+          <li>Нічию в тесті розв'язує кидок монети.</li>
+          <li>Мета: якомога більше виграшів за 100 спроб.</li>
+        </ul>
+        <ul class="rules en">
+          <li>The win probabilities never change.</li>
+          <li>Pulls are independent: a machine has no memory.</li>
+          <li>A tie in the test is settled by a coin toss.</li>
+          <li>The goal: as many wins as possible in 100 pulls.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="uk">Як часто план обере гірший автомат?</span><span class="en">How often does the plan pick the worse machine?</span></h2>
+    <p class="lead uk">По 10 спроб на кожен автомат, далі граємо на лідері, нічию розв'язує монета. У якій частці таких тестів лідером виявиться автомат на 50%?</p>
+    <p class="lead en">Ten pulls on each machine, then we play the leader, and a coin settles a tie. In what share of these tests does the 50% machine end up as the leader?</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <span class="note"><span class="uk">Ваша відповідь: приблизно</span><span class="en">Your answer: about</span></span>
+      <div class="opts" id="opts">
+        <button type="button" class="btn ghost" data-o="0" aria-pressed="false">5%</button>
+        <button type="button" class="btn ghost" data-o="1" aria-pressed="false">15%</button>
+        <button type="button" class="btn ghost" data-o="2" aria-pressed="false">33%</button>
+        <button type="button" class="btn ghost" data-o="3" aria-pressed="false">50%</button>
+      </div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Оберіть відповідь. Тут з'явиться точний розрахунок і симуляція 20 000 тестів.</p>
+      <p class="note en">Pick an answer. The exact calculation and a simulation of 20,000 tests will appear here.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span><span class="en">Round 2 · The game</span></span>
+    <h2><span class="uk">100 спроб: грайте самі</span><span class="en">100 pulls: play it yourself</span></h2>
+    <p class="lead uk">Один автомат виграє в 60% спроб, другий у 50%. Комп'ютер навмання вирішив, котрий де. Смикайте будь-який, скільки хочете: розвідуйте, коли сумніваєтеся, і грайте на лідері, коли впевнені. Після сотої спроби автомати відкриються.</p>
+    <p class="lead en">One machine wins 60% of the time, the other 50%. The computer has decided at random which is which. Pull whichever you like: explore when in doubt, play the leader when sure. After the hundredth pull the machines are revealed.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="status" id="game-status"></div>
+      <div class="machines">
+        <div class="mach" id="m0">
+          <h3><span class="uk">Лівий автомат</span><span class="en">Left machine</span></h3>
+          <div class="rate mono" id="m0-rate">?</div>
+          <div class="cnt" id="m0-cnt"></div>
+          <button class="btn pri" id="m0-pull"><span class="uk">Смикнути</span><span class="en">Pull</span></button>
+        </div>
+        <div class="mach" id="m1">
+          <h3><span class="uk">Правий автомат</span><span class="en">Right machine</span></h3>
+          <div class="rate mono" id="m1-rate">?</div>
+          <div class="cnt" id="m1-cnt"></div>
+          <button class="btn pri" id="m1-pull"><span class="uk">Смикнути</span><span class="en">Pull</span></button>
+        </div>
+      </div>
+      <canvas id="game-strip" style="height:56px" aria-label="Історія спроб / Pull history" role="img"></canvas>
+      <p class="note" id="strip-note" style="margin-top:-10px"></p>
+      <p class="msg" id="game-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn ghost" id="game-new"><span class="uk">Нова гра</span><span class="en">New game</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="uk">Ваш результат і стратегії</span><span class="en">Your result and the strategies</span></h3>
+      <div class="tbl-wrap" style="margin-top:10px">
+        <table>
+          <thead><tr><th></th><th class="num"><span class="uk">Виграшів зі 100</span><span class="en">Wins out of 100</span></th></tr></thead>
+          <tbody id="tally"></tbody>
+        </table>
+      </div>
+      <p class="note" style="margin-top:12px" id="game-note"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="uk">Перегони чотирьох стратегій</span><span class="en">A race of four strategies</span></h2>
+    <p class="lead uk">Графік показує, скільки виграшів у середньому втрачає кожна стратегія порівняно з тим, хто від початку знає кращий автомат і смикає лише його. Лінії пораховано точно, точки беруться із симуляції. Повзунком змініть довжину розвідки в плані «N + N».</p>
+    <p class="lead en">The chart shows how many wins each strategy loses on average compared with someone who knows the better machine from the start and pulls only that one. The lines are exact; the dots come from the simulation. Use the slider to change the length of the exploration in the "N + N" plan.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="sim-n"><span><span class="uk">Розвідка: по</span><span class="en">Explore:</span> <b class="mono" id="sim-n-v">10</b> <span class="uk">спроб на автомат</span><span class="en">pulls per machine</span></span>
+        <input type="range" id="sim-n" min="1" max="50" step="1" value="10">
+      </label>
+      <button class="btn pri" id="sim-run"><span class="uk">Зіграти 2 000 ігор</span><span class="en">Play 2,000 games</span></button>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="sim-chart" style="height:340px" role="img" aria-label="Втрачені виграші / Wins lost"></canvas>
+        <div class="legend">
+          <span style="--c:var(--muted)"><b class="uk">навпіл 50/50</b><b class="en">50/50 split</b></span>
+          <span style="--c:var(--c-greedy)"><b class="uk">жадібна: грає на лідері з першої спроби</b><b class="en">greedy: plays the leader from the first pull</b></span>
+          <span style="--c:var(--ink)"><b class="uk">розвідка N + N, далі лідер</b><b class="en">explore N + N, then the leader</b></span>
+          <span style="--c:var(--c-ts)"><b class="uk">семплювання Томпсона</b><b class="en">Thompson sampling</b></span>
+        </div>
+      </div>
+      <div class="tiles" id="sim-tiles"></div>
+    </div>
+    <p class="note" style="margin-top:14px" id="sim-note"></p>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Пояснення</span><span class="en">Round 4 · Explanations</span></span>
+    <h2><span class="uk">Розвідувати чи заробляти</span><span class="en">Explore or exploit</span></h2>
+    <p class="lead uk">Кожна спроба робить дві справи одразу: приносить виграш і дає знання про автомат. Що більше розвідуєш, то менше заробляєш зараз. Що менше розвідуєш, то частіше заробляєш не там.</p>
+    <p class="lead en">Every pull does two jobs at once: it earns a win and it teaches you about the machine. The more you explore, the less you earn now. The less you explore, the more often you earn in the wrong place.</p>
+  </div>
+  <div class="mp-layer" data-layer="easy">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Головне · неповна картина</span><span class="en">The core · not the whole story</span></span>
+      <h3><span class="uk">Десять спроб замало</span><span class="en">Ten pulls are too few</span></h3>
+      <div class="vs">
+        <div class="bb"><span><span class="uk">Автомат на 60% виграє 5 разів або менше з 10</span><span class="en">The 60% machine wins 5 times or fewer out of 10</span></span><b class="mono uk">37%</b><b class="mono en">37%</b></div>
+        <div class="a"><span><span class="uk">Автомат на 50% виграє 6 разів або більше з 10</span><span class="en">The 50% machine wins 6 times or more out of 10</span></span><b class="mono uk">38%</b><b class="mono en">38%</b></div>
+      </div>
+      <p class="uk">Від автомата на 60% чекаєш 6 виграшів з 10, від автомата на 50% чекаєш 5. Але випадок легко зсуває кожен рахунок на 1–2 виграші в будь-який бік. Різниця в один виграш тоне в цьому шумі, тому тест так часто помиляється. Ця картка пояснює лише, чому помиляється тест; що з цим робити, розповідають наступні.</p>
+      <p class="en">You expect 6 wins out of 10 from the 60% machine and 5 from the 50% one. But chance easily shifts each count by 1 or 2 wins either way. A one-win difference drowns in that noise, which is why the test is wrong so often. This card only explains why the test fails; the next ones say what to do about it.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Ціна поспіху</span><span class="en">The cost of haste</span></span>
+      <h3><span class="uk">Помилку вже не виправити</span><span class="en">The mistake is locked in</span></h3>
+      <p class="uk">Після тесту план більше не дивиться на гірший автомат. Якщо обрали не той, усі 80 спроб ідуть туди, де виграш на 10 пунктів менший: це 8 втрачених виграшів. Так стається в третині ігор, і саме тут план втрачає найбільше.</p>
+      <p class="en">After the test the plan never looks back. If it picked the wrong machine, all 80 pulls go where the win rate is 10 points lower: that is 8 lost wins. It happens in a third of games, and that is where the plan loses most.</p>
+      <p class="uk">Жадібна стратегія, яка грає на лідері з першої ж спроби, гірша: один невдалий початок кращого автомата, і вона може більше до нього не повернутися.</p>
+      <p class="en">The greedy strategy, which plays the leader from the very first pull, is worse: one bad start for the better machine, and it may never go back to it.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Ціна обережності</span><span class="en">The cost of caution</span></span>
+      <h3><span class="uk">Вічна розвідка теж дорога</span><span class="en">Exploring forever is costly too</span></h3>
+      <p class="uk">Можна смикати обидва автомати навпіл усі 100 разів і ніколи не помилитися з вибором, бо вибору немає. Тоді 50 спроб гарантовано йдуть гіршому автомату: це 5 втрачених виграшів, більше, ніж у плану 10 + 10.</p>
+      <p class="en">You could split all 100 pulls evenly and never pick wrong, because you never pick at all. Then 50 pulls are guaranteed to go to the worse machine: 5 lost wins, more than the 10 + 10 plan loses.</p>
+      <p class="uk">Найкраща довжина тесту для 100 спроб лежить посередині: 16 + 16. Але й вона втрачає 3,5 виграшу, і щоб її знайти, треба заздалегідь знати, що автомати відрізняються саме на 10 пунктів.</p>
+      <p class="en">The best test length for 100 pulls lies in between: 16 + 16. Even that loses 3.5 wins, and to find it you need to know in advance that the machines differ by exactly 10 points.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Розумніше</span><span class="en">Smarter</span></span>
+      <h3><span class="uk">Сумніватися весь час, але дедалі менше</span><span class="en">Keep doubting, but less and less</span></h3>
+      <p class="uk">Семплювання Томпсона не ділить гру на тест і заробіток. Перед кожною спробою воно оцінює, наскільки ймовірно, що кращий саме лівий автомат, і смикає його з такою ймовірністю. Поки даних мало, автомати отримують спроби майже порівну. Коли лідер упевнено відривається, гірший отримує дедалі менше, але ніколи не нуль.</p>
+      <p class="en">Thompson sampling doesn't split the game into a test and the earning. Before each pull it estimates how likely it is that the left machine is the better one, and pulls it with that probability. While data are scarce, the machines get almost equal pulls. Once a leader pulls clearly ahead, the worse one gets fewer and fewer, but never none.</p>
+      <p class="uk">Помилку на старті воно виправляє: якщо гірший автомат випадково вирвався вперед, кращий час від часу ще отримує спроби і повертає лідерство. Тому гірший автомат отримує понад половину спроб лише у 22% ігор, а не в 33%.</p>
+      <p class="en">It fixes an early mistake: if the worse machine got lucky early, the better one still gets an occasional pull and wins back the lead. That is why the worse machine gets more than half of the pulls in only 22% of games, not 33%.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Шанси за 10 спроб</span><span class="en">Odds in 10 pulls</span></span>
+      <h3><span class="uk">Скільки виграшів дасть кожен автомат</span><span class="en">How many wins each machine gives</span></h3>
+      <canvas id="binom-chart" style="height:220px" role="img" aria-label="Шанс k виграшів з 10 / Chance of k wins out of 10"></canvas>
+      <div class="legend" style="margin-top:0">
+        <span style="--c:var(--ink)"><b class="uk">автомат на 60%</b><b class="en">the 60% machine</b></span>
+        <span style="--c:var(--muted)"><b class="uk">автомат на 50%</b><b class="en">the 50% machine</b></span>
+      </div>
+      <p class="uk">Шанс отримати рівно k виграшів з 10. Стовпчики двох автоматів майже повністю накладаються: найчастіший результат кращого автомата (6 виграшів) трапляється в 25% тестів, а гіршого (5 виграшів) у 25%. Щоб тест помилився, досить, щоб кожен автомат відхилився на один виграш назустріч іншому.</p>
+      <p class="en">The chance of exactly k wins out of 10. The bars of the two machines overlap almost completely: the better machine's most likely result (6 wins) comes up in 25% of tests, the worse machine's (5 wins) in 25%. For the test to go wrong it is enough for each machine to stray one win towards the other.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Довжина розвідки</span><span class="en">Length of the exploration</span></span>
+      <h3><span class="uk">Точна таблиця для плану N + N</span><span class="en">The exact table for the N + N plan</span></h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th class="num">N</th>
+            <th class="num"><span class="uk">Гірший попереду</span><span class="en">Worse ahead</span></th>
+            <th class="num"><span class="uk">Нічия</span><span class="en">Tie</span></th>
+            <th class="num"><span class="uk">Обрано гірший</span><span class="en">Worse picked</span></th>
+            <th class="num"><span class="uk">Втрати</span><span class="en">Lost</span></th>
+          </tr></thead>
+          <tbody id="etc-tbl"></tbody>
+        </table>
+      </div>
+      <p class="uk">«Обрано гірший» дорівнює частці «гірший попереду» плюс половина нічиїх. Втрати зі 100 спроб рахують так: кожна спроба гіршого автомата коштує 0,1 виграшу, а він отримує N спроб у розвідці і ще 100 − 2N, якщо його обрали. Довша розвідка рідше помиляється, але дорожче коштує сама. Мінімум втрат при N = 16.</p>
+      <p class="en">"Worse picked" is the "worse ahead" share plus half the ties. The losses out of 100 pulls: every pull of the worse machine costs 0.1 win, and it gets N pulls in the exploration plus 100 − 2N more if it is picked. A longer exploration errs less often but costs more in itself. The losses are smallest at N = 16.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span><span class="en">For formula lovers</span></span>
+      <h3><span class="uk">Біноміальний тест, втрати і правило Томпсона</span><span class="en">The binomial test, the losses and Thompson's rule</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Шанс k виграшів з n спроб автомата з імовірністю p.</span><span class="en">The chance of k wins in n pulls of a machine with win probability p.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mi>k</mi><mo stretchy="false">)</mo><mo>=</mo><mrow><mo>(</mo><mfrac linethickness="0"><mi>n</mi><mi>k</mi></mfrac><mo>)</mo></mrow><msup><mi>p</mi><mi>k</mi></msup><msup><mrow><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false">)</mo></mrow><mrow><mi>n</mi><mo>−</mo><mi>k</mi></mrow></msup></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Шанс обрати гірший автомат: гірший попереду плюс половина нічиїх. Кращий має рахунок i, гірший j.</span><span class="en">The chance of picking the worse machine: the worse one ahead plus half the ties. The better one scores i, the worse one j.</span></p>
+          <math display="block"><msub><mi>P</mi><mtext>err</mtext></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>j</mi><mo>&gt;</mo><mi>i</mi></mrow></munder><msub><mi>P</mi><mn>60</mn></msub><mo stretchy="false">(</mo><mi>i</mi><mo stretchy="false">)</mo><msub><mi>P</mi><mn>50</mn></msub><mo stretchy="false">(</mo><mi>j</mi><mo stretchy="false">)</mo><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>P</mi><mn>60</mn></msub><mo stretchy="false">(</mo><mi>i</mi><mo stretchy="false">)</mo><msub><mi>P</mi><mn>50</mn></msub><mo stretchy="false">(</mo><mi>i</mi><mo stretchy="false">)</mo></math>
+          <math display="block"><mi>n</mi><mo>=</mo><mn>10</mn><mo>:</mo><mspace width="0.5em"></mspace><mn class="uk">0,2482</mn><mn class="en">0.2482</mn><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>·</mo><mn class="uk">0,1600</mn><mn class="en">0.1600</mn><mo>=</mo><mn class="hl uk">0,3282</mn><mn class="hl en">0.3282</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Втрати плану N + N за T спроб при різниці Δ = 0,1 між автоматами.</span><span class="en">The losses of the N + N plan over T pulls with a gap Δ = 0.1 between the machines.</span></p>
+          <math display="block"><mi>Δ</mi><mo>·</mo><mo stretchy="false">(</mo><mi>N</mi><mo>+</mo><mo stretchy="false">(</mo><mi>T</mi><mo>−</mo><mn>2</mn><mi>N</mi><mo stretchy="false">)</mo><mo>·</mo><msub><mi>P</mi><mtext>err</mtext></msub><mo stretchy="false">)</mo></math>
+          <math display="block"><mn class="uk">0,1</mn><mn class="en">0.1</mn><mo>·</mo><mo stretchy="false">(</mo><mn>10</mn><mo>+</mo><mn>80</mn><mo>·</mo><mn class="uk">0,3282</mn><mn class="en">0.3282</mn><mo stretchy="false">)</mo><mo>=</mo><mn class="hl uk">3,63</mn><mn class="hl en">3.63</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Правило Томпсона: після w виграшів і l програшів незнайома ймовірність автомата описується розподілом Beta(w + 1, l + 1). Беремо з кожного по випадковому числу і смикаємо автомат з більшим. Так кожен автомат отримує спробу з тією ймовірністю, з якою він кращий.</span><span class="en">Thompson's rule: after w wins and l losses, the unknown probability of a machine is described by a Beta(w + 1, l + 1) distribution. Draw one random number from each and pull the machine with the larger one. That way each machine is pulled with the probability that it is the better one.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl uk">смикнути лівий</mtext><mtext class="lbl en">pull left</mtext><mo stretchy="false">)</mo><mo>=</mo><mi>P</mi><mo stretchy="false">(</mo><msub><mi>θ</mi><mtext>L</mtext></msub><mo>&gt;</mo><msub><mi>θ</mi><mtext>R</mtext></msub><mo>∣</mo><mtext class="lbl uk">дані</mtext><mtext class="lbl en">data</mtext><mo stretchy="false">)</mo></math>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Історія</span><span class="en">History</span></span>
+      <h3><span class="uk">Від ліків до автоматів</span><span class="en">From medicines to slot machines</span></h3>
+      <p class="uk">Першим задачу поставив Вільям Томпсон 1933 року в журналі Biometrika. Його цікавило, як ділити пацієнтів між двома методами лікування, коли один із них, можливо, кращий, а котрий, ще невідомо. Його відповідь, давати кожен метод з тією ймовірністю, з якою він кращий, сьогодні звуть семплюванням Томпсона.</p>
+      <p class="en">William Thompson first posed the problem in Biometrika in 1933. He was asking how to divide patients between two treatments when one of them may be better but nobody yet knows which. His answer, give each treatment with the probability that it is the better one, is now called Thompson sampling.</p>
+      <p class="uk">1952 року Герберт Роббінс у статті «Some aspects of the sequential design of experiments» сформулював задачу строго: як послідовно обирати, що вимірювати далі, щоб у довгій грі середній виграш наближався до найкращого. Звідти пішла сучасна теорія.</p>
+      <p class="en">In 1952 Herbert Robbins, in "Some aspects of the sequential design of experiments", stated the problem rigorously: how to choose step by step what to measure next so that, in a long game, the average win approaches the best one. Modern theory grew from there.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Чому це важко</span><span class="en">Why it is hard</span></span>
+      <h3><span class="uk">Кожна спроба змінює те, що ви знаєте</span><span class="en">Every pull changes what you know</span></h3>
+      <p class="uk">Найкраща стратегія мала б урахувати всі можливі майбутні рахунки, а їх кількість росте лавиноподібно. Довгий час вважали, що точного простого рішення немає. 1979 року Джон Гіттінс показав, що для нескінченної гри, де майбутні виграші поступово знецінюються, достатньо порахувати для кожного автомата одне число, індекс Гіттінса, і смикати автомат з найбільшим. Для скінченної гри, як наші 100 спроб, такого простого правила немає.</p>
+      <p class="en">The best strategy would have to account for every possible future score, and their number grows explosively. For a long time no exact simple solution was thought to exist. In 1979 John Gittins showed that for an endless game where future wins are gradually discounted, it is enough to compute one number for each machine, the Gittins index, and pull the machine with the largest one. For a finite game, like our 100 pulls, there is no such simple rule.</p>
+      <p class="uk">Точні числа на цій сторінці пораховано перебором усіх можливих рахунків (виграші й програші кожного автомата): для 100 спроб це близько 4,6 мільйона станів.</p>
+      <p class="en">The exact numbers on this page come from going through every possible score (wins and losses on each machine): for 100 pulls that is about 4.6 million states.</p>
+    </div>
+
+  </div>
+  </div>
+
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Масштабування</span><span class="en">Round 5 · Scaling up</span></span>
+    <h2><span class="uk">Довга гра, ресторани і A/B-тести</span><span class="en">The long game, restaurants and A/B tests</span></h2>
+    <p class="lead uk">Що буде, якщо спроб не 100, а 100 000; де ця дилема трапляється в житті; і чому бандит, який заробляє більше за A/B-тест, знає менше.</p>
+    <p class="lead en">What happens with 100,000 pulls instead of 100; where this dilemma turns up in everyday life; and why a bandit that earns more than an A/B test ends up knowing less.</p>
+  </div>
+  <div class="esc">
+
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="uk">Втрачені виграші за довгу гру</span><span class="en">Wins lost over a long game</span></h3>
+        <div class="tbl-wrap" style="margin-top:10px">
+          <table>
+            <thead><tr>
+              <th><span class="uk">Стратегія</span><span class="en">Strategy</span></th>
+              <th class="num">100</th><th class="num">1 000</th><th class="num">10 000</th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="uk">Навпіл 50/50</span><span class="en">50/50 split</span></td><td class="num">5</td><td class="num">50</td><td class="num">500</td></tr>
+              <tr><td><span class="uk">Жадібна</span><span class="en">Greedy</span></td><td class="num"><span class="uk">3,9</span><span class="en">3.9</span></td><td class="num">≈ 37</td><td class="num">≈ 370</td></tr>
+              <tr><td><span class="uk">Найкраща розвідка N + N</span><span class="en">Best N + N exploration</span></td><td class="num"><span class="uk">3,5</span><span class="en">3.5</span></td><td class="num"><span class="uk">16,2</span><span class="en">16.2</span></td><td class="num"><span class="uk">36,1</span><span class="en">36.1</span></td></tr>
+              <tr class="hl"><td><span class="uk">Семплювання Томпсона</span><span class="en">Thompson sampling</span></td><td class="num"><span class="uk">3,3</span><span class="en">3.3</span></td><td class="num">≈ 12</td><td class="num">≈ 21</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top:10px"><span class="uk">Ті самі автомати на 60% і 50%, стовпчики означають кількість спроб. Для 100 спроб числа точні, для 1 000 і 10 000 «найкраща розвідка» точна (N = 99 і N = 276), а решта взята із симуляції від 1 000 до 4 000 ігор.</span><span class="en">The same 60% and 50% machines; the columns are the number of pulls. For 100 pulls the numbers are exact; for 1,000 and 10,000 the "best exploration" is exact (N = 99 and N = 276), and the rest come from simulations of 1,000 to 4,000 games.</span></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Математика</span><span class="en">The maths</span></span>
+        <h3><span class="uk">Добра стратегія втрачає дедалі повільніше</span><span class="en">A good strategy loses ever more slowly</span></h3>
+        <p class="uk">Жадібна стратегія застрягає на гіршому автоматі приблизно в кожній третій грі, тому її втрати ростуть пропорційно довжині гри: удесятеро більше спроб, удесятеро більші втрати. Найкраща розвідка N + N росте повільніше, але для неї треба заздалегідь знати різницю між автоматами.</p>
+        <p class="en">The greedy strategy gets stuck on the worse machine in roughly one game in three, so its losses grow in proportion to the length of the game: ten times the pulls, ten times the losses. The best N + N exploration grows more slowly, but it requires knowing the gap between the machines in advance.</p>
+        <p class="uk">Семплювання Томпсона нічого не знає наперед, а втрачає найменше: від 1 000 до 10 000 спроб його втрати зростають приблизно на 9 виграшів, а в жадібної стратегії більш ніж на 300. 1985 року Тзе Леунг Лай і Герберт Роббінс довели, що жодна стратегія не може в довгій грі втрачати менше, ніж пропорційно логарифму числа спроб. Кожне множення гри на 10 додає приблизно однакову порцію втрат. Семплювання Томпсона досягає цієї межі.</p>
+        <p class="en">Thompson sampling knows nothing in advance, yet loses least: from 1,000 to 10,000 pulls its losses grow by about 9 wins, the greedy strategy's by over 300. In 1985 Tze Leung Lai and Herbert Robbins proved that no strategy can, over a long game, lose less than in proportion to the logarithm of the number of pulls. Every tenfold increase of the game adds roughly the same portion of losses. Thompson sampling reaches this limit.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Логіка</span><span class="en">The logic</span></span>
+        <h3><span class="uk">Улюблений ресторан чи новий?</span><span class="en">Your favourite restaurant or a new one?</span></h3>
+        <p class="uk">Та сама дилема щодня: замовити улюблену страву чи спробувати нову, піти в перевірений ресторан чи в новий, взяти на роботу знайомого чи шукати далі. Кожен вибір і приносить задоволення, і дає знання на майбутнє.</p>
+        <p class="en">The same dilemma every day: order your favourite dish or try a new one, go to the trusted restaurant or a new one, hire someone you know or keep looking. Every choice both brings pleasure and gives knowledge for the future.</p>
+        <p class="uk">Ключ у тому, скільки гри лишилося. Для 100 спроб найкраща розвідка займає 16 + 16, для 1 000 вже 99 + 99. Хто щойно переїхав у нове місто, тому варто пробувати нове; хто їде звідти за тиждень, тому краще йти в перевірене місце. Схожу логіку має задача про вибір найкращого кандидата: <a class="uk" href="../secretary-problem/">правило 37%</a> теж каже спершу розвідувати, а потім обирати.</p>
+        <p class="en">The key is how much of the game is left. For 100 pulls the best exploration is 16 + 16; for 1,000 it is already 99 + 99. Someone who has just moved to a new city should try new places; someone leaving next week is better off at a trusted one. The problem of choosing the best candidate has a similar logic: the <a class="en" href="../../secretary-problem/en/">37% rule</a> also says explore first, then choose.</p>
+        <p class="uk">І ще одне: жадібна стратегія, яка завжди йде на поточного лідера, застрягає найчастіше. «Мені там раз не сподобалося, більше не піду» — це саме вона.</p>
+        <p class="en">And one more thing: the greedy strategy, which always goes with the current leader, gets stuck most often. "I didn't like it there once, never again" is exactly that strategy.</p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Практика</span><span class="en">Practice</span></span>
+        <h3><span class="uk">Бандит проти A/B-тесту: заробити чи дізнатися</span><span class="en">Bandit vs A/B test: earn or learn</span></h3>
+        <p class="uk">Ті самі два варіанти на 60% і 50%, 1 000 відвідувачів. A/B-тест ділить їх навпіл: 550 конверсій, а різниця між варіантами відома з точністю ±6,1 пункту (95%). Бандит із семплюванням Томпсона дає в середньому близько 588 конверсій, на 38 більше. Але гірший варіант бачить мало людей: у половині запусків менше ніж 90, а в кожному десятому запуску не більше ніж 23. Тож у типовому запуску різницю відомо лише з точністю близько ±11 пунктів: бандит знає, хто кращий, але погано знає, наскільки.</p>
+        <p class="en">The same two variants at 60% and 50%, 1,000 visitors. An A/B test splits them evenly: 550 conversions, and the difference between the variants is known to within ±6.1 points (95%). A bandit with Thompson sampling gets about 588 conversions on average, 38 more. But the worse variant is seen by few people: under 90 in half the runs, and 23 or fewer in one run in ten. So in a typical run the difference is known only to within about ±11 points: the bandit knows who is better, but not well by how much.</p>
+        <p class="uk">Питання до сервісу, що продає «оптимізацію штучним інтелектом»: чи покаже він різницю між варіантами з похибкою? Що буде, якщо конверсія змінюється за днями тижня чи через новизну? Чи є мінімальна частка трафіку для кожного варіанта? Детальніше про бандитів у тестах на сторінці <a class="uk" href="../ab-test-peeking/">«Підглядання в A/B-тест»</a>, а про шум у тестах на сторінці <a class="uk" href="../ab-test/">«Дві однакові сторінки»</a>.</p>
+        <p class="en">Questions to ask a service selling "AI optimisation": will it show the difference between the variants with an error margin? What happens if conversion shifts by weekday or through novelty? Is there a minimum share of traffic for each variant? More on bandits in tests is on the <a class="en" href="../../ab-test-peeking/en/">peeking at an A/B test</a> page, and on noise in tests on <a class="en" href="../../ab-test/en/">"Two identical pages"</a>.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="uk">Що розповісти друзям</span><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1933</span>
+        <h3><span class="uk">Задача про ліки</span><span class="en">A problem about medicines</span></h3>
+        <p class="uk">Стаття Вільяма Томпсона в Biometrika (том 25, 1933) мала назву «Про ймовірність того, що одна невідома ймовірність перевищує іншу, з огляду на дві вибірки». Про автомати там немає ні слова: Томпсон думав про вибір між методами лікування.</p>
+        <p class="en">William Thompson's paper in Biometrika (vol. 25, 1933) was titled "On the likelihood that one unknown probability exceeds another in view of the evidence of two samples". It says nothing about slot machines: Thompson was thinking about choosing between treatments.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1952</span>
+        <h3><span class="uk">Роббінс і послідовні досліди</span><span class="en">Robbins and sequential experiments</span></h3>
+        <p class="uk">Герберт Роббінс виклав задачу в статті «Some aspects of the sequential design of experiments» у Bulletin of the American Mathematical Society (том 58, 1952). Вона виросла з доповіді, яку він прочитав у листопаді 1951 року в Оберні, Алабама.</p>
+        <p class="en">Herbert Robbins set out the problem in "Some aspects of the sequential design of experiments" in the Bulletin of the American Mathematical Society (vol. 58, 1952). It grew out of an address he gave in Auburn, Alabama, in November 1951.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">WWII</span>
+        <h3><span class="uk">Інтелектуальна диверсія</span><span class="en">Intellectual sabotage</span></h3>
+        <p class="uk">Пітер Віттл в обговоренні статті Гіттінса 1979 року згадав, що над задачею про бандита билися науковці союзників під час Другої світової війни. Вона так їх виснажила, що хтось запропонував скинути її над Німеччиною як найдосконалішу інтелектуальну диверсію.</p>
+        <p class="en">In the discussion of Gittins's 1979 paper, Peter Whittle recalled that Allied scientists struggled with the bandit problem during the Second World War. It drained them so much that someone suggested dropping it over Germany as the ultimate weapon of intellectual sabotage.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1979</span>
+        <h3><span class="uk">Індекс Гіттінса</span><span class="en">The Gittins index</span></h3>
+        <p class="uk">Джон Гіттінс опублікував «Bandit processes and dynamic allocation indices» у Journal of the Royal Statistical Society, Series B. Він показав, що в нескінченній грі зі знеціненням майбутніх виграшів кожному автомату можна приписати одне число й завжди смикати автомат з найбільшим.</p>
+        <p class="en">John Gittins published "Bandit processes and dynamic allocation indices" in the Journal of the Royal Statistical Society, Series B. He showed that in an endless game with discounted future wins, each machine can be given one number, and you always pull the machine with the largest.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">11 : 1</span>
+        <h3><span class="uk">Дослідження, яке мало кого переконало</span><span class="en">A trial that convinced few</span></h3>
+        <p class="uk">1985 року група Роберта Бартлетта випробовувала ЕКМО, апарат штучного кровообігу для новонароджених, за схемою «грай на переможця»: що краще працює метод, то більше пацієнтів йому дістається. ЕКМО отримали 11 немовлят, і всі вижили; звичайне лікування отримала одна дитина, і вона померла. Через одного пацієнта в контрольній групі результату мало хто повірив, і знадобилися нові дослідження.</p>
+        <p class="en">In 1985 Robert Bartlett's team tested ECMO, a heart-lung bypass machine for newborns, using a "play the winner" design: the better a treatment does, the more patients it gets. Eleven babies got ECMO and all survived; one got conventional treatment and died. With a single patient in the control group, few believed the result, and new trials were needed.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2011</span>
+        <h3><span class="uk">Друге життя Томпсона</span><span class="en">Thompson's second life</span></h3>
+        <p class="uk">Майже 80 років метод Томпсона лишався в тіні. 2011 року Олів'є Шапель і Лігун Лі з Yahoo! Research показали на виборі реклами й рекомендаціях новин, що він на рівних змагається з найкращими сучасними методами. Відтоді його використовують у рекламі, рекомендаціях і тестуванні сайтів.</p>
+        <p class="en">For almost 80 years Thompson's method stayed in the shadows. In 2011 Olivier Chapelle and Lihong Li of Yahoo! Research showed on ad selection and news recommendation that it is highly competitive with the best modern methods. Since then it has been used in advertising, recommendations and website testing.</p>
+      </article>
+  </div>
+</section>
+
+<footer>
+  <span class="uk">Задачу про багаторукого бандита поставив Вільям Томпсон (1933), строго сформулював Герберт Роббінс (1952). Вона пояснює, чому розвідка, яка зупиняється надто рано, закріплює помилки.</span>
+  <span class="en">The multi-armed bandit was posed by William Thompson (1933) and stated rigorously by Herbert Robbins (1952). It explains why exploration that stops too early locks in mistakes.</span>
+  <span class="mono">P(10 + 10 → worse) = 0.328</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? s : String(s).replace('.', ',');
+const pct = (p, d = 0) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const f1 = v => dec(v.toFixed(1));
+const f2 = v => dec(v.toFixed(2));
+
+/* ---------- maths ---------- */
+const PB = .6, PW = .5, GAP = PB - PW, T = 100;
+// exact binomial pmf
+function pmf(n, p) {
+  const out = [];
+  let c = 1;
+  for (let k = 0; k <= n; k++) { out.push(c * Math.pow(p, k) * Math.pow(1 - p, n - k)); c = c * (n - k) / (k + 1); }
+  return out;
+}
+// explore N + N: P(worse strictly ahead), P(tie), P(worse picked)
+function etc(n) {
+  const A = pmf(n, PB), B = pmf(n, PW);
+  let ahead = 0, tie = 0, tailB = 0;
+  for (let i = n; i >= 0; i--) { ahead += A[i] * tailB; tie += A[i] * B[i]; tailB += B[i]; }
+  return { ahead, tie, wrong: ahead + tie / 2 };
+}
+// exact expected wins lost by pull t for the N + N plan (exploration alternates, the first machine is random)
+function etcCurve(n) {
+  const w = n >= T / 2 ? 0 : etc(n).wrong, out = [];
+  for (let t = 0; t <= T; t++) out.push(t <= 2 * n ? GAP * t / 2 : GAP * (n + (t - 2 * n) * w));
+  return out;
+}
+// exact curves (dynamic programming over every (wins, losses) state of both machines, 0.6 vs 0.5, 100 pulls)
+const GREEDY = [0,0.05,0.1,0.14,0.19,0.23,0.27,0.32,0.36,0.4,0.44,0.48,0.52,0.56,0.6,0.64,0.68,0.72,0.76,0.8,0.84,0.88,0.92,0.96,1.0,1.04,1.08,1.12,1.16,1.2,1.24,1.28,1.31,1.35,1.39,1.43,1.47,1.51,1.55,1.59,1.62,1.66,1.7,1.74,1.78,1.82,1.86,1.9,1.93,1.97,2.01,2.05,2.09,2.13,2.17,2.2,2.24,2.28,2.32,2.36,2.39,2.43,2.47,2.51,2.55,2.58,2.62,2.66,2.7,2.74,2.78,2.81,2.85,2.89,2.93,2.97,3.0,3.04,3.08,3.12,3.15,3.19,3.23,3.27,3.31,3.35,3.38,3.42,3.46,3.5,3.53,3.57,3.61,3.65,3.69,3.72,3.76,3.8,3.84,3.87,3.91];
+const TS = [0,0.05,0.1,0.14,0.19,0.24,0.28,0.33,0.37,0.41,0.45,0.49,0.54,0.58,0.62,0.66,0.7,0.74,0.77,0.81,0.85,0.89,0.93,0.96,1.0,1.04,1.07,1.11,1.15,1.18,1.22,1.25,1.29,1.32,1.36,1.39,1.43,1.46,1.5,1.53,1.56,1.6,1.63,1.66,1.69,1.73,1.76,1.79,1.82,1.85,1.89,1.92,1.95,1.98,2.01,2.04,2.07,2.1,2.13,2.16,2.19,2.22,2.25,2.28,2.31,2.34,2.37,2.4,2.43,2.46,2.48,2.51,2.54,2.57,2.6,2.63,2.65,2.68,2.71,2.74,2.76,2.79,2.82,2.85,2.87,2.9,2.92,2.95,2.98,3.0,3.03,3.06,3.08,3.11,3.13,3.16,3.19,3.21,3.23,3.26,3.29];
+// exact P(the worse machine got more than 50 of the 100 pulls)
+const P_STUCK = { greedy: .3813, ts: .2214 };
+const SPLIT = Array.from({ length: T + 1 }, (_, t) => GAP * t / 2);
+
+// random helpers: normal, gamma (Marsaglia-Tsang), beta
+function randn() { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); }
+function gamma(a) {
+  if (a < 1) return gamma(a + 1) * Math.pow(Math.random(), 1 / a);
+  const d = a - 1 / 3, c = 1 / Math.sqrt(9 * d);
+  for (;;) {
+    let x, v; do { x = randn(); v = 1 + c * x; } while (v <= 0);
+    v = v * v * v; const u = Math.random();
+    if (u < 1 - .0331 * x * x * x * x) return d * v;
+    if (Math.log(u) < .5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+  }
+}
+const beta = (a, b) => { const x = gamma(a); return x / (x + gamma(b)); };
+const coin = () => Math.random() < .5 ? 0 : 1;
+// one game of T pulls; machine 0 is the better one. Returns the worse machine's pull count after each pull.
+function play(strat, n) {
+  const s = [0, 0], k = [0, 0], worse = [0];
+  let commit = -1;
+  for (let t = 0; t < T; t++) {
+    let a;
+    if (strat === 'split') a = t % 2;
+    else if (strat === 'etc') {
+      if (t < 2 * n) a = t % 2;
+      else { if (commit < 0) commit = s[0] > s[1] ? 0 : s[1] > s[0] ? 1 : coin(); a = commit; }
+    } else if (strat === 'greedy') {
+      if (!k[0] && !k[1]) a = coin(); else if (!k[0]) a = 0; else if (!k[1]) a = 1;
+      else { const d = s[0] * k[1] - s[1] * k[0]; a = d > 0 ? 0 : d < 0 ? 1 : coin(); }
+    } else a = beta(s[0] + 1, k[0] - s[0] + 1) > beta(s[1] + 1, k[1] - s[1] + 1) ? 0 : 1;
+    s[a] += Math.random() < (a ? PW : PB) ? 1 : 0; k[a]++;
+    worse.push(k[1]);
+  }
+  return worse;
+}
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+function rrect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+/* ---------- hero: two machines pulled in turn ---------- */
+const hero = { s: [0, 0], k: [0, 0], last: [-1, -1], pulling: -1, t: 0, timer: null, p: [PB, PW] };
+function heroStep() {
+  if (hero.t >= 40) { hero.s = [0, 0]; hero.k = [0, 0]; hero.last = [-1, -1]; hero.t = 0; hero.p = coin() ? [PB, PW] : [PW, PB]; }
+  const a = hero.t % 2, r = Math.random() < hero.p[a] ? 1 : 0; // 60% and 50%, reassigned at random every 40 pulls
+  hero.s[a] += r; hero.k[a]++; hero.last[a] = r; hero.pulling = a; hero.t++;
+  drawHero();
+  setTimeout(() => { hero.pulling = -1; drawHero(); }, 260);
+}
+function heroStart() {
+  clearInterval(hero.timer); hero.timer = null;
+  if (reduce()) { hero.s = [7, 6]; hero.k = [12, 12]; hero.last = [1, 0]; hero.pulling = -1; drawHero(); return; }
+  hero.timer = setInterval(heroStep, 900);
+  drawHero();
+}
+function drawHero() {
+  const s = setupCanvas($('#hero-chart')); if (!s) return;
+  const { ctx, W, H } = s, ink = tok('--ink'), mut = tok('--muted'), tint = tok('--tint') || '#F8E3EC', surf = tok('--surface') || '#fff';
+  const mw = Math.min(150, (W - 110) / 2), gap = (W - 2 * mw - 52) / 3;
+  [0, 1].forEach(i => {
+    const x = gap + i * (mw + 26 + gap), y = 22, h = H - 70;
+    ctx.fillStyle = tint; ctx.strokeStyle = ink; ctx.lineWidth = 2;
+    rrect(ctx, x, y, mw, h, 16); ctx.fill(); ctx.stroke();
+    // top sign
+    ctx.fillStyle = ink; ctx.font = '800 13px ' + tok('--f-display'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(i ? L('ПРАВИЙ', 'RIGHT') : L('ЛІВИЙ', 'LEFT'), x + mw / 2, y + 20);
+    // window with the last result
+    const wx = x + 14, wy = y + 40, ww = mw - 28, wh = Math.min(70, h - 110);
+    ctx.fillStyle = surf; rrect(ctx, wx, wy, ww, wh, 10); ctx.fill(); ctx.stroke();
+    const cx = wx + ww / 2, cy = wy + wh / 2, rr = Math.min(22, wh / 2 - 8);
+    if (hero.last[i] === 1) { ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 7); ctx.fill(); ctx.fillStyle = surf; ctx.font = '800 16px ' + tok('--f-display'); ctx.fillText('1', cx, cy + 1); }
+    else if (hero.last[i] === 0) { ctx.strokeStyle = mut; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 7); ctx.stroke(); ctx.fillStyle = mut; ctx.font = '800 16px ' + tok('--f-display'); ctx.fillText('0', cx, cy + 1); }
+    else { ctx.fillStyle = mut; ctx.font = '800 22px ' + tok('--f-display'); ctx.fillText('?', cx, cy + 1); }
+    // tally
+    ctx.fillStyle = ink; ctx.font = '600 15px ' + tok('--f-mono');
+    ctx.fillText(hero.s[i] + ' / ' + hero.k[i], x + mw / 2, wy + wh + 26);
+    ctx.fillStyle = mut; ctx.font = '11px ' + tok('--f-mono');
+    ctx.fillText(L('виграші / спроби', 'wins / pulls'), x + mw / 2, wy + wh + 46);
+    // lever
+    const lx = x + mw + 10, down = hero.pulling === i;
+    ctx.strokeStyle = ink; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x + mw, y + h * .55); ctx.lineTo(lx, y + h * .55); ctx.lineTo(lx, down ? y + h * .75 : y + h * .2); ctx.stroke();
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(lx, down ? y + h * .75 : y + h * .2, 8, 0, 7); ctx.fill();
+    ctx.lineCap = 'butt';
+  });
+  ctx.fillStyle = mut; ctx.font = '11px ' + tok('--f-mono'); ctx.textAlign = 'center';
+  ctx.fillText(L('60% чи 50%?', '60% or 50%?'), W / 2, H - 14);
+}
+
+/* ---------- round 1: guess ---------- */
+let guessed = null, r1sim = null;
+function simTests(m) {
+  let w = 0;
+  for (let i = 0; i < m; i++) {
+    let a = 0, b = 0;
+    for (let j = 0; j < 10; j++) { a += Math.random() < PB; b += Math.random() < PW; }
+    if (b > a || (a === b && Math.random() < .5)) w++;
+  }
+  return w / m;
+}
+$('#opts').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  guessed = +b.dataset.o; r1sim = simTests(20000);
+  $('#opts').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  guessText();
+  window.mpSolve && mpSolve(guessed);
+});
+function guessText() {
+  if (guessed === null) return;
+  const e = etc(10);
+  const v = [
+    L('Інтуїція недооцінює шум. За 10 спроб кращий автомат дає в середньому лише на один виграш більше, а випадок зсуває рахунок на 1–2 виграші. Тест помиляється в шість разів частіше.', 'Intuition underestimates the noise. In 10 pulls the better machine averages just one win more, while chance shifts the score by 1 or 2 wins. The test errs six times more often than that.'),
+    L('Ближче, але все одно вдвічі менше, ніж насправді. Гірший автомат виходить уперед у кожному четвертому тесті, а ще 16% тестів закінчуються нічиєю.', 'Closer, but still half the real figure. The worse machine pulls ahead in one test in four, and another 16% of tests end in a tie.'),
+    L('Гірший автомат опиняється попереду в 24,8% тестів, ще 16% закінчуються нічиєю, і половину з них монета віддає гіршому. Разом 32,8%: майже кожен третій тест.', 'The worse machine comes out ahead in 24.8% of tests, another 16% are ties, and the coin hands half of those to the worse one. Together 32.8%: almost one test in three.'),
+    L('Не настільки погано: тест усе-таки частіше вгадує, ніж помиляється. Кращий автомат виграє 59% тестів, а гірший обирається в 32,8%.', 'Not that bad: the test is still right more often than wrong. The better machine wins 59% of tests, and the worse one is picked in 32.8%.')
+  ][guessed];
+  const rows = [
+    [L('Гірший автомат попереду', 'The worse machine ahead'), e.ahead, 'var(--hit)'],
+    [L('Нічия (половина йде гіршому)', 'A tie (half go to the worse one)'), e.tie, 'var(--muted)'],
+    [L('Разом обрано гірший', 'Worse machine picked in all'), e.wrong, 'var(--hit)'],
+    [L('Симуляція 20 000 тестів', 'Simulation of 20,000 tests'), r1sim, 'var(--ink)']
+  ];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">' + pct(e.wrong, 1) + '</p>' +
+    '<p>' + (guessed === 2 ? '<b>' + L('Правильно. ', 'Correct. ') + '</b>' : '<b>' + L('Не зовсім. ', 'Not quite. ') + '</b>') + v + '</p><div class="compare">' +
+    rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + pct(r[1], 1) + '</span></div>').join('') +
+    '</div><p class="note">' + L('Перші три рядки пораховано точно за біноміальними ймовірностями. Кожна така помилка віддає 80 спроб гіршому автомату.', 'The first three rows are exact binomial probabilities. Each such mistake hands 80 pulls to the worse machine.') + '</p>';
+}
+
+/* ---------- round 2: game ---------- */
+let game;
+function newGame() {
+  const best = coin();
+  game = { p: best ? [PW, PB] : [PB, PW], best, s: [0, 0], k: [0, 0], hist: [] };
+  gameText(); drawStrip();
+}
+function pull(a) {
+  if (game.hist.length >= T) return;
+  const r = Math.random() < game.p[a] ? 1 : 0;
+  game.s[a] += r; game.k[a]++; game.hist.push([a, r]);
+  gameText(); drawStrip();
+}
+function gameText() {
+  const done = game.hist.length >= T, wins = game.s[0] + game.s[1], g = game;
+  $('#game-status').innerHTML = '<div><span class="k">' + L('Спроб', 'Pulls') + '</span><b class="mono">' + g.hist.length + ' / ' + T + '</b></div>' +
+    '<div><span class="k">' + L('Виграшів', 'Wins') + '</span><b class="mono">' + wins + '</b></div>';
+  [0, 1].forEach(i => {
+    $('#m' + i + '-cnt').textContent = g.s[i] + ' / ' + g.k[i] + (g.k[i] ? ' · ' + pct(g.s[i] / g.k[i]) : '');
+    const rate = $('#m' + i + '-rate');
+    rate.textContent = done ? pct(g.p[i]) : '?';
+    rate.classList.toggle('best', done && i === g.best);
+    $('#m' + i + '-pull').disabled = done;
+  });
+  const worsePulls = g.k[1 - g.best];
+  let m;
+  if (!g.hist.length) m = L('Смикніть будь-який автомат.', 'Pull either machine.');
+  else if (!done) m = L('Ще ' + (T - g.hist.length) + ' спроб. Лідер зараз: ', (T - g.hist.length) + ' pulls left. Current leader: ') +
+    (g.k[0] && g.k[1] ? (g.s[0] / g.k[0] > g.s[1] / g.k[1] ? L('лівий', 'left') : g.s[0] / g.k[0] < g.s[1] / g.k[1] ? L('правий', 'right') : L('нічия', 'a tie')) : L('ще невідомо', 'not known yet')) + '.';
+  else m = L('Кращим був ' + (g.best ? 'правий' : 'лівий') + ' автомат. Ви дали гіршому ' + worsePulls + ' спроб зі 100. Через вибір ви втратили в середньому ' + f1(GAP * worsePulls) + ' виграшу; решту різниці з 60 визначило везіння.',
+    'The better machine was the ' + (g.best ? 'right' : 'left') + ' one. You gave the worse one ' + worsePulls + ' pulls out of 100. Your choices cost you ' + f1(GAP * worsePulls) + ' wins on average; luck decided the rest of the gap to 60.');
+  $('#game-msg').textContent = m;
+  const rows = [
+    [L('Завжди кращий автомат', 'Always the better machine'), '60'],
+    [L('Семплювання Томпсона', 'Thompson sampling'), f1(T * PB - TS[T])],
+    [L('Розвідка 16 + 16', 'Explore 16 + 16'), f1(T * PB - etcCurve(16)[T])],
+    [L('Розвідка 10 + 10', 'Explore 10 + 10'), f1(T * PB - etcCurve(10)[T])],
+    [L('Жадібна', 'Greedy'), f1(T * PB - GREEDY[T])],
+    [L('Навпіл 50/50', '50/50 split'), f1(T * PB - SPLIT[T])]
+  ];
+  $('#tally').innerHTML = (done ? '<tr class="hl"><td><b>' + L('Ви', 'You') + '</b></td><td class="num"><b>' + wins + '</b></td></tr>' + '<tr><td>' + L('Ви без везіння', 'You, luck removed') + '</td><td class="num">' + f1(T * PB - GAP * worsePulls) + '</td></tr>' : '') +
+    rows.map(r => '<tr><td>' + r[0] + '</td><td class="num">' + r[1] + '</td></tr>').join('');
+  $('#game-note').textContent = L('Для стратегій указано середнє за безліч ігор, пораховане точно. «Ви без везіння» — скільки ви виграли б у середньому, розподіливши спроби так само.', 'For the strategies the figure is the exact average over countless games. "You, luck removed" is what you would win on average with the same split of pulls.');
+}
+function drawStrip() {
+  const done = game.hist.length >= T;
+  $('#strip-note').textContent = L('Темне: лівий, синє: правий; яскраве: виграш, бліде: програш', 'Dark: left, blue: right; solid: a win, pale: a loss') + (done ? L('; жовта риска: гірший автомат.', '; amber tick: the worse machine.') : '.');
+  const s = setupCanvas($('#game-strip')); if (!s) return;
+  const { ctx, W, H } = s, cols = W < 420 ? 50 : 100, rows = T / cols, cw = W / cols, ch = Math.min(22, (H - 4 * rows) / rows);
+  for (let i = 0; i < T; i++) {
+    const x = (i % cols) * cw, y = Math.floor(i / cols) * (ch + 4), h = game.hist[i];
+    ctx.fillStyle = tok('--cell'); ctx.fillRect(x + .5, y, cw - 1, ch);
+    if (!h) continue;
+    const isBest = done && h[0] === game.best;
+    ctx.fillStyle = h[0] ? tok('--c-ts') : tok('--ink');
+    ctx.globalAlpha = h[1] ? 1 : .28;
+    ctx.fillRect(x + .5, y, cw - 1, ch);
+    ctx.globalAlpha = 1;
+    if (done && !isBest) { ctx.fillStyle = tok('--c-greedy'); ctx.fillRect(x + .5, y + ch, cw - 1, 3); }
+  }
+}
+$('#m0-pull').addEventListener('click', () => pull(0));
+$('#m1-pull').addEventListener('click', () => pull(1));
+$('#game-new').addEventListener('click', newGame);
+newGame();
+
+/* ---------- round 3: strategy race ---------- */
+const simN = $('#sim-n');
+let n3 = 10, simRes = null;
+const STRATS = ['split', 'greedy', 'etc', 'ts'];
+function exactCurve(st) { return st === 'split' ? SPLIT : st === 'greedy' ? GREEDY : st === 'ts' ? TS : etcCurve(n3); }
+function exactStuck(st) { return st === 'split' ? 0 : st === 'etc' ? (n3 >= T / 2 ? 0 : etc(n3).wrong) : P_STUCK[st]; }
+function runSim() {
+  const M = 2000; simRes = { n: n3 };
+  STRATS.forEach(st => {
+    const sum = new Float64Array(T + 1); let stuck = 0;
+    for (let i = 0; i < M; i++) { const w = play(st, n3); for (let t = 0; t <= T; t++) sum[t] += w[t]; if (w[T] > T / 2) stuck++; }
+    simRes[st] = { curve: Array.from(sum, v => GAP * v / M), stuck: stuck / M };
+  });
+}
+simN.addEventListener('input', () => { n3 = +simN.value; simRes = null; simText(); drawSim(); });
+$('#sim-run').addEventListener('click', () => { runSim(); simText(); drawSim(); });
+const COL = { split: '--muted', greedy: '--c-greedy', etc: '--ink', ts: '--c-ts' };
+function sname(st) {
+  return { split: L('Навпіл 50/50', '50/50 split'), greedy: L('Жадібна', 'Greedy'), etc: L('Розвідка ' + n3 + ' + ' + n3, 'Explore ' + n3 + ' + ' + n3), ts: L('Семплювання Томпсона', 'Thompson sampling') }[st];
+}
+function simText() {
+  $('#sim-n-v').textContent = n3;
+  $('#sim-tiles').innerHTML = ['etc', 'ts', 'greedy', 'split'].map(st => {
+    const ex = exactCurve(st)[T], sim = simRes && simRes[st];
+    return '<div class="tile" style="--c:var(' + COL[st] + ')"><div class="k">' + sname(st) + '</div><div class="v mono">' + f2(ex) + '</div><div class="s">' +
+      L('втрачено зі 100', 'lost out of 100') + (sim ? L(' · симуляція ', ' · simulation ') + f2(sim.curve[T]) : '') + '<br>' +
+      L('гірший отримав понад 50 спроб: ', 'worse got over 50 pulls: ') + pct(exactStuck(st), 1) + (sim ? ' · ' + pct(sim.stuck, 1) : '') + '</div></div>';
+  }).join('');
+  $('#sim-note').textContent = simRes
+    ? L('Великі числа в плитках точні, поруч результат 2 000 симульованих ігор для кожної стратегії. Найкраща довжина розвідки для 100 спроб: 16 + 16, втрати 3,54.', 'The big numbers in the tiles are exact; next to them, the result of 2,000 simulated games per strategy. The best exploration length for 100 pulls is 16 + 16, losing 3.54.')
+    : L('Натисніть «Зіграти 2 000 ігор», щоб перевірити точні лінії симуляцією. Найкраща довжина розвідки для 100 спроб: 16 + 16, втрати 3,54.', 'Press "Play 2,000 games" to check the exact lines against a simulation. The best exploration length for 100 pulls is 16 + 16, losing 3.54.');
+}
+function drawSim() {
+  const s = setupCanvas($('#sim-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 36, r = 12, t = 14, b = 30, ymax = 5.5;
+  const x = v => l + v / T * (W - l - r), y = v => t + (1 - v / ymax) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1;
+  for (let v = 0; v <= 5; v++) { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, l - 6, y(v)); }
+  for (let v = 0; v <= T; v += 20) { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, x(v), H - b + 6); }
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(L('спроба →', 'pull →'), W - r, H - 1);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(L('втрачено виграшів', 'wins lost'), l + 4, t);
+  STRATS.forEach(st => {
+    const c = exactCurve(st), col = tok(COL[st]);
+    ctx.strokeStyle = col; ctx.lineWidth = st === 'etc' || st === 'ts' ? 2.5 : 2;
+    ctx.setLineDash(st === 'split' ? [5, 4] : []);
+    ctx.beginPath(); c.forEach((v, i) => i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v))); ctx.stroke();
+    ctx.setLineDash([]);
+    if (simRes && simRes.n === n3) {
+      ctx.fillStyle = col;
+      for (let i = 10; i <= T; i += 10) { ctx.beginPath(); ctx.arc(x(i), y(simRes[st].curve[i]), 3.5, 0, 7); ctx.fill(); }
+    }
+  });
+  // mark the end of the exploration
+  if (n3 < T / 2) {
+    ctx.strokeStyle = tok('--ink'); ctx.globalAlpha = .35; ctx.setLineDash([2, 3]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x(2 * n3), y(0)); ctx.lineTo(x(2 * n3), y(ymax)); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText(L('кінець розвідки', 'end of exploration'), Math.min(x(2 * n3) + 4, W - r - 110), y(0) - 4);
+  }
+}
+
+/* ---------- round 4: binomial bars and the N + N table ---------- */
+function drawBinom() {
+  const s = setupCanvas($('#binom-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 34, r = 8, t = 10, b = 24, ymax = .3;
+  const A = pmf(10, PB), B = pmf(10, PW), slot = (W - l - r) / 11, bw = Math.min(13, (slot - 8) / 2);
+  const y = v => t + (1 - v / ymax) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1;
+  [0, .1, .2, .3].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(pct(v), l - 4, y(v)); });
+  for (let k = 0; k <= 10; k++) {
+    const cx = l + slot * (k + .5);
+    ctx.fillStyle = tok('--ink'); ctx.fillRect(cx - bw - 1, y(A[k]), bw, y(0) - y(A[k]));
+    ctx.fillStyle = tok('--muted'); ctx.globalAlpha = .55; ctx.fillRect(cx + 1, y(B[k]), bw, y(0) - y(B[k])); ctx.globalAlpha = 1;
+    ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(k, cx, H - b + 6);
+  }
+}
+function etcTable() {
+  $('#etc-tbl').innerHTML = [1, 5, 10, 16, 20, 30, 40].map(n => {
+    const e = etc(n), lost = etcCurve(n)[T];
+    return '<tr' + (n === 10 ? ' class="hl"' : '') + '><td class="num">' + n + '</td><td class="num">' + pct(e.ahead, 1) + '</td><td class="num">' + pct(e.tie, 1) + '</td><td class="num">' + pct(e.wrong, 1) + '</td><td class="num">' + f2(lost) + '</td></tr>';
+  }).join('');
+}
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Багаторукий бандит', 'The Multi-Armed Bandit');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  guessText(); gameText(); simText(); etcTable();
+  redraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+function redraw() { drawHero(); drawStrip(); drawSim(); drawBinom(); }
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+document.addEventListener('visibilitychange', () => { if (document.hidden) { clearInterval(hero.timer); hero.timer = null; } else heroStart(); });
+
+applyLang();
+heroStart();
+})();
+</script>

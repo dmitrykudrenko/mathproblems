@@ -1,0 +1,66 @@
+<div class="tz-text">
+  <span class="eyebrow"><span class="uk">Аукціони · чесні оцінки</span><span class="en">Auctions · honest estimates</span></span>
+  <h2><a href="{{URL}}"><span class="uk">Прокляття переможця</span><span class="en">The winner's curse</span></a></h2>
+  <p class="tz-q uk">Десятеро чесно оцінюють банку з монетами на 100 гривень і ставлять свої оцінки. Скільки в середньому заробить переможець аукціону?</p>
+  <p class="tz-q en">Ten bidders honestly estimate a jar of coins worth 100 dollars and bid their estimates. On average, what does the auction winner make?</p>
+  <button type="button" class="tz-reveal sp-before" data-solve><span><span class="uk">Інтуїція і відповідь</span><span class="en">Intuition and answer</span></span><b><span class="uk">Показати відповідь</span><span class="en">Show the answer</span></b></button>
+  <div class="tz-ans sp-after">
+    <div><span><span class="uk">Інтуїція</span><span class="en">Intuition</span></span><b><span class="uk">Близько нуля</span><span class="en">About zero</span></b></div>
+    <div class="r"><span><span class="uk">Насправді</span><span class="en">Actually</span></span><b><span class="uk">Втратить ≈ 31</span><span class="en">Loses ≈ 31</span></b></div>
+  </div>
+  <p class="tz-d uk">Задача про нафтові ділянки, банки з монетами і те, чому сама перемога є поганою новиною. І чому «переможець» A/B-тесту обіцяє більше, ніж дасть.</p>
+  <p class="tz-d en">A puzzle about oil leases, jars of coins and why winning is itself bad news, and why the "winner" of an A/B test promises more than it delivers.</p>
+  <a class="tz-cta" href="{{URL}}"><span class="uk">Розібратися з прокляттям переможця</span><span class="en">Work through the winner's curse</span> →</a>
+</div>
+<div class="tz-stage" id="tz-winners-curse">
+  <span class="tz-try"><span class="uk">Спробуйте тут</span><span class="en">Try it here</span></span>
+  <canvas style="display:block;width:100%;max-width:300px;height:200px" aria-hidden="true"></canvas>
+  <p class="tz-msg" aria-live="polite"></p>
+  <div class="tz-acts"><button type="button" class="tz-btn"></button><button type="button" class="tz-btn"></button></div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById('tz-winners-curse');
+  const en = () => document.documentElement.dataset.lang === 'en';
+  const L = (uk, e) => en() ? e : uk;
+  const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), btns = root.querySelectorAll('.tz-btn');
+  const col = (name, fb) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb;
+  const randn = () => { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); };
+  // a jar worth 100, ten honest estimates with error SD 20; the highest bid wins and pays itself
+  let bids = [], runs = 0, total = 0;
+  const top = () => Math.max(...bids);
+  function auction() { bids = Array.from({ length: 10 }, () => Math.round(100 + 20 * randn())); runs++; total += 100 - top(); }
+  function draw() {
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+    if (!W) return;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const ink = col('--ink', '#151515'), sig = col('--signal', '#D9318F'), mut = col('--muted', '#5F5F5F'), f = col('--f', 'system-ui');
+    const lo = 40, hi = 170, x = v => 10 + (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (W - 20), base = H - 26;
+    ctx.strokeStyle = mut; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(10, base); ctx.lineTo(W - 10, base); ctx.stroke();
+    ctx.fillStyle = mut; ctx.font = '11px ' + f; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    [50, 100, 150].forEach(v => ctx.fillText(v, x(v), base + 6));
+    ctx.strokeStyle = ink; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x(100), 22); ctx.lineTo(x(100), base); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = ink; ctx.font = '600 11px ' + f; ctx.textBaseline = 'bottom'; ctx.fillText(L('банка: 100', 'jar: 100'), x(100), 18);
+    const t = top();
+    [...bids].sort((a, b) => a - b).forEach((v, i) => {
+      const w = v === t; ctx.fillStyle = w ? sig : mut; ctx.globalAlpha = w ? 1 : .45;
+      ctx.beginPath(); ctx.arc(x(v), w ? base - 80 : base - 16 - (i % 3) * 18, w ? 7 : 5, 0, 7); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  }
+  function text() {
+    const t = top(), p = 100 - t, s = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v);
+    msg.textContent = runs > 1
+      ? L('Аукціонів: ' + runs + '. Переможець отримав у середньому ' + s(Math.round(total / runs)) + ' за банку на 100.', 'Auctions: ' + runs + '. The winner got ' + s(Math.round(total / runs)) + ' on average for a jar worth 100.')
+      : L('Найвища з десяти оцінок: ' + t + '. Переможець платить ' + t + ' за банку на 100: ' + s(p) + '.', 'The highest of ten estimates: ' + t + '. The winner pays ' + t + ' for a jar worth 100: ' + s(p) + '.');
+    btns[0].textContent = L('Новий аукціон', 'New auction');
+    btns[1].textContent = L('Ще 100 аукціонів', '100 more auctions');
+  }
+  btns[0].addEventListener('click', () => { runs = 0; total = 0; auction(); draw(); text(); });
+  btns[1].addEventListener('click', () => { for (let i = 0; i < 100; i++) auction(); draw(); text(); });
+  document.addEventListener('langchange', () => { draw(); text(); });
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
+  auction(); draw(); text();
+})();
+</script>
