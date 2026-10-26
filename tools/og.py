@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-testing--check": "#EAF4E2", "course-data-traps": "#F2EBDD", "lake-escape": "#D7ECEF", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "lake-escape": "#D7ECEF", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -182,6 +182,14 @@ TEXT = {
     "course-ab-testing--check": {
         "uk": (["ПЕРЕВІРТЕ", "СВІЙ ТЕСТ"], "Ваші числа з дашборда: запускати B?"),
         "en": (["CHECK", "YOUR TEST"], "Your dashboard numbers: ship B?"),
+    },
+    "course-interview-puzzles": {
+        "uk": (["КУРС: СПІВБЕСІДИ", "ІЗ ЗАДАЧАМИ"], "Дві мотузки. Як відміряти 45 хвилин?"),
+        "en": (["COURSE: PUZZLE", "INTERVIEWS"], "Two ropes. How to measure 45 minutes?"),
+    },
+    "course-interview-puzzles--trainer": {
+        "uk": (["ТРЕНАЖЕР", "СПІВБЕСІДИ"], "Задача, таймер і три підказки"),
+        "en": (["INTERVIEW", "TRAINER"], "A puzzle, a timer and three hints"),
     },
     "lake-escape": {
         "uk": (["ВТЕЧА", "ЧЕРЕЗ ОЗЕРО"], "Вихователь учетверо швидший. Як утекти?"),
@@ -665,6 +673,15 @@ def extra_visual(kind, x, y, lang="en"):
                     f'<text x="{x + 36}" y="{yy}" font-family="{FONT}" font-weight="600" font-size="22" fill="{INK}">{a}</text>',
                     f'<text x="{x + 344}" y="{yy}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="26" fill="{INK}">{b}</text>']
         out.append(f'<text x="{x + 360}" y="{y + 350}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="44" fill="{SIGNAL}">?</text>')
+    elif kind in ("course-interview-puzzles", "course-interview-puzzles--trainer"):
+        # a whiteboard with two uneven ropes and a lighter flame; how to get 45 minutes is the course's opening puzzle
+        out.append(f'<rect x="{x + 10}" y="{y + 20}" width="360" height="270" rx="18" fill="#fff"/>')
+        for k, yy in enumerate((y + 95, y + 185)):
+            pts = " ".join(f"{x + 50 + i * 14:.0f},{yy + (9 if i % 2 else -9) * (1 + (i * (k + 3)) % 3) / 2:.1f}" for i in range(21))
+            out.append(f'<polyline points="{pts}" fill="none" stroke="{INK}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>')
+            out.append(f'<circle cx="{x + 50}" cy="{yy}" r="11" fill="{SIGNAL}"/>')
+        out.append(f'<text x="{x + 50}" y="{y + 262}" font-family="{FONT}" font-weight="700" font-size="24" fill="{MUTED}">{"1 год + 1 год" if lang == "uk" else "1 h + 1 h"}</text>')
+        out.append(f'<text x="{x + 360}" y="{y + 345}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="44" fill="{SIGNAL}">{"45 хв?" if lang == "uk" else "45 min?"}</text>')
     elif kind == "lake-escape":
         # the lake, the swimmer in the middle and the teacher on the shore; the escape route is the answer, so it is not drawn
         cx, cy, R = x + 190, y + 160, 140
@@ -708,7 +725,7 @@ def svg(kind, lang):
                   "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine", "election-poll",
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
                   "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin", "berkson-paradox",
-                  "ab-test", "ab-test-peeking", "multiple-testing", "course-ab-testing", "course-ab-testing--check", "course-data-traps", "lake-escape"):
+                  "ab-test", "ab-test-peeking", "multiple-testing", "course-ab-testing", "course-ab-testing--check", "course-interview-puzzles", "course-interview-puzzles--trainer", "course-data-traps", "lake-escape"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
