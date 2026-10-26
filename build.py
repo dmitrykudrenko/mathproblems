@@ -255,7 +255,14 @@ LEVEL_LD = {1: "beginner", 2: "intermediate", 3: "advanced"}
 
 
 LEVEL_LINK = {"uk": "Усі задачі цього рівня", "en": "All puzzles of this level"}
-LEVEL_NOTE = {"uk": ("Показано задачі рівня «%s»", "Показати всі"), "en": ("Showing “%s” puzzles", "Show all")}
+LIST_TEXT = {
+    "uk": {"topic": "Тема", "all": "усі", "level": "Рівень", "any": "будь-який", "solved": "Розв'язано", "of": "з",
+           "only": "Показати лише розв'язані", "every": "Показати всі задачі", "random": "Випадкова",
+           "empty": "Тут нічого немає.", "reset": "Показати всі задачі", "new": "нове", "done": "розв'язано"},
+    "en": {"topic": "Topic", "all": "all", "level": "Level", "any": "any", "solved": "Solved", "of": "of",
+           "only": "Show only the solved ones", "every": "Show all puzzles", "random": "Random",
+           "empty": "Nothing here.", "reset": "Show all puzzles", "new": "new", "done": "solved"},
+}
 # A click on the badge opens the hint (a click elsewhere or Esc closes it); on the home page the hint opens to
 # the left when the card has no room on the right.
 LEVEL_SCRIPT = """<script>
@@ -284,27 +291,49 @@ def level_badge(lang, n, hub_url):
     bars = '<i class="on"></i>' * n + "<i></i>" * (3 - n)
     return (f'<span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false">'
             f'<span class="mp-bars" aria-hidden="true">{bars}</span>{e(name)}</button>'
-            f'<span class="mp-level-hint" hidden>{e(hint)}<a href="{hub_url}?l={n}#problems">{LEVEL_LINK[lang]} →</a></span></span>')
+            f'<span class="mp-level-hint" hidden>{e(hint)}<a href="{hub_url}?l={n}#all">{LEVEL_LINK[lang]} →</a></span></span>')
 
 
-def level_note():
-    """Line above the home list when it is filtered by level (?l=, from the badge hint); hidden otherwise."""
-    spans = "".join(f'<span class="{l} lv-name" data-level="{n}" hidden>{e(LEVEL_NOTE[l][0] % LEVELS[n][l][0])}.</span>'
-                    for n in LEVELS for l in LANGS)
-    clear = "".join(f'<span class="{l}">{LEVEL_NOTE[l][1]}</span>' for l in LANGS)
-    empty = ('<span class="uk lv-empty" hidden> У цій темі таких поки немає.</span>'
-             '<span class="en lv-empty" hidden> None in this topic yet.</span>')
-    return f'<p class="lv-note" hidden>{spans}{empty} <button type="button" class="lv-clear">{clear}</button></p>'
+def list_controls(problems):
+    """The line above the card grid: topic and level selects, then (once something is solved) "Solved 3 of 45",
+    where 3 shows only the solved puzzles and 45 all of them, and a link to a random unsolved puzzle among those shown.
+    Every label exists in both languages; the stripper keeps one."""
+    def both(key):
+        return "".join(f'<span class="{l}">{e(LIST_TEXT[l][key])}</span>' for l in LANGS)
+    def opts(items):
+        return "".join(f'<option class="{l}" value="{v}">{e(t[l])}</option>' for v, t in items for l in LANGS)
+    topics = opts([("", {l: LIST_TEXT[l]["all"] for l in LANGS})] + [(k, t) for k, t in TOPICS.items()])
+    levels = opts([("", {l: LIST_TEXT[l]["any"] for l in LANGS})] + [(str(n), {l: v[l][0] for l in LANGS}) for n, v in LEVELS.items()])
+    return (f'<div class="pl-bar"><div class="pl-filt">'
+            f'<label class="pl-sel"><span>{both("topic")}</span><select id="pl-t">{topics}</select></label>'
+            f'<label class="pl-sel"><span>{both("level")}</span><select id="pl-l">{levels}</select></label></div>'
+            f'<div class="pl-side"><span class="pl-prog" hidden>{both("solved")} '
+            f'<button type="button" class="pl-num" id="pl-only" aria-pressed="false" title="{{{{LIST:only}}}}">0</button> {both("of")} '
+            f'<button type="button" class="pl-num" id="pl-all" aria-pressed="true" title="{{{{LIST:every}}}}">{len(problems)}</button></span>'
+            f'<button type="button" class="pl-rnd" id="pl-rnd">{both("random")} →</button></div></div>\n'
+            f'<p class="pl-empty" hidden>{both("empty")} <button type="button" class="pl-reset">{both("reset")}</button></p>')
 
 
-def topic_filters(problems):
-    """Chip bar above the problem list: "All" plus one chip per topic with its count; each label exists in both languages."""
-    def chip(key, label, n, on=False):
-        return (f'<button type="button" class="tp-chip" data-topic="{key}" aria-pressed="{"true" if on else "false"}">'
-                + "".join(f'<span class="{l}">{label[l]}</span>' for l in LANGS) + f' <span class="tp-n">{n}</span></button>')
-    chips = [chip("", TOPICS_ALL, len(problems), True)]
-    chips += [chip(k, t, sum(k in p[1]["topics"] for p in problems)) for k, t in TOPICS.items()]
-    return '<div class="topics" role="group" aria-label="Теми" data-aria-en="Topics">' + "".join(chips) + "</div>\n" + level_note()
+def problem_cards(problems):
+    """The grid of all puzzles: the illustration from the problem's OG image on its tint, the name, the question
+    (the spoiler-free `share` text) and the level. {{URL:slug}} and {{OG:slug}} are filled in per language."""
+    out = []
+    for slug, meta, _ in problems:
+        m = re.search(r"--tint:\s*(#[0-9A-Fa-f]{6})", (PROBLEMS / slug / "page.html").read_text(encoding="utf-8"))
+        tint = f' style="--tint: {m.group(1)}"' if m else ""
+        n = meta["level"]
+        bars = '<i class="on"></i>' * n + "<i></i>" * (3 - n)
+        text = lambda f: "".join(f'<span class="{l}">{e(f(meta[l]))}</span>' for l in LANGS)
+        flag = lambda key: "".join(f'<span class="{l}">{e(LIST_TEXT[l][key])}</span>' for l in LANGS)
+        out.append(
+            f'      <a class="pc" href="{{{{URL:{slug}}}}}" data-slug="{slug}" data-topics="{" ".join(meta["topics"])}" '
+            f'data-level="{n}" data-pub="{meta["published"]}"{tint}>'
+            f'<span class="pc-img"><span class="pc-art"><img src="{{{{OG:{slug}}}}}" alt="" width="1200" height="630" loading="lazy" decoding="async"></span>'
+            f'<span class="pc-flag pc-new">{flag("new")}</span><span class="pc-flag pc-done">✓ {flag("done")}</span></span>'
+            f'<span class="pc-txt"><h3>{text(lambda x: x["card"]["title"])}</h3><span class="pc-q">{text(lambda x: x["share"]["description"])}</span>'
+            f'<span class="pc-lv"><span class="mp-bars" aria-hidden="true">{bars}</span>'
+            + "".join(f'<span class="{l}">{e(LEVELS[n][l][0])}</span>' for l in LANGS) + '</span></span></a>')
+    return "\n".join(out)
 
 
 RELATED_COUNT = 3
@@ -1041,7 +1070,8 @@ def build_hub(problems, base):
     urls = {l: base + LANG_PATH[l] for l in LANGS}
     blocks = []
     problems_meta = [(p[0], p[1]) for p in problems]
-    src = src.replace("<!--TOPICS-->", topic_filters(problems))
+    src = src.replace("<!--TOPICS-->", list_controls(problems)).replace("<!--CARDS-->", problem_cards(problems))
+    src = src.replace("{{COUNT}}", str(len(problems)))
     for slug, _, _ in problems:
         teaser = (PROBLEMS / slug / "teaser.html").read_text(encoding="utf-8")
         # the stage on the home page uses the same tint as the problem page itself
@@ -1051,14 +1081,18 @@ def build_hub(problems, base):
         level = dict(problems_meta)[slug]["level"]
         # the level badge sits on the eyebrow line; it is filled in per language below
         teaser = re.sub(r'<span class="eyebrow">.*?</span></span>', lambda m: f'<div class="tz-top">{m.group(0)}{{{{LEVEL:{level}}}}}</div>', teaser, count=1)
-        blocks.append(f'<article class="problem" id="{slug}" data-topics="{topics}" data-level="{level}" data-spoil{tint}>\n'
+        # the shelf shows three panels; without the script (or before it runs) these are the first three
+        shown = "" if len(blocks) < 3 else " hidden"
+        blocks.append(f'<article class="problem" id="{slug}" data-topics="{topics}" data-level="{level}" data-spoil{tint}{shown}>\n'
                       + teaser.replace("{{URL}}", "{{URL:%s}}" % slug) + "\n</article>")
     src = src.replace("<!--PROBLEMS-->", "\n".join(blocks))
     for lang in LANGS:
         m, other = meta[lang], ("en" if lang == "uk" else "uk")
         body = LangStripper(src, other).strip()
         for slug, _, purls in problems:
-            body = body.replace("{{URL:%s}}" % slug, purls[lang])
+            body = body.replace("{{URL:%s}}" % slug, purls[lang]).replace("{{OG:%s}}" % slug, base + slug + f"/og-{lang}.png")
+        for k in ("only", "every"):
+            body = body.replace("{{LIST:%s}}" % k, e(LIST_TEXT[lang][k]))
         for n in LEVELS:
             body = body.replace("{{LEVEL:%d}}" % n, level_badge(lang, n, urls[lang]))
         body = body.replace("{{BOOKS}}", base + "books/" + LANG_PATH[lang])
@@ -1067,9 +1101,8 @@ def build_hub(problems, base):
         body = body.replace("{{HOME_BASE}}", base).replace("{{HOME}}", urls[lang]).replace("{{FIRST}}", problems[0][2][lang])
         if lang == "en":
             body = body.replace('alt="Дмитро Кудренко" data-alt-en="Dmytro Kudrenko"', 'alt="Dmytro Kudrenko"')
-            body = body.replace('aria-label="Теми" data-aria-en="Topics"', 'aria-label="Topics"')
         else:
-            body = body.replace(' data-alt-en="Dmytro Kudrenko"', "").replace(' data-aria-en="Topics"', "")
+            body = body.replace(' data-alt-en="Dmytro Kudrenko"', "")
         body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
         body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
         style = body[:body.index("</style>") + len("</style>")]
