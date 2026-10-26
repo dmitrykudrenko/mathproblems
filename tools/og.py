@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "course-feature-impact": "#EFEDE6", "course-feature-impact--trust": "#EFEDE6", "lake-escape": "#D7ECEF", "winners-curse": "#F2E4D9", "small-numbers": "#E4E6EE", "multi-armed-bandit": "#F8E3EC", "will-rogers": "#E6F1EA", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "course-feature-impact": "#EFEDE6", "course-feature-impact--trust": "#EFEDE6", "lake-escape": "#D7ECEF", "winners-curse": "#F2E4D9", "small-numbers": "#E4E6EE", "multi-armed-bandit": "#F8E3EC", "will-rogers": "#E6F1EA", "persuadables": "#F4EEDC", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -218,6 +218,10 @@ TEXT = {
     "will-rogers": {
         "uk": (["ФЕНОМЕН", "ВІЛЛА РОДЖЕРСА"], "Одна людина перейшла. Обидва середні зросли?"),
         "en": (["THE WILL ROGERS", "PHENOMENON"], "One person moves. Both averages rise?"),
+    },
+    "persuadables": {
+        "uk": (["КОМУ ДАТИ", "ЗНИЖКУ?"], "Купони найімовірнішим покупцям. Скільки дадуть?"),
+        "en": (["WHO GETS", "THE COUPON?"], "Coupons to the likeliest buyers. What do they add?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -769,6 +773,19 @@ def extra_visual(kind, x, y, lang="en"):
             out.append(f'<text x="{px + 85}" y="{y + 300}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="26" fill="{MUTED}">{"середнє" if lang == "uk" else "mean"} {avg}</text>')
         out.append(f'<path d="M{x + 120},{y + 50} C{x + 190},{y + 0} {x + 230},{y + 0} {x + 270},{y + 40}" fill="none" stroke="{INK}" stroke-width="3" stroke-dasharray="8 7"/>')
         out.append(f'<text x="{x + 360}" y="{y + 360}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>')
+    elif kind == "persuadables":
+        # visitor cards with buy chances, coupons on the likeliest buyers; what the coupons add is the question
+        chances = (90, 2, 40, 10, 2, 90, 10, 40, 2, 2, 90, 10)
+        for i, ch in enumerate(chances):
+            cx_, cy_ = x + 14 + (i % 4) * 90, y + 10 + (i // 4) * 100
+            top = ch >= 40
+            out += [f'<rect x="{cx_}" y="{cy_}" width="80" height="88" rx="12" fill="#fff" stroke="{INK if top else "none"}" stroke-width="3"/>',
+                    f'<circle cx="{cx_ + 40}" cy="{cy_ + 28}" r="14" fill="{INK}" fill-opacity=".7"/>',
+                    f'<text x="{cx_ + 40}" y="{cy_ + 74}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="20" fill="{MUTED}">{ch}%</text>']
+            if top:
+                out.append(f'<rect x="{cx_ + 52}" y="{cy_ - 8}" width="36" height="22" rx="5" fill="{INK}"/>'
+                           f'<text x="{cx_ + 70}" y="{cy_ + 8}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="14" fill="#fff">%</text>')
+        out.append(f'<text x="{x + 360}" y="{y + 360}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">+?</text>')
     return "".join(out)
 
 
@@ -805,7 +822,7 @@ def svg(kind, lang):
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
                   "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin", "berkson-paradox",
                   "ab-test", "ab-test-peeking", "multiple-testing", "course-ab-testing", "course-ab-testing--check", "course-interview-puzzles", "course-interview-puzzles--trainer", "course-data-traps", "course-feature-impact", "course-feature-impact--trust", "lake-escape",
-                  "winners-curse", "small-numbers", "multi-armed-bandit", "will-rogers"):
+                  "winners-curse", "small-numbers", "multi-armed-bandit", "will-rogers", "persuadables"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
