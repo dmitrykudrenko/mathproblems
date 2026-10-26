@@ -1342,39 +1342,80 @@ COURSES = ROOT / "courses"
 COURSE_LIST = []  # [(name, meta)], filled by build() before the problem pages
 COURSE_TEXT = {
     "uk": {"courses": "Курси", "course": "Курс", "chapter": "розділ %d з %d", "solved": "розв'язано ✓", "todo": "ще не розв'язано",
-           "progress": "Розв'язано <b>0</b> з %d задач курсу", "show": "Показати висновок",
-           "gate": "Висновок відкриється, коли ви розв'яжете задачу вище. Або", "more": "Що далі", "all": "Усі курси",
+           "progress": "Пройдено <b>0</b> з %d розділів", "problems": "Задач з каталогу розв'язано: <b>0</b> з %d",
+           "reset": "Почати курс спочатку", "show": "Показати висновок", "resume": "Продовжити з розділу",
+           "needs": "Тут знадобиться те, що ви ще не пройшли:", "needs_ch": "розділ %d «%s»",
+           "gate": "Висновок відкриється, коли ви розв'яжете задачу вище. Або", "gate_ch": "Висновок відкриється після вашої відповіді вище. Або",
+           "more": "Що далі", "all": "Усі курси",
            "glossary": "Словник термінів", "catalogue": "Усі задачі", "chapters": "%d розділів · %d задач з каталогу",
            "hub": "Тематичні шляхи для різних читачів: історія, адаптовані кейси, задачі з каталогу і терміни зі словника."},
     "en": {"courses": "Courses", "course": "Course", "chapter": "chapter %d of %d", "solved": "solved ✓", "todo": "not solved yet",
-           "progress": "Solved <b>0</b> of %d course puzzles", "show": "Show the takeaway",
-           "gate": "The takeaway opens once you solve the puzzle above. Or", "more": "What next", "all": "All courses",
+           "progress": "Done <b>0</b> of %d chapters", "problems": "Catalogue puzzles solved: <b>0</b> of %d",
+           "reset": "Start the course over", "show": "Show the takeaway", "resume": "Continue from chapter",
+           "needs": "This builds on what you haven't done yet:", "needs_ch": "chapter %d, “%s”",
+           "gate": "The takeaway opens once you solve the puzzle above. Or", "gate_ch": "The takeaway opens once you answer above. Or",
+           "more": "What next", "all": "All courses",
            "glossary": "Glossary of terms", "catalogue": "All puzzles", "chapters": "%d chapters · %d catalogue puzzles",
            "hub": "Themed paths for different readers: a story, adapted cases, puzzles from the catalogue and terms from the glossary."},
 }
+# Progress lives in localStorage: "mp-course:<name>" holds the ids of chapters the reader has answered (the page calls
+# mpCourseDone(id) after its own check question); catalogue problems use the site's "mp-solved:<slug>".
+# .cs-after[data-after="slug"] waits for a solved problem, .cs-after[data-after-ch="ch-3"] for an answered chapter.
 COURSE_SCRIPT = """<script>
 (function () {
-  var T = %s;
+  var T = %s, API = %s, P = document.querySelector(".cs-progress"), NAME = P ? P.dataset.course : "", KEY = "mp-course:" + NAME;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  // anonymous counters in the answer-stats worker, once per browser and key: "open", "<chapter>.r|w", page-defined events
+  window.mpCourseEvent = function (k) {
+    var mark = "mp-cev:" + NAME + ":" + k;
+    if (!API || !NAME || !window.fetch || get(mark) || get("mp-notrack") === "1") return;
+    set(mark, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: "course-" + NAME, k: k, h: 0 }) }).catch(function () {});
+  };
+  mpCourseEvent("open");
   function solved(s) { try { return !!localStorage.getItem("mp-solved:" + s); } catch (e) { return false; } }
+  function done() { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { return []; } }
+  window.mpCourseDone = function (id, right) {
+    var d = done(); if (d.indexOf(id) === -1) { d.push(id); set(KEY, JSON.stringify(d)); if (right !== undefined) mpCourseEvent(id + (right ? ".r" : ".w")); }
+    paint();
+  };
+  window.mpCourseIsDone = function (id) { return done().indexOf(id) !== -1; };
   document.querySelectorAll(".cs-after").forEach(function (el) {
     var g = document.createElement("p"); g.className = "cs-gate";
     var b = document.createElement("button"); b.type = "button"; b.textContent = T.show;
     b.addEventListener("click", function () { el.classList.add("open"); g.hidden = true; });
-    g.append(T.gate + " ", b); el.before(g); el._gate = g;
+    g.append((el.dataset.afterCh ? T.gate_ch : T.gate) + " ", b); el.before(g); el._gate = g;
   });
   function paint() {
+    var d = done();
     document.querySelectorAll(".cs-status").forEach(function (el) {
       var ok = solved(el.dataset.slug); el.textContent = ok ? T.solved : T.todo; el.classList.toggle("ok", ok);
     });
     document.querySelectorAll(".cs-after").forEach(function (el) {
-      if (solved(el.dataset.after)) { el.classList.add("open"); el._gate.hidden = true; }
+      var ok = el.dataset.afterCh ? d.indexOf(el.dataset.afterCh) !== -1 : solved(el.dataset.after);
+      if (ok) { el.classList.add("open"); el._gate.hidden = true; }
     });
-    var p = document.querySelector(".cs-progress");
-    if (p) {
-      var all = p.dataset.slugs.split(" "), n = all.filter(solved).length;
-      p.querySelector("b").textContent = n; p.querySelector(".cs-bar i").style.width = (100 * n / all.length) + "%%";
+    document.querySelectorAll(".cs-back").forEach(function (el) {
+      var miss = 0;
+      el.querySelectorAll("a[data-need]").forEach(function (a) { var ok = d.indexOf(a.dataset.need) !== -1; a.hidden = ok; if (!ok) miss++; });
+      el.hidden = !miss;
+    });
+    document.querySelectorAll(".cs-toc a").forEach(function (a) { a.classList.toggle("done", d.indexOf(a.getAttribute("href").slice(1)) !== -1); });
+    if (P) {
+      var ch = P.dataset.chapters.split(" "), n = ch.filter(function (c) { return d.indexOf(c) !== -1; }).length;
+      var sl = P.dataset.slugs ? P.dataset.slugs.split(" ") : [], m = sl.filter(solved).length;
+      P.querySelector(".cs-pc b").textContent = n; P.querySelector(".cs-bar i").style.width = (100 * n / ch.length) + "%%";
+      var q = P.querySelector(".cs-pp b"); if (q) q.textContent = m;
+      var next = ch.filter(function (c) { return d.indexOf(c) === -1; })[0], res = P.querySelector(".cs-resume");
+      if (res) {
+        res.hidden = !n || !next;
+        if (next) { var a = document.querySelector('.cs-toc a[href="#' + next + '"]'); res.href = "#" + next; res.textContent = T.resume + " " + (a ? a.textContent.replace(/^\\s*(\\d+)\\s*/, "$1 · ") : next) + " →"; }
+      }
     }
   }
+  var r = P && P.querySelector(".cs-reset");
+  if (r) r.addEventListener("click", function () { try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); });
   paint();
   window.addEventListener("pageshow", paint);
   window.addEventListener("storage", paint);
@@ -1485,8 +1526,23 @@ def build_courses(problems, base):
                     raise SystemExit(f"courses/{name}/page.html: unknown problem {mo.group(1)}")
                 return pmeta[mo.group(1)][2][lang]
             body = re.sub(r"\{\{P:([\w-]+)\}\}", purl, body)
-            body = body.replace("<!--PROGRESS-->", f'<div class="cs-progress" data-slugs="{" ".join(slugs)}"><span>{t["progress"] % len(slugs)}</span>'
-                                                   f'<span class="cs-bar"><i></i></span></div>')
+            num = {c["id"]: i + 1 for i, c in enumerate(meta["chapters"])}
+            for c in meta["chapters"]:
+                if not c.get("needs"):
+                    continue
+                for nid in c["needs"]:
+                    if nid not in num:
+                        raise SystemExit(f"courses/{name}/meta.json: {c['id']} needs unknown chapter {nid}")
+                links = "".join(f'<a href="#{nid}" data-need="{nid}">{t["needs_ch"] % (num[nid], e(next(x for x in meta["chapters"] if x["id"] == nid)[lang]))}</a>'
+                                for nid in c["needs"])
+                note = f'<p class="cs-back" hidden>{t["needs"]} {links}</p>'
+                body = re.sub(r'(<section class="cs-ch[^"]*" id="%s"[^>]*>\s*<div class="cs-ch-head">.*?</div>)' % re.escape(c["id"]),
+                              lambda mo: mo.group(1) + "\n" + note, body, count=1, flags=re.S)
+            chs = [c["id"] for c in meta["chapters"] if c.get("check", True)]
+            body = body.replace("<!--PROGRESS-->", f'<div class="cs-progress" data-course="{name}" data-chapters="{" ".join(chs)}" data-slugs="{" ".join(slugs)}">'
+                                                   f'<span class="cs-pc">{t["progress"] % len(chs)}</span><span class="cs-bar"><i></i></span>'
+                                                   f'<span class="cs-pp">{t["problems"] % len(slugs)}</span>'
+                                                   f'<a class="cs-resume" href="#" hidden></a><button type="button" class="cs-reset">{t["reset"]}</button></div>')
             more = (f'<section class="cs-ch cs-more"><h2>{t["more"]}</h2><p class="mp-related-all">'
                     f'<a href="{course_url(base, lang)}">{t["all"]} →</a><a href="{glossary_url(base, lang)}">{t["glossary"]} →</a>'
                     f'<a href="{home[lang]}#problems">{t["catalogue"]} →</a></p></section>')
@@ -1513,7 +1569,7 @@ def build_courses(problems, base):
                     {"@type": "ListItem", "position": 3, "name": m["name"], "item": urls[lang]}]},
             ]}
             h = head(lang, urls, m["title"], m["description"], img, m["og_alt"], ld, base)
-            script = COURSE_SCRIPT % json.dumps({"solved": t["solved"], "todo": t["todo"], "show": t["show"], "gate": t["gate"]}, ensure_ascii=False)
+            script = COURSE_SCRIPT % (json.dumps({k2: t[k2] for k2 in ("solved", "todo", "show", "gate", "gate_ch", "resume")}, ensure_ascii=False), json.dumps(STATS_API))
             if used:
                 data = {k2: {"name": v[lang]["name"], "short": v[lang]["short"], "hook": v[lang]["hook"],
                              "url": glossary_url(base, lang, v["page"]), "link": GLOSSARY_TEXT[lang][1]} for k2, v in used.items()}
