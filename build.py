@@ -972,6 +972,60 @@ def _mark_text(doc, lang):
     return "".join(out)
 
 
+# Site menu: every page with a top bar gets links to the puzzles, the courses and the glossary next to the language
+# switch (a ☰ button on phones), plus "Continue: <puzzle>" for the latest puzzle opened and not solved yet, and the
+# same links at the very bottom. Filled in by build() before anything is written.
+SITE_NAV = {}
+NAV_TEXT = {
+    "uk": {"problems": "Задачі", "courses": "Курси", "glossary": "Словник", "continue": "Продовжити", "menu": "Меню", "nav": "Розділи"},
+    "en": {"problems": "Puzzles", "courses": "Courses", "glossary": "Glossary", "continue": "Continue", "menu": "Menu", "nav": "Sections"},
+}
+NAV_SCRIPT = """<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug;
+  // a puzzle page puts itself first in the list of recently opened puzzles
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function solved(s) { try { return !!localStorage.getItem("mp-solved:" + s); } catch (e) { return false; } }
+  var next = list.filter(function (p) { return p.s !== me && !solved(p.s); })[0], a = nav.querySelector(".mp-cont");
+  if (next) { a.href = next.u[lang]; a.querySelector("b").textContent = next.n[lang]; a.hidden = false; }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>"""
+
+
+def with_site_nav(doc, lang, path):
+    """The menu in the top bar and the links at the bottom of the page (see SITE_NAV)."""
+    base, t = SITE_NAV["base"], NAV_TEXT[lang]
+    rel = path.relative_to(DOCS).parts
+    page = rel[1:] in (("index.html",), ("en", "index.html"))  # docs/<x>/index.html or docs/<x>/en/index.html
+    home = rel in (("index.html",), ("en", "index.html"))
+    me = SITE_NAV["problems"].get(rel[0]) if page else None
+    here = "courses" if rel[0] == "courses" else "glossary" if rel[0] == "glossary" else "problems" if home or me else ""
+    links = [("problems", base + LANG_PATH[lang] + "#all"), ("courses", course_url(base, lang)), ("glossary", glossary_url(base, lang))]
+    items = "".join(f'<a href="{u}"{" aria-current=\"page\"" if k == here else ""}>{t[k]}</a>' for k, u in links)
+    data = f' data-slug="{rel[0]}" data-me="{e(json.dumps(me, ensure_ascii=False))}"' if me else ""
+    nav = (f'<nav class="mp-nav" aria-label="{t["nav"]}"{data}>'
+           f'<button type="button" class="mp-burger" aria-expanded="false" aria-label="{t["menu"]}"><i></i><i></i><i></i></button>'
+           f'<div class="mp-nav-list"><a class="mp-cont" href="#" hidden>{t["continue"]}: <b></b></a>{items}</div></nav>\n  ')
+    doc, n = re.subn(r'(<div class="topbar">.*?)(<nav\b[^>]*\bid="lang")', lambda m: m.group(1) + nav + m.group(2), doc, count=1, flags=re.S)
+    if not n:
+        return doc
+    foot = f'<nav class="mp-fnav" aria-label="{t["nav"]}">{items}</nav>\n{NAV_SCRIPT}\n'
+    i = doc.rindex("</body>")
+    return doc[:i] + foot + doc[i:]
+
+
 def write(path, doc):
     left = re.findall(r"\{\{[A-Z_:a-z0-9-]+\}\}", doc)
     if left:
@@ -979,6 +1033,8 @@ def write(path, doc):
     lm = re.search(r'<html lang="(uk|en)"', doc[:400])
     if path.suffix == ".html" and lm:
         doc = mark_labels(doc, lm.group(1))
+        if SITE_NAV:
+            doc = with_site_nav(doc, lm.group(1), path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(doc, encoding="utf-8")
     print(f"{path.relative_to(DOCS)}  {len(doc) // 1024} KB")
@@ -1979,6 +2035,8 @@ def build(base, out=None):
         for k in ("published", "updated"):
             if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", cm.get(k, "")):
                 raise SystemExit(f"courses/{name}/meta.json: \"{k}\" must be a YYYY-MM-DD date")
+    SITE_NAV.update(base=base, problems={s: {"s": s, "n": {l: m[l]["card"]["title"] for l in LANGS},
+                                               "u": {l: base + s + "/" + LANG_PATH[l] for l in LANGS}} for s, m in metas})
     problems = [build_problem(s, base, metas, books) for s, _ in metas]
     hub = build_hub(problems, base)
     build_404(problems, base)
