@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "course-feature-impact": "#EFEDE6", "course-feature-impact--trust": "#EFEDE6", "lake-escape": "#D7ECEF", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "course-feature-impact": "#EFEDE6", "course-feature-impact--trust": "#EFEDE6", "lake-escape": "#D7ECEF", "winners-curse": "#F2E4D9", "small-numbers": "#E4E6EE", "multi-armed-bandit": "#F8E3EC", "will-rogers": "#E6F1EA", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -202,6 +202,22 @@ TEXT = {
     "lake-escape": {
         "uk": (["ВТЕЧА", "ЧЕРЕЗ ОЗЕРО"], "Вихователь учетверо швидший. Як утекти?"),
         "en": (["THE LAKE", "ESCAPE"], "The teacher is 4× faster. How to escape?"),
+    },
+    "winners-curse": {
+        "uk": (["ПРОКЛЯТТЯ", "ПЕРЕМОЖЦЯ"], "Банка монет на 100. Скільки виграє переможець?"),
+        "en": (["THE WINNER'S", "CURSE"], "A jar worth 100. What does the winner get?"),
+    },
+    "small-numbers": {
+        "uk": (["НАЙНЕБЕЗПЕЧНІШЕ", "РІВНЯННЯ"], "Чому в селах найменше раку?"),
+        "en": (["THE MOST DANGEROUS", "EQUATION"], "Why is cancer rarest in rural counties?"),
+    },
+    "multi-armed-bandit": {
+        "uk": (["БАГАТОРУКИЙ", "БАНДИТ"], "10 спроб кожного автомата. Чи вистачить?"),
+        "en": (["THE MULTI-ARMED", "BANDIT"], "10 pulls on each machine. Enough?"),
+    },
+    "will-rogers": {
+        "uk": (["ФЕНОМЕН", "ВІЛЛА РОДЖЕРСА"], "Одна людина перейшла. Обидва середні зросли?"),
+        "en": (["THE WILL ROGERS", "PHENOMENON"], "One person moves. Both averages rise?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -709,6 +725,50 @@ def extra_visual(kind, x, y, lang="en"):
                 f'<circle cx="{cx}" cy="{cy - R}" r="17" fill="{MUTED}"/>',
                 f'<text x="{cx}" y="{cy + 64}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>',
                 f'<text x="{cx + 30}" y="{cy - R - 22}" font-family="{FONT}" font-weight="800" font-size="30" fill="{INK}">×4</text>']
+    elif kind == "winners-curse":
+        # a jar of coins with ten bid cards; what the top bid earns is the answer
+        out += [f'<rect x="{x + 110}" y="{y + 20}" width="160" height="200" rx="34" fill="#fff" stroke="{INK}" stroke-width="4"/>',
+                f'<rect x="{x + 135}" y="{y + 4}" width="110" height="26" rx="8" fill="{INK}"/>']
+        rw = random.Random(5)
+        for _ in range(46):
+            out.append(f'<circle cx="{x + 135 + rw.random() * 110:.1f}" cy="{y + 90 + rw.random() * 115:.1f}" r="10" fill="{MUTED}" fill-opacity=".55"/>')
+        out.append(f'<text x="{x + 190}" y="{y + 72}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="30" fill="{INK}">100</text>')
+        for i, b in enumerate((84, 97, 105, 91, 112, 78, 101, 95, 88, 109)):
+            out += [f'<rect x="{x + 12 + (i % 5) * 72}" y="{y + 240 + (i // 5) * 50}" width="62" height="40" rx="8" fill="#fff"/>',
+                    f'<text x="{x + 43 + (i % 5) * 72}" y="{y + 268 + (i // 5) * 50}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="20" fill="{INK}">{b}</text>']
+        out.append(f'<text x="{x + 360}" y="{y + 380}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>')
+    elif kind == "small-numbers":
+        # a grid of counties sized by population, the lightest (lowest rate) ones marked; why they are where they are is the question
+        rw = random.Random(9)
+        out.append(f'<rect x="{x + 10}" y="{y + 10}" width="360" height="300" rx="16" fill="#fff"/>')
+        for r_ in range(6):
+            for c in range(8):
+                big = rw.random() < .3
+                low = (not big) and rw.random() < .28
+                out.append(f'<rect x="{x + 28 + c * 42}" y="{y + 28 + r_ * 45}" width="36" height="38" rx="6" fill="{INK}" fill-opacity="{.06 if low else .55 if big else .3}" stroke="{INK if low else "none"}" stroke-width="2"/>')
+        out.append(f'<text x="{x + 360}" y="{y + 360}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>')
+    elif kind == "multi-armed-bandit":
+        # two slot machines with tallies after ten pulls; whether ten is enough is the question
+        for k, (lab, tally) in enumerate((("A", "6 / 10"), ("B", "5 / 10"))):
+            px = x + 20 + k * 185
+            out += [f'<rect x="{px}" y="{y + 30}" width="150" height="220" rx="18" fill="#fff" stroke="{INK}" stroke-width="4"/>',
+                    f'<rect x="{px + 22}" y="{y + 60}" width="106" height="62" rx="8" fill="{INK}" fill-opacity=".12"/>',
+                    f'<text x="{px + 75}" y="{y + 104}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="36" fill="{INK}">{lab}</text>',
+                    f'<line x1="{px + 150}" y1="{y + 110}" x2="{px + 168}" y2="{y + 70}" stroke="{INK}" stroke-width="5" stroke-linecap="round"/>',
+                    f'<circle cx="{px + 168}" cy="{y + 66}" r="9" fill="{INK}"/>',
+                    f'<text x="{px + 75}" y="{y + 200}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="28" fill="{MUTED}">{tally}</text>']
+        out.append(f'<text x="{x + 360}" y="{y + 330}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>')
+    elif kind == "will-rogers":
+        # two groups with their means and one person on the way between them; what happens to the means is the question
+        for k, (vals, avg) in enumerate((((5, 6, 7, 8, 9), "7"), ((1, 2, 3, 4), "2,5" if lang == "uk" else "2.5"))):
+            px = x + 10 + k * 190
+            out.append(f'<rect x="{px}" y="{y + 20}" width="170" height="250" rx="18" fill="#fff"/>')
+            for i, v in enumerate(vals):
+                out += [f'<circle cx="{px + 85}" cy="{y + 50 + i * 40}" r="16" fill="{INK}" fill-opacity="{.25 if v == 5 else .75}"/>',
+                        f'<text x="{px + 85}" y="{y + 57 + i * 40}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="18" fill="#fff">{v}</text>']
+            out.append(f'<text x="{px + 85}" y="{y + 300}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="26" fill="{MUTED}">{"середнє" if lang == "uk" else "mean"} {avg}</text>')
+        out.append(f'<path d="M{x + 120},{y + 50} C{x + 190},{y + 0} {x + 230},{y + 0} {x + 270},{y + 40}" fill="none" stroke="{INK}" stroke-width="3" stroke-dasharray="8 7"/>')
+        out.append(f'<text x="{x + 360}" y="{y + 360}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>')
     return "".join(out)
 
 
@@ -744,7 +804,8 @@ def svg(kind, lang):
                   "inspection-paradox", "german-tank-problem", "st-petersburg-paradox", "benford-law", "poisoned-wine", "election-poll",
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
                   "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin", "berkson-paradox",
-                  "ab-test", "ab-test-peeking", "multiple-testing", "course-ab-testing", "course-ab-testing--check", "course-interview-puzzles", "course-interview-puzzles--trainer", "course-data-traps", "course-feature-impact", "course-feature-impact--trust", "lake-escape"):
+                  "ab-test", "ab-test-peeking", "multiple-testing", "course-ab-testing", "course-ab-testing--check", "course-interview-puzzles", "course-interview-puzzles--trainer", "course-data-traps", "course-feature-impact", "course-feature-impact--trust", "lake-escape",
+                  "winners-curse", "small-numbers", "multi-armed-bandit", "will-rogers"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))

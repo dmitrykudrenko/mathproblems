@@ -1,0 +1,1440 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/will-rogers/", "en": "/will-rogers/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "will-rogers";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>The Will Rogers Phenomenon: One Move Raises Both Averages</title>
+<meta name="description" content="Move someone below their group&#x27;s average but above the other&#x27;s, and both averages rise while the total stays. A game, a cancer-staging sim and the maths.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/will-rogers/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/will-rogers/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/will-rogers/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/will-rogers/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="The Will Rogers phenomenon">
+<meta property="og:description" content="One person moves from a strong team to a weak one. Can the average score rise in both teams?">
+<meta property="og:url" content="https://mathparadoxes.com/will-rogers/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/will-rogers/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Two teams scoring 1 to 9 with ticks for their averages. Can one transfer make both teams stronger?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Will Rogers phenomenon">
+<meta name="twitter:description" content="One person moves from a strong team to a weak one. Can the average score rise in both teams?">
+<meta name="twitter:image" content="https://mathparadoxes.com/will-rogers/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/will-rogers/en/#page", "url": "https://mathparadoxes.com/will-rogers/en/", "name": "The Will Rogers Phenomenon: One Move Raises Both Averages", "description": "Move someone below their group's average but above the other's, and both averages rise while the total stays. A game, a cancer-staging sim and the maths.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "intermediate", "about": {"@type": "Thing", "name": "Will Rogers phenomenon", "sameAs": "https://en.wikipedia.org/wiki/Will_Rogers_phenomenon"}, "image": "https://mathparadoxes.com/will-rogers/og-en.png", "datePublished": "2026-10-26", "dateModified": "2026-10-26", "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "translationOfWork": {"@id": "https://mathparadoxes.com/will-rogers/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "The Will Rogers phenomenon", "item": "https://mathparadoxes.com/will-rogers/en/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/will-rogers/en/#faq", "inLanguage": "en", "mainEntity": [{"@type": "Question", "name": "What is the Will Rogers phenomenon?", "acceptedAnswer": {"@type": "Answer", "text": "It is when moving some people from one group to another raises the average of both groups, although the overall average does not change. It happens when the people who move are below the average of the group they leave but above the average of the group they join. The name comes from a joke credited to the humorist Will Rogers: when the Okies left Oklahoma for California, they raised the average intelligence in both states."}}, {"@type": "Question", "name": "Whom do you move to make both averages rise?", "acceptedAnswer": {"@type": "Answer", "text": "Someone whose score lies strictly between the two averages: below the average of the group they leave and above the average of the group they join. In the page's example team A scores 5, 6, 7, 8, 9 (average 7) and team B 1, 2, 3, 4 (average 2.5). After the 5-point player moves, A's average becomes 7.5, B's becomes 3, and the average of all nine stays 5."}}, {"@type": "Question", "name": "What is stage migration in medicine?", "acceptedAnswer": {"@type": "Answer", "text": "When new diagnostic tests find metastases that used to go unseen, some patients move from an early stage to a late one. They are the sickest patients of the early stage and the healthiest of the late one, so survival rises in both stages although nobody lives longer. Alvan Feinstein described it in 1985 with lung cancer and named it the Will Rogers phenomenon."}}, {"@type": "Question", "name": "How do you avoid this trap in analytics?", "acceptedAnswer": {"@type": "Answer", "text": "When the averages of all segments go up, check the overall metric. If a segment's definition changed, for example who counts as an active user, the segments can \"improve\" without any real change. In A/B tests the main decision is made on the metric over all users of each variant."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as regression-to-mean. The signature object is a number line with two groups
+   and their mean ticks: one person walks from the strong group to the weak one and both ticks move right. */
+:root {
+  --tint: #E6F1EA;
+  --paper: #EEF3EF;
+  --surface: #FFFFFF;
+  --ink: #142019;
+  --muted: #56645B;
+  --line: #D2DDD5;
+  --day: #1F6B43;
+  --day-ink: #F1FAF4;
+  --hit: #C77D00;
+  --hit-soft: #FFF1CF;
+  --cell: #E1EAE4;
+  --late: #8E9891;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: #fff; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+.teams { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; }
+.team { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+.team .k { font-size: .82rem; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { width: 34px; height: 34px; border-radius: 50%; display: inline-grid; place-items: center; font-family: var(--f-mono); font-weight: 600; font-size: .95rem; background: var(--ink); color: #fff; }
+.chip.b { background: var(--late); color: #fff; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.opts { display: grid; gap: 10px; }
+.opts .btn { text-align: left; font-weight: 500; line-height: 1.35; }
+.opts .btn[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; }
+td.num { white-space: nowrap; }
+tr.good td { background: var(--signal-soft, #FBE3F0); }
+.up { color: var(--signal, #D9318F); font-weight: 700; }
+.dn { color: var(--muted); }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.stage { display: grid; gap: 16px; }
+.pens { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pen { border: 1.5px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 10px; align-content: start; min-height: 120px; }
+.pen-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pen-h b { font-family: var(--f-display); font-size: 1rem; }
+.pen-h .mono { font-size: 1.05rem; font-weight: 600; }
+.pen .chips { gap: 8px; }
+.pen .chip { border: 0; cursor: pointer; width: 40px; height: 40px; font-size: 1.05rem; transition: transform .15s; }
+.pen .chip:hover { transform: translateY(-2px); }
+.pen .chip:disabled { cursor: not-allowed; opacity: .55; transform: none; }
+.status { display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.35rem; font-weight: 800; }
+.msg { min-height: 3em; font-weight: 500; }
+.log { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; font-size: .86rem; font-family: var(--f-mono); }
+.log li { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.4rem; }
+.vs span { font-size: .84rem; color: var(--muted); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { font-size: .95rem; }
+.result-row { display: flex; gap: 22px; flex-wrap: wrap; align-items: end; margin-top: 14px; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.result-row b { font-family: var(--f-display); font-size: 1.5rem; font-weight: 800; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .vs, .teams { grid-template-columns: 1fr; }
+  .pens { grid-template-columns: 1fr; }
+  th, td { padding: 8px 5px; }
+  table { font-size: .82rem; }
+  th { font-size: .72rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=45aefab5">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/en/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/will-rogers/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/will-rogers/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span>School maths</button><span class="mp-level-hint" hidden>Fractions, percentages, basic probability, powers<a href="https://mathparadoxes.com/en/?l=2#problems">All puzzles of this level →</a></span></span>
+    
+    <h1 class="en"><span class="kw">The Will Rogers phenomenon</span> One person switches teams. <span class="q sp-before">Can both teams get stronger?</span><span class="q sp-after">Both averages rise, yet nobody improved.</span></h1>
+    
+    
+    <p class="lead en sp-before">Two teams, each with its own average. The coach moves one member from the first team to the second. Surely one team has to get weaker. Lock in your answer, then check it with a game, a hospital simulation and a few explanations.</p>
+    <p class="lead en sp-after">Move someone who is below their own team's average but above the other team's, and both averages go up. The overall average does not change: nobody got better, only the boundary between the groups moved. The same thing "improves" cancer survival when sharper scans move patients from an early stage to a late one.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="mono"><span class="en">7 → 7.5</span></b><span><span class="en">strong team's average</span></span></div>
+      <div class="odd hit"><b class="mono"><span class="en">2.5 → 3</span></b><span><span class="en">weak team's average</span></span></div>
+      <div class="odd"><b class="mono">5 = 5</b><span><span class="en">overall average</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="en">The puzzle</b></a>
+      <a href="#guess"><span>1</span><b class="en">Guess</b></a>
+      <a href="#game"><span>2</span><b class="en">Move people yourself</b></a>
+      <a href="#sim"><span>3</span><b class="en">A new scanner</b></a>
+      <a href="#why"><span>4</span><b class="en">Why it works</b></a>
+      <a href="#more"><span>5</span><b class="en">Chains, boundaries, metrics</b></a>
+      <a href="#facts"><span>★</span><b class="en" style="font-weight:inherit">Fun facts</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-chart" style="height:260px"></canvas>
+    <p class="cap sp-before"><span class="en">Nine players scoring 1 to 9. The ticks show each team's average. Whom do you move so that both ticks shift right?</span></p>
+    <p class="cap sp-after"><span class="en">The player with 5 points moves from team <span class="vl">A</span> to team B. Both average ticks shift right, the overall average of 5 stays put.</span></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">The puzzle</span></span>
+    <h2><span class="en">Picture this: two teams at a maths contest</span></h2>
+    
+    <p class="lead en">The name comes from a joke credited to the American humorist Will Rogers: when the Okies left Oklahoma and moved to California, they raised the average intelligence in both states. Whether he ever said it is unknown; more on that in the facts. First, the puzzle.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="en">Two teams</span></h3>
+        
+        <p class="en">At a school contest nine players scored from 1 to 9 points, one score each. The strong team <span class="vl">A</span>: 5, 6, 7, 8, 9. The weak team <span class="vl">B</span>: 1, 2, 3, 4.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="en">The averages</span></h3>
+        
+        <p class="en">Team <span class="vl">A</span>'s average score is 35 / 5 = 7, team <span class="vl">B</span>'s is 10 / 4 = 2.5. All nine together average 45 / 9 = 5.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="en">The transfer</span></h3>
+        
+        <p class="en">The coach may move exactly one player from team <span class="vl">A</span> to team B. Their score stays the same.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="en">The question</span></h3>
+        
+        <p class="en">Can one player be moved so that the average score rises in both teams? If so, whom?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card">
+        <h3><span class="en">The line-ups</span></h3>
+        <div class="teams">
+          <div class="team"><span class="k"><span class="en">Team <span class="vl">A</span> · average 7</span></span><div class="chips"><span class="chip">5</span><span class="chip">6</span><span class="chip">7</span><span class="chip">8</span><span class="chip">9</span></div></div>
+          <div class="team"><span class="k"><span class="en">Team <span class="vl">B</span> · average 2.5</span></span><div class="chips"><span class="chip b">1</span><span class="chip b">2</span><span class="chip b">3</span><span class="chip b">4</span></div></div>
+        </div>
+        
+        <ul class="rules en">
+          <li>Players' scores do not change.</li>
+          <li>A team's average is the sum of scores divided by the number of players.</li>
+          <li>"Rises" means "becomes strictly larger".</li>
+        </ul>
+      </div>
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="en">Intuition says</span></span>
+        <p class="q"><span class="en">"Whatever one team gains, the other loses. Both cannot rise"</span></p>
+        
+        <p class="en">That would be true of the total score. But an average also depends on the head count. The player with 5 points is the weakest in team <span class="vl">A</span>, so <span class="vl">A</span> is stronger without them. And they are stronger than everyone in team <span class="vl">B</span>, so <span class="vl">B</span> is stronger with them too.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="en">Whom do you move?</span></h2>
+    
+    <p class="lead en">Team <span class="vl">A</span>: 5, 6, 7, 8, 9 (average 7). Team <span class="vl">B</span>: 1, 2, 3, 4 (average 2.5). After one player moves from <span class="vl">A</span> to <span class="vl">B</span>, the average score must rise in both teams.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <span class="note"><span class="en">Your answer</span></span>
+      <div class="opts" id="opts">
+        <button type="button" class="btn ghost" data-o="0" aria-pressed="false"><span class="en">Nobody: it can't be done, one team always gets weaker</span></button>
+        <button type="button" class="btn ghost" data-o="1" aria-pressed="false"><span class="en">The strongest, with 9 points</span></button>
+        <button type="button" class="btn ghost" data-o="2" aria-pressed="false"><span class="en">The middle one, with 7 points</span></button>
+        <button type="button" class="btn ghost" data-o="3" aria-pressed="false"><span class="en">The weakest, with 5 points</span></button>
+      </div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      
+      <p class="note en">Pick an answer. This is where you will see what happens to both averages after each of the five possible moves.</p>
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Hints</span>
+    <p class="mp-hints-intro">Hard to decide? Open the hints one at a time: the easy one first, then stronger ones.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>An average depends not only on the total score but also on the head count. What happens to a team's average when someone below that average leaves?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>Compare each player of team <span class="vl">A</span> with <span class="vl">A</span>'s average (7) and with <span class="vl">B</span>'s average (2.5). Which of them was pulling their own team down?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>A newcomer raises team <span class="vl">B</span>'s average if they are above that average. Is there anyone in team <span class="vl">A</span> who is both below 7 and above 2.5?</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Show hint 1 of 3 · easy&quot;, &quot;Show hint 2 of 3 · medium&quot;, &quot;Show hint 3 of 3 · strong&quot;]">Show hint 1 of 3 · easy</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "will-rogers";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "will-rogers", RULE = {"right": [[3, 3]]}, MIN = 20, T = {"kicker": "How others answer", "few": "Too few answers for stats yet: {n}. Yours is one of them.", "few_seen": "Too few answers for stats yet: {n}.", "all": "Answers so far: {n}. {p} of them are right.", "yes": "You are among those who got it.", "no": "Don't worry: intuition fails most people here.", "bar": "right", "note": "Only the first answer from each browser counts, given before it saw the solution. Anonymous."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 2 · The game</span></span>
+    <h2><span class="en">Move the players yourself</span></h2>
+    
+    <p class="lead en">Tap a player to move them to the other team. The goal: as many moves in a row as you can, each one raising the average of both teams. Keep an eye on the overall average.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="pens">
+        <div class="pen" id="pen-a"></div>
+        <div class="pen" id="pen-b"></div>
+      </div>
+      <canvas id="game-chart" style="height:180px" role="img" aria-label="Number line from 1 to 9 with the players of both teams and their averages"></canvas>
+      <div class="legend">
+        <span style="--c:var(--ink)"><b class="en">team <span class="vl">A</span> and its average</b></span>
+        <span style="--c:var(--late)"><b class="en">team <span class="vl">B</span> and its average</b></span>
+        <span style="--c:var(--hit)"><b class="en">overall average</b></span>
+      </div>
+      <p class="msg" id="game-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn ghost" id="game-undo"><span class="en">Undo</span></button>
+        <button class="btn pri" id="game-reset"><span class="en">Start over</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="status" id="game-status"></div>
+      <h3 style="margin-top:18px"><span class="en">Your moves</span></h3>
+      <ul class="log" id="game-log"></ul>
+      <p class="note" style="margin-top:12px"><span class="en">Hint: look at where the player sits on the line relative to the two average ticks.</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="en">A new scanner and 2,000 patients</span></h2>
+    
+    <p class="lead en">Here is where the trick happens for real. A hospital splits cancer into an early stage (no metastases found) and a late stage (metastases found). Each patient has a hidden measure of how far the disease has spread, from 0 to 100. The higher it is, the lower the chance of living 5 years: from 100% at 0 down to 0% at 100. The scanner only sees metastases once the spread reaches a threshold. The old scanner sees them from 60, the new one already from 40. The treatment is the same, and so are the patients.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <div class="presets" id="scan-presets"></div>
+      <label class="ctl" for="scan-t"><span><span class="en">The scanner sees metastases from:</span> <b class="mono" id="scan-t-v">60</b></span>
+        <input type="range" id="scan-t" min="20" max="80" step="5" value="60">
+      </label>
+      <button class="btn ghost" id="scan-new"><span class="en">New 2,000 patients</span></button>
+    </div>
+    <div class="sim-grid">
+      <div style="display:grid;gap:16px;align-content:start">
+        <canvas id="strip-chart" style="height:200px" role="img" aria-label="Patients placed by hidden spread of the disease, coloured by stage"></canvas>
+        <div class="legend">
+          <span style="--c:var(--ink)"><b class="en">early stage</b></span>
+          <span style="--c:var(--late)"><b class="en">late stage</b></span>
+          <span style="--c:var(--signal-soft, #FBE3F0)"><b class="en">moved between the old and the new labels</b></span>
+        </div>
+        <p class="note"><span class="en">Each dot is a patient (400 of 2,000 shown). A filled dot lived 5 years, a hollow one did not. The vertical line marks the spread from which the scanner sees metastases.</span></p>
+        <canvas id="surv-chart" style="height:260px" role="img" aria-label="Five-year survival by stage as the scanner threshold falls"></canvas>
+        <div class="legend">
+          <span style="--c:var(--ink)"><b class="en">early stage: exact and simulated</b></span>
+          <span style="--c:var(--late)"><b class="en">late stage</b></span>
+          <span style="--c:var(--hit)"><b class="en">all patients</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k"><span class="en">Lived 5 years: early stage</span></div><div class="v mono" id="t-early">–</div><div class="s" id="t-early-s"></div></div>
+        <div class="tile" style="--c:var(--late)"><div class="k"><span class="en">Lived 5 years: late stage</span></div><div class="v mono" id="t-late">–</div><div class="s" id="t-late-s"></div></div>
+        <div class="tile" style="--c:var(--hit)"><div class="k"><span class="en">Lived 5 years: all patients</span></div><div class="v mono" id="t-all">–</div><div class="s" id="t-all-s"></div></div>
+        <p class="note" id="t-note"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 4 · Explanations</span></span>
+    <h2><span class="en">Why both averages rise while nothing changed</span></h2>
+    
+    <p class="lead en">A group's <a href="https://mathparadoxes.com/glossary/median-vs-mean/en/" class="mp-term" data-term="mean" aria-expanded="false">average</a> describes not only its people but also where the line between the groups is drawn. Move the line and the averages change, even if no single person changed.</p>
+  </div>
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">In plain words</span><span class="mp-layer-desc">pictures, analogies, small numbers</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“In plain words” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">The core idea</span></span>
+      <h3><span class="en">The weakest of the strong team, the strongest of the weak one</span></h3>
+      <div class="vs">
+        <div><span><span class="en">The 5-point player against <span class="vl">A</span>'s average</span></span><b class="mono">5 &lt; 7</b></div>
+        <div><span><span class="en">The same player against <span class="vl">B</span>'s average</span></span><b class="mono"><span class="en">5 &gt; 2.5</span></b></div>
+      </div>
+      
+      <p class="en">The 5-point player was dragging team <span class="vl">A</span> down: they are below its average. When they leave, <span class="vl">A</span> gets stronger. In team <span class="vl">B</span> they are the best: above its average. When they arrive, <span class="vl">B</span> gets stronger too. That is enough to see the trick. Why nobody actually improved is the next card.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">The check</span></span>
+      <h3><span class="en">The overall average stays put</span></h3>
+      <div class="vs">
+        <div><span><span class="en">All 9 before the move</span></span><b class="mono">45 / 9 = 5</b></div>
+        <div><span><span class="en">All 9 after the move</span></span><b class="mono">45 / 9 = 5</b></div>
+      </div>
+      
+      <p class="en">The same nine people, the same scores, the same sum. Only who sits in which team changed. Both teams "got stronger" because the strong team got smaller and even stronger, and the weak one got bigger. The weak team's weight in the overall average grew by exactly enough to cancel both gains.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">In the hospital</span></span>
+      <h3><span class="en">The borderline patients</span></h3>
+      <div class="vs">
+        <div><span><span class="en">Early stage, old scanner</span></span><b class="mono">70%</b></div>
+        <div><span><span class="en">Patients with spread 40–60</span></span><b class="mono">50%</b></div>
+      </div>
+      
+      <p class="en">The new scanner moves patients with spread from 40 to 60 into the late stage. They live 5 years 50% of the time: worse than the rest of the early stage (70%), but better than the late stage (20%). They are the "5-point players". Both stages look better, though no patient lived a single day longer.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Where intuition slips</span></span>
+      <h3><span class="en">An average is not a property of the people</span></h3>
+      
+      <p class="en">We are used to reading "the group's average went up" as "the people in the group got better". But an average depends on who is in the group. When the membership changes, the average changes without anyone improving. So whenever a group's average goes up, ask: did the rule for who counts as a member change?</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Rigorous</span><span class="mp-layer-desc">tables, charts, formulas</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Rigorous” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">For formula lovers</span></span>
+      <h3><span class="en">The transfer condition and the weighted average</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Group A has n<sub>A</sub> people and average a, group B has n<sub>B</sub> people and average b. A person with score x moves from A to B. This is how the averages change.</span></p>
+          <math display="block"><msup><mi>a</mi><mo>′</mo></msup><mo>−</mo><mi>a</mi><mo>=</mo><mfrac><mrow><mi>a</mi><mo>−</mo><mi>x</mi></mrow><mrow><msub><mi>n</mi><mi>A</mi></msub><mo>−</mo><mn>1</mn></mrow></mfrac></math>
+          <math display="block"><msup><mi>b</mi><mo>′</mo></msup><mo>−</mo><mi>b</mi><mo>=</mo><mfrac><mrow><mi>x</mi><mo>−</mo><mi>b</mi></mrow><mrow><msub><mi>n</mi><mi>B</mi></msub><mo>+</mo><mn>1</mn></mrow></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Both differences are positive exactly when the score lies between the two averages.</span></p>
+          <math display="block"><mi>b</mi><mo>&lt;</mo><mi>x</mi><mo>&lt;</mo><mi>a</mi></math>
+          <math display="block"><mn class="en">2.5</mn><mo>&lt;</mo><mn class="hl">5</mn><mo>&lt;</mo><mn>7</mn><mo>:</mo><mspace width="0.6em"></mspace><mfrac><mrow><mn>7</mn><mo>−</mo><mn>5</mn></mrow><mn>4</mn></mfrac><mo>=</mo><mo>+</mo><mn class="hl en">0.5</mn><mo>,</mo><mspace width="0.6em"></mspace><mfrac><mrow><mn>5</mn><mo>−</mo><mn class="en">2.5</mn></mrow><mn>5</mn></mfrac><mo>=</mo><mo>+</mo><mn class="hl en">0.5</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">The overall average is the weighted average of the two groups. The sum of scores and the head count do not change, so neither does it.</span></p>
+          <math display="block"><mi>m</mi><mo>=</mo><mfrac><mrow><msub><mi>n</mi><mi>A</mi></msub><mi>a</mi><mo>+</mo><msub><mi>n</mi><mi>B</mi></msub><mi>b</mi></mrow><mrow><msub><mi>n</mi><mi>A</mi></msub><mo>+</mo><msub><mi>n</mi><mi>B</mi></msub></mrow></mfrac></math>
+          <math display="block"><mfrac><mrow><mn>5</mn><mo>·</mo><mn>7</mn><mo>+</mo><mn>4</mn><mo>·</mo><mn class="en">2.5</mn></mrow><mn>9</mn></mfrac><mo>=</mo><mfrac><mrow><mn>4</mn><mo>·</mo><mn class="en">7.5</mn><mo>+</mo><mn>5</mn><mo>·</mo><mn>3</mn></mrow><mn>9</mn></mfrac><mo>=</mo><mn class="hl">5</mn></math>
+        </div>
+      </div>
+      
+      <p class="en">Both averages rose by 0.5 and the overall one did not move, because group <span class="vl">B</span>'s weight grew from 4/9 to 5/9. Group <span class="vl">B</span> is still weak; it is just bigger now. If x equals one of the averages, that average does not change, so the condition is strict.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Chart</span></span>
+      <h3><span class="en">How the averages change depending on whom you move</span></h3>
+      <canvas id="delta-chart" style="height:240px" role="img" aria-label="Change of each team's average against the score of the player moved"></canvas>
+      <div class="legend">
+        <span style="--c:var(--ink)"><b class="en">change in <span class="vl">A</span>'s average</b></span>
+        <span style="--c:var(--late)"><b class="en">change in <span class="vl">B</span>'s average</b></span>
+        <span style="--c:var(--signal-soft, #FBE3F0)"><b class="en">both rise</b></span>
+      </div>
+      
+      <p class="en">Across is the score of the player moved from <span class="vl">A</span> to B. Line <span class="vl">A</span> crosses zero at 7 (A's average), line <span class="vl">B</span> at 2.5 (B's average). Between them both lines are above zero. In team <span class="vl">A</span> the players with 5 and 6 points fall there.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">The hospital in numbers</span></span>
+      <h3><span class="en">5-year survival in the round 3 model</span></h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th></th><th class="num"><span class="en">Old scanner (60)</span></th><th class="num"><span class="en">New scanner (40)</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="en">Early stage</span></td><td class="num">70%</td><td class="num"><span class="up">80%</span></td></tr>
+            <tr><td><span class="en">Late stage</span></td><td class="num">20%</td><td class="num"><span class="up">30%</span></td></tr>
+            <tr><td><span class="en">All patients</span></td><td class="num">50%</td><td class="num">50%</td></tr>
+            <tr><td><span class="en">Share in the late stage</span></td><td class="num">40%</td><td class="num">60%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <p class="en">Spread is uniform from 0 to 100, the chance of living 5 years is 1 − spread/100. If the scanner sees metastases from a threshold t, the early stage survives on average 100 − t/2 percent, the late stage 50 − t/2, and everyone together always 50. Every step the threshold drops lifts both stages by half a step. Patients with spread 40–60 (20% of all) survive 50% of the time.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Deeper</span><span class="mp-layer-desc">generalisations, theory, history</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Deeper” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">A bit of history</span></span>
+      <h3><span class="en">Feinstein and lung cancer</span></h3>
+      
+      <p class="en">In 1985 Alvan Feinstein and two co-authors published "The Will Rogers phenomenon" in the New England Journal of Medicine. They compared lung cancer patients first treated in 1977 with patients from 1953–1964 at the same institutions. The newer group had higher six-month survival in every TNM stage.</p>
+      
+      <p class="en">The newer group had gone through many new imaging tests, which found metastases that used to be silent. Some patients who would once have been put in a "good" stage were now put in a "bad" one. When the authors split both groups by symptom stages, which the new tests could not change, survival came out similar.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">How to guard against it</span></span>
+      <h3><span class="en">Compare by the same rules</span></h3>
+      
+      <p class="en">Comparing survival by stage across decades, countries or hospitals is risky when the diagnostics differ. There are three honest ways out. Compare all patients together, like the "all" row of the table. Re-stage the old patients by the new rules, so the line is drawn in the same place. Or split by a feature the new technology does not change, as Feinstein did with symptom stages.</p>
+      
+      <p class="en">This trap differs from another one doctors know well: early detection lengthens survival "from diagnosis" because the clock simply starts earlier. Here nobody even has to live longer or be found earlier: moving the line between the stages is enough.</p>
+    </div>
+
+  </div>
+  </div>
+<script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "will-rogers" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 5 · Scaling up</span></span>
+    <h2><span class="en">Chains of moves, group boundaries and product metrics</span></h2>
+    
+    <p class="lead en">First the maths (how many times in a row both averages can rise), then the logic (what really changes when a boundary moves), then practice (how the trick gets into analytics reports).</p>
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card">
+        <span class="kicker"><span class="en">1 · Maths: a chain</span></span>
+        <div class="controls" style="margin-top:14px;margin-bottom:8px">
+          <label class="ctl" for="ch-n"><span><span class="en">Players scoring 1 to n:</span> <b class="mono" id="ch-n-v">9</b></span>
+            <input type="range" id="ch-n" min="4" max="20" step="1" value="9">
+          </label>
+        </div>
+        <canvas id="chain-chart" style="height:240px" role="img" aria-label="Both team averages rising step by step while the overall average stays flat"></canvas>
+        <div class="legend">
+          <span style="--c:var(--ink)"><b class="en"><span class="vl">A</span>'s average</b></span>
+          <span style="--c:var(--late)"><b class="en"><span class="vl">B</span>'s average</b></span>
+          <span style="--c:var(--hit)"><b class="en">overall average</b></span>
+        </div>
+      </div>
+      <div class="card esc-text">
+        <h3><span class="en">How many times in a row?</span></h3>
+        <p id="ch-txt"></p>
+        
+        <p class="en">The same holds for a whole group: move several people at once and both averages rise when the movers' average lies between the two group averages. That is how the "Okies" of the joke could raise the average of both states, even if some of them were bright and some were not.</p>
+        <p class="note"><span class="en">That no chain is longer than n − 2 was checked by brute force over every split for n from 3 to 11.</span></p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">2 · Logic: the boundary moves, not the people</span></span>
+        <h3><span class="en">Change a definition and the averages change on their own</span></h3>
+        
+        <p class="en">Every split into groups has a boundary: a cancer stage, a "top student", "tall", an "active user", a "premium customer". Move the boundary so the borderline cases cross it, and the average can rise on both sides. There is no real improvement: the same people, the same results.</p>
+        
+        <p class="en">The rule against it is simple: when the averages of all the parts go up, check the whole. If the overall average stays put, only the labelling changed. A related group trap is <a href="../../simpson-paradox/en/">Simpson's paradox</a>, where the parts and the whole point in opposite directions because the groups carry different weights.</p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">Where else it shows up</span></span>
+        
+        <p class="en"><b>Better diagnostics.</b> More sensitive tests find milder forms of a disease. The mild cases join the sick and improve their numbers, while the healthy look healthier without them.</p>
+        
+        <p class="en"><b>Ratings and tiers.</b> Redrawing the line between "A-class" and "B-class" hotels, schools or suppliers changes the average scores of both tiers without any change in the hotels themselves.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card">
+        <span class="kicker"><span class="en">3 · Practice: "active users"</span></span>
+        <p style="margin-top:12px;font-size:.95rem"><span class="en">A product has 1,000 users. The table shows how many sessions a week they have and how much they pay a month on average. Choose from how many sessions a user counts as active.</span></p>
+        <div class="presets" id="act-presets" style="margin-top:14px"></div>
+        <div class="tbl-wrap" style="margin-top:12px">
+          <table>
+            <thead><tr><th><span class="en">Sessions</span></th><th class="num"><span class="en">Users</span></th><th class="num"><span class="en">$ per user</span></th><th class="num"><span class="en">Segment</span></th></tr></thead>
+            <tbody id="act-rows"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card esc-text">
+        <h3><span class="en">The monthly report</span></h3>
+        <div class="result-row" id="act-res"></div>
+        <p id="act-txt"></p>
+        
+        <p class="en">A/B tests are no different: if the new variant changes who counts as "active", "engaged" or as having seen the change, comparing metrics inside those segments between variants can show a gain in both segments with no gain overall. Make the main decision on the metric over all users of each variant, as randomisation assigned them. How to read the test itself is on the page <a href="../../ab-test/en/">"Two identical pages"</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<!-- Sources: Quote Investigator, "When the Okies Migrated To California, It Raised the I.Q. in Both States" (2021);
+     Feinstein, Sosin, Wells, NEJM 1985;312(25):1604-8, PMID 4000199; Wikipedia "Will Rogers phenomenon";
+     Albertsen et al., JNCI 2005;97(17):1248-53 (AHRQ Research Activities summary, Jan 2006); Steinbeck, The Grapes of Wrath (1939). -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1970</span>
+        <h3><span class="en">Rogers probably never said it</span></h3>
+        
+        <p class="en">Will Rogers died in 1935. According to Quote Investigator, the joke about the Okies was first credited to him in 1970, when the Los Angeles Times quoted the Oklahoma governor Dewey Bartlett. The line has not been found in Rogers's own writings.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1939</span>
+        <h3><span class="en">The joke is older than the name</span></h3>
+        
+        <p class="en">The earliest version found ran in 1939 in the McComb Daily Journal of Mississippi: one man moved from one county to another and "raised the intelligence level of both". The version about Okies and California turns up in 1955.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">NZ → AU</span>
+        <h3><span class="en">The New Zealand version</span></h3>
+        
+        <p class="en">The New Zealand prime minister Robert Muldoon is credited with a version: New Zealanders who emigrate to Australia raise the IQ of both countries. In 1990 a Sydney Morning Herald journalist wrote that Muldoon told it at a dinner, and added that the joke was very old.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1985</span>
+        <h3><span class="en">A doctor gave it the name</span></h3>
+        
+        <p class="en">The term "Will Rogers phenomenon" was coined by the Yale clinical epidemiologist Alvan Feinstein in a 1985 paper on lung cancer. He took the joke from a friend who credited it to Rogers. Since then researchers look for "stage migration" in studies of cancer and other diseases.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">28%</span>
+        <h3><span class="en">Same slides, new grades</span></h3>
+        
+        <p class="en">In 2005 Peter Albertsen and colleagues had an experienced pathologist re-grade the slides of 1,858 men diagnosed with prostate cancer in Connecticut in 1990–1992. The mean Gleason score rose from 5.95 to 6.8. With the new grades, mortality within each score looked 28% lower, though the patients' outcomes were the same.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1939</span>
+        <h3><span class="en">Who the Okies were</span></h3>
+        
+        <p class="en">"Okies" was the name for migrants from Oklahoma and nearby states whom the Dust Bowl and the Great Depression of the 1930s drove west to California. John Steinbeck told their journey in "The Grapes of Wrath" (1939), which won him the Pulitzer Prize.</p>
+      </article>
+  </div>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">More puzzles</span>
+    <h2>Other paradoxes</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/simpson-paradox/en/"><h3>Simpson&#x27;s paradox</h3><p>Treatment <span class="vl">A</span> beats treatment <span class="vl">B</span> for small kidney stones and for large ones. Can <span class="vl">B</span> be better for all the patients together?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/regression-to-mean/en/"><h3>Regression to the mean</h3><p>After praise players do worse, and after criticism they do better. Does that mean criticism works?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/inspection-paradox/en/"><h3>The bus paradox</h3><p>A bus comes every 10 minutes on average, but with no timetable. You walk up to the stop at an arbitrary moment. How long do you wait on average?</p></a>
+  </div>
+  <p class="mp-related-all"><a href="https://mathparadoxes.com/en/">All puzzles →</a> <a href="https://mathparadoxes.com/glossary/en/">Glossary →</a></p>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Discussion</span>
+    <h2>What do you think?</h2>
+    <p>Share your own explanation, an objection or a variant of the puzzle. You need a GitHub account to comment.</p>
+    <div class="mp-lvote"><p>Is “School maths” the right level for this puzzle?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">No, harder</button><button type="button" data-vote="right">Yes</button><button type="button" data-vote="easier">No, easier</button></div><p class="mp-lvote-thanks">Thank you! This helps set the levels right.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "will-rogers" + "-lvl", LEVEL = 2, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="will-rogers" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="en" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Newsletter</span>
+    <h2>New puzzles, explanations and discussions</h2>
+    <p>I keep adding new puzzles, new ways to explain them and write-ups of the discussions they start. Leave your email and I'll write when something new is out. No spam, one-click unsubscribe.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">The sign-up form will appear here soon.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+<footer>
+  
+  <span class="en">Alvan Feinstein named the Will Rogers phenomenon (1985). Moving someone below their own group's average and above the other group's raises both averages, while the overall average stays the same.</span>
+  <span class="mono">b &lt; x &lt; a</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const num = (v, d = 2) => dec(String(+v.toFixed(d)));   // 7.5, 7.25, 3 (trailing zeros dropped)
+const pct = (p, d = 0) => dec((100 * p).toFixed(d)) + '%';
+const sgn = (v, d = 2) => (v > 1e-9 ? '+' : v < -1e-9 ? '−' : '') + num(Math.abs(v), d);
+const sig = () => tok('--signal') || '#D9318F';
+const sigSoft = () => tok('--signal-soft') || '#FBE3F0';
+
+/* ---------- maths ---------- */
+const mean = a => a.reduce((t, v) => t + v, 0) / a.length;
+const A0 = [5, 6, 7, 8, 9], B0 = [1, 2, 3, 4];
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function arrowR(ctx, x1, x2, y, c) {
+  if (Math.abs(x2 - x1) < 4) return;
+  ctx.strokeStyle = ctx.fillStyle = c; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2 - 5, y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, y); ctx.lineTo(x2 - 7, y - 4); ctx.lineTo(x2 - 7, y + 4); ctx.closePath(); ctx.fill();
+}
+// number line with two rows of players: A on top, B below; pos maps a score to x
+// people: [{v, g, x?, y?}] (x/y override for animation); means: {a, b, a0?, b0?}
+function drawLine(c, people, means, opts = {}) {
+  const s = setupCanvas(c); if (!s) return;
+  const { ctx, W, H } = s, l = 30, r = 16, lo = .5, hi = 9.5;
+  const X = v => l + (v - lo) / (hi - lo) * (W - l - r);
+  const yA = opts.yA || H * .3, yB = opts.yB || H * .68, rad = Math.min(15, (W - l - r) / 9 / 2.4);
+  // axis
+  ctx.strokeStyle = tok('--line'); ctx.lineWidth = 1;
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  for (let v = 1; v <= 9; v++) { ctx.beginPath(); ctx.moveTo(X(v), 14); ctx.lineTo(X(v), H - 16); ctx.stroke(); }
+  ctx.font = '600 12px ' + tok('--f-mono'); ctx.fillStyle = tok('--ink'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText('A', 4, yA); ctx.fillStyle = tok('--late'); ctx.fillText('B', 4, yB);
+  // overall mean
+  if (means.m != null) {
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = tok('--hit'); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(X(means.m), 10); ctx.lineTo(X(means.m), H - 14); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = tok('--hit'); ctx.font = '11px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(L('усі ', 'all ') + num(means.m), X(means.m), H - 1);
+  }
+  // mean ticks (ghost = previous)
+  const tick = (v, y, c, w, ghost) => {
+    ctx.globalAlpha = ghost ? .35 : 1;
+    if (!ghost) { ctx.strokeStyle = tok('--surface') || '#fff'; ctx.lineWidth = w + 3; ctx.beginPath(); ctx.moveTo(X(v), y - rad - 11); ctx.lineTo(X(v), y + rad + 11); ctx.stroke(); }
+    ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(X(v), y - rad - 11); ctx.lineTo(X(v), y + rad + 11); ctx.stroke(); ctx.globalAlpha = 1;
+  };
+  if (means.a0 != null && Math.abs(means.a0 - means.a) > 1e-9) { tick(means.a0, yA, tok('--ink'), 2, true); arrowR(ctx, X(means.a0), X(means.a), yA - rad - 13, means.a > means.a0 ? sig() : tok('--muted')); }
+  if (means.b0 != null && Math.abs(means.b0 - means.b) > 1e-9) { tick(means.b0, yB, tok('--late'), 2, true); arrowR(ctx, X(means.b0), X(means.b), yB + rad + 13, means.b > means.b0 ? sig() : tok('--muted')); }
+  if (means.a != null) tick(means.a, yA, tok('--ink'), 3);
+  if (means.b != null) tick(means.b, yB, tok('--late'), 3);
+  // people
+  people.forEach(p => {
+    const x = p.x != null ? p.x : X(p.v), y = p.y != null ? p.y : (p.g === 'A' ? yA : yB);
+    ctx.fillStyle = p.g === 'A' ? tok('--ink') : tok('--late');
+    if (p.hl) { ctx.fillStyle = sig(); }
+    ctx.beginPath(); ctx.arc(x, y, rad, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '600 ' + Math.round(rad * .95) + 'px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(p.v, x, y + 1);
+  });
+  ctx.font = '11px ' + tok('--f-mono'); ctx.textBaseline = 'bottom'; ctx.textAlign = 'center';
+  if (means.a != null) { ctx.fillStyle = tok('--ink'); ctx.fillText(num(means.a), clamp(X(means.a), l + 10, W - r - 10), yA - rad - 16 + (means.a0 != null && Math.abs(means.a0 - means.a) > 1e-9 ? -6 : 0)); }
+  if (means.b != null) { ctx.fillStyle = tok('--muted'); ctx.textBaseline = 'top'; ctx.fillText(num(means.b), clamp(X(means.b), l + 10, W - r - 10), yB + rad + 12 + (means.b0 != null && Math.abs(means.b0 - means.b) > 1e-9 ? 8 : 0)); }
+  return { X, yA, yB };
+}
+
+/* ---------- hero ---------- */
+const heroC = $('#hero-chart');
+let heroT0 = 0, heroRaf = 0;
+const solved = () => !window.mpSolved || mpSolved();
+function heroFrame(now) {
+  const s = solved();
+  const people = [...A0.map(v => ({ v, g: 'A' })), ...B0.map(v => ({ v, g: 'B' }))];
+  if (!s) { drawLine(heroC, people, { a: 7, b: 2.5, m: 5 }); return; }
+  // cycle: 0–1s stay, 1–2.4s walk, 2.4–5s rest after, then reset
+  const H = heroC.clientHeight, yA = H * .3, yB = H * .68;
+  let k = 1;
+  if (!reduce() && !STATIC) { const t = ((now - heroT0) / 1000) % 5.6; k = t < 1 ? 0 : t < 2.4 ? (t - 1) / 1.4 : 1; k = k * k * (3 - 2 * k); }
+  const mover = people.find(p => p.v === 5); mover.hl = true;
+  if (k < 1) { mover.y = yA + (yB - yA) * k; if (k > 0) mover.g = k > .5 ? 'B' : 'A'; } else mover.g = 'B';
+  const a = k < .5 ? 7 : 7.5, b = k < .5 ? 2.5 : 3;
+  drawLine(heroC, people, k < .5 ? { a, b, m: 5 } : { a, b, a0: 7, b0: 2.5, m: 5 }, { yA, yB });
+  if (!reduce() && !STATIC) heroRaf = requestAnimationFrame(heroFrame);
+}
+function heroStart() { cancelAnimationFrame(heroRaf); heroT0 = performance.now(); heroFrame(heroT0); }
+document.addEventListener('solved', heroStart);
+
+/* ---------- round 1: guess ---------- */
+let guessed = null;
+const OPT_X = [null, 9, 7, 5];
+$('#opts').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  guessed = +b.dataset.o;
+  $('#opts').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  guessText();
+  window.mpSolve && mpSolve(guessed);
+});
+function guessText() {
+  if (guessed === null) return;
+  const v = [
+    L('Здається, що виграш однієї команди мусить бути програшем іншої. Так було б із сумою балів, але не з середнім. Подивіться на рядки з 5 і 6 балами.', 'It feels as if one team\'s gain must be the other\'s loss. That would be true of total points, not of the average. Look at the rows for 5 and 6 points.'),
+    L('Без найсильнішого команда A слабшає: її середнє падає з 7 до 6,5. Команда B стає сильнішою, але лише одна з двох.', 'Without its strongest player team A gets weaker: its average falls from 7 to 6.5. Team B gets stronger, but only one of the two does.'),
+    L('Учасник з 7 балами дорівнює середньому команди A, тож без нього її середнє лишається 7. Команда B росте, а A ні.', 'The 7-point player equals team A\'s average, so without them it stays at 7. Team B rises, team A does not.'),
+    L('Так. Учасник з 5 балами найслабший у команді A, тож без нього середнє A росте з 7 до 7,5. У команді B він найсильніший, тож середнє B росте з 2,5 до 3. Підійшов би й учасник з 6 балами.', 'Right. The 5-point player is the weakest in team A, so without them A\'s average rises from 7 to 7.5. In team B they are the strongest, so B\'s average rises from 2.5 to 3. The 6-point player would work too.')
+  ][guessed];
+  const rows = A0.map(x => {
+    const a = mean(A0.filter(y => y !== x)), b = mean([...B0, x]), ok = a > 7 && b > 2.5;
+    const cell = (v, v0) => '<td class="num"><span class="' + (v > v0 + 1e-9 ? 'up' : 'dn') + '">' + num(v) + (v > v0 + 1e-9 ? ' ↑' : v < v0 - 1e-9 ? ' ↓' : ' =') + '</span></td>';
+    return '<tr class="' + (ok ? 'good' : '') + '"><td class="num">' + x + '</td>' + cell(a, 7) + cell(b, 2.5) + '</tr>';
+  }).join('');
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">' + (guessed === 3 ? L('Правильно', 'Correct') : L('Не зовсім', 'Not quite')) + '</p>' +
+    '<p>' + v + '</p><div class="tbl-wrap"><table><thead><tr><th class="num">' + L('Переводимо', 'Move') + '</th><th class="num">' + L('Середнє A (було 7)', 'A\'s average (was 7)') + '</th><th class="num">' + L('Середнє B (було 2,5)', 'B\'s average (was 2.5)') + '</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<p class="note">' + L('Загальне середнє всіх дев\'ятьох лишається 5 за будь-якого переведення: сума 45 і кількість 9 не змінюються.', 'The overall average of all nine stays 5 whatever the move: the sum of 45 and the count of 9 do not change.') + '</p>';
+}
+
+/* ---------- round 2: game ---------- */
+let team, hist, streak, best;
+function gameReset() { team = {}; A0.forEach(v => team[v] = 'A'); B0.forEach(v => team[v] = 'B'); hist = []; streak = 0; best = 0; gameRender(); }
+const members = g => Object.keys(team).map(Number).filter(v => team[v] === g).sort((a, b) => a - b);
+function gameMove(v) {
+  const g = team[v], other = g === 'A' ? 'B' : 'A';
+  if (members(g).length < 2) return;
+  const a0 = mean(members('A')), b0 = mean(members('B'));
+  team[v] = other;
+  const a1 = mean(members('A')), b1 = mean(members('B')), both = a1 > a0 + 1e-9 && b1 > b0 + 1e-9;
+  streak = both ? streak + 1 : 0; best = Math.max(best, streak);
+  hist.push({ v, from: g, a0, b0, a1, b1, both, streak, best });
+  gameRender();
+}
+function gameUndo() {
+  const h = hist.pop(); if (!h) return;
+  team[h.v] = h.from;
+  const p = hist[hist.length - 1]; streak = p ? p.streak : 0; best = hist.reduce((m, x) => Math.max(m, x.streak), 0);
+  gameRender();
+}
+function gameRender() {
+  const A = members('A'), B = members('B'), a = mean(A), b = mean(B), h = hist[hist.length - 1];
+  const pen = (id, g, list, m) => {
+    $(id).innerHTML = '<div class="pen-h"><b>' + L('Команда ', 'Team ') + g + '</b><span class="mono">' + L('середнє ', 'avg ') + num(m) + '</span></div><div class="chips">' +
+      list.map(v => '<button type="button" class="chip' + (g === 'B' ? ' b' : '') + '" data-v="' + v + '"' + (list.length < 2 ? ' disabled' : '') + ' aria-label="' + L('Перевести учасника з ', 'Move the player with ') + v + L(' балами', ' points') + '">' + v + '</button>').join('') + '</div>';
+  };
+  pen('#pen-a', 'A', A, a); pen('#pen-b', 'B', B, b);
+  const people = Object.keys(team).map(Number).map(v => ({ v, g: team[v], hl: h && h.v === v }));
+  drawLine($('#game-chart'), people, h ? { a, b, a0: h.a0, b0: h.b0, m: 5 } : { a, b, m: 5 });
+  let m;
+  if (!h) m = L('Натисніть на учасника в будь-якій команді, щоб перевести його.', 'Tap a player in either team to move them.');
+  else {
+    const dir = h.from === 'A' ? 'A → B' : 'B → A';
+    const ch = L('Середнє A ' + sgn(h.a1 - h.a0) + ', середнє B ' + sgn(h.b1 - h.b0) + '. ', 'A\'s average ' + sgn(h.a1 - h.a0) + ', B\'s average ' + sgn(h.b1 - h.b0) + '. ');
+    if (h.both) m = L('Учасник з ' + h.v + ' балами, ' + dir + '. ', 'The ' + h.v + '-point player, ' + dir + '. ') + ch + L('Обидва середні виросли, а загальне досі 5.', 'Both averages rose, and the overall one is still 5.');
+    else m = L('Учасник з ' + h.v + ' балами, ' + dir + '. ', 'The ' + h.v + '-point player, ' + dir + '. ') + ch + L('Цього разу обидва не виросли: учасник не лежить між двома середніми. Серію перервано.', 'This time both did not rise: the player does not lie between the two averages. The streak is broken.');
+  }
+  $('#game-msg').textContent = m;
+  $('#game-status').innerHTML = '<div><span class="k">' + L('Поспіль, обидва вгору', 'In a row, both up') + '</span><b class="mono">' + streak + '</b></div>' +
+    '<div><span class="k">' + L('Ваш рекорд', 'Your best') + '</span><b class="mono">' + best + '</b></div>' +
+    '<div><span class="k">' + L('Загальне середнє', 'Overall average') + '</span><b class="mono" style="color:var(--hit)">5</b></div>';
+  $('#game-log').innerHTML = hist.length ? hist.map((x, i) => '<li><span>' + (i + 1) + '. ' + x.v + ' ' + (x.from === 'A' ? 'A→B' : 'B→A') + '</span><span>' + num(x.a1) + ' / ' + num(x.b1) + (x.both ? ' <span class="up">↑↑</span>' : '') + '</span></li>').join('') : '<li><span>' + L('Поки нічого', 'Nothing yet') + '</span><span>A / B</span></li>';
+  $('#game-undo').disabled = !hist.length;
+  if (h && h.both && h.streak === 4 && hist.length === 4) $('#game-msg').textContent += L(' Чотири поспіль від початкового складу: більше з цього старту не вийде. Довші ланцюжки є в раунді 5.', ' Four in a row from the starting line-up: no more is possible from this start. Longer chains are in round 5.');
+}
+['#pen-a', '#pen-b'].forEach(id => $(id).addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b && !b.disabled) gameMove(+b.dataset.v); }));
+$('#game-reset').addEventListener('click', gameReset);
+$('#game-undo').addEventListener('click', gameUndo);
+
+/* ---------- round 3: stage migration ---------- */
+// spread s ~ U(0,100), survival P = 1 − s/100; scanner sees metastases (late stage) when s ≥ t
+const NP = 2000;
+let pats, scanT = 60;
+const exact = t => ({ early: 1 - t / 200, late: .5 - t / 200, all: .5 });
+function newPatients() { pats = Array.from({ length: NP }, (_, i) => { const s = 100 * Math.random(); return { s, alive: Math.random() < 1 - s / 100, j: Math.random() }; }); }
+function simAt(t) {
+  let e = 0, ea = 0, l = 0, la = 0;
+  pats.forEach(p => { if (p.s >= t) { l++; la += p.alive; } else { e++; ea += p.alive; } });
+  return { early: e ? ea / e : NaN, late: l ? la / l : NaN, all: (ea + la) / NP, lateShare: l / NP };
+}
+function scanText() {
+  const x = exact(scanT), s = simAt(scanT), o = simAt(60);
+  $('#scan-t-v').textContent = scanT;
+  $('#scan-presets').innerHTML = [[60, L('Старий сканер', 'Old scanner')], [40, L('Новий сканер', 'New scanner')]].map(([t, n]) => '<button type="button" data-t="' + t + '" aria-pressed="' + (t === scanT) + '">' + n + ' · ' + t + '</button>').join('');
+  $('#t-early').textContent = pct(s.early, 1); $('#t-early-s').textContent = L('точно: ', 'exact: ') + pct(x.early, 1);
+  $('#t-late').textContent = pct(s.late, 1); $('#t-late-s').textContent = L('точно: ', 'exact: ') + pct(x.late, 1);
+  $('#t-all').textContent = pct(s.all, 1); $('#t-all-s').textContent = L('точно: 50%, за будь-якого сканера', 'exact: 50%, whatever the scanner');
+  let n;
+  if (scanT === 60) n = L('Це старий сканер. Пересуньте поріг до 40 або натисніть «Новий сканер».', 'This is the old scanner. Move the threshold to 40 or press "New scanner".');
+  else if (scanT < 60) n = L('Порівняно зі старим сканером: рання стадія ' + sgn(100 * (s.early - o.early), 1) + ' п. п., пізня ' + sgn(100 * (s.late - o.late), 1) + ' п. п., усі пацієнти ' + sgn(100 * (s.all - o.all), 1) + ' п. п. У пізню стадію перейшли ' + pct(s.lateShare - o.lateShare) + ' пацієнтів.',
+    'Against the old scanner: early stage ' + sgn(100 * (s.early - o.early), 1) + ' pp, late stage ' + sgn(100 * (s.late - o.late), 1) + ' pp, all patients ' + sgn(100 * (s.all - o.all), 1) + ' pp. ' + pct(s.lateShare - o.lateShare) + ' of patients moved to the late stage.');
+  else n = L('Цей сканер гірший за старий: пограничні пацієнти повертаються в ранню стадію, і обидві стадії виглядають гіршими. Загальна виживаність та сама.', 'This scanner is worse than the old one: the borderline patients go back to the early stage, and both stages look worse. Overall survival is the same.');
+  $('#t-note').textContent = n;
+}
+function drawStrip() {
+  const s = setupCanvas($('#strip-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 12, r = 12, t = 22, b = 36;
+  const X = v => l + v / 100 * (W - l - r);
+  // band of patients whose label differs between the old (60) and the current scanner
+  if (scanT !== 60) { ctx.fillStyle = sigSoft(); ctx.fillRect(X(Math.min(scanT, 60)), t - 6, X(Math.max(scanT, 60)) - X(Math.min(scanT, 60)), H - t - b + 12); }
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let v = 0; v <= 100; v += 20) { ctx.beginPath(); ctx.moveTo(X(v), H - b); ctx.lineTo(X(v), H - b + 4); ctx.stroke(); ctx.fillText(v, X(v), H - b + 6); }
+  ctx.beginPath(); ctx.moveTo(X(0), H - b); ctx.lineTo(X(100), H - b); ctx.stroke();
+  const rad = W < 420 ? 2.2 : 2.8;
+  pats.slice(0, 400).forEach(p => {
+    const x = X(p.s), y = t + p.j * (H - t - b - 8) + 2, c = p.s >= scanT ? tok('--late') : tok('--ink');
+    ctx.beginPath(); ctx.arc(x, y, rad, 0, 7);
+    if (p.alive) { ctx.fillStyle = c; ctx.fill(); } else { ctx.strokeStyle = c; ctx.lineWidth = 1.1; ctx.stroke(); }
+  });
+  if (scanT !== 60) { ctx.setLineDash([4, 4]); ctx.strokeStyle = tok('--muted'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(60), t - 8); ctx.lineTo(X(60), H - b); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(scanT), t - 8); ctx.lineTo(X(scanT), H - b); ctx.stroke();
+  ctx.font = '600 11px ' + tok('--f-mono'); ctx.textBaseline = 'top'; ctx.fillStyle = tok('--ink');
+  ctx.textAlign = 'right'; ctx.fillText(L('← рання', '← early'), X(scanT) - 6, 2);
+  ctx.textAlign = 'left'; ctx.fillStyle = tok('--muted'); ctx.fillText(L('пізня →', 'late →'), X(scanT) + 6, 2);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.font = '11px ' + tok('--f-mono');
+  ctx.fillText(L('поширення хвороби →', 'spread of the disease →'), W - r, H - 1);
+}
+function drawSurv() {
+  const s = setupCanvas($('#surv-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 40, r = 14, t = 14, b = 40;
+  const X = th => l + (80 - th) / 60 * (W - l - r), Y = p => t + (1 - p) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .2, .4, .6, .8, 1].forEach(p => { ctx.beginPath(); ctx.moveTo(l, Y(p)); ctx.lineTo(W - r, Y(p)); ctx.stroke(); ctx.fillText(Math.round(p * 100) + '%', l - 6, Y(p)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let th = 80; th >= 20; th -= 10) ctx.fillText(th, X(th), H - b + 6);
+  ctx.textAlign = 'right'; ctx.fillText(L('поріг сканера: чутливіший →', 'scanner threshold: sharper →'), W - r, H - b + 22);
+  // current threshold
+  ctx.strokeStyle = tok('--muted'); ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(X(scanT), t); ctx.lineTo(X(scanT), H - b); ctx.stroke(); ctx.setLineDash([]);
+  const line = (f, c, w, dash) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(X(80), Y(f(80))); ctx.lineTo(X(20), Y(f(20))); ctx.stroke(); ctx.setLineDash([]); };
+  line(th => exact(th).all, tok('--hit'), 2, [6, 4]);
+  line(th => exact(th).early, tok('--ink'), 2);
+  line(th => exact(th).late, tok('--late'), 2);
+  for (let th = 20; th <= 80; th += 5) {
+    const m = simAt(th);
+    [[m.early, tok('--ink')], [m.late, tok('--late')], [m.all, tok('--hit')]].forEach(([v, c]) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(X(th), Y(v), th === scanT ? 5 : 3, 0, 7); ctx.fill(); });
+  }
+}
+$('#scan-t').addEventListener('input', e => { scanT = +e.target.value; scanText(); drawStrip(); drawSurv(); });
+$('#scan-presets').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; scanT = +b.dataset.t; $('#scan-t').value = scanT; scanText(); drawStrip(); drawSurv(); });
+$('#scan-new').addEventListener('click', () => { newPatients(); scanText(); drawStrip(); drawSurv(); });
+
+/* ---------- round 4: delta chart ---------- */
+function drawDelta() {
+  const s = setupCanvas($('#delta-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 40, r = 14, t = 14, b = 40, lo = -.6, hi = 1.6;
+  const X = v => l + (v - .5) / 9 * (W - l - r), Y = d => t + (hi - d) / (hi - lo) * (H - t - b);
+  ctx.fillStyle = sigSoft(); ctx.fillRect(X(2.5), t, X(7) - X(2.5), H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [-.5, 0, .5, 1, 1.5].forEach(d => { ctx.beginPath(); ctx.moveTo(l, Y(d)); ctx.lineTo(W - r, Y(d)); ctx.stroke(); ctx.fillText((d > 0 ? '+' : d < 0 ? '−' : '') + num(Math.abs(d)), l - 6, Y(d)); });
+  ctx.strokeStyle = tok('--muted'); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(l, Y(0)); ctx.lineTo(W - r, Y(0)); ctx.stroke();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let v = 1; v <= 9; v++) ctx.fillText(v, X(v), H - b + 6);
+  ctx.textAlign = 'right'; ctx.fillText(L('бал учасника, якого переводять →', 'score of the player moved →'), W - r, H - b + 22);
+  const fa = x => (7 - x) / 4, fb = x => (x - 2.5) / 5;
+  [[fa, tok('--ink')], [fb, tok('--late')]].forEach(([f, c]) => { ctx.strokeStyle = c; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(X(1), Y(f(1))); ctx.lineTo(X(9), Y(f(9))); ctx.stroke(); });
+  A0.forEach(x => { const ok = fa(x) > 0 && fb(x) > 0; [[fa, tok('--ink')], [fb, tok('--late')]].forEach(([f, c]) => { ctx.fillStyle = ok ? sig() : c; ctx.beginPath(); ctx.arc(X(x), Y(f(x)), 4.5, 0, 7); ctx.fill(); }); });
+  ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+  ctx.fillStyle = tok('--ink'); ctx.fillText('A', X(1) + 4, Y(fa(1)) - 4);
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.fillText('B', X(9) - 4, Y(fb(9)) - 4);
+}
+
+/* ---------- round 5: chain ---------- */
+let chN = 9;
+// start: A = {2..n}, B = {1}; step k moves k+1; after moving 2..k+1: A = {k+2..n}, B = {1..k+1}
+function chainSteps(n) { const out = []; for (let k = 0; k <= n - 2; k++) out.push({ k, a: (k + 2 + n) / 2, b: (k + 2) / 2 }); return out; }
+function chainText() {
+  const n = chN, st = chainSteps(n);
+  $('#ch-n-v').textContent = n;
+  $('#ch-txt').textContent = L('Почніть так: у команді B лише учасник з 1 балом, у команді A решта, від 2 до ' + n + '. Щоразу переводьте найслабшого з A. Він слабший за середнє A і сильніший за середнє B, тож обидва середні ростуть, кожне рівно на 0,5. Так виходить ' + (n - 2) + ' переведень поспіль: середнє A росте з ' + num(st[0].a) + ' до ' + num(st[n - 2].a) + ', середнє B з 1 до ' + num(st[n - 2].b) + '. Загальне середнє весь час ' + num((n + 1) / 2) + '. Довшого ланцюжка, ніж n − 2, перебір усіх поділів не знаходить.',
+    'Start like this: team B has only the 1-point player, team A has the rest, 2 to ' + n + '. Each time move the weakest player of A. They are below A\'s average and above B\'s, so both averages rise, each by exactly 0.5. That gives ' + (n - 2) + ' moves in a row: A\'s average goes from ' + num(st[0].a) + ' to ' + num(st[n - 2].a) + ', B\'s from 1 to ' + num(st[n - 2].b) + '. The overall average stays ' + num((n + 1) / 2) + ' throughout. A brute-force search over every split finds no chain longer than n − 2.');
+}
+function drawChain() {
+  const s = setupCanvas($('#chain-chart')); if (!s) return;
+  const n = chN, st = chainSteps(n), { ctx, W, H } = s, l = 36, r = 14, t = 14, b = 38;
+  const X = k => l + k / (n - 2) * (W - l - r), Y = v => t + (1 - (v - 1) / (n - 1)) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  const stepY = n > 12 ? 4 : 2;
+  for (let v = 1; v <= n; v += stepY) { ctx.beginPath(); ctx.moveTo(l, Y(v)); ctx.lineTo(W - r, Y(v)); ctx.stroke(); ctx.fillText(v, l - 6, Y(v)); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const stepX = n - 2 > 10 ? 3 : 1;
+  for (let k = 0; k <= n - 2; k += stepX) ctx.fillText(k, X(k), H - b + 6);
+  ctx.textAlign = 'right'; ctx.fillText(L('переведень →', 'moves →'), W - r, H - b + 20);
+  ctx.setLineDash([6, 4]); ctx.strokeStyle = tok('--hit'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(0), Y((n + 1) / 2)); ctx.lineTo(X(n - 2), Y((n + 1) / 2)); ctx.stroke(); ctx.setLineDash([]);
+  [['a', tok('--ink')], ['b', tok('--late')]].forEach(([k, c]) => {
+    ctx.strokeStyle = ctx.fillStyle = c; ctx.lineWidth = 2;
+    ctx.beginPath(); st.forEach((p, i) => i ? ctx.lineTo(X(p.k), Y(p[k])) : ctx.moveTo(X(p.k), Y(p[k]))); ctx.stroke();
+    st.forEach(p => { ctx.beginPath(); ctx.arc(X(p.k), Y(p[k]), n > 14 ? 2.5 : 3.5, 0, 7); ctx.fill(); });
+  });
+}
+$('#ch-n').addEventListener('input', e => { chN = +e.target.value; chainText(); drawChain(); });
+
+/* ---------- round 5: active users ---------- */
+const USERS = [{ k: 1, n: 400, r: 1 }, { k: 2, n: 300, r: 4 }, { k: 3, n: 150, r: 8 }, { k: 4, n: 100, r: 12 }, { k: 5, n: 50, r: 20 }];
+let actTh = 3;
+function seg(th) {
+  const act = USERS.filter(u => u.k >= th), ina = USERS.filter(u => u.k < th);
+  const arpu = g => g.reduce((t, u) => t + u.n * u.r, 0) / g.reduce((t, u) => t + u.n, 0);
+  return { act: arpu(act), ina: arpu(ina), nAct: act.reduce((t, u) => t + u.n, 0), all: arpu(USERS) };
+}
+function actText() {
+  const s = seg(actTh), base = seg(3), money = v => '$' + dec(v.toFixed(2));
+  $('#act-presets').innerHTML = [2, 3, 4, 5].map(t => '<button type="button" data-t="' + t + '" aria-pressed="' + (t === actTh) + '">' + L('від ' + t + ' сесій', t + '+ sessions') + '</button>').join('');
+  $('#act-rows').innerHTML = USERS.map(u => '<tr><td class="num" style="text-align:left">' + u.k + '</td><td class="num">' + u.n + '</td><td class="num">$' + u.r + '</td><td class="num">' + (u.k >= actTh ? L('активні', 'active') : L('неактивні', 'inactive')) + '</td></tr>').join('');
+  const ch = (v, v0) => actTh === 3 ? '' : ' <span class="' + (v > v0 + 1e-9 ? 'up' : 'dn') + '" style="font-size:.8rem">' + sgn(100 * (v / v0 - 1), 0) + '%</span>';
+  $('#act-res').innerHTML = '<div><span class="k">' + L('Активні: дохід на користувача', 'Active: revenue per user') + '</span><b class="mono">' + money(s.act) + ch(s.act, base.act) + '</b></div>' +
+    '<div><span class="k">' + L('Неактивні', 'Inactive') + '</span><b class="mono">' + money(s.ina) + ch(s.ina, base.ina) + '</b></div>' +
+    '<div><span class="k">' + L('Усі 1 000', 'All 1,000') + '</span><b class="mono">' + money(s.all) + '</b></div>';
+  let txt;
+  if (actTh === 3) txt = L('Минулого місяця «активний» означало від 3 сесій на тиждень. Тепер спробуйте 4: так визначення стає суворішим.', 'Last month "active" meant 3+ sessions a week. Now try 4: that makes the definition stricter.');
+  else if (actTh === 4) txt = L('Визначення стало суворішим, і користувачі з 3 сесіями ($8) перейшли до неактивних. Вони слабші за активних ($11,33), але сильніші за неактивних ($2,29). Звіт хвалиться: дохід активних +29%, неактивних +44%. А дохід на користувача загалом той самий $5,00: жоден користувач не заплатив більше.', 'The definition got stricter, and users with 3 sessions ($8) moved to inactive. They are below the active average ($11.33) but above the inactive one ($2.29). The report boasts: active revenue +29%, inactive +44%. Revenue per user overall is the same $5.00: no user paid a cent more.');
+  else if (actTh === 5) txt = L('Ще суворіше: обидва сегменти знову «ростуть». Загалом усе ті самі $5,00.', 'Stricter still: both segments "grow" again. Overall it is still $5.00.');
+  else txt = L('М\'якше визначення працює навпаки: користувачі з 2 сесіями ($4) переходять до активних, і обидва сегменти «падають». Загалом знову $5,00.', 'A looser definition works the other way: users with 2 sessions ($4) join the active ones, and both segments "fall". Overall it is $5.00 again.');
+  $('#act-txt').textContent = txt;
+}
+$('#act-presets').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; actTh = +b.dataset.t; actText(); });
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Феномен Вілла Роджерса', 'The Will Rogers Phenomenon');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  guessText(); gameRender(); scanText(); chainText(); actText();
+  redraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+function redraw() { heroStart(); gameRender(); drawStrip(); drawSurv(); drawDelta(); drawChain(); }
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+
+newPatients();
+gameReset();
+applyLang();
+})();
+</script>
+
+<script type="application/json" id="mp-terms">{"mean": {"name": "Mean (average)", "short": "The sum of all values divided by how many there are: what everyone would get if it were shared equally.", "hook": "Almost everyone has more legs than average: the average is a little under two.", "url": "https://mathparadoxes.com/glossary/median-vs-mean/en/", "link": "Try it in a simulation"}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'en' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+</body>
+</html>

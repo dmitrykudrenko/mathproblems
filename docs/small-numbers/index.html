@@ -1,0 +1,1434 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/small-numbers/", "en": "/small-numbers/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "small-numbers";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>Найнебезпечніше рівняння: чому малі округи на обох кінцях рейтингу</title>
+<meta name="description" content="Найздоровіші й найхворіші округи маленькі: це закон малих чисел і рівняння де Муавра σ/√n. Гра, симуляція 3 000 округів і лійка.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/small-numbers/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/small-numbers/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/small-numbers/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/small-numbers/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Найнебезпечніше рівняння">
+<meta property="og:description" content="Найменше хворіють у тихих сільських округах. Чисте повітря? Чи щось інше?">
+<meta property="og:url" content="https://mathparadoxes.com/small-numbers/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/small-numbers/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Карта уявної країни з квадратів-округів різного розміру. Чому найздоровіші округи маленькі й сільські?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Найнебезпечніше рівняння">
+<meta name="twitter:description" content="Найменше хворіють у тихих сільських округах. Чисте повітря? Чи щось інше?">
+<meta name="twitter:image" content="https://mathparadoxes.com/small-numbers/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/small-numbers/#page", "url": "https://mathparadoxes.com/small-numbers/", "name": "Найнебезпечніше рівняння: чому малі округи на обох кінцях рейтингу", "description": "Найздоровіші й найхворіші округи маленькі: це закон малих чисел і рівняння де Муавра σ/√n. Гра, симуляція 3 000 округів і лійка.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "intermediate", "about": {"@type": "Thing", "name": "Insensitivity to sample size", "sameAs": "https://en.wikipedia.org/wiki/Insensitivity_to_sample_size"}, "image": "https://mathparadoxes.com/small-numbers/og-uk.png", "datePublished": "2026-10-26", "dateModified": "2026-10-26", "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "citation": [{"@type": "Book", "name": "Мислення швидке й повільне", "author": [{"@type": "Person", "name": "Деніел Канеман"}], "datePublished": "2017", "isbn": "9786177279180", "publisher": {"@type": "Organization", "name": "Наш Формат"}, "translationOfWork": {"@type": "Book", "name": "Thinking, Fast and Slow", "datePublished": "2011"}}], "workTranslation": {"@id": "https://mathparadoxes.com/small-numbers/en/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "Найнебезпечніше рівняння", "item": "https://mathparadoxes.com/small-numbers/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/small-numbers/#faq", "inLanguage": "uk", "mainEntity": [{"@type": "Question", "name": "Чому найнижча захворюваність у малих сільських округах?", "acceptedAnswer": {"@type": "Answer", "text": "Здебільшого через випадок. У малому окрузі очікують частку випадку рідкісної хвороби, тож показник на 100 000 падає в нуль або злітає до сотень. Тому малі округи опиняються і серед найздоровіших, і серед найхворіших, навіть коли справжній ризик скрізь однаковий."}}, {"@type": "Question", "name": "Що таке «найнебезпечніше рівняння»?", "acceptedAnswer": {"@type": "Answer", "text": "Так статистик Говард Вейнер 2007 року назвав рівняння де Муавра σ/√n: розкид середнього зменшується як квадратний корінь з розміру вибірки. Незнання цього правила веде до хибних висновків про малі школи, лікарні й округи."}}, {"@type": "Question", "name": "Скільки даних потрібно, щоб зменшити шум удвічі?", "acceptedAnswer": {"@type": "Answer", "text": "Учетверо більше. Відносне коливання кількості випадків дорівнює приблизно 1/√(очікуваних випадків): 25 очікуваних випадків коливаються на ±20%, 100 на ±10%, 400 на ±5%."}}, {"@type": "Question", "name": "Як чесно порівнювати малі й великі округи, школи чи лікарні?", "acceptedAnswer": {"@type": "Answer", "text": "Лійкою: показник кожного порівнюють з межами, які випадок дає для його розміру. Або скоригованим показником, який тягне малі одиниці до загального середнього. Сирий рейтинг виносить на обидва кінці тих, у кого найменше даних."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the regression-to-mean page. The signature object is the imaginary country of
+   square counties (square size = population) and the funnel plot: rate against population inside exact Poisson bands. */
+:root {
+  --tint: #E4E6EE;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--day); }
+.ctl input[type=number] { width: 130px; max-width: 100%; font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+.big.day { color: var(--day); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+.check { display: inline-flex; gap: 8px; align-items: center; font-size: .88rem; color: var(--muted); cursor: pointer; }
+.check input { accent-color: var(--day); width: 16px; height: 16px; flex: none; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.opts { display: grid; gap: 10px; }
+.opts .btn { text-align: left; font-weight: 500; line-height: 1.35; }
+.opts .btn[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 170px 1fr 56px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+.lists { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lists > div { min-width: 0; }
+.lists table { font-size: .8rem; }
+.lists th, .lists td { padding: 4px 6px; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.msg { min-height: 3em; font-weight: 500; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.7rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.6rem; }
+.vs .a b { color: var(--day); }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .84rem; color: var(--muted); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p, .esc-text li { color: var(--muted); font-size: .95rem; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; margin-top: 18px; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+th.num, td.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 1fr 48px; }
+  .crow > span:first-child { grid-column: 1 / -1; }
+  .vs, .lists { grid-template-columns: 1fr; }
+  th, td { padding: 8px 5px; }
+  table { font-size: .84rem; }
+  .tbl-wrap th, .tbl-wrap th.num { white-space: normal; letter-spacing: 0; font-size: .66rem; padding-inline: 4px; }
+  .tbl-wrap td.num { padding-inline: 4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=45aefab5">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/small-numbers/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/small-numbers/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span>Шкільна математика</button><span class="mp-level-hint" hidden>Дроби, відсотки, проста ймовірність, степені<a href="https://mathparadoxes.com/?l=2#problems">Усі задачі цього рівня →</a></span></span>
+    <h1 class="uk"><span class="kw">Найнебезпечніше рівняння</span> Найменше хворіють у тихих сільських округах. <span class="q sp-before">Чому?</span><span class="q sp-after">І найбільше теж.</span></h1>
+    
+    <p class="lead uk sp-before">Карта уявної країни: 3 000 округів, від сіл на тисячу людей до міст на мільйон. Темні квадрати позначають округи, де рідкісна хвороба трапляється найрідше. Майже всі вони маленькі й сільські. Чисте повітря? Чи щось інше? Зафіксуйте свою відповідь, а потім перевірте її в грі, на симуляції і через пояснення.</p>
+    <p class="lead uk sp-after">У найменших округах захворюваність і найнижча, і найвища, хоча справжній ризик скрізь однаковий. Мало людей означає мало випадків, і один випадок більше чи менше кидає показник у крайнощі. Абрагам де Муавр описав це рівнянням ще 1730 року. Перевірте в грі, на симуляції і через пояснення.</p>
+    
+    
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="mono" id="hero-hi">–</b><span><span class="uk">із 10% найгірших округів мають менше ніж 10 000 людей</span></span></div>
+      <div class="odd"><b>4×</b><span><span class="uk">більше людей, щоб шум став удвічі меншим</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="uk">Умова</b></a>
+      <a href="#guess"><span>1</span><b class="uk">Вгадайте</b></a>
+      <a href="#game"><span>2</span><b class="uk">Витягніть округи</b></a>
+      <a href="#sim"><span>3</span><b class="uk">Лійка</b></a>
+      <a href="#why"><span>4</span><b class="uk">Чому так</b></a>
+      <a href="#more"><span>5</span><b class="uk">Рейтинги, лікарні, A/B-тести</b></a>
+      <a href="#facts"><span>★</span><b class="uk" style="font-weight:inherit">Цікаві факти</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-map" style="height:340px"></canvas>
+    <p class="cap sp-before"><span class="uk">400 округів уявної країни. Розмір квадрата показує населення: від 1 000 до 1 000 000. Темні квадрати означають 10% округів з найнижчою захворюваністю.</span></p>
+    <p class="cap sp-after"><span class="uk">Темні квадрати означають 10% округів з найнижчою захворюваністю, пурпурові 10% з найвищою. І ті, і ті здебільшого дрібні. Справжній ризик у всіх округах однаковий.</span></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span></span>
+    <h2><span class="uk">Карта, яка просить пояснень</span></h2>
+    <p class="lead uk">Статистики Ендрю Гельман і Дебора Нолан показували студентам карту захворюваності на рак нирки в округах США. Округи з найнижчими показниками були здебільшого сільськими, на Середньому Заході, Півдні й Заході. Тут та сама історія в уявній країні, де ми знаємо всю правду.</p>
+    
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Округи</span></h3>
+        <p class="uk">3 000 округів. Населення від 1 000 до 1 000 000: третина має до 10 000 людей, третина від 10 000 до 100 000, третина від 100 000 до мільйона.</p>
+        </div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Хвороба</span></h3>
+        <p class="uk">Рідкісна хвороба. Кожен випадок за десять років записують в окружну статистику.</p>
+        </div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Показник</span></h3>
+        <p class="uk">Захворюваність = випадки ÷ населення × 100 000. Так порівнюють округи різного розміру: скільки випадків припадає на 100 000 людей.</p>
+        </div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span></h3>
+        <p class="uk">10% округів з найнижчою захворюваністю майже всі маленькі й сільські. Чому?</p>
+        </div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span></span>
+        <p class="q"><span class="uk">«У селі чисте повітря, свіжа їжа і менше стресу. Тому й хворіють рідше»</span></p>
+        <p class="uk">Але 10% округів з найвищою захворюваністю теж майже всі маленькі й сільські. Спільне в них не спосіб життя, а розмір. У селі на 1 000 людей очікують 0,25 випадку. Нуль випадків дає показник 0, один випадок одразу дає 100, вчетверо більше за справжній ризик.</p>
+        
+      </div>
+      <div class="card">
+        <h3><span class="uk">Припущення моделі</span></h3>
+        <ul class="rules uk">
+          <li>Кожна людина хворіє незалежно від інших.</li>
+          <li>Округ рахує всі свої випадки, без помилок.</li>
+          <li>Населення в межах кожної десятикратної смуги (1–10 тис., 10–100 тис., 100 тис.–1 млн) розподілене рівномірно за порядком величини.</li>
+          <li class="sp-after">Справжній ризик у всіх округах однаковий: 25 випадків на 100 000 людей.</li>
+        </ul>
+        
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span></span>
+    <h2><span class="uk">Чому найздоровіші округи сільські?</span></h2>
+    <p class="lead uk">Ось чотири пояснення, які зазвичай пропонують. Яке з них найкраще пояснює карту?</p>
+    
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <span class="note"><span class="uk">Ваша відповідь</span></span>
+      <div class="opts" id="opts">
+        <button type="button" class="btn ghost" data-o="0" aria-pressed="false"><span class="uk">Сільське життя: чисте повітря, свіжа їжа, менше стресу</span></button>
+        <button type="button" class="btn ghost" data-o="1" aria-pressed="false"><span class="uk">У селах менше лікарів, тож менше випадків знаходять</span></button>
+        <button type="button" class="btn ghost" data-o="2" aria-pressed="false"><span class="uk">Нічого особливого: у малих округах показник стрибає випадково</span></button>
+        <button type="button" class="btn ghost" data-o="3" aria-pressed="false"><span class="uk">Помилка в даних: сільські округи погано звітують</span></button>
+      </div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Оберіть відповідь. Тут з'являться 10 найздоровіших і 10 найхворіших округів уявної країни.</p>
+      
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Підказки</span>
+    <p class="mp-hints-intro">Важко вирішити? Відкривайте підказки по одній: спочатку легка, далі сильніша.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Подивіться не лише на найздоровіші округи, а й на найхворіші. Якщо причина в сільському повітрі, де мали б опинитися села в рейтингу найхворіших?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>Скільки випадків рідкісної хвороби очікують у селі на 1 000 людей, якщо ризик 25 на 100 000? А який показник на 100 000 вийде, якщо там захворіє одна людина?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>Підкиньте монетку 4 рази, а потім 100 разів. У якому разі легше отримати «дивну» частку орлів, хоча монетка та сама?</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Показати підказку 1 з 3 · легка&quot;, &quot;Показати підказку 2 з 3 · середня&quot;, &quot;Показати підказку 3 з 3 · сильна&quot;]">Показати підказку 1 з 3 · легка</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "small-numbers";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "small-numbers", RULE = {"right": [[2, 2]]}, MIN = 20, T = {"kicker": "Як відповідають інші", "few": "Відповідей поки замало для статистики: {n}. Ваша вже серед них.", "few_seen": "Відповідей поки замало для статистики: {n}.", "all": "Відповідей: {n}. Правильних серед них {p}.", "yes": "Ви серед тих, хто впорався.", "no": "Не засмучуйтеся: інтуїція підводить більшість.", "bar": "правильно", "note": "Рахуємо лише першу відповідь з кожного браузера, до того як він побачив розв'язок. Анонімно."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span></span>
+    <h2><span class="uk">Витягніть кілька округів</span></h2>
+    <p class="lead uk">Оберіть розмір округу і витягніть десяток таких. У кожному справжній ризик 25 на 100 000, пунктир показує його. Подивіться, як далеко від пунктиру падають точки сіл і міст.</p>
+    
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="presets" id="g-size" role="group" aria-label="Розмір округу / County size"></div>
+      <canvas id="game-chart" style="height:300px"></canvas>
+      <p class="msg" id="game-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn pri" id="g-draw"><span class="uk">Витягнути 10 округів</span></button>
+        <button class="btn ghost" id="g-all"><span class="uk">По 10 кожного розміру</span></button>
+        <button class="btn ghost" id="g-clear"><span class="uk">Очистити</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="uk">Що випало</span></h3>
+      <div class="tbl-wrap" style="margin-top:10px">
+        <table>
+          <thead><tr><th><span class="uk">Людей</span></th><th class="num"><span class="uk">Округів</span></th><th class="num"><span class="uk">Мін.</span></th><th class="num"><span class="uk">Макс.</span></th></tr></thead>
+          <tbody id="g-tally"></tbody>
+        </table>
+      </div>
+      <p class="note" style="margin-top:12px"><span class="uk">Округ на 1 000 людей може показати лише 0, 100, 200… на 100 000: справжніх 25 він не покаже ніколи. У 78% таких округів не буде жодного випадку, у 22% буде щонайменше 100.</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span></span>
+    <h2><span class="uk">3 000 округів у лійці</span></h2>
+    <p class="lead uk">Кожна точка означає округ: по горизонталі населення, по вертикалі захворюваність. Лінії лійки точно обчислені: між ними лежить 95% показників, які дає сам випадок для округу такого розміру. У малих округах лійка широка, у великих вузька.</p>
+    
+  </div>
+  <div class="card">
+    <div class="controls">
+      <button class="btn pri" id="sim-run"><span class="uk">Нові 3 000 округів</span></button>
+      <label class="check"><input type="checkbox" id="sim-real"><span class="uk">Дати 20 округам справді вдвічі вищий ризик: 10 великим і 10 малим</span></label>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="sim-chart" style="height:380px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--muted)"><b class="uk">округи всередині лійки</b></span>
+          <span style="--c:var(--loss)"><b class="uk">округи поза лійкою</b></span>
+          <span style="--c:var(--day)"><b class="uk">межі лійки (95%)</b></span>
+          <span style="--c:var(--win)" id="sim-real-leg" hidden><b class="uk">округи з подвоєним ризиком</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k"><span class="uk">Поза лійкою</span></div><div class="v mono" id="sim-out">–</div><div class="s" id="sim-out-s"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Округів без жодного випадку</span></div><div class="v mono" id="sim-zero">–</div><div class="s" id="sim-zero-s"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Округів з показником 100+ (учетверо вище за справжній)</span></div><div class="v mono" id="sim-100">–</div><div class="s" id="sim-100-s"></div></div>
+        <div class="tile" style="--c:var(--hit)"><div class="k"><span class="uk">Частка округів до 10 000 людей серед 10% найнижчих · 10% найвищих</span></div><div class="v mono" id="sim-small">–</div><div class="s" id="sim-small-s"></div></div>
+        <p class="note" id="sim-real-note" hidden></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Пояснення</span></span>
+    <h2><span class="uk">Чому малі числа так шумлять</span></h2>
+    <p class="lead uk">Перший шар без формул, другий з таблицею і правилом квадратного кореня, третій про історію: від монетного двору XII століття до мільярдних грантів на малі школи.</p>
+    
+  </div>
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">На пальцях</span><span class="mp-layer-desc">картинки, аналогії, маленькі числа</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «На пальцях» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Ідея (спрощено)</span></span>
+      <h3><span class="uk">У селі один випадок важить як сотня</span></h3>
+      <div class="vs">
+        <div class="bb"><span><span class="uk">Один випадок у селі на 1 000 людей</span></span><b class="mono">+100</b></div>
+        <div class="a"><span><span class="uk">Один випадок у місті на 1 000 000</span></span><b class="mono uk">+0,1</b></div>
+      </div>
+      <p class="uk">Показник рахують на 100 000 людей. У селі на тисячу один хворий одразу дає 100, а в мільйонному місті лише 0,1. Село чекає чверть випадку, тож показує або 0 (найздоровіше місце країни), або 100 і більше (одне з найхворіших). Середини для нього немає.</p>
+      
+      <p class="uk">Це ще не все пояснення: середні округи теж шумлять, лише менше. Наступні картки показують, як шум залежить від розміру.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Обидва кінці</span></span>
+      <h3><span class="uk">Спільне в найкращих і найгірших — розмір</span></h3>
+      <div class="vs">
+        <div class="a"><span><span class="uk">Із 10 найздоровіших округів раунду 1 малих (до 10 000)</span></span><b class="mono" id="why-lo">–</b></div>
+        <div class="bb"><span><span class="uk">Із 10 найхворіших</span></span><b class="mono" id="why-hi">–</b></div>
+      </div>
+      <p class="uk">Якби причиною було сільське повітря, села збиралися б лише внизу рейтингу. А вони заповнюють обидва кінці. Коли та сама група опиняється і серед найкращих, і серед найгірших, першим підозрюваним має бути не причина, а розмір вибірки.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Монетка</span></span>
+      <h3><span class="uk">4 підкидання проти 100</span></h3>
+      <div class="vs">
+        <div class="bb"><span><span class="uk">Орлів 75% і більше за 4 підкидання</span></span><b class="mono uk">31%</b></div>
+        <div class="a"><span><span class="uk">Те саме за 100 підкидань</span></span><b class="mono uk">0,00003%</b></div>
+      </div>
+      <p class="uk">Монетка та сама, чесна. Але чотири підкидання легко дають «монетку з перекосом», а сто майже ніколи. Маленький округ схожий на кілька підкидань, велике місто на тисячі.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Нуль не означає здоров'я</span></span>
+      <h3><span class="uk">Рейтинг за сирим показником нагороджує везіння</span></h3>
+      <p class="uk">Близько 450 із 3 000 округів не мають жодного випадку. Це не 450 оаз здоров'я, а 450 маленьких округів, яким цього десятиліття пощастило. Наступного десятиліття пощастить іншим, і «оазисів» буде стільки ж, але в інших місцях.</p>
+      
+      <p class="uk">Тож порівнювати село з містом за сирим показником не можна. Його треба порівнювати з тим розкидом, який випадок дає округу такого самого розміру. Саме це робить лійка з раунду 3.</p>
+      
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Строго</span><span class="mp-layer-desc">таблиці, графіки, формули</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Строго» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Таблиця</span></span>
+      <h3><span class="uk">Що випадок робить з округом кожного розміру</span></h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Людей</span></th><th class="num"><span class="uk">Чекають випадків</span></th><th class="num"><span class="uk">+1 випадок</span></th><th class="num"><span class="uk">95% округів</span></th></tr></thead>
+          <tbody>
+            <tr><td class="num" style="text-align:left"><span class="uk">1&nbsp;тис.</span></td><td class="num"><span class="uk">0,25</span></td><td class="num">100</td><td class="num">0–200</td></tr>
+            <tr><td class="num" style="text-align:left"><span class="uk">10&nbsp;тис.</span></td><td class="num"><span class="uk">2,5</span></td><td class="num">10</td><td class="num">0–60</td></tr>
+            <tr><td class="num" style="text-align:left"><span class="uk">100&nbsp;тис.</span></td><td class="num">25</td><td class="num">1</td><td class="num">16–35</td></tr>
+            <tr><td class="num" style="text-align:left"><span class="uk">1&nbsp;млн</span></td><td class="num">250</td><td class="num"><span class="uk">0,1</span></td><td class="num"><span class="uk">21,9–28,1</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="uk">Справжній ризик у всіх рядках 25. Останній стовпчик точно обчислений для випадкової кількості хворих: межі, за які виходять лише 2,5% округів знизу і 2,5% згори. Для села діапазон від нуля до восьми справжніх ризиків, для міста ±12%.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Правило квадратного кореня</span></span>
+      <h3><span class="uk">Учетверо більше людей, удвічі менший шум</span></h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th class="num" style="text-align:left"><span class="uk">Очікувано випадків</span></th><th class="num">√</th><th class="num"><span class="uk">Звичайне коливання</span></th></tr></thead>
+          <tbody>
+            <tr><td class="num" style="text-align:left">25</td><td class="num">5</td><td class="num">±20%</td></tr>
+            <tr><td class="num" style="text-align:left">100</td><td class="num">10</td><td class="num">±10%</td></tr>
+            <tr><td class="num" style="text-align:left">400</td><td class="num">20</td><td class="num">±5%</td></tr>
+            <tr><td class="num" style="text-align:left"><span class="uk">2&nbsp;500</span></td><td class="num">50</td><td class="num">±2%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="uk">Кількість випадків коливається приблизно на квадратний корінь з очікуваної: чекаєте 25, отримуєте здебільшого 20–30. Тому відносне коливання дорівнює 1/√(очікуваних випадків). Щоб зменшити його вдвічі, потрібно вчетверо більше людей, а щоб у десять разів, у сто разів більше. 95% округів вкладаються приблизно у два таких коливання.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span></span>
+      <h3><span class="uk">Рівняння де Муавра і межі лійки</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">У окрузі з n людей і ризиком p кількість випадків X майже точно має <a href="https://mathparadoxes.com/glossary/poisson-process/" class="mp-term" data-term="poisson-process" aria-expanded="false">розподіл Пуассона</a>: його <a href="https://mathparadoxes.com/glossary/variance/" class="mp-term" data-term="variance" aria-expanded="false">дисперсія</a> дорівнює <a href="https://mathparadoxes.com/glossary/median-vs-mean/" class="mp-term" data-term="mean" aria-expanded="false">середньому</a>.</span></p>
+          <math display="block"><mi>X</mi><mo>∼</mo><mtext>Poisson</mtext><mo stretchy="false">(</mo><mi>n</mi><mi>p</mi><mo stretchy="false">)</mo><mo>,</mo><mspace width="0.6em"></mspace><mi>Var</mi><mo stretchy="false">(</mo><mi>X</mi><mo stretchy="false">)</mo><mo>=</mo><mi>n</mi><mi>p</mi></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk"><a href="https://mathparadoxes.com/glossary/standard-error/" class="mp-term" data-term="standard-error" aria-expanded="false">Стандартна похибка</a> показника X/n. Це рівняння де Муавра σ/√n: розкид середнього падає як корінь з розміру вибірки.</span></p>
+          <math display="block"><mi>SE</mi><mo>=</mo><msqrt><mfrac><mi>p</mi><mi>n</mi></mfrac></msqrt><mo>=</mo><mfrac><msqrt><mi>p</mi></msqrt><msqrt><mi>n</mi></msqrt></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Наближені межі лійки та приклад для 100 000 людей (показник на 100 000, SE = 5). Точні межі Пуассона дають 16–35.</span></p>
+          <math display="block"><mi>p</mi><mo>±</mo><mn class="uk">1,96</mn><mo>·</mo><msqrt><mfrac><mi>p</mi><mi>n</mi></mfrac></msqrt></math>
+          <math display="block"><mn>25</mn><mo>±</mo><mn class="uk">1,96</mn><mo>·</mo><mn>5</mn><mo>=</mo><mn class="hl uk">15,2…34,8</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Скільки людей потрібно, щоб звузити межі в k разів.</span></p>
+          <math display="block"><msub><mi>n</mi><mtext>new</mtext></msub><mo>=</mo><msup><mi>k</mi><mn>2</mn></msup><mo>·</mo><mi>n</mi><mo>,</mo><mspace width="0.6em"></mspace><mi>k</mi><mo>=</mo><mn>2</mn><mo>⇒</mo><mn class="hl">4</mn><mo>·</mo><mi>n</mi></math>
+        </div>
+      </div>
+      <p class="uk">Лійка в раунді 3 використовує точні квантилі Пуассона, а не наближення. Через те що випадки бувають лише цілими, за межі в середньому виходить 2,9% округів, а не рівно 5%.</p>
+      
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Глибше</span><span class="mp-layer-desc">узагальнення, теорія, історія</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Глибше» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker">1730 · 2007</span>
+      <h3><span class="uk">Чому рівняння «найнебезпечніше»</span></h3>
+      <p class="uk">Абрагам де Муавр 1730 року в праці «Miscellanea Analytica» про біноміальний розподіл показав, що розкид середнього зменшується не пропорційно розміру вибірки, а як корінь з нього. 2007 року статистик Говард Вейнер у статті «The Most Dangerous Equation» в American Scientist назвав формулу σ/√n найнебезпечнішим рівнянням: не тому, що його знання шкодить, а тому, що незнання коштувало мільярди.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Мандри однієї карти</span></span>
+      <h3><span class="uk">Рак нирки: від підручника до бестселера</span></h3>
+      <p class="uk">Карту захворюваності на рак нирки в округах США Гельман і Нолан використали в книжці «Teaching Statistics: A Bag of Tricks» (2002). Вейнер розібрав її у своїй статті: округи з найнижчими 10% показників і з найвищими 10% лежать поруч, у тих самих сільських регіонах. Деніел Канеман переказав приклад у розділі 10 книжки «Мислення швидке й повільне» (2011), який так і називається: «Закон малих чисел».</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Ціна незнання</span></span>
+      <h3><span class="uk">Малі школи</span></h3>
+      <p class="uk">Серед найкращих шкіл за результатами тестів непропорційно багато малих. Наприкінці 1990-х Фонд Білла і Мелінди Гейтс почав масштабно підтримувати малі школи, до нього приєдналися інші фонди. Вейнер і Гарріс Цверлінг перевірили школи Пенсільванії і побачили, що малі школи переважають і серед найгірших: це той самий розкид, що й в округах із раку нирки. У річному листі 2009 року Білл Гейтс визнав, що багато малих шкіл, у які вкладався фонд, суттєво не покращили результатів учнів.</p>
+      
+    </div>
+
+  </div>
+  </div>
+<script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "small-numbers" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+<!-- ROUND 5: scaling up -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Масштабування</span></span>
+    <h2><span class="uk">Ціна точності, чесний рейтинг і A/B-тести</span></h2>
+    <p class="lead uk">Скільки коштує точність, як скласти рейтинг, у якому нагорі не опиняються випадкові села, і де ще ховаються малі числа.</p>
+    
+  </div>
+  <div class="esc">
+
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="uk">Сходи: щоразу вчетверо більше людей</span></h3>
+        <div class="controls" style="margin-top:14px;margin-bottom:6px">
+          <label class="ctl" for="lad"><span><span class="uk">Населення:</span> <b class="mono" id="lad-v"></b></span>
+            <input type="range" id="lad" min="0" max="7" step="1" value="2">
+          </label>
+        </div>
+        <canvas id="lad-chart" style="height:250px"></canvas>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Очікувано випадків</span></span><b class="big day mono" id="lad-m"></b></div>
+          <div><span class="k"><span class="uk">95% округів покажуть</span></span><b class="big hit mono" id="lad-b"></b></div>
+        </div>
+        <p class="note" id="lad-d" style="margin-top:10px"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Математика</span></span>
+        <h3><span class="uk">σ/√n скрізь, де є середнє</span></h3>
+        <p class="uk">Рівняння де Муавра працює для будь-якого середнього з незалежних вимірів: частки хворих, середнього балу школи, конверсії сайту, результату опитування. Розкид одного виміру σ ділиться на корінь з їх кількості.</p>
+        
+        <p class="uk">Звідси ціна точності: кожне подвоєння точності коштує вчетверо більше даних. На сходах ліворуч ширина лійки на кожному кроці падає майже рівно вдвічі, щойно очікуваних випадків більше за десяток. На нижніх щаблях вона стрибає нерівно, бо випадки бувають лише цілими. Те саме правило пояснює, чому опитування 1 000 людей має похибку близько ±3 пункти, а щоб отримати ±1,5, треба опитати 4 000 (<a href="../election-poll/" class="uk">задача про опитування</a>).</p>
+        
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="uk">Десятка «найгірших» округів: два рейтинги</span></h3>
+        <p class="note"><span class="uk">Тепер справжній ризик округів трохи різний: здебільшого в межах ±20% від 25. Складемо дві десятки найгірших: за сирим показником і за скоригованим, де до кожного округу додають 100 000 «середніх» людей із 25 випадками.</span></p>
+        <div class="tbl-wrap" style="margin-top:12px">
+          <table>
+            <thead><tr><th></th><th class="num"><span class="uk">Сирий</span></th><th class="num"><span class="uk">Скоригований</span></th></tr></thead>
+            <tbody id="sh-tbl"></tbody>
+          </table>
+        </div>
+        <div class="actions" style="margin-top:14px"><button class="btn pri" id="sh-new"><span class="uk">Нова країна</span></button></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Логіка</span></span>
+        <h3><span class="uk">Сортування за шумним показником виносить наверх найменших</span></h3>
+        <p class="uk">Будь-який рейтинг за часткою чи середнім має ту саму пастку: на обох його кінцях опиняються ті, у кого найменше даних. Найкращий хірург за 3 операції, найкращий товар з двома відгуками на 5 зірок, найгірша школа з 20 учнями.</p>
+        
+        <p class="uk">Ліків два. Лійка порівнює кожен округ з межами для його розміру і помічає лише тих, хто з них вийшов. Скоригований показник тягне малі округи до загального середнього: їхні власні дані важать мало, а великих міст поправка майже не торкається. Так працює емпіричний баєсівський підхід. Ціна в тому, що справжню біду маленького округу ні той, ні інший метод не побачить, доки даних мало.</p>
+        
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Практика</span></span>
+        <h3><span class="uk">Лікарні, школи, відгуки</span></h3>
+        <ul class="rules uk">
+          <li><b>Рейтинги лікарень.</b> Смертність після операцій у лікарні, де їх 30 на рік, стрибає набагато сильніше, ніж у лікарні з тисячею. Девід Шпігельгальтер 2005 року запропонував показувати такі дані лійкою, і в британській системі охорони здоров'я так тепер часто порівнюють лікарні.</li>
+          <li><b>Школи й класи.</b> «Найкращий клас міста» з 12 учнів може просто мати кількох сильних дітей. Наступного року він опуститься до середини, і це буде ще й <a href="../regression-to-mean/">регресія до середнього</a>.</li>
+          <li><b>Відгуки.</b> 5,0 з трьох відгуків менш надійні, ніж 4,8 з двох тисяч. Чесніше сортувати за скоригованою оцінкою, як у таблиці вище.</li>
+        </ul>
+        
+      </div>
+      <div class="card">
+        <span class="kicker"><span class="uk">Практика · A/B-тести</span></span>
+        <h3><span class="uk">Чому кейси малих сайтів хваляться +23%</span></h3>
+        <p class="note" style="margin-top:8px"><span class="uk">Найменший ліфт, який тест здатен помітити у 8 випадках із 10 при рівні значущості 5%. Змініть базову конверсію і кількість відвідувачів на варіант.</span></p>
+        <div class="controls" style="margin-top:12px;margin-bottom:4px">
+          <label class="ctl" for="ab-p"><span class="uk">Конверсія, %</span><input type="number" id="ab-p" min="0.1" max="50" step="0.1" value="3"></label>
+          <label class="ctl" for="ab-n"><span class="uk">Відвідувачів на варіант</span><input type="number" id="ab-n" min="100" step="100" value="10000"></label>
+        </div>
+        <div class="result-row" style="margin-top:6px"><div><span class="k"><span class="uk">Найменший помітний ліфт</span></span><b class="big hit mono" id="ab-mde">–</b></div></div>
+        <div class="tbl-wrap" style="margin-top:12px">
+          <table>
+            <thead><tr><th><span class="uk">Відвідувачів на варіант, конверсія 3%</span></th><th class="num"><span class="uk">Помітний ліфт</span></th></tr></thead>
+            <tbody>
+              <tr><td class="num" style="text-align:left"><span class="uk">1&nbsp;000</span></td><td class="num">71%</td></tr>
+              <tr><td class="num" style="text-align:left"><span class="uk">10&nbsp;000</span></td><td class="num"><span class="uk">22,5%</span></td></tr>
+              <tr><td class="num" style="text-align:left"><span class="uk">100&nbsp;000</span></td><td class="num"><span class="uk">7,1%</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top:12px"><span class="uk">Формула: 2,8 · √(2p(1 − p)/n) / p, де 2,8 ≈ 1,96 + 0,84. Сайт з 10 000 відвідувачів на варіант майже ніколи не помітить ліфт +5%: шум більший. Тому його опубліковані перемоги великі, і часто їх роздув той самий шум. Детальніше в задачах про <a href="../ab-test/" class="uk">A/A-тест</a><span class="uk"> і </span><a href="../multiple-testing/" class="uk">множинні перевірки</a>.</span></p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span></span>
+    <h2><span class="uk">Що розповісти друзям</span></h2>
+  </div>
+  <!-- Sources: Wainer, "The Most Dangerous Equation", American Scientist 95(3), May–June 2007 (Pyx, 1,662 Pennsylvania schools, safest/most dangerous/largest cities);
+       Tversky & Kahneman, "Belief in the law of small numbers", Psychological Bulletin 76(2), 1971; hospital problem: Kahneman & Tversky, Cognitive Psychology 3, 1972,
+       reported in Tversky & Kahneman, Science 185, 1974; Bill Gates, 2009 annual letter (Education Week, Feb 2009). -->
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1150</span>
+        <h3><span class="uk">Скринька монетного двору</span></h3>
+        <p class="uk">З XII століття англійський монетний двір проходить «суд скриньки» (Trial of the Pyx): партію монет зважують і порівнюють з еталоном. Допуск для однієї монети множили на кількість монет у партії, а не на корінь з неї. Допуск виходив надто широким: як пише Вейнер, майже 600 років монетний двір міг відбирати надто важкі монети собі, і партія все одно проходила перевірку.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">56%</span>
+        <h3><span class="uk">Дві лікарні</span></h3>
+        <p class="uk">Тверскі й Канеман питали студентів: у великій лікарні народжується 45 дітей на день, у малій 15. Де за рік буде більше днів, коли хлопчиків понад 60%? 56% відповіли «приблизно однаково». Насправді в малій лікарні таких днів 15% (близько 55 на рік), у великій 7% (близько 25).</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1971</span>
+        <h3><span class="uk">«Закон малих чисел»</span></h3>
+        <p class="uk">Так Амос Тверскі і Деніел Канеман жартома назвали статтю 1971 року в Psychological Bulletin, перекрутивши закон великих чисел. Вони показали, що навіть психологи-дослідники з добрим знанням статистики надто довіряють результатам малих вибірок.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">1&nbsp;662</span></span>
+        <h3><span class="uk">Школи Пенсільванії</span></h3>
+        <p class="uk">Стільки шкіл з 5-ми класами перевірили Вейнер і Цверлінг. Серед 50 найкращих за тестом з читання 12% були серед найменших 3% шкіл, учетверо більше, ніж дав би збіг. Але серед 50 найгірших 18% теж були найменшими.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">0</span>
+        <h3><span class="uk">Спільних міст</span></h3>
+        <p class="uk">Вейнер помітив, що десятка найбезпечніших міст США, десятка найнебезпечніших і десятка найбільших не мають жодного спільного міста. Крайні показники злочинності, як і захворюваності, найчастіше дають невеликі міста.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">1,7 млрд $</span></span>
+        <h3><span class="uk">Гранти на освіту</span></h3>
+        <p class="uk">Стільки, за даними Вейнера, Фонд Гейтса до 2001 року роздав на освітні проєкти, у розпал своєї кампанії за малі школи. 2005 року фонд почав відходити від цієї ставки, а 2009 року Білл Гейтс у річному листі визнав, що багато малих шкіл, у які він вкладався, суттєво не підвищили успішність учнів.</p>
+        
+      </article>
+  </div>
+</section>
+
+<section class="mp-books" id="books">
+  <div class="mp-related-head">
+    <span class="eyebrow">Що почитати</span>
+    <h2>Книжки, де є ця задача</h2>
+  </div>
+  <div class="mp-books-grid">
+    <div class="mp-book"><h3>Мислення швидке й повільне</h3><p class="mp-book-author">Деніел Канеман</p><p class="mp-book-meta">Наш Формат, 2017 · розділ 10</p></div>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/books/">Усі книжки →</a>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">Ще задачі</span>
+    <h2>Інші парадокси</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/will-rogers/"><h3>Феномен Вілла Роджерса</h3><p>Одна людина переходить із сильної команди в слабку. Чи може середній бал зрости в обох командах?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/simpson-paradox/"><h3>Парадокс Сімпсона</h3><p>Метод <span class="vl">A</span> лікує і малі, і великі камені в нирках краще за метод <span class="vl">B</span>. Чи може <span class="vl">B</span> бути кращим для всіх пацієнтів разом?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/regression-to-mean/"><h3>Регресія до середнього</h3><p>Після похвали гравці грають гірше, а після критики краще. Чи означає це, що критика працює?</p></a>
+  </div>
+  <p class="mp-related-all"><a href="https://mathparadoxes.com/">Усі задачі →</a> <a href="https://mathparadoxes.com/glossary/">Словник →</a></p>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Обговорення</span>
+    <h2>Що ви думаєте?</h2>
+    <p>Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub.</p>
+    <div class="mp-lvote"><p>Рівень «Шкільна математика» відповідає задачі?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">Ні, складніше</button><button type="button" data-vote="right">Так</button><button type="button" data-vote="easier">Ні, простіше</button></div><p class="mp-lvote-thanks">Дякуємо! Це допоможе точніше ставити рівні.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "small-numbers" + "-lvl", LEVEL = 2, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="small-numbers" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="uk" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Розсилка</span>
+    <h2>Нові задачі, пояснення й обговорення</h2>
+    <p>Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">Форма підписки з'явиться тут найближчим часом.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+<footer>
+  <span class="uk">Рівняння σ/√n вивів Абрагам де Муавр (1730); «найнебезпечнішим» його назвав Говард Вейнер (2007). Воно пояснює, чому найменші округи опиняються на обох кінцях будь-якого рейтингу.</span>
+  
+  <span class="mono">SE = σ/√n</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const pct = (p, d = 0) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => Math.round(n).toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const f1 = v => dec(v.toFixed(1));
+const rateTxt = v => v >= 10 || v === 0 ? fmt(v) : f1(v);
+
+/* ---------- the model ---------- */
+// every person falls ill with the same chance: 25 per 100,000 over ten years; a county's case count is Poisson(n·P)
+const P = 25e-5, PER = 1e5, TRUE = 25, N = 3000, SMALL = 1e4;
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function poisson(m, rnd) { // inversion; m is at most a few thousand here
+  if (m > 600) { let u = 0; while (!u) u = rnd(); const z = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd()); return Math.max(0, Math.round(m + Math.sqrt(m) * z)); }
+  let k = 0, pk = Math.exp(-m), c = pk; const u = rnd();
+  while (u > c && k < 5000) { k++; pk *= m / k; c += pk; }
+  return k;
+}
+// smallest k with P(X ≤ k) ≥ q
+function qpois(q, m) {
+  if (m > 600) { // exp(−m) underflows: build the pmf around the mode, unnormalised, then normalise
+    const k0 = Math.floor(m), w = Math.ceil(12 * Math.sqrt(m)), lo = Math.max(0, k0 - w), hi = k0 + w, a = new Float64Array(hi - lo + 1);
+    a[k0 - lo] = 1;
+    for (let k = k0 + 1; k <= hi; k++) a[k - lo] = a[k - 1 - lo] * m / k;
+    for (let k = k0 - 1; k >= lo; k--) a[k - lo] = a[k + 1 - lo] * (k + 1) / m;
+    const tot = a.reduce((s, v) => s + v, 0); let c = 0;
+    for (let k = lo; k <= hi; k++) { c += a[k - lo]; if (c >= q * tot) return k; }
+    return hi;
+  }
+  let k = 0, pk = Math.exp(-m), c = pk;
+  while (c < q) { k++; pk *= m / k; c += pk; }
+  return k;
+}
+const band = n => { const m = n * P; return [qpois(.025, m) / n * PER, qpois(.975, m) / n * PER]; };
+// a county: population n (log-uniform 1,000…1,000,000), cases x, observed rate r, random tie-break t
+function county(rnd, risk = P, lo = 3, hi = 6) {
+  const n = Math.round(10 ** (lo + (hi - lo) * rnd())), x = poisson(n * risk, rnd);
+  return { n, x, r: x / n * PER, t: rnd(), risk: risk * PER };
+}
+const country = (k, rnd) => Array.from({ length: k }, () => county(rnd));
+const byRate = a => [...a].sort((p, q) => p.r - q.r || p.t - q.t);
+const share = (a, f) => a.filter(f).length / a.length;
+const small = c => c.n < SMALL;
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const solved = () => !window.mpSolved || mpSolved();
+
+/* ---------- hero: a 20×20 country, square side by population ---------- */
+const HERO = country(400, mulberry(11));
+(function () {
+  const o = byRate(HERO), k = 40;
+  o.slice(0, k).forEach(c => c.g = 'lo'); o.slice(-k).forEach(c => c.g = 'hi');
+})();
+function drawHero() {
+  const s = setupCanvas($('#hero-map')); if (!s) return;
+  const { ctx, W, H } = s, cols = 20, rows = 20, cell = Math.min(W / cols, H / rows), ox = (W - cell * cols) / 2, oy = (H - cell * rows) / 2;
+  const showHi = solved();
+  HERO.forEach((c, i) => {
+    const f = (Math.log10(c.n) - 3) / 3, side = cell * (.28 + .66 * f), cx = ox + (i % cols + .5) * cell, cy = oy + (Math.floor(i / cols) + .5) * cell;
+    ctx.fillStyle = c.g === 'lo' ? tok('--ink') : c.g === 'hi' && showHi ? tok('--hit') : tok('--cell');
+    ctx.fillRect(cx - side / 2, cy - side / 2, side, side);
+  });
+}
+
+/* ---------- round 1: the guess, on a fixed country of 3,000 ---------- */
+const R1 = country(N, mulberry(2026));
+const R1o = byRate(R1), R1lo = R1o.slice(0, N / 10), R1hi = R1o.slice(-N / 10);
+const r1 = { lo: share(R1lo, small), hi: share(R1hi, small), zero: share(R1, c => c.x === 0) * N, top10: R1o.slice(-10).reverse(), bot10: R1o.slice(0, 10) };
+let guessed = null;
+$('#opts').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  guessed = +b.dataset.o;
+  $('#opts').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  guessText();
+  window.mpSolve && mpSolve(guessed);
+});
+function list(a, title) {
+  return '<div><p class="note" style="margin-bottom:4px"><b>' + title + '</b></p><table><thead><tr><th class="num" style="text-align:left">' + L('Людей', 'People') + '</th><th class="num">' + L('Випадків', 'Cases') + '</th><th class="num">' + L('Показник', 'Rate') + '</th></tr></thead><tbody>' +
+    a.map(c => '<tr><td class="num" style="text-align:left">' + fmt(c.n) + '</td><td class="num">' + c.x + '</td><td class="num">' + rateTxt(c.r) + '</td></tr>').join('') + '</tbody></table></div>';
+}
+function guessText() {
+  if (guessed === null && !(window.mpSolved && mpSolved())) return;
+  const v = [
+    L('Чисте повітря тут ні до чого. Подивіться на правий список: найхворіші округи такі самі маленькі й сільські, як і найздоровіші.', 'Clean air has nothing to do with it. Look at the right-hand list: the sickest counties are just as small and rural as the healthiest.'),
+    L('У моделі кожен випадок записано, нікого не пропущено. І якби лікарі пропускали хворих, села не опинялися б серед найхворіших. А вони там є.', 'In the model every case is recorded, none is missed. And if doctors missed patients, villages would not show up among the sickest. Yet there they are.'),
+    L('Так. Справжній ризик у всіх округах однаковий: 25 на 100 000. У маленькому окрузі очікують частку випадку, тож показник падає в нуль або злітає до сотень. Тому малі округи заповнюють обидва кінці рейтингу.', 'Right. The true risk is the same in every county: 25 per 100,000. A small county expects a fraction of a case, so its rate drops to zero or shoots up into the hundreds. That is why small counties fill both ends of the ranking.'),
+    L('Дані тут бездоганні: модель записує кожен випадок. І все одно найздоровіші й найхворіші округи маленькі. Справжній ризик у всіх однаковий: 25 на 100 000.', 'The data here is perfect: the model records every case. And still the healthiest and the sickest counties are small. The true risk is the same everywhere: 25 per 100,000.')
+  ];
+  const rows = [
+    [L('Серед 10% найнижчих округів малих (до 10 000)', 'Small counties (under 10,000) among the 10% lowest'), r1.lo, 'var(--ink)'],
+    [L('Серед 10% найвищих', 'Among the 10% highest'), r1.hi, 'var(--hit)']
+  ];
+  const head = guessed === null ? '' : '<p class="big hit mono">' + (guessed === 2 ? L('Правильно', 'Correct') : L('Не зовсім', 'Not quite')) + '</p><p>' + v[guessed] + '</p>';
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span>' + head +
+    '<div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + pct(r[1]) + '</span></div>').join('') + '</div>' +
+    '<div class="lists">' + list(r1.bot10, L('10 найздоровіших', 'The 10 healthiest')) + list(r1.top10, L('10 найхворіших', 'The 10 sickest')) + '</div>' +
+    '<p class="note">' + L('3 000 округів, справжній ризик скрізь 25 на 100 000. Округів без жодного випадку: ' + fmt(r1.zero) + ', тож «найздоровіша» десятка вибрана з них навмання. Малих округів третина, тож без впливу розміру їх було б 33% на кожному кінці.',
+      '3,000 counties, true risk 25 per 100,000 everywhere. Counties with no case at all: ' + fmt(r1.zero) + ', so the "healthiest" ten are picked from them at random. Small counties are a third of the total, so if size did not matter they would be 33% at each end.') + '</p>';
+}
+document.addEventListener('solved', () => { drawHero(); guessText(); });
+
+/* ---------- round 2: draw counties of a chosen size ---------- */
+const SIZES = [1e3, 1e4, 1e5, 1e6];
+const sizeTxt = n => n >= 1e6 ? L('1\u00a0млн', '1M') : (n / 1e3) + L('\u00a0тис.', 'k');
+let gSize = 0, gLast = null;
+const drawn = SIZES.map(() => []);
+function gDraw(i) { for (let k = 0; k < 10; k++) { const n = SIZES[i], x = poisson(n * P, Math.random); drawn[i].push({ n, x, r: x / n * PER, j: Math.random() }); } }
+$('#g-size').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gSize = +b.dataset.i; gameText(); });
+$('#g-draw').addEventListener('click', () => { gDraw(gSize); gLast = gSize; gameText(); drawGame(); });
+$('#g-all').addEventListener('click', () => { SIZES.forEach((_, i) => gDraw(i)); gLast = 'all'; gameText(); drawGame(); });
+$('#g-clear').addEventListener('click', () => { drawn.forEach(a => a.length = 0); gLast = null; gameText(); drawGame(); });
+function gameText() {
+  $('#g-size').innerHTML = SIZES.map((n, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === gSize) + '">' + fmt(n) + L(' людей', ' people') + '</button>').join('');
+  $('#g-tally').innerHTML = SIZES.map((n, i) => {
+    const a = drawn[i], nm = sizeTxt(n); if (!a.length) return '<tr><td class="num" style="text-align:left">' + nm + '</td><td class="num">0</td><td class="num">–</td><td class="num">–</td></tr>';
+    const rs = a.map(c => c.r);
+    return '<tr><td class="num" style="text-align:left">' + nm + '</td><td class="num">' + a.length + '</td><td class="num">' + rateTxt(Math.min(...rs)) + '</td><td class="num">' + rateTxt(Math.max(...rs)) + '</td></tr>';
+  }).join('');
+  let m;
+  if (gLast === null) m = L('Оберіть розмір і витягніть 10 округів. Почніть із сіл на 1 000 людей.', 'Pick a size and draw 10 counties. Start with villages of 1,000 people.');
+  else if (gLast === 'all') m = L('По 10 округів кожного розміру. Чим менший округ, тим ширше розкидані точки, хоча ризик скрізь 25.', '10 counties of every size. The smaller the county, the wider the dots scatter, although the risk is 25 everywhere.');
+  else {
+    const a = drawn[gLast].slice(-10), rs = a.map(c => c.r), z = a.filter(c => c.x === 0).length;
+    m = L('10 округів на ' + fmt(SIZES[gLast]) + ' людей: показники від ' + rateTxt(Math.min(...rs)) + ' до ' + rateTxt(Math.max(...rs)) + ' на 100 000' + (z ? ', без жодного випадку: ' + z : '') + '. Справжній ризик 25.',
+      '10 counties of ' + fmt(SIZES[gLast]) + ' people: rates from ' + rateTxt(Math.min(...rs)) + ' to ' + rateTxt(Math.max(...rs)) + ' per 100,000' + (z ? ', with no case at all: ' + z : '') + '. The true risk is 25.');
+  }
+  $('#game-msg').textContent = m;
+}
+function drawGame() {
+  const s = setupCanvas($('#game-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 70, r = 16, t = 10, b = 26, hi = 300;
+  const x = v => l + clamp(v, 0, hi) / hi * (W - l - r), lane = (H - t - b) / SIZES.length;
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [0, 50, 100, 150, 200, 250, 300].forEach(v => { ctx.beginPath(); ctx.moveTo(x(v), t); ctx.lineTo(x(v), H - b); ctx.stroke(); ctx.fillText(v === hi ? v + '+' : v, x(v), H - b + 6); });
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = tok('--ink'); ctx.beginPath(); ctx.moveTo(x(TRUE), t); ctx.lineTo(x(TRUE), H - b); ctx.stroke(); ctx.setLineDash([]);
+  SIZES.forEach((n, i) => {
+    const cy = t + (i + .5) * lane;
+    ctx.fillStyle = tok('--ink'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.font = '600 11px ' + tok('--f-mono');
+    ctx.fillText(sizeTxt(n), l - 10, cy);
+    ctx.font = '11px ' + tok('--f-mono');
+    if (i) { ctx.strokeStyle = tok('--line'); ctx.beginPath(); ctx.moveTo(l, t + i * lane); ctx.lineTo(W - r, t + i * lane); ctx.stroke(); }
+    const [blo, bhi] = band(n); ctx.fillStyle = tok('--hit-soft'); ctx.fillRect(x(blo), cy - lane * .38, Math.max(2, x(bhi) - x(blo)), lane * .76);
+    ctx.fillStyle = tok('--ink'); ctx.globalAlpha = .7;
+    drawn[i].forEach(c => { ctx.beginPath(); ctx.arc(x(c.r), cy + (c.j - .5) * lane * .6, 4, 0, 7); ctx.fill(); });
+    ctx.globalAlpha = 1;
+  });
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(L('справжній ризик 25', 'true risk 25'), x(TRUE) + 6, t + 2);
+}
+
+/* ---------- round 3: the funnel plot ---------- */
+let S3 = [], realOn = false;
+function simNew() {
+  S3 = country(N, Math.random);
+  if (realOn) for (let i = 0; i < 10; i++) { S3[i] = Object.assign(county(Math.random, 2 * P, 5, 6), { real: 1 }); S3[i + 10] = Object.assign(county(Math.random, 2 * P, 3, 4), { real: 1 }); }
+  S3.forEach(c => { const [lo, hi] = band(c.n); c.out = c.r < lo - 1e-9 ? -1 : c.r > hi + 1e-9 ? 1 : 0; });
+  simText(); drawSim();
+}
+$('#sim-run').addEventListener('click', simNew);
+$('#sim-real').addEventListener('change', e => { realOn = e.target.checked; $('#sim-real-leg').hidden = $('#sim-real-note').hidden = !realOn; simNew(); });
+function simText() {
+  const plain = S3.filter(c => !c.real), o = byRate(plain), k = Math.round(plain.length / 10);
+  $('#sim-out').textContent = pct(share(plain, c => c.out), 1);
+  $('#sim-out-s').textContent = L('точно: 2,9% (не більше 5%)', 'exact: 2.9% (at most 5%)');
+  $('#sim-zero').textContent = fmt(plain.filter(c => c.x === 0).length);
+  $('#sim-zero-s').textContent = L('точно: у середньому 454', 'exact: 454 on average');
+  $('#sim-100').textContent = fmt(plain.filter(c => c.r >= 100).length);
+  $('#sim-100-s').textContent = L('точно: у середньому 22,8', 'exact: 22.8 on average');
+  $('#sim-small').textContent = pct(share(o.slice(0, k), small)) + ' · ' + pct(share(o.slice(-k), small));
+  $('#sim-small-s').textContent = L('без впливу розміру було б 33% · 33%', 'if size did not matter: 33% · 33%');
+  if (realOn) {
+    const big = S3.filter(c => c.real && c.n >= 1e5), sm = S3.filter(c => c.real && c.n < 1e5);
+    $('#sim-real-note').textContent = L('Справжній подвоєний ризик: над лійкою ' + big.filter(c => c.out > 0).length + ' з 10 великих округів і ' + sm.filter(c => c.out > 0).length + ' з 10 малих. Точно: великий округ виходить за лійку з імовірністю 99,9%, малий лише 10%. Шум малих округів ховає навіть справжню біду.',
+      'A real doubled risk: above the funnel are ' + big.filter(c => c.out > 0).length + ' of the 10 big counties and ' + sm.filter(c => c.out > 0).length + ' of the 10 small ones. Exactly: a big county leaves the funnel with probability 99.9%, a small one only 10%. The noise of small counties hides even real trouble.');
+  }
+}
+function drawSim() {
+  const s = setupCanvas($('#sim-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 40, r = 14, t = 14, b = 30, top = 250;
+  const x = n => l + (Math.log10(n) - 3) / 3 * (W - l - r), y = v => t + (1 - clamp(v, 0, top) / top) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1;
+  [0, 50, 100, 150, 200, 250].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v === top ? v + '+' : v, l - 6, y(v)); });
+  [[1e3, '1k'], [1e4, '10k'], [1e5, '100k'], [1e6, '1M']].forEach(([n, lab]) => { ctx.beginPath(); ctx.moveTo(x(n), t); ctx.lineTo(x(n), H - b); ctx.stroke(); ctx.textAlign = n === 1e3 ? 'left' : n === 1e6 ? 'right' : 'center'; ctx.textBaseline = 'top'; ctx.fillText(lang === 'en' ? lab : lab.replace('k', ' тис.').replace('M', ' млн'), x(n), H - b + 6); });
+  // exact Poisson limits, drawn as steps
+  ctx.strokeStyle = tok('--day'); ctx.lineWidth = 2;
+  [0, 1].forEach(side => { ctx.beginPath(); for (let i = 0; i <= 240; i++) { const n = 10 ** (3 + 3 * i / 240), v = band(n)[side]; i ? ctx.lineTo(x(n), y(v)) : ctx.moveTo(x(n), y(v)); } ctx.stroke(); });
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = tok('--muted'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(l, y(TRUE)); ctx.lineTo(W - r, y(TRUE)); ctx.stroke(); ctx.setLineDash([]);
+  S3.forEach(c => {
+    if (c.real) return;
+    ctx.fillStyle = c.out ? tok('--loss') : tok('--muted'); ctx.globalAlpha = c.out ? .85 : .3;
+    ctx.beginPath();
+    if (c.r > top) { const px = x(c.n), py = y(top); ctx.moveTo(px, py - 5); ctx.lineTo(px - 3.5, py + 1); ctx.lineTo(px + 3.5, py + 1); ctx.closePath(); }
+    else ctx.arc(x(c.n), y(c.r), c.out ? 2.2 : 1.7, 0, 7);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  S3.filter(c => c.real).forEach(c => { ctx.strokeStyle = tok('--win'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x(c.n), y(c.r), 5, 0, 7); ctx.stroke(); });
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+  const tl = L('справжній ризик 25', 'true risk 25'), tw = ctx.measureText(tl).width;
+  ctx.fillStyle = tok('--surface') || '#fff'; ctx.fillRect(W - r - tw - 4, y(TRUE) - 17, tw + 4, 14);
+  ctx.fillStyle = tok('--ink'); ctx.fillText(tl, W - r - 2, y(TRUE) - 4);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(L('на 100 000 ↑ · населення →', 'per 100,000 ↑ · population →'), l + 6, t + 2);
+}
+
+/* ---------- round 4: numbers from the round 1 country ---------- */
+function whyText() {
+  $('#why-lo').textContent = r1.bot10.filter(small).length + ' / 10';
+  $('#why-hi').textContent = r1.top10.filter(small).length + ' / 10';
+  $('#hero-hi').textContent = pct(r1.hi);
+}
+
+/* ---------- round 5: the ladder ---------- */
+const LAD = Array.from({ length: 8 }, (_, k) => 1000 * 4 ** k);
+const lad = $('#lad');
+lad.addEventListener('input', () => { ladText(); drawLad(); });
+function ladText() {
+  const i = +lad.value, n = LAD[i], [lo, hi] = band(n);
+  $('#lad-v').textContent = fmt(n);
+  $('#lad-m').textContent = n * P < 10 ? dec(String(+(n * P).toFixed(2))) : fmt(n * P);
+  $('#lad-b').textContent = dec(+lo.toFixed(1) + '') + '–' + dec(+hi.toFixed(1) + '');
+  const w = hi - lo, prev = i ? band(LAD[i - 1]) : null;
+  $('#lad-d').textContent = L('Ширина смуги: ' + f1(w) + ' на 100 000' + (prev ? ', на попередньому щаблі ' + f1(prev[1] - prev[0]) + ' (у ' + dec((( prev[1] - prev[0]) / w).toFixed(2)) + ' раза ширша).' : '.'),
+    'Band width: ' + f1(w) + ' per 100,000' + (prev ? '; on the previous rung ' + f1(prev[1] - prev[0]) + ' (' + ((prev[1] - prev[0]) / w).toFixed(2) + ' times wider).' : '.'));
+}
+function drawLad() {
+  const s = setupCanvas($('#lad-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 74, r = 14, t = 6, b = 22, hi = 200, sel = +lad.value;
+  const x = v => l + clamp(v, 0, hi) / hi * (W - l - r), row = (H - t - b) / LAD.length;
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [0, 25, 50, 100, 150, 200].forEach(v => { ctx.beginPath(); ctx.moveTo(x(v), t); ctx.lineTo(x(v), H - b); ctx.stroke(); ctx.fillText(v, x(v), H - b + 5); });
+  LAD.forEach((n, i) => {
+    const [lo, hi2] = band(n), cy = t + (i + .5) * row;
+    ctx.fillStyle = i === sel ? tok('--hit') : tok('--cell');
+    ctx.fillRect(x(lo), cy - row * .32, Math.max(2, x(hi2) - x(lo)), row * .64);
+    ctx.fillStyle = i === sel ? tok('--ink') : tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.font = (i === sel ? '600 ' : '') + '11px ' + tok('--f-mono');
+    ctx.fillText(fmt(n), l - 8, cy);
+  });
+  ctx.font = '11px ' + tok('--f-mono');
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = tok('--ink'); ctx.beginPath(); ctx.moveTo(x(TRUE), t); ctx.lineTo(x(TRUE), H - b); ctx.stroke(); ctx.setLineDash([]);
+}
+
+/* ---------- round 5: raw vs adjusted ranking ---------- */
+// true risks vary: 25·exp(0.2·z − 0.02); adjusted rate = (cases + 25) / (people + 100,000), a gamma-Poisson posterior mean
+let SH = null;
+function shNew() {
+  const rnd = Math.random, cs = [];
+  for (let i = 0; i < N; i++) {
+    let u = 0; while (!u) u = rnd();
+    const z = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd()), c = county(rnd, P * Math.exp(.2 * z - .02));
+    c.adj = (c.x + 25) / (c.n + 1e5) * PER; cs.push(c);
+  }
+  const cut = [...cs].sort((a, b) => b.risk - a.risk)[N / 10 - 1].risk;
+  const top = k => [...cs].sort((a, b) => b[k] - a[k] || a.t - b.t).slice(0, 10);
+  const sum = (a, k) => a.reduce((s, c) => s + c[k], 0) / a.length;
+  const st = a => ({ pop: sum(a, 'n'), shown: sum(a, 'r'), adj: sum(a, 'adj'), risk: sum(a, 'risk'), hit: a.filter(c => c.risk >= cut).length });
+  SH = { raw: st(top('r')), adj: st(top('adj')) };
+  shText();
+}
+$('#sh-new').addEventListener('click', shNew);
+function shText() {
+  if (!SH) return;
+  const R = SH.raw, A = SH.adj, row = (k, a, b) => '<tr><td>' + k + '</td><td class="num">' + a + '</td><td class="num">' + b + '</td></tr>';
+  $('#sh-tbl').innerHTML =
+    row(L('Середнє населення', 'Average population'), fmt(R.pop), fmt(A.pop)) +
+    row(L('Показник, за яким сортували', 'Rate used for sorting'), f1(R.shown), f1(A.adj)) +
+    row(L('Справжній ризик (середній)', 'True risk (average)'), '<b>' + f1(R.risk) + '</b>', '<b>' + f1(A.risk) + '</b>') +
+    row(L('Справді серед 10% найгірших', 'Truly among the worst 10%'), R.hit + ' / 10', A.hit + ' / 10');
+}
+
+/* ---------- round 5: minimum detectable lift ---------- */
+function abText() {
+  const p = parseFloat($('#ab-p').value) / 100, n = parseFloat($('#ab-n').value);
+  if (!(p > 0 && p < 1 && n > 0)) { $('#ab-mde').textContent = '–'; return; }
+  const mde = 2.8016 * Math.sqrt(2 * p * (1 - p) / n) / p;
+  $('#ab-mde').textContent = '+' + pct(mde, mde < .1 ? 1 : 0);
+}
+$('#ab-p').addEventListener('input', abText);
+$('#ab-n').addEventListener('input', abText);
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Найнебезпечніше рівняння: чому села і найздоровіші, і найхворіші', 'The Most Dangerous Equation: Why Small Places Top Both Lists');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  guessText(); gameText(); simText(); whyText(); ladText(); shText(); abText();
+  redraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang || lang; applyLang(); });
+const redraw = () => { drawHero(); drawGame(); drawSim(); drawLad(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+
+S3 = country(N, Math.random); S3.forEach(c => { const [lo, hi] = band(c.n); c.out = c.r < lo - 1e-9 ? -1 : c.r > hi + 1e-9 ? 1 : 0; });
+shNew();
+applyLang();
+})();
+</script>
+
+<script type="application/json" id="mp-terms">{"mean": {"name": "Середнє", "short": "Сума всіх значень, поділена на їхню кількість: скільки дісталося б кожному, якби поділити порівну.", "hook": "Майже кожна людина має більше ніг, ніж у середньому: середнє трохи менше за дві.", "url": "https://mathparadoxes.com/glossary/median-vs-mean/", "link": "Спробувати на симуляції"}, "variance": {"name": "Дисперсія і стандартне відхилення", "short": "Міра розкиду: наскільки значення в середньому відходять від середнього. Стандартне відхилення — корінь з дисперсії, у тих самих одиницях.", "hook": "Два міста з однаковою середньою температурою: в одному весь рік близько +15, в іншому то −20, то +50.", "url": "https://mathparadoxes.com/glossary/variance/", "link": "Спробувати на симуляції"}, "poisson-process": {"name": "Пуассонівський потік", "short": "Потік незалежних випадкових подій зі сталою середньою частотою: дзвінки, клацання лічильника, краплі дощу.", "hook": "У 1944 році лондонцям здавалося, що німецькі літаючі бомби влучають прицільно, а це була звичайна випадкова купчастість.", "url": "https://mathparadoxes.com/glossary/poisson-process/", "link": "Спробувати на симуляції"}, "standard-error": {"name": "Стандартна похибка", "short": "Наскільки зазвичай промахується середнє чи частка, пораховані з вибірки: σ, поділене на корінь з розміру вибірки.", "hook": "Щоб удвічі зменшити похибку, треба вчетверо більше даних.", "url": "https://mathparadoxes.com/glossary/standard-error/", "link": "Спробувати на симуляції"}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'uk' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+</body>
+</html>
