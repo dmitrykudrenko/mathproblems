@@ -1436,6 +1436,13 @@ def course_url(base, lang, name=None):
     return base + "courses/" + (name + "/" if name else "") + LANG_PATH[lang]
 
 
+def other_course(mo, lang, base, where):
+    """{{C:name}}: the URL of another course, e.g. a link from one course to a chapter of another."""
+    if not (COURSES / mo.group(1) / "meta.json").exists():
+        raise SystemExit(f"{where}: unknown course {mo.group(1)}")
+    return course_url(base, lang, mo.group(1))
+
+
 def course_slugs(meta):
     """Catalogue problems of a course in chapter order, each once."""
     seen = []
@@ -1533,6 +1540,7 @@ def build_course_subpages(name, cmeta, pmeta, base):
                 return json.dumps(out, ensure_ascii=False).replace("</", "<\\/")
             body = re.sub(r"/\*PUZZLES:([\w,\s-]+)\*/", puzzles, body)
             body = re.sub(r"\{\{CH:([\w-]+)\}\}", lambda mo: curl[lang] + "#" + mo.group(1), body)
+            body = re.sub(r"\{\{C:([\w/-]+)\}\}", lambda mo: other_course(mo, lang, base, f"courses/{name}/{d.name}/page.html"), body)
             body = body.replace("{{BOOKS}}", base + "books/" + LANG_PATH[lang])
             body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
             body = body.replace("{{COURSES}}", course_url(base, lang)).replace("{{COURSE}}", curl[lang])
@@ -1618,6 +1626,8 @@ def build_courses(problems, base):
             body = re.sub(r"\{\{P:([\w-]+)\}\}", purl, body)
             # {{SUB:check}}: a subpage of this course (courses/<name>/check/)
             body = re.sub(r"\{\{SUB:([\w-]+)\}\}", lambda mo: base + "courses/" + name + "/" + mo.group(1) + "/" + LANG_PATH[lang], body)
+            # {{C:ab-testing}}: another course or its subpage ({{C:ab-testing/check}}), for links like {{C:ab-testing}}#ch-5
+            body = re.sub(r"\{\{C:([\w/-]+)\}\}", lambda mo: other_course(mo, lang, base, f"courses/{name}/page.html"), body)
             body = body.replace("{{BOOKS}}", base + "books/" + LANG_PATH[lang])
             num = {c["id"]: i + 1 for i, c in enumerate(meta["chapters"])}
             for c in meta["chapters"]:
