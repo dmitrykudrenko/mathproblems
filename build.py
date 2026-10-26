@@ -884,10 +884,72 @@ def css_link(base):
     return f'<link rel="stylesheet" href="{base}site.css?v={v}">'
 
 
+# Variant labels: a standalone Latin A, B or C in page text (variant B, players A and B) gets <span class="vl">, a thin
+# frame from site.css, so that it doesn't read as the Ukrainian «а» or «в». Cyrillic labels are marked in the source
+# by hand. In English a capital A before a capitalised word, or opening a text run before a lowercase word, is the article.
+VL_INLINE = ("a", "b", "i", "em", "strong")  # tags inside a sentence; any other tag starts new text
+VL_SKIP = ("script", "style", "svg", "canvas", "title", "textarea", "option", "select", "head", "code", "math", "sub", "sup")
+VL_TOKEN = re.compile(r"(?<![\w/.°(|∩∪-])([ABC])(?![\w/()|∩∪-])")
+VL_NOT = re.compile(r"\.\s+[A-Z]|\s+to\s+Z(?![A-Za-z])")  # an initial (C. R. Blake, Alan B. Krueger), "from A to Z"
+
+
+def mark_labels(doc, lang):
+    # scripts and styles are cut out first: their "<" would read as tags
+    raw = re.split(r"(<(script|style)\b.*?</\2>)", doc, flags=re.S | re.I)
+    return "".join(x if i % 3 == 1 else "" if i % 3 == 2 else _mark_text(x, lang) for i, x in enumerate(raw))
+
+
+def _mark_text(doc, lang):
+    parts, out, skip, prev = re.split(r"(<[^>]+>)", doc), [], [], ""
+    for k, part in enumerate(parts):
+        if part.startswith("<"):
+            m = re.match(r"<(/?)([a-zA-Z0-9]+)", part)
+            if m:
+                tag = m.group(2).lower()
+                # skipped elements: raw ones by tag, formulas by class; a skip ends when its own tag closes
+                if skip and tag == skip[-1][0] and not part.endswith("/>"):
+                    skip[-1][1] += -1 if m.group(1) else 1
+                    if not skip[-1][1]:
+                        skip.pop()
+                elif not m.group(1) and not part.endswith("/>") and (tag in VL_SKIP or re.search(r'class="[^"]*\b(formula|fx)\b', part)):
+                    skip.append([tag, 1])
+                if tag not in VL_INLINE:
+                    prev = ""
+            out.append(part)
+            continue
+        if skip or not part.strip():
+            out.append(part)
+            continue
+        # the text that follows this run, across inline tags (a term link, a bold word)
+        nxt = "".join(x for x in parts[k + 1:k + 6] if not x.startswith("<"))
+        def rep(mo, part=part, nxt=nxt, prev=prev):
+            after, before = part[mo.end():] + nxt, prev + part[:mo.start()]
+            if VL_NOT.match(after) or re.search(r"(^|\s)[A-Z]\.\s*$", before):
+                return mo.group(0)
+            if re.search(r"(Series|серія|серії)\s+$", before):
+                return mo.group(0)
+            if mo.group(1) == "A" and re.match(r"\s+[A-Z][a-z]", after) or lang == "uk" and re.match(r"\s+[a-z]{2}", after):
+                return mo.group(0)  # the article in a title: "A Case Study", also quoted on Ukrainian pages
+            if lang == "en" and mo.group(1) == "A":
+                # the article: "A $3,000 order", or "A visitor" with no word before it in the sentence
+                if re.match(r"\s+([A-Z][^\W\d_]|[$₴€£])", after):
+                    return mo.group(0)
+                b = before.rstrip()[-1:]
+                if re.match(r"\s+[a-z]", after) and not (b.isalnum() or (b and b in ",%")):
+                    return mo.group(0)
+            return f'<span class="vl">{mo.group(1)}</span>'
+        out.append(VL_TOKEN.sub(rep, part))
+        prev = (prev + part)[-60:]
+    return "".join(out)
+
+
 def write(path, doc):
     left = re.findall(r"\{\{[A-Z_:a-z0-9-]+\}\}", doc)
     if left:
         raise SystemExit(f"{path}: unfilled placeholders {sorted(set(left))}")
+    lm = re.search(r'<html lang="(uk|en)"', doc[:400])
+    if path.suffix == ".html" and lm:
+        doc = mark_labels(doc, lm.group(1))
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(doc, encoding="utf-8")
     print(f"{path.relative_to(DOCS)}  {len(doc) // 1024} KB")

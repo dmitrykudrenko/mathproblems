@@ -8,6 +8,7 @@ Bilingual (uk/en) interactive explainers of math puzzles where intuition is wron
 - **Both languages always.** Every visible text exists as `class="uk"` and `class="en"`; the build strips the other language.
 - **Math must be verified** independently (exact calculation in Python, simulation in node) before shipping.
 - Duckweed lake stays second on the home page (`order: 2`).
+- Variant labels (A, B, C) get a thin frame so they don't read as «а»/«в»: the build frames standalone Latin A/B/C in page text by itself; Cyrillic labels (А, Б, В) need `<span class="vl">А</span>` in the source.
 - Author name in English: Dmytro Kudrenko. Magenta (`--signal`) marks the counter-intuitive answer only.
 - Commit `docs/` together with the sources. Never push half-finished problem folders.
 - `~/Documents` is iCloud-synced: ignore/delete Finder duplicates like `index 3.html`, never `git add -A` blindly.
