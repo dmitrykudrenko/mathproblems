@@ -1323,14 +1323,18 @@ def term_cards(lang, terms, base, skip=None):
 
 
 def term_groups(lang, terms, groups, base):
-    """The contents page: a row of chips jumping to the themed sections, then each section with its why line and cards."""
+    """The contents page: a book-style contents (a column per theme, its terms as plain links to their cards),
+    then each themed section with its why line and cards."""
     tmap = {t["id"]: t for t in terms}
-    nav = "".join(f'<a class="gl-chip" href="#{g["id"]}">{e(g[lang]["name"])} <span>{len(g["terms"])}</span></a>' for g in groups)
+    nav = "".join(
+        f'<div class="gl-toc-col"><a class="gl-toc-lab" href="#{g["id"]}">{e(g[lang]["name"])}</a>'
+        + "".join(f'<a href="#{i}">{e(tmap[i][lang]["name"])}</a>' for i in g["terms"]) + "</div>"
+        for g in groups)
     secs = "\n".join(
         f'  <section class="gl-sec gl-group" id="{g["id"]}"><h2>{e(g[lang]["name"])}</h2><p>{e(g[lang]["why"])}</p>\n'
         f'    <ul class="gl-cards">\n{term_cards(lang, [tmap[i] for i in g["terms"]], base)}\n    </ul></section>'
         for g in groups)
-    return f'<nav class="gl-chips" aria-label="{GLOSSARY_TEXT[lang][0]}">{nav}</nav>\n{secs}'
+    return f'<nav class="gl-toc" aria-label="{GLOSSARY_TEXT[lang][0]}">{nav}</nav>\n{secs}'
 
 
 def build_glossary(problems, base):
