@@ -1343,7 +1343,7 @@ COURSE_LIST = []  # [(name, meta)], filled by build() before the problem pages
 COURSE_TEXT = {
     "uk": {"courses": "Курси", "course": "Курс", "chapter": "розділ %d з %d", "solved": "розв'язано ✓", "todo": "ще не розв'язано",
            "progress": "Пройдено <b>0</b> з %d розділів", "problems": "Задач з каталогу розв'язано: <b>0</b> з %d",
-           "reset": "Почати курс спочатку", "show": "Показати висновок",
+           "reset": "Почати курс спочатку", "show": "Показати висновок", "resume": "Продовжити з розділу",
            "needs": "Тут знадобиться те, що ви ще не пройшли:", "needs_ch": "розділ %d «%s»",
            "gate": "Висновок відкриється, коли ви розв'яжете задачу вище. Або", "gate_ch": "Висновок відкриється після вашої відповіді вище. Або",
            "more": "Що далі", "all": "Усі курси",
@@ -1351,7 +1351,7 @@ COURSE_TEXT = {
            "hub": "Тематичні шляхи для різних читачів: історія, адаптовані кейси, задачі з каталогу і терміни зі словника."},
     "en": {"courses": "Courses", "course": "Course", "chapter": "chapter %d of %d", "solved": "solved ✓", "todo": "not solved yet",
            "progress": "Done <b>0</b> of %d chapters", "problems": "Catalogue puzzles solved: <b>0</b> of %d",
-           "reset": "Start the course over", "show": "Show the takeaway",
+           "reset": "Start the course over", "show": "Show the takeaway", "resume": "Continue from chapter",
            "needs": "This builds on what you haven't done yet:", "needs_ch": "chapter %d, “%s”",
            "gate": "The takeaway opens once you solve the puzzle above. Or", "gate_ch": "The takeaway opens once you answer above. Or",
            "more": "What next", "all": "All courses",
@@ -1363,11 +1363,21 @@ COURSE_TEXT = {
 # .cs-after[data-after="slug"] waits for a solved problem, .cs-after[data-after-ch="ch-3"] for an answered chapter.
 COURSE_SCRIPT = """<script>
 (function () {
-  var T = %s, P = document.querySelector(".cs-progress"), KEY = "mp-course:" + (P ? P.dataset.course : "");
+  var T = %s, API = %s, P = document.querySelector(".cs-progress"), NAME = P ? P.dataset.course : "", KEY = "mp-course:" + NAME;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  // anonymous counters in the answer-stats worker, once per browser and key: "open", "<chapter>.r|w", page-defined events
+  window.mpCourseEvent = function (k) {
+    var mark = "mp-cev:" + NAME + ":" + k;
+    if (!API || !NAME || !window.fetch || get(mark) || get("mp-notrack") === "1") return;
+    set(mark, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: "course-" + NAME, k: k, h: 0 }) }).catch(function () {});
+  };
+  mpCourseEvent("open");
   function solved(s) { try { return !!localStorage.getItem("mp-solved:" + s); } catch (e) { return false; } }
   function done() { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { return []; } }
-  window.mpCourseDone = function (id) {
-    var d = done(); if (d.indexOf(id) === -1) { d.push(id); try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} }
+  window.mpCourseDone = function (id, right) {
+    var d = done(); if (d.indexOf(id) === -1) { d.push(id); set(KEY, JSON.stringify(d)); if (right !== undefined) mpCourseEvent(id + (right ? ".r" : ".w")); }
     paint();
   };
   window.mpCourseIsDone = function (id) { return done().indexOf(id) !== -1; };
@@ -1397,6 +1407,11 @@ COURSE_SCRIPT = """<script>
       var sl = P.dataset.slugs ? P.dataset.slugs.split(" ") : [], m = sl.filter(solved).length;
       P.querySelector(".cs-pc b").textContent = n; P.querySelector(".cs-bar i").style.width = (100 * n / ch.length) + "%%";
       var q = P.querySelector(".cs-pp b"); if (q) q.textContent = m;
+      var next = ch.filter(function (c) { return d.indexOf(c) === -1; })[0], res = P.querySelector(".cs-resume");
+      if (res) {
+        res.hidden = !n || !next;
+        if (next) { var a = document.querySelector('.cs-toc a[href="#' + next + '"]'); res.href = "#" + next; res.textContent = T.resume + " " + (a ? a.textContent.replace(/^\\s*(\\d+)\\s*/, "$1 · ") : next) + " →"; }
+      }
     }
   }
   var r = P && P.querySelector(".cs-reset");
@@ -1527,7 +1542,7 @@ def build_courses(problems, base):
             body = body.replace("<!--PROGRESS-->", f'<div class="cs-progress" data-course="{name}" data-chapters="{" ".join(chs)}" data-slugs="{" ".join(slugs)}">'
                                                    f'<span class="cs-pc">{t["progress"] % len(chs)}</span><span class="cs-bar"><i></i></span>'
                                                    f'<span class="cs-pp">{t["problems"] % len(slugs)}</span>'
-                                                   f'<button type="button" class="cs-reset">{t["reset"]}</button></div>')
+                                                   f'<a class="cs-resume" href="#" hidden></a><button type="button" class="cs-reset">{t["reset"]}</button></div>')
             more = (f'<section class="cs-ch cs-more"><h2>{t["more"]}</h2><p class="mp-related-all">'
                     f'<a href="{course_url(base, lang)}">{t["all"]} →</a><a href="{glossary_url(base, lang)}">{t["glossary"]} →</a>'
                     f'<a href="{home[lang]}#problems">{t["catalogue"]} →</a></p></section>')
@@ -1554,7 +1569,7 @@ def build_courses(problems, base):
                     {"@type": "ListItem", "position": 3, "name": m["name"], "item": urls[lang]}]},
             ]}
             h = head(lang, urls, m["title"], m["description"], img, m["og_alt"], ld, base)
-            script = COURSE_SCRIPT % json.dumps({k2: t[k2] for k2 in ("solved", "todo", "show", "gate", "gate_ch")}, ensure_ascii=False)
+            script = COURSE_SCRIPT % (json.dumps({k2: t[k2] for k2 in ("solved", "todo", "show", "gate", "gate_ch", "resume")}, ensure_ascii=False), json.dumps(STATS_API))
             if used:
                 data = {k2: {"name": v[lang]["name"], "short": v[lang]["short"], "hook": v[lang]["hook"],
                              "url": glossary_url(base, lang, v["page"]), "link": GLOSSARY_TEXT[lang][1]} for k2, v in used.items()}
