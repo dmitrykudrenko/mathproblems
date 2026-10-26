@@ -1481,6 +1481,84 @@ def courses_block(lang, base):
             f'  <div class="mp-course-grid">\n{cards}\n  </div>\n</section>')
 
 
+COURSE_EVENT_SCRIPT = """<script>
+(function () {
+  var API = %s, NAME = %s;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  window.mpCourseEvent = function (k) {
+    var mark = "mp-cev:" + NAME + ":" + k;
+    if (!API || !window.fetch || get(mark) || get("mp-notrack") === "1") return;
+    set(mark, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: "course-" + NAME, k: k, h: 0 }) }).catch(function () {});
+  };
+})();
+</script>"""
+
+
+def build_course_subpages(name, cmeta, pmeta, base):
+    """courses/<name>/<sub>/page.html + meta.json: a tool or extra page of a course, at /courses/<name>/<sub>/.
+    Placeholders as on the course page, plus {{COURSE}} (the course URL) and {{CH:ch-N}} (a chapter link).
+    The page may call mpCourseEvent(key) for anonymous counters under the course."""
+    home = {l: base + LANG_PATH[l] for l in LANGS}
+    out = []
+    for d in sorted((COURSES / name).iterdir()):
+        if not (d.is_dir() and (d / "page.html").exists() and (d / "meta.json").exists()):
+            continue
+        meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+        src = (d / "page.html").read_text(encoding="utf-8")
+        curl = {l: course_url(base, l, name) for l in LANGS}
+        urls = {l: base + "courses/" + name + "/" + d.name + "/" + LANG_PATH[l] for l in LANGS}
+        for lang in LANGS:
+            m, other, t = meta[lang], ("en" if lang == "uk" else "uk"), COURSE_TEXT[lang]
+            body = LangStripper(src, other).strip()
+            used = {}
+            k = body.find("</header>")
+            if k != -1:
+                body = body[:k] + link_terms(body[k:], lang, TERMS, base, set(), used, card=True)
+            def purl(mo):
+                if mo.group(1) not in pmeta:
+                    raise SystemExit(f"courses/{name}/{d.name}/page.html: unknown problem {mo.group(1)}")
+                return pmeta[mo.group(1)][2][lang]
+            body = re.sub(r"\{\{P:([\w-]+)\}\}", purl, body)
+            body = re.sub(r"\{\{CH:([\w-]+)\}\}", lambda mo: curl[lang] + "#" + mo.group(1), body)
+            body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
+            body = body.replace("{{COURSES}}", course_url(base, lang)).replace("{{COURSE}}", curl[lang])
+            body = body.replace("{{GLOSSARY}}", glossary_url(base, lang))
+            body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
+            body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
+            style = body[:body.index("</style>") + len("</style>")]
+            body = body[len(style):]
+            img = urls[lang] + f"og-{lang}.png" if (d / "assets" / f"og-{lang}.png").exists() else (
+                curl[lang] + f"og-{lang}.png" if (COURSES / name / "assets" / f"og-{lang}.png").exists() else base + f"og-{lang}.png")
+            ld = {"@context": "https://schema.org", "@graph": [
+                {"@type": "WebPage", "@id": urls[lang] + "#page", "url": urls[lang], "name": m["title"], "description": m["description"],
+                 "inLanguage": lang, "isAccessibleForFree": True, "author": {"@id": base + "#author"}, "image": img,
+                 "datePublished": meta["published"], "dateModified": meta["updated"],
+                 "isPartOf": {"@type": "Course", "@id": curl[lang] + "#course", "name": cmeta[lang]["name"], "url": curl[lang]}},
+                author_ld(lang, base),
+                {"@type": "BreadcrumbList", "itemListElement": [
+                    {"@type": "ListItem", "position": 1, "name": SITE_NAME[lang], "item": home[lang]},
+                    {"@type": "ListItem", "position": 2, "name": t["courses"], "item": course_url(base, lang)},
+                    {"@type": "ListItem", "position": 3, "name": cmeta[lang]["name"], "item": curl[lang]},
+                    {"@type": "ListItem", "position": 4, "name": m["name"], "item": urls[lang]}]},
+            ]}
+            h = head(lang, urls, m["title"], m["description"], img, m["og_alt"], ld, base)
+            script = COURSE_EVENT_SCRIPT % (json.dumps(STATS_API), json.dumps(name))
+            if used:
+                data = {k2: {"name": v[lang]["name"], "short": v[lang]["short"], "hook": v[lang]["hook"],
+                             "url": glossary_url(base, lang, v["page"]), "link": GLOSSARY_TEXT[lang][1]} for k2, v in used.items()}
+                script += "\n" + TERM_SCRIPT % json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+            doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
+                   f'{style}\n{css_link(base)}\n</head>\n<body>\n{script}\n{body.strip()}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
+            write(DOCS / "courses" / name / d.name / LANG_PATH[lang] / "index.html", doc)
+        for f in (d / "assets").iterdir() if (d / "assets").exists() else []:
+            if f.suffix == ".png" and f.name.startswith("og-"):
+                shutil.copy(f, DOCS / "courses" / name / d.name / f.name)
+        out.append((urls, meta["updated"]))
+    return out
+
+
 def build_courses(problems, base):
     """docs/courses/: the contents page and one page per course. Returns [(urls, lastmod)] for the sitemap."""
     pmeta = {p[0]: p for p in problems}
@@ -1526,6 +1604,8 @@ def build_courses(problems, base):
                     raise SystemExit(f"courses/{name}/page.html: unknown problem {mo.group(1)}")
                 return pmeta[mo.group(1)][2][lang]
             body = re.sub(r"\{\{P:([\w-]+)\}\}", purl, body)
+            # {{SUB:check}}: a subpage of this course (courses/<name>/check/)
+            body = re.sub(r"\{\{SUB:([\w-]+)\}\}", lambda mo: base + "courses/" + name + "/" + mo.group(1) + "/" + LANG_PATH[lang], body)
             num = {c["id"]: i + 1 for i, c in enumerate(meta["chapters"])}
             for c in meta["chapters"]:
                 if not c.get("needs"):
@@ -1581,6 +1661,7 @@ def build_courses(problems, base):
             if f.suffix == ".png" and f.name.startswith("og-"):
                 shutil.copy(f, DOCS / "courses" / name / f.name)
         out.append((urls, meta["updated"]))
+        out += build_course_subpages(name, meta, pmeta, base)
     if not COURSE_LIST:
         return out
     src = (COURSES / "index.html").read_text(encoding="utf-8")
