@@ -1521,7 +1521,19 @@ def build_course_subpages(name, cmeta, pmeta, base):
                     raise SystemExit(f"courses/{name}/{d.name}/page.html: unknown problem {mo.group(1)}")
                 return pmeta[mo.group(1)][2][lang]
             body = re.sub(r"\{\{P:([\w-]+)\}\}", purl, body)
+            # /*PUZZLES:a,b*/ inside the script: those catalogue problems as JSON (url, title and question from "share", level, hints)
+            def puzzles(mo):
+                out = []
+                for s_ in [x.strip() for x in mo.group(1).split(",") if x.strip()]:
+                    if s_ not in pmeta or not pmeta[s_][1].get("hints"):
+                        raise SystemExit(f"courses/{name}/{d.name}/page.html: PUZZLES needs a known problem with hints, not {s_}")
+                    pm = pmeta[s_][1]
+                    out.append({"s": s_, "url": pmeta[s_][2][lang], "title": pm[lang]["share"]["title"], "q": pm[lang]["share"]["description"],
+                                "level": pm["level"], "hints": pm["hints"][lang]})
+                return json.dumps(out, ensure_ascii=False).replace("</", "<\\/")
+            body = re.sub(r"/\*PUZZLES:([\w,\s-]+)\*/", puzzles, body)
             body = re.sub(r"\{\{CH:([\w-]+)\}\}", lambda mo: curl[lang] + "#" + mo.group(1), body)
+            body = body.replace("{{BOOKS}}", base + "books/" + LANG_PATH[lang])
             body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
             body = body.replace("{{COURSES}}", course_url(base, lang)).replace("{{COURSE}}", curl[lang])
             body = body.replace("{{GLOSSARY}}", glossary_url(base, lang))
@@ -1606,6 +1618,7 @@ def build_courses(problems, base):
             body = re.sub(r"\{\{P:([\w-]+)\}\}", purl, body)
             # {{SUB:check}}: a subpage of this course (courses/<name>/check/)
             body = re.sub(r"\{\{SUB:([\w-]+)\}\}", lambda mo: base + "courses/" + name + "/" + mo.group(1) + "/" + LANG_PATH[lang], body)
+            body = body.replace("{{BOOKS}}", base + "books/" + LANG_PATH[lang])
             num = {c["id"]: i + 1 for i, c in enumerate(meta["chapters"])}
             for c in meta["chapters"]:
                 if not c.get("needs"):
