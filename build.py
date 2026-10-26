@@ -1213,13 +1213,15 @@ def build_books(problems, base, books):
 #                              (a small paradox around the term, never a site puzzle's answer), its article and puzzles
 #   glossary/<page>/page.html  an article with a simulation; meta.json gives titles and the terms it explains
 #   glossary/index.html        the contents page, cards go into <!--TERMS-->
+#   glossary/index.json        its titles and "groups": themed sections with a why-it-matters line, each lists its term ids
+#                              in reading order; every term belongs to exactly one group
 # Problem pages get the first mention of every term in rounds 4-5 underlined; a click opens a card with the
 # definition, the hook and a link to the article.
 GLOSSARY = ROOT / "glossary"
 TERMS = []  # filled by build() before the problem pages
 GLOSSARY_TEXT = {
-    "uk": ("Словник", "Спробувати на симуляції", "Де це трапляється", "Інші терміни", "Усі терміни"),
-    "en": ("Glossary", "Try it in a simulation", "Where it shows up", "Other terms", "All terms"),
+    "uk": ("Словник", "Спробувати на симуляції", "Де це трапляється", "Ще в темі «%s»", "Усі терміни"),
+    "en": ("Glossary", "Try it in a simulation", "Where it shows up", "More on “%s”", "All terms"),
 }
 TERM_SCRIPT = """<script type="application/json" id="mp-terms">%s</script>
 <script>
@@ -1255,7 +1257,11 @@ def load_glossary():
     for t in terms:
         if t["page"] not in pages:
             raise SystemExit(f"glossary/terms.json: {t['id']} points to a missing article {t['page']}")
-    return terms, pages
+    groups = json.loads((GLOSSARY / "index.json").read_text(encoding="utf-8"))["groups"]
+    listed = [i for g in groups for i in g["terms"]]
+    if sorted(listed) != sorted(t["id"] for t in terms):
+        raise SystemExit("glossary/index.json: \"groups\" must list every term of terms.json exactly once")
+    return terms, pages, groups
 
 
 def glossary_url(base, lang, page=None):
@@ -1316,9 +1322,21 @@ def term_cards(lang, terms, base, skip=None):
         for t in terms if t["page"] != skip)
 
 
+def term_groups(lang, terms, groups, base):
+    """The contents page: a row of chips jumping to the themed sections, then each section with its why line and cards."""
+    tmap = {t["id"]: t for t in terms}
+    nav = "".join(f'<a class="gl-chip" href="#{g["id"]}">{e(g[lang]["name"])} <span>{len(g["terms"])}</span></a>' for g in groups)
+    secs = "\n".join(
+        f'  <section class="gl-sec gl-group" id="{g["id"]}"><h2>{e(g[lang]["name"])}</h2><p>{e(g[lang]["why"])}</p>\n'
+        f'    <ul class="gl-cards">\n{term_cards(lang, [tmap[i] for i in g["terms"]], base)}\n    </ul></section>'
+        for g in groups)
+    return f'<nav class="gl-chips" aria-label="{GLOSSARY_TEXT[lang][0]}">{nav}</nav>\n{secs}'
+
+
 def build_glossary(problems, base):
     """docs/glossary/: the contents page and one article per glossary/<page>/. Returns [(urls, lastmod)] for the sitemap."""
-    terms, pages = load_glossary()
+    terms, pages, groups = load_glossary()
+    tmap = {t["id"]: t for t in terms}
     pmeta = {p[0]: p for p in problems}
     home = {l: base + LANG_PATH[l] for l in LANGS}
     out = []
@@ -1342,7 +1360,11 @@ def build_glossary(problems, base):
                 own = {t["id"] for t in terms if t["page"] == name}
                 body = body[:k] + link_terms(body[k:], lang, terms, base, set(own), {}, card=False)
             body = body.replace("<!--PROBLEMS-->", f'<section class="gl-sec"><h2>{where}</h2>\n    <div class="mp-related-grid">\n{probs}\n    </div></section>')
-            body = body.replace("<!--TERMS-->", f'<section class="gl-sec"><h2>{others}</h2>\n    <ul class="gl-cards">\n{term_cards(lang, terms, base, skip=name)}\n    </ul></section>')
+            # the other terms of this article's group, then a link to the whole glossary
+            g = next(g for g in groups if any(tmap[i]["page"] == name for i in g["terms"]))
+            body = body.replace("<!--TERMS-->", f'<section class="gl-sec"><h2>{e(others % g[lang]["name"])}</h2>\n    <ul class="gl-cards">\n'
+                                f'{term_cards(lang, [tmap[i] for i in g["terms"]], base, skip=name)}\n    </ul>\n'
+                                f'    <p class="gl-all"><a href="{glossary_url(base, lang)}#{g["id"]}">{GLOSSARY_TEXT[lang][4]} →</a></p></section>')
             body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
             body = body.replace("{{GLOSSARY}}", glossary_url(base, lang))
             body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
@@ -1374,7 +1396,7 @@ def build_glossary(problems, base):
     for lang in LANGS:
         m, other = meta[lang], ("en" if lang == "uk" else "uk")
         body = LangStripper(src, other).strip()
-        body = body.replace("<!--TERMS-->", f'<ul class="gl-cards">\n{term_cards(lang, terms, base)}\n    </ul>')
+        body = body.replace("<!--TERMS-->", term_groups(lang, terms, groups, base))
         body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
         body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
         body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')

@@ -1,0 +1,1431 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/multi-armed-bandit/", "en": "/multi-armed-bandit/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "multi-armed-bandit";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>The Multi-Armed Bandit: Why a 10 + 10 Test Picks the Worse Machine</title>
+<meta name="description" content="Two slot machines, 60% and 50%: testing each 10 times picks the worse one 32.8% of the time. A game, a strategy race and Thompson sampling.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/multi-armed-bandit/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/multi-armed-bandit/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/multi-armed-bandit/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/multi-armed-bandit/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="The multi-armed bandit">
+<meta property="og:description" content="One slot machine wins 60% of the time, the other 50%. You test each one 10 times. How often do you pick the worse one?">
+<meta property="og:url" content="https://mathparadoxes.com/multi-armed-bandit/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/multi-armed-bandit/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Two slot machines with their win tallies and a question mark. Which one is better?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The multi-armed bandit">
+<meta name="twitter:description" content="One slot machine wins 60% of the time, the other 50%. You test each one 10 times. How often do you pick the worse one?">
+<meta name="twitter:image" content="https://mathparadoxes.com/multi-armed-bandit/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/multi-armed-bandit/en/#page", "url": "https://mathparadoxes.com/multi-armed-bandit/en/", "name": "The Multi-Armed Bandit: Why a 10 + 10 Test Picks the Worse Machine", "description": "Two slot machines, 60% and 50%: testing each 10 times picks the worse one 32.8% of the time. A game, a strategy race and Thompson sampling.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "advanced", "about": {"@type": "Thing", "name": "Multi-armed bandit", "sameAs": "https://en.wikipedia.org/wiki/Multi-armed_bandit"}, "image": "https://mathparadoxes.com/multi-armed-bandit/og-en.png", "datePublished": "2026-10-26", "dateModified": "2026-10-26", "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "citation": [{"@type": "Book", "name": "Algorithms to Live By", "author": [{"@type": "Person", "name": "Brian Christian"}, {"@type": "Person", "name": "Tom Griffiths"}], "datePublished": "2016", "isbn": "9781627790369"}], "translationOfWork": {"@id": "https://mathparadoxes.com/multi-armed-bandit/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "The multi-armed bandit", "item": "https://mathparadoxes.com/multi-armed-bandit/en/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/multi-armed-bandit/en/#faq", "inLanguage": "en", "mainEntity": [{"@type": "Question", "name": "What is the multi-armed bandit problem?", "acceptedAnswer": {"@type": "Answer", "text": "It is the problem of choosing between several options whose quality is unknown and only revealed as you play. The name comes from the slot machine, the \"one-armed bandit\". Every pull both earns a reward and teaches you something, so you have to balance exploring with exploiting."}}, {"@type": "Question", "name": "How often does a 10-pull test pick the worse of a 60% and a 50% machine?", "acceptedAnswer": {"@type": "Answer", "text": "32.8% of the time. The worse machine comes out ahead in 24.8% of tests, another 16% are ties, and the coin hands half of those to the worse one. To bring the error down to 7.7% you already need 100 pulls on each machine."}}, {"@type": "Question", "name": "Which strategy is best?", "acceptedAnswer": {"@type": "Answer", "text": "For 100 pulls on 60% and 50% machines, Thompson sampling loses 3.3 wins on average compared with someone who knows the better machine from the start. The best \"N + N\" test (16 + 16) loses 3.5, the 10 + 10 test 3.6, the greedy strategy 3.9 and an even split 5."}}, {"@type": "Question", "name": "How is a bandit different from an A/B test?", "acceptedAnswer": {"@type": "Answer", "text": "During the test a bandit shifts traffic to the better variant and earns more, but few people see the worse variant. So it knows the difference between the variants much less precisely. An A/B test is the opposite: it earns less but measures the effect accurately."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as regression-to-mean. The two slot machines with their win tallies are this problem's signature object.
+   Sources for the history and facts: Thompson, Biometrika 25 (1933) 285–294; Robbins, Bull. AMS 58 (1952) 527–535;
+   Gittins, JRSS B 41 (1979) 148–177, and Whittle's discussion of it (pp. 164–177); Lai & Robbins, Adv. Appl. Math. 6 (1985) 4–22;
+   Bartlett et al., Pediatrics 76 (1985) 479–487 (ECMO, randomised play-the-winner); Chapelle & Li, NIPS 24 (2011).
+   All numbers on the page: exact binomial sums and exact dynamic programming over (wins, losses) states, checked by simulation. */
+:root {
+  --tint: #F8E3EC;
+  --paper: #FBF5F8;
+  --surface: #FFFFFF;
+  --ink: #23161C;
+  --muted: #6B5A62;
+  --line: #E7D9DF;
+  --day: #2E2A8C;
+  --day-ink: #F3F2FF;
+  --hit: #D9318F;
+  --hit-soft: #FBE3F0;
+  --cell: #EEE6EA;
+  --c-ts: #1F6FB2;
+  --c-greedy: #B07A12;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; max-width: 260px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #fff; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+.big.day { color: var(--day); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 14px; height: 3px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.opts .btn { font-weight: 700; font-size: 1.3rem; padding: 16px; font-family: var(--f-display); }
+.opts .btn[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 170px 1fr 56px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 18px; }
+.machines { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.mach > * { min-width: 0; }
+.mach { border: 2px solid var(--ink); border-radius: 16px; padding: 14px; display: grid; gap: 10px; text-align: center; background: var(--tint); }
+.mach h3 { font-size: .95rem; }
+.mach .rate { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.1; }
+.mach .rate.best { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; }
+.mach .cnt { font-family: var(--f-mono); font-size: .82rem; color: var(--muted); }
+.mach .btn { width: 100%; }
+.status { display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.35rem; font-weight: 800; }
+.msg { min-height: 3em; font-weight: 500; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.5rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.6rem; }
+.vs .a b { color: var(--day); }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .84rem; color: var(--muted); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+th.num { white-space: normal; }
+tr.hl td { background: var(--tint); }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 1fr 48px; }
+  .crow > span:first-child { grid-column: 1 / -1; }
+  .vs { grid-template-columns: 1fr; }
+  .machines { gap: 10px; }
+  .mach { padding: 10px; }
+  th, td { padding: 7px 4px; }
+  table { font-size: .8rem; }
+  th { font-size: .7rem; }
+  .mach .btn { padding: 10px 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=45aefab5">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/en/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/multi-armed-bandit/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/multi-armed-bandit/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i></span>Advanced</button><span class="mp-level-hint" hidden>Expected value, variance, correlation, logarithms, series<a href="https://mathparadoxes.com/en/?l=3#problems">All puzzles of this level →</a></span></span><a class="mp-course" href="https://mathparadoxes.com/courses/ab-testing/en/#ch-14"><b>Course «A/B testing paradoxes»</b> · chapter 14 of 21 →</a>
+    
+    <h1 class="en"><span class="kw">The multi-armed bandit</span> Two slot machines, 10 pulls on each. <span class="q sp-before">How often do you pick the worse one?</span><span class="q sp-after">Almost one time in three.</span></h1>
+    
+    
+    <p class="lead en sp-before">One machine wins 60% of the time, the other 50%, but you don't know which is which. The plan is simple: pull each one 10 times, then spend the rest of your 100 pulls on the one that won more. How often does this plan get stuck on the worse machine? Lock in your answer, then check it with a game, a simulation and the explanations.</p>
+    <p class="lead en sp-after">Ten pulls are too few to tell 60% from 50%: the better machine often loses the test or ties it. The 10 + 10 test picks the worse machine 32.8% of the time, and the mistake is never undone. The game, the simulation and the explanations below show how to play better.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="en">32.8%</b><span><span class="en">of 10 + 10 tests pick the worse machine</span></span></div>
+      <div class="odd"><b class="en">3.3 / 3.6</b><span><span class="en">wins lost out of 100 pulls: Thompson sampling vs the 10 + 10 plan</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="en">The puzzle</b></a>
+      <a href="#guess"><span>1</span><b class="en">Guess</b></a>
+      <a href="#game"><span>2</span><b class="en">100 pulls</b></a>
+      <a href="#sim"><span>3</span><b class="en">Strategy race</b></a>
+      <a href="#why"><span>4</span><b class="en">Why it works</b></a>
+      <a href="#more"><span>5</span><b class="en">Restaurants, tests, ads</b></a>
+      <a href="#facts"><span>★</span><b class="en" style="font-weight:inherit">Fun facts</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-chart" style="height:280px"></canvas>
+    <p class="cap"><span class="en">Two machines pulled in turn. Under each: wins / pulls. Which one is better?</span></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">The puzzle</span></span>
+    <h2><span class="en">Picture this: two slot machines in front of you</span></h2>
+    
+    <p class="lead en">A slot machine with a lever on its side is nicknamed a "one-armed bandit". With several machines, and the best one to be found while you play, you get the "multi-armed bandit", one of the central problems of decision theory.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="en">The machines</span></h3>
+        
+        <p class="en">One machine wins 60% of the time, the other 50%. Every pull is independent, like a coin toss. Nobody tells you which machine is the better one.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="en">Exploring</span></h3>
+        
+        <p class="en">You pull each machine 10 times and count the wins.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="en">Playing</span></h3>
+        
+        <p class="en">You give the remaining 80 of your 100 pulls to the machine that won more. If it's a tie, you toss a coin.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="en">The question</span></h3>
+        
+        <p class="en">How often does this plan hand the 80 pulls to the worse machine?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="en">Intuition says</span></span>
+        <p class="q"><span class="en">"Ten points is a big gap. In 10 pulls the better machine will almost always pull ahead"</span></p>
+        
+        <p class="en">In fact the better machine wins the test only 59% of the time, 16% are ties, and in 25% the worse one comes out ahead. Adding half the ties, the plan picks the worse machine 32.8% of the time.</p>
+      </div>
+      <div class="card">
+        <h3><span class="en">Assumptions</span></h3>
+        
+        <ul class="rules en">
+          <li>The win probabilities never change.</li>
+          <li>Pulls are independent: a machine has no memory.</li>
+          <li>A tie in the test is settled by a coin toss.</li>
+          <li>The goal: as many wins as possible in 100 pulls.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="en">How often does the plan pick the worse machine?</span></h2>
+    
+    <p class="lead en">Ten pulls on each machine, then we play the leader, and a coin settles a tie. In what share of these tests does the 50% machine end up as the leader?</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <span class="note"><span class="en">Your answer: about</span></span>
+      <div class="opts" id="opts">
+        <button type="button" class="btn ghost" data-o="0" aria-pressed="false">5%</button>
+        <button type="button" class="btn ghost" data-o="1" aria-pressed="false">15%</button>
+        <button type="button" class="btn ghost" data-o="2" aria-pressed="false">33%</button>
+        <button type="button" class="btn ghost" data-o="3" aria-pressed="false">50%</button>
+      </div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      
+      <p class="note en">Pick an answer. The exact calculation and a simulation of 20,000 tests will appear here.</p>
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Hints</span>
+    <p class="mp-hints-intro">Hard to decide? Open the hints one at a time: the easy one first, then stronger ones.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>How many wins out of 10 do you expect from the 60% machine, and how many from the 50% one? How big is that difference?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>A score over 10 pulls easily strays 1 or 2 wins from what you expect, in either direction. What happens if the better machine strays down and the worse one up?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>Count three cases: the better one ahead, the worse one ahead, and a tie that the coin splits in half. Ties are common here, and half of them go to the worse machine.</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Show hint 1 of 3 · easy&quot;, &quot;Show hint 2 of 3 · medium&quot;, &quot;Show hint 3 of 3 · strong&quot;]">Show hint 1 of 3 · easy</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "multi-armed-bandit";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "multi-armed-bandit", RULE = {"right": [[2, 2]]}, MIN = 20, T = {"kicker": "How others answer", "few": "Too few answers for stats yet: {n}. Yours is one of them.", "few_seen": "Too few answers for stats yet: {n}.", "all": "Answers so far: {n}. {p} of them are right.", "yes": "You are among those who got it.", "no": "Don't worry: intuition fails most people here.", "bar": "right", "note": "Only the first answer from each browser counts, given before it saw the solution. Anonymous."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 2 · The game</span></span>
+    <h2><span class="en">100 pulls: play it yourself</span></h2>
+    
+    <p class="lead en">One machine wins 60% of the time, the other 50%. The computer has decided at random which is which. Pull whichever you like: explore when in doubt, play the leader when sure. After the hundredth pull the machines are revealed.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="status" id="game-status"></div>
+      <div class="machines">
+        <div class="mach" id="m0">
+          <h3><span class="en">Left machine</span></h3>
+          <div class="rate mono" id="m0-rate">?</div>
+          <div class="cnt" id="m0-cnt"></div>
+          <button class="btn pri" id="m0-pull"><span class="en">Pull</span></button>
+        </div>
+        <div class="mach" id="m1">
+          <h3><span class="en">Right machine</span></h3>
+          <div class="rate mono" id="m1-rate">?</div>
+          <div class="cnt" id="m1-cnt"></div>
+          <button class="btn pri" id="m1-pull"><span class="en">Pull</span></button>
+        </div>
+      </div>
+      <canvas id="game-strip" style="height:56px" aria-label="Історія спроб / Pull history" role="img"></canvas>
+      <p class="note" id="strip-note" style="margin-top:-10px"></p>
+      <p class="msg" id="game-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn ghost" id="game-new"><span class="en">New game</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="en">Your result and the strategies</span></h3>
+      <div class="tbl-wrap" style="margin-top:10px">
+        <table>
+          <thead><tr><th></th><th class="num"><span class="en">Wins out of 100</span></th></tr></thead>
+          <tbody id="tally"></tbody>
+        </table>
+      </div>
+      <p class="note" style="margin-top:12px" id="game-note"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="en">A race of four strategies</span></h2>
+    
+    <p class="lead en">The chart shows how many wins each strategy loses on average compared with someone who knows the better machine from the start and pulls only that one. The lines are exact; the dots come from the simulation. Use the slider to change the length of the exploration in the "N + N" plan.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="sim-n"><span><span class="en">Explore:</span> <b class="mono" id="sim-n-v">10</b> <span class="en">pulls per machine</span></span>
+        <input type="range" id="sim-n" min="1" max="50" step="1" value="10">
+      </label>
+      <button class="btn pri" id="sim-run"><span class="en">Play 2,000 games</span></button>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="sim-chart" style="height:340px" role="img" aria-label="Втрачені виграші / Wins lost"></canvas>
+        <div class="legend">
+          <span style="--c:var(--muted)"><b class="en">50/50 split</b></span>
+          <span style="--c:var(--c-greedy)"><b class="en">greedy: plays the leader from the first pull</b></span>
+          <span style="--c:var(--ink)"><b class="en">explore N + N, then the leader</b></span>
+          <span style="--c:var(--c-ts)"><b class="en">Thompson sampling</b></span>
+        </div>
+      </div>
+      <div class="tiles" id="sim-tiles"></div>
+    </div>
+    <p class="note" style="margin-top:14px" id="sim-note"></p>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 4 · Explanations</span></span>
+    <h2><span class="en">Explore or exploit</span></h2>
+    
+    <p class="lead en">Every pull does two jobs at once: it earns a win and it teaches you about the machine. The more you explore, the less you earn now. The less you explore, the more often you earn in the wrong place.</p>
+  </div>
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">In plain words</span><span class="mp-layer-desc">pictures, analogies, small numbers</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“In plain words” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">The core · not the whole story</span></span>
+      <h3><span class="en">Ten pulls are too few</span></h3>
+      <div class="vs">
+        <div class="bb"><span><span class="en">The 60% machine wins 5 times or fewer out of 10</span></span><b class="mono en">37%</b></div>
+        <div class="a"><span><span class="en">The 50% machine wins 6 times or more out of 10</span></span><b class="mono en">38%</b></div>
+      </div>
+      
+      <p class="en">You expect 6 wins out of 10 from the 60% machine and 5 from the 50% one. But chance easily shifts each count by 1 or 2 wins either way. A one-win difference drowns in that noise, which is why the test is wrong so often. This card only explains why the test fails; the next ones say what to do about it.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">The cost of haste</span></span>
+      <h3><span class="en">The mistake is locked in</span></h3>
+      
+      <p class="en">After the test the plan never looks back. If it picked the wrong machine, all 80 pulls go where the win rate is 10 points lower: that is 8 lost wins. It happens in a third of games, and that is where the plan loses most.</p>
+      
+      <p class="en">The greedy strategy, which plays the leader from the very first pull, is worse: one bad start for the better machine, and it may never go back to it.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">The cost of caution</span></span>
+      <h3><span class="en">Exploring forever is costly too</span></h3>
+      
+      <p class="en">You could split all 100 pulls evenly and never pick wrong, because you never pick at all. Then 50 pulls are guaranteed to go to the worse machine: 5 lost wins, more than the 10 + 10 plan loses.</p>
+      
+      <p class="en">The best test length for 100 pulls lies in between: 16 + 16. Even that loses 3.5 wins, and to find it you need to know in advance that the machines differ by exactly 10 points.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Smarter</span></span>
+      <h3><span class="en">Keep doubting, but less and less</span></h3>
+      
+      <p class="en">Thompson sampling doesn't split the game into a test and the earning. Before each pull it estimates how likely it is that the left machine is the better one, and pulls it with that probability. While data are scarce, the machines get almost equal pulls. Once a leader pulls clearly ahead, the worse one gets fewer and fewer, but never none.</p>
+      
+      <p class="en">It fixes an early mistake: if the worse machine got lucky early, the better one still gets an occasional pull and wins back the lead. That is why the worse machine gets more than half of the pulls in only 22% of games, not 33%.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Rigorous</span><span class="mp-layer-desc">tables, charts, formulas</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Rigorous” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">Odds in 10 pulls</span></span>
+      <h3><span class="en">How many wins each machine gives</span></h3>
+      <canvas id="binom-chart" style="height:220px" role="img" aria-label="Шанс k виграшів з 10 / Chance of k wins out of 10"></canvas>
+      <div class="legend" style="margin-top:0">
+        <span style="--c:var(--ink)"><b class="en">the 60% machine</b></span>
+        <span style="--c:var(--muted)"><b class="en">the 50% machine</b></span>
+      </div>
+      
+      <p class="en">The chance of exactly k wins out of 10. The bars of the two machines overlap almost completely: the better machine's most likely result (6 wins) comes up in 25% of tests, the worse machine's (5 wins) in 25%. For the test to go wrong it is enough for each machine to stray one win towards the other.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Length of the exploration</span></span>
+      <h3><span class="en">The exact table for the N + N plan</span></h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th class="num">N</th>
+            <th class="num"><span class="en">Worse ahead</span></th>
+            <th class="num"><span class="en">Tie</span></th>
+            <th class="num"><span class="en">Worse picked</span></th>
+            <th class="num"><span class="en">Lost</span></th>
+          </tr></thead>
+          <tbody id="etc-tbl"></tbody>
+        </table>
+      </div>
+      
+      <p class="en">"Worse picked" is the "worse ahead" share plus half the ties. The losses out of 100 pulls: every pull of the worse machine costs 0.1 win, and it gets N pulls in the exploration plus 100 − 2N more if it is picked. A longer exploration errs less often but costs more in itself. The losses are smallest at N = 16.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">For formula lovers</span></span>
+      <h3><span class="en">The binomial test, the losses and Thompson's rule</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">The chance of k wins in n pulls of a machine with win probability p.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mi>k</mi><mo stretchy="false">)</mo><mo>=</mo><mrow><mo>(</mo><mfrac linethickness="0"><mi>n</mi><mi>k</mi></mfrac><mo>)</mo></mrow><msup><mi>p</mi><mi>k</mi></msup><msup><mrow><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false">)</mo></mrow><mrow><mi>n</mi><mo>−</mo><mi>k</mi></mrow></msup></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">The chance of picking the worse machine: the worse one ahead plus half the ties. The better one scores i, the worse one j.</span></p>
+          <math display="block"><msub><mi>P</mi><mtext>err</mtext></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>j</mi><mo>&gt;</mo><mi>i</mi></mrow></munder><msub><mi>P</mi><mn>60</mn></msub><mo stretchy="false">(</mo><mi>i</mi><mo stretchy="false">)</mo><msub><mi>P</mi><mn>50</mn></msub><mo stretchy="false">(</mo><mi>j</mi><mo stretchy="false">)</mo><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>P</mi><mn>60</mn></msub><mo stretchy="false">(</mo><mi>i</mi><mo stretchy="false">)</mo><msub><mi>P</mi><mn>50</mn></msub><mo stretchy="false">(</mo><mi>i</mi><mo stretchy="false">)</mo></math>
+          <math display="block"><mi>n</mi><mo>=</mo><mn>10</mn><mo>:</mo><mspace width="0.5em"></mspace><mn class="en">0.2482</mn><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>·</mo><mn class="en">0.1600</mn><mo>=</mo><mn class="hl en">0.3282</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">The losses of the N + N plan over T pulls with a gap Δ = 0.1 between the machines.</span></p>
+          <math display="block"><mi>Δ</mi><mo>·</mo><mo stretchy="false">(</mo><mi>N</mi><mo>+</mo><mo stretchy="false">(</mo><mi>T</mi><mo>−</mo><mn>2</mn><mi>N</mi><mo stretchy="false">)</mo><mo>·</mo><msub><mi>P</mi><mtext>err</mtext></msub><mo stretchy="false">)</mo></math>
+          <math display="block"><mn class="en">0.1</mn><mo>·</mo><mo stretchy="false">(</mo><mn>10</mn><mo>+</mo><mn>80</mn><mo>·</mo><mn class="en">0.3282</mn><mo stretchy="false">)</mo><mo>=</mo><mn class="hl en">3.63</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Thompson's rule: after w wins and l losses, the unknown probability of a machine is described by a Beta(w + 1, l + 1) distribution. Draw one random number from each and pull the machine with the larger one. That way each machine is pulled with the probability that it is the better one.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mtext class="lbl en">pull left</mtext><mo stretchy="false">)</mo><mo>=</mo><mi>P</mi><mo stretchy="false">(</mo><msub><mi>θ</mi><mtext>L</mtext></msub><mo>&gt;</mo><msub><mi>θ</mi><mtext>R</mtext></msub><mo>∣</mo><mtext class="lbl en">data</mtext><mo stretchy="false">)</mo></math>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Deeper</span><span class="mp-layer-desc">generalisations, theory, history</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Deeper” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">History</span></span>
+      <h3><span class="en">From medicines to slot machines</span></h3>
+      
+      <p class="en">William Thompson first posed the problem in Biometrika in 1933. He was asking how to divide patients between two treatments when one of them may be better but nobody yet knows which. His answer, give each treatment with the probability that it is the better one, is now called Thompson sampling.</p>
+      
+      <p class="en">In 1952 Herbert Robbins, in "Some aspects of the sequential design of experiments", stated the problem rigorously: how to choose step by step what to measure next so that, in a long game, the <a href="https://mathparadoxes.com/glossary/median-vs-mean/en/" class="mp-term" data-term="mean" aria-expanded="false">average</a> win approaches the best one. Modern theory grew from there.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Why it is hard</span></span>
+      <h3><span class="en">Every pull changes what you know</span></h3>
+      
+      <p class="en">The best strategy would have to account for every possible future score, and their number grows explosively. For a long time no exact simple solution was thought to exist. In 1979 John Gittins showed that for an endless game where future wins are gradually discounted, it is enough to compute one number for each machine, the Gittins index, and pull the machine with the largest one. For a finite game, like our 100 pulls, there is no such simple rule.</p>
+      
+      <p class="en">The exact numbers on this page come from going through every possible score (wins and losses on each machine): for 100 pulls that is about 4.6 million states.</p>
+    </div>
+
+  </div>
+  </div>
+
+<script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "multi-armed-bandit" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 5 · Scaling up</span></span>
+    <h2><span class="en">The long game, restaurants and A/B tests</span></h2>
+    
+    <p class="lead en">What happens with 100,000 pulls instead of 100; where this dilemma turns up in everyday life; and why a bandit that earns more than an A/B test ends up knowing less.</p>
+  </div>
+  <div class="esc">
+
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="en">Wins lost over a long game</span></h3>
+        <div class="tbl-wrap" style="margin-top:10px">
+          <table>
+            <thead><tr>
+              <th><span class="en">Strategy</span></th>
+              <th class="num">100</th><th class="num">1 000</th><th class="num">10 000</th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="en">50/50 split</span></td><td class="num">5</td><td class="num">50</td><td class="num">500</td></tr>
+              <tr><td><span class="en">Greedy</span></td><td class="num"><span class="en">3.9</span></td><td class="num">≈ 37</td><td class="num">≈ 370</td></tr>
+              <tr><td><span class="en">Best N + N exploration</span></td><td class="num"><span class="en">3.5</span></td><td class="num"><span class="en">16.2</span></td><td class="num"><span class="en">36.1</span></td></tr>
+              <tr class="hl"><td><span class="en">Thompson sampling</span></td><td class="num"><span class="en">3.3</span></td><td class="num">≈ 12</td><td class="num">≈ 21</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top:10px"><span class="en">The same 60% and 50% machines; the columns are the number of pulls. For 100 pulls the numbers are exact; for 1,000 and 10,000 the "best exploration" is exact (N = 99 and N = 276), and the rest come from simulations of 1,000 to 4,000 games.</span></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">The maths</span></span>
+        <h3><span class="en">A good strategy loses ever more slowly</span></h3>
+        
+        <p class="en">The greedy strategy gets stuck on the worse machine in roughly one game in three, so its losses grow in proportion to the length of the game: ten times the pulls, ten times the losses. The best N + N exploration grows more slowly, but it requires knowing the gap between the machines in advance.</p>
+        
+        <p class="en">Thompson sampling knows nothing in advance, yet loses least: from 1,000 to 10,000 pulls its losses grow by about 9 wins, the greedy strategy's by over 300. In 1985 Tze Leung Lai and Herbert Robbins proved that no strategy can, over a long game, lose less than in proportion to the logarithm of the number of pulls. Every tenfold increase of the game adds roughly the same portion of losses. Thompson sampling reaches this limit.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">The logic</span></span>
+        <h3><span class="en">Your favourite restaurant or a new one?</span></h3>
+        
+        <p class="en">The same dilemma every day: order your favourite dish or try a new one, go to the trusted restaurant or a new one, hire someone you know or keep looking. Every choice both brings pleasure and gives knowledge for the future.</p>
+        
+        <p class="en">The key is how much of the game is left. For 100 pulls the best exploration is 16 + 16; for 1,000 it is already 99 + 99. Someone who has just moved to a new city should try new places; someone leaving next week is better off at a trusted one. The problem of choosing the best candidate has a similar logic: the <a class="en" href="../../secretary-problem/en/">37% rule</a> also says explore first, then choose.</p>
+        
+        <p class="en">And one more thing: the greedy strategy, which always goes with the current leader, gets stuck most often. "I didn't like it there once, never again" is exactly that strategy.</p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">Practice</span></span>
+        <h3><span class="en">Bandit vs A/B test: earn or learn</span></h3>
+        
+        <p class="en">The same two variants at 60% and 50%, 1,000 visitors. An A/B test splits them evenly: 550 conversions, and the difference between the variants is known to within ±6.1 points (95%). A bandit with Thompson sampling gets about 588 conversions on average, 38 more. But the worse variant is seen by few people: under 90 in half the runs, and 23 or fewer in one run in ten. So in a typical run the difference is known only to within about ±11 points: the bandit knows who is better, but not well by how much.</p>
+        
+        <p class="en">Questions to ask a service selling "AI optimisation": will it show the difference between the variants with an error margin? What happens if conversion shifts by weekday or through novelty? Is there a minimum share of traffic for each variant? More on bandits in tests is on the <a class="en" href="../../ab-test-peeking/en/">peeking at an A/B test</a> page, and on noise in tests on <a class="en" href="../../ab-test/en/">"Two identical pages"</a>.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1933</span>
+        <h3><span class="en">A problem about medicines</span></h3>
+        
+        <p class="en">William Thompson's paper in Biometrika (vol. 25, 1933) was titled "On the likelihood that one unknown probability exceeds another in view of the evidence of two samples". It says nothing about slot machines: Thompson was thinking about choosing between treatments.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1952</span>
+        <h3><span class="en">Robbins and sequential experiments</span></h3>
+        
+        <p class="en">Herbert Robbins set out the problem in "Some aspects of the sequential design of experiments" in the Bulletin of the American Mathematical Society (vol. 58, 1952). It grew out of an address he gave in Auburn, Alabama, in November 1951.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">WWII</span>
+        <h3><span class="en">Intellectual sabotage</span></h3>
+        
+        <p class="en">In the discussion of Gittins's 1979 paper, Peter Whittle recalled that Allied scientists struggled with the bandit problem during the Second World War. It drained them so much that someone suggested dropping it over Germany as the ultimate weapon of intellectual sabotage.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1979</span>
+        <h3><span class="en">The Gittins index</span></h3>
+        
+        <p class="en">John Gittins published "Bandit processes and dynamic allocation indices" in the Journal of the Royal Statistical Society, Series B. He showed that in an endless game with discounted future wins, each machine can be given one number, and you always pull the machine with the largest.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">11 : 1</span>
+        <h3><span class="en">A trial that convinced few</span></h3>
+        
+        <p class="en">In 1985 Robert Bartlett's team tested ECMO, a heart-lung bypass machine for newborns, using a "play the winner" design: the better a treatment does, the more patients it gets. Eleven babies got ECMO and all survived; one got conventional treatment and died. With a single patient in the control group, few believed the result, and new trials were needed.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2011</span>
+        <h3><span class="en">Thompson's second life</span></h3>
+        
+        <p class="en">For almost 80 years Thompson's method stayed in the shadows. In 2011 Olivier Chapelle and Lihong Li of Yahoo! Research showed on ad selection and news recommendation that it is highly competitive with the best modern methods. Since then it has been used in advertising, recommendations and website testing.</p>
+      </article>
+  </div>
+</section>
+
+<section class="mp-books" id="books">
+  <div class="mp-related-head">
+    <span class="eyebrow">Further reading</span>
+    <h2>Books that discuss this puzzle</h2>
+  </div>
+  <div class="mp-books-grid">
+    <div class="mp-book"><h3>Algorithms to Live By</h3><p class="mp-book-author">Brian Christian, Tom Griffiths</p><p class="mp-book-meta">2016 · chapter 2</p></div>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/books/en/">All books →</a>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">More puzzles</span>
+    <h2>Other paradoxes</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/persuadables/en/"><h3>Who gets the coupon?</h3><p>A perfect model finds the 250 likeliest buyers, and they get discount coupons. How many purchases does that add?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/monty-hall/en/"><h3>The Monty Hall problem</h3><p>You&#x27;re on a game show and pick one of three doors. The host, who knows where the car is, opens another door to reveal a goat and offers a switch. Should you take it?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/birthday/en/"><h3>The birthday paradox</h3><p>How many people must be in a room before two of them probably share a birthday?</p></a>
+  </div>
+  <p class="mp-related-all"><a href="https://mathparadoxes.com/en/">All puzzles →</a> <a href="https://mathparadoxes.com/glossary/en/">Glossary →</a></p>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Discussion</span>
+    <h2>What do you think?</h2>
+    <p>Share your own explanation, an objection or a variant of the puzzle. You need a GitHub account to comment.</p>
+    <div class="mp-lvote"><p>Is “Advanced” the right level for this puzzle?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">No, harder</button><button type="button" data-vote="right">Yes</button><button type="button" data-vote="easier">No, easier</button></div><p class="mp-lvote-thanks">Thank you! This helps set the levels right.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "multi-armed-bandit" + "-lvl", LEVEL = 3, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="multi-armed-bandit" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="en" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Newsletter</span>
+    <h2>New puzzles, explanations and discussions</h2>
+    <p>I keep adding new puzzles, new ways to explain them and write-ups of the discussions they start. Leave your email and I'll write when something new is out. No spam, one-click unsubscribe.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">The sign-up form will appear here soon.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+<footer>
+  
+  <span class="en">The multi-armed bandit was posed by William Thompson (1933) and stated rigorously by Herbert Robbins (1952). It explains why exploration that stops too early locks in mistakes.</span>
+  <span class="mono">P(10 + 10 → worse) = 0.328</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? s : String(s).replace('.', ',');
+const pct = (p, d = 0) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const f1 = v => dec(v.toFixed(1));
+const f2 = v => dec(v.toFixed(2));
+
+/* ---------- maths ---------- */
+const PB = .6, PW = .5, GAP = PB - PW, T = 100;
+// exact binomial pmf
+function pmf(n, p) {
+  const out = [];
+  let c = 1;
+  for (let k = 0; k <= n; k++) { out.push(c * Math.pow(p, k) * Math.pow(1 - p, n - k)); c = c * (n - k) / (k + 1); }
+  return out;
+}
+// explore N + N: P(worse strictly ahead), P(tie), P(worse picked)
+function etc(n) {
+  const A = pmf(n, PB), B = pmf(n, PW);
+  let ahead = 0, tie = 0, tailB = 0;
+  for (let i = n; i >= 0; i--) { ahead += A[i] * tailB; tie += A[i] * B[i]; tailB += B[i]; }
+  return { ahead, tie, wrong: ahead + tie / 2 };
+}
+// exact expected wins lost by pull t for the N + N plan (exploration alternates, the first machine is random)
+function etcCurve(n) {
+  const w = n >= T / 2 ? 0 : etc(n).wrong, out = [];
+  for (let t = 0; t <= T; t++) out.push(t <= 2 * n ? GAP * t / 2 : GAP * (n + (t - 2 * n) * w));
+  return out;
+}
+// exact curves (dynamic programming over every (wins, losses) state of both machines, 0.6 vs 0.5, 100 pulls)
+const GREEDY = [0,0.05,0.1,0.14,0.19,0.23,0.27,0.32,0.36,0.4,0.44,0.48,0.52,0.56,0.6,0.64,0.68,0.72,0.76,0.8,0.84,0.88,0.92,0.96,1.0,1.04,1.08,1.12,1.16,1.2,1.24,1.28,1.31,1.35,1.39,1.43,1.47,1.51,1.55,1.59,1.62,1.66,1.7,1.74,1.78,1.82,1.86,1.9,1.93,1.97,2.01,2.05,2.09,2.13,2.17,2.2,2.24,2.28,2.32,2.36,2.39,2.43,2.47,2.51,2.55,2.58,2.62,2.66,2.7,2.74,2.78,2.81,2.85,2.89,2.93,2.97,3.0,3.04,3.08,3.12,3.15,3.19,3.23,3.27,3.31,3.35,3.38,3.42,3.46,3.5,3.53,3.57,3.61,3.65,3.69,3.72,3.76,3.8,3.84,3.87,3.91];
+const TS = [0,0.05,0.1,0.14,0.19,0.24,0.28,0.33,0.37,0.41,0.45,0.49,0.54,0.58,0.62,0.66,0.7,0.74,0.77,0.81,0.85,0.89,0.93,0.96,1.0,1.04,1.07,1.11,1.15,1.18,1.22,1.25,1.29,1.32,1.36,1.39,1.43,1.46,1.5,1.53,1.56,1.6,1.63,1.66,1.69,1.73,1.76,1.79,1.82,1.85,1.89,1.92,1.95,1.98,2.01,2.04,2.07,2.1,2.13,2.16,2.19,2.22,2.25,2.28,2.31,2.34,2.37,2.4,2.43,2.46,2.48,2.51,2.54,2.57,2.6,2.63,2.65,2.68,2.71,2.74,2.76,2.79,2.82,2.85,2.87,2.9,2.92,2.95,2.98,3.0,3.03,3.06,3.08,3.11,3.13,3.16,3.19,3.21,3.23,3.26,3.29];
+// exact P(the worse machine got more than 50 of the 100 pulls)
+const P_STUCK = { greedy: .3813, ts: .2214 };
+const SPLIT = Array.from({ length: T + 1 }, (_, t) => GAP * t / 2);
+
+// random helpers: normal, gamma (Marsaglia-Tsang), beta
+function randn() { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); }
+function gamma(a) {
+  if (a < 1) return gamma(a + 1) * Math.pow(Math.random(), 1 / a);
+  const d = a - 1 / 3, c = 1 / Math.sqrt(9 * d);
+  for (;;) {
+    let x, v; do { x = randn(); v = 1 + c * x; } while (v <= 0);
+    v = v * v * v; const u = Math.random();
+    if (u < 1 - .0331 * x * x * x * x) return d * v;
+    if (Math.log(u) < .5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+  }
+}
+const beta = (a, b) => { const x = gamma(a); return x / (x + gamma(b)); };
+const coin = () => Math.random() < .5 ? 0 : 1;
+// one game of T pulls; machine 0 is the better one. Returns the worse machine's pull count after each pull.
+function play(strat, n) {
+  const s = [0, 0], k = [0, 0], worse = [0];
+  let commit = -1;
+  for (let t = 0; t < T; t++) {
+    let a;
+    if (strat === 'split') a = t % 2;
+    else if (strat === 'etc') {
+      if (t < 2 * n) a = t % 2;
+      else { if (commit < 0) commit = s[0] > s[1] ? 0 : s[1] > s[0] ? 1 : coin(); a = commit; }
+    } else if (strat === 'greedy') {
+      if (!k[0] && !k[1]) a = coin(); else if (!k[0]) a = 0; else if (!k[1]) a = 1;
+      else { const d = s[0] * k[1] - s[1] * k[0]; a = d > 0 ? 0 : d < 0 ? 1 : coin(); }
+    } else a = beta(s[0] + 1, k[0] - s[0] + 1) > beta(s[1] + 1, k[1] - s[1] + 1) ? 0 : 1;
+    s[a] += Math.random() < (a ? PW : PB) ? 1 : 0; k[a]++;
+    worse.push(k[1]);
+  }
+  return worse;
+}
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+function rrect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+/* ---------- hero: two machines pulled in turn ---------- */
+const hero = { s: [0, 0], k: [0, 0], last: [-1, -1], pulling: -1, t: 0, timer: null, p: [PB, PW] };
+function heroStep() {
+  if (hero.t >= 40) { hero.s = [0, 0]; hero.k = [0, 0]; hero.last = [-1, -1]; hero.t = 0; hero.p = coin() ? [PB, PW] : [PW, PB]; }
+  const a = hero.t % 2, r = Math.random() < hero.p[a] ? 1 : 0; // 60% and 50%, reassigned at random every 40 pulls
+  hero.s[a] += r; hero.k[a]++; hero.last[a] = r; hero.pulling = a; hero.t++;
+  drawHero();
+  setTimeout(() => { hero.pulling = -1; drawHero(); }, 260);
+}
+function heroStart() {
+  clearInterval(hero.timer); hero.timer = null;
+  if (reduce()) { hero.s = [7, 6]; hero.k = [12, 12]; hero.last = [1, 0]; hero.pulling = -1; drawHero(); return; }
+  hero.timer = setInterval(heroStep, 900);
+  drawHero();
+}
+function drawHero() {
+  const s = setupCanvas($('#hero-chart')); if (!s) return;
+  const { ctx, W, H } = s, ink = tok('--ink'), mut = tok('--muted'), tint = tok('--tint') || '#F8E3EC', surf = tok('--surface') || '#fff';
+  const mw = Math.min(150, (W - 110) / 2), gap = (W - 2 * mw - 52) / 3;
+  [0, 1].forEach(i => {
+    const x = gap + i * (mw + 26 + gap), y = 22, h = H - 70;
+    ctx.fillStyle = tint; ctx.strokeStyle = ink; ctx.lineWidth = 2;
+    rrect(ctx, x, y, mw, h, 16); ctx.fill(); ctx.stroke();
+    // top sign
+    ctx.fillStyle = ink; ctx.font = '800 13px ' + tok('--f-display'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(i ? L('ПРАВИЙ', 'RIGHT') : L('ЛІВИЙ', 'LEFT'), x + mw / 2, y + 20);
+    // window with the last result
+    const wx = x + 14, wy = y + 40, ww = mw - 28, wh = Math.min(70, h - 110);
+    ctx.fillStyle = surf; rrect(ctx, wx, wy, ww, wh, 10); ctx.fill(); ctx.stroke();
+    const cx = wx + ww / 2, cy = wy + wh / 2, rr = Math.min(22, wh / 2 - 8);
+    if (hero.last[i] === 1) { ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 7); ctx.fill(); ctx.fillStyle = surf; ctx.font = '800 16px ' + tok('--f-display'); ctx.fillText('1', cx, cy + 1); }
+    else if (hero.last[i] === 0) { ctx.strokeStyle = mut; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 7); ctx.stroke(); ctx.fillStyle = mut; ctx.font = '800 16px ' + tok('--f-display'); ctx.fillText('0', cx, cy + 1); }
+    else { ctx.fillStyle = mut; ctx.font = '800 22px ' + tok('--f-display'); ctx.fillText('?', cx, cy + 1); }
+    // tally
+    ctx.fillStyle = ink; ctx.font = '600 15px ' + tok('--f-mono');
+    ctx.fillText(hero.s[i] + ' / ' + hero.k[i], x + mw / 2, wy + wh + 26);
+    ctx.fillStyle = mut; ctx.font = '11px ' + tok('--f-mono');
+    ctx.fillText(L('виграші / спроби', 'wins / pulls'), x + mw / 2, wy + wh + 46);
+    // lever
+    const lx = x + mw + 10, down = hero.pulling === i;
+    ctx.strokeStyle = ink; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x + mw, y + h * .55); ctx.lineTo(lx, y + h * .55); ctx.lineTo(lx, down ? y + h * .75 : y + h * .2); ctx.stroke();
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(lx, down ? y + h * .75 : y + h * .2, 8, 0, 7); ctx.fill();
+    ctx.lineCap = 'butt';
+  });
+  ctx.fillStyle = mut; ctx.font = '11px ' + tok('--f-mono'); ctx.textAlign = 'center';
+  ctx.fillText(L('60% чи 50%?', '60% or 50%?'), W / 2, H - 14);
+}
+
+/* ---------- round 1: guess ---------- */
+let guessed = null, r1sim = null;
+function simTests(m) {
+  let w = 0;
+  for (let i = 0; i < m; i++) {
+    let a = 0, b = 0;
+    for (let j = 0; j < 10; j++) { a += Math.random() < PB; b += Math.random() < PW; }
+    if (b > a || (a === b && Math.random() < .5)) w++;
+  }
+  return w / m;
+}
+$('#opts').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  guessed = +b.dataset.o; r1sim = simTests(20000);
+  $('#opts').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  guessText();
+  window.mpSolve && mpSolve(guessed);
+});
+function guessText() {
+  if (guessed === null) return;
+  const e = etc(10);
+  const v = [
+    L('Інтуїція недооцінює шум. За 10 спроб кращий автомат дає в середньому лише на один виграш більше, а випадок зсуває рахунок на 1–2 виграші. Тест помиляється в шість разів частіше.', 'Intuition underestimates the noise. In 10 pulls the better machine averages just one win more, while chance shifts the score by 1 or 2 wins. The test errs six times more often than that.'),
+    L('Ближче, але все одно вдвічі менше, ніж насправді. Гірший автомат виходить уперед у кожному четвертому тесті, а ще 16% тестів закінчуються нічиєю.', 'Closer, but still half the real figure. The worse machine pulls ahead in one test in four, and another 16% of tests end in a tie.'),
+    L('Гірший автомат опиняється попереду в 24,8% тестів, ще 16% закінчуються нічиєю, і половину з них монета віддає гіршому. Разом 32,8%: майже кожен третій тест.', 'The worse machine comes out ahead in 24.8% of tests, another 16% are ties, and the coin hands half of those to the worse one. Together 32.8%: almost one test in three.'),
+    L('Не настільки погано: тест усе-таки частіше вгадує, ніж помиляється. Кращий автомат виграє 59% тестів, а гірший обирається в 32,8%.', 'Not that bad: the test is still right more often than wrong. The better machine wins 59% of tests, and the worse one is picked in 32.8%.')
+  ][guessed];
+  const rows = [
+    [L('Гірший автомат попереду', 'The worse machine ahead'), e.ahead, 'var(--hit)'],
+    [L('Нічия (половина йде гіршому)', 'A tie (half go to the worse one)'), e.tie, 'var(--muted)'],
+    [L('Разом обрано гірший', 'Worse machine picked in all'), e.wrong, 'var(--hit)'],
+    [L('Симуляція 20 000 тестів', 'Simulation of 20,000 tests'), r1sim, 'var(--ink)']
+  ];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">' + pct(e.wrong, 1) + '</p>' +
+    '<p>' + (guessed === 2 ? '<b>' + L('Правильно. ', 'Correct. ') + '</b>' : '<b>' + L('Не зовсім. ', 'Not quite. ') + '</b>') + v + '</p><div class="compare">' +
+    rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + pct(r[1], 1) + '</span></div>').join('') +
+    '</div><p class="note">' + L('Перші три рядки пораховано точно за біноміальними ймовірностями. Кожна така помилка віддає 80 спроб гіршому автомату.', 'The first three rows are exact binomial probabilities. Each such mistake hands 80 pulls to the worse machine.') + '</p>';
+}
+
+/* ---------- round 2: game ---------- */
+let game;
+function newGame() {
+  const best = coin();
+  game = { p: best ? [PW, PB] : [PB, PW], best, s: [0, 0], k: [0, 0], hist: [] };
+  gameText(); drawStrip();
+}
+function pull(a) {
+  if (game.hist.length >= T) return;
+  const r = Math.random() < game.p[a] ? 1 : 0;
+  game.s[a] += r; game.k[a]++; game.hist.push([a, r]);
+  gameText(); drawStrip();
+}
+function gameText() {
+  const done = game.hist.length >= T, wins = game.s[0] + game.s[1], g = game;
+  $('#game-status').innerHTML = '<div><span class="k">' + L('Спроб', 'Pulls') + '</span><b class="mono">' + g.hist.length + ' / ' + T + '</b></div>' +
+    '<div><span class="k">' + L('Виграшів', 'Wins') + '</span><b class="mono">' + wins + '</b></div>';
+  [0, 1].forEach(i => {
+    $('#m' + i + '-cnt').textContent = g.s[i] + ' / ' + g.k[i] + (g.k[i] ? ' · ' + pct(g.s[i] / g.k[i]) : '');
+    const rate = $('#m' + i + '-rate');
+    rate.textContent = done ? pct(g.p[i]) : '?';
+    rate.classList.toggle('best', done && i === g.best);
+    $('#m' + i + '-pull').disabled = done;
+  });
+  const worsePulls = g.k[1 - g.best];
+  let m;
+  if (!g.hist.length) m = L('Смикніть будь-який автомат.', 'Pull either machine.');
+  else if (!done) m = L('Ще ' + (T - g.hist.length) + ' спроб. Лідер зараз: ', (T - g.hist.length) + ' pulls left. Current leader: ') +
+    (g.k[0] && g.k[1] ? (g.s[0] / g.k[0] > g.s[1] / g.k[1] ? L('лівий', 'left') : g.s[0] / g.k[0] < g.s[1] / g.k[1] ? L('правий', 'right') : L('нічия', 'a tie')) : L('ще невідомо', 'not known yet')) + '.';
+  else m = L('Кращим був ' + (g.best ? 'правий' : 'лівий') + ' автомат. Ви дали гіршому ' + worsePulls + ' спроб зі 100. Через вибір ви втратили в середньому ' + f1(GAP * worsePulls) + ' виграшу; решту різниці з 60 визначило везіння.',
+    'The better machine was the ' + (g.best ? 'right' : 'left') + ' one. You gave the worse one ' + worsePulls + ' pulls out of 100. Your choices cost you ' + f1(GAP * worsePulls) + ' wins on average; luck decided the rest of the gap to 60.');
+  $('#game-msg').textContent = m;
+  const rows = [
+    [L('Завжди кращий автомат', 'Always the better machine'), '60'],
+    [L('Семплювання Томпсона', 'Thompson sampling'), f1(T * PB - TS[T])],
+    [L('Розвідка 16 + 16', 'Explore 16 + 16'), f1(T * PB - etcCurve(16)[T])],
+    [L('Розвідка 10 + 10', 'Explore 10 + 10'), f1(T * PB - etcCurve(10)[T])],
+    [L('Жадібна', 'Greedy'), f1(T * PB - GREEDY[T])],
+    [L('Навпіл 50/50', '50/50 split'), f1(T * PB - SPLIT[T])]
+  ];
+  $('#tally').innerHTML = (done ? '<tr class="hl"><td><b>' + L('Ви', 'You') + '</b></td><td class="num"><b>' + wins + '</b></td></tr>' + '<tr><td>' + L('Ви без везіння', 'You, luck removed') + '</td><td class="num">' + f1(T * PB - GAP * worsePulls) + '</td></tr>' : '') +
+    rows.map(r => '<tr><td>' + r[0] + '</td><td class="num">' + r[1] + '</td></tr>').join('');
+  $('#game-note').textContent = L('Для стратегій указано середнє за безліч ігор, пораховане точно. «Ви без везіння» — скільки ви виграли б у середньому, розподіливши спроби так само.', 'For the strategies the figure is the exact average over countless games. "You, luck removed" is what you would win on average with the same split of pulls.');
+}
+function drawStrip() {
+  const done = game.hist.length >= T;
+  $('#strip-note').textContent = L('Темне: лівий, синє: правий; яскраве: виграш, бліде: програш', 'Dark: left, blue: right; solid: a win, pale: a loss') + (done ? L('; жовта риска: гірший автомат.', '; amber tick: the worse machine.') : '.');
+  const s = setupCanvas($('#game-strip')); if (!s) return;
+  const { ctx, W, H } = s, cols = W < 420 ? 50 : 100, rows = T / cols, cw = W / cols, ch = Math.min(22, (H - 4 * rows) / rows);
+  for (let i = 0; i < T; i++) {
+    const x = (i % cols) * cw, y = Math.floor(i / cols) * (ch + 4), h = game.hist[i];
+    ctx.fillStyle = tok('--cell'); ctx.fillRect(x + .5, y, cw - 1, ch);
+    if (!h) continue;
+    const isBest = done && h[0] === game.best;
+    ctx.fillStyle = h[0] ? tok('--c-ts') : tok('--ink');
+    ctx.globalAlpha = h[1] ? 1 : .28;
+    ctx.fillRect(x + .5, y, cw - 1, ch);
+    ctx.globalAlpha = 1;
+    if (done && !isBest) { ctx.fillStyle = tok('--c-greedy'); ctx.fillRect(x + .5, y + ch, cw - 1, 3); }
+  }
+}
+$('#m0-pull').addEventListener('click', () => pull(0));
+$('#m1-pull').addEventListener('click', () => pull(1));
+$('#game-new').addEventListener('click', newGame);
+newGame();
+
+/* ---------- round 3: strategy race ---------- */
+const simN = $('#sim-n');
+let n3 = 10, simRes = null;
+const STRATS = ['split', 'greedy', 'etc', 'ts'];
+function exactCurve(st) { return st === 'split' ? SPLIT : st === 'greedy' ? GREEDY : st === 'ts' ? TS : etcCurve(n3); }
+function exactStuck(st) { return st === 'split' ? 0 : st === 'etc' ? (n3 >= T / 2 ? 0 : etc(n3).wrong) : P_STUCK[st]; }
+function runSim() {
+  const M = 2000; simRes = { n: n3 };
+  STRATS.forEach(st => {
+    const sum = new Float64Array(T + 1); let stuck = 0;
+    for (let i = 0; i < M; i++) { const w = play(st, n3); for (let t = 0; t <= T; t++) sum[t] += w[t]; if (w[T] > T / 2) stuck++; }
+    simRes[st] = { curve: Array.from(sum, v => GAP * v / M), stuck: stuck / M };
+  });
+}
+simN.addEventListener('input', () => { n3 = +simN.value; simRes = null; simText(); drawSim(); });
+$('#sim-run').addEventListener('click', () => { runSim(); simText(); drawSim(); });
+const COL = { split: '--muted', greedy: '--c-greedy', etc: '--ink', ts: '--c-ts' };
+function sname(st) {
+  return { split: L('Навпіл 50/50', '50/50 split'), greedy: L('Жадібна', 'Greedy'), etc: L('Розвідка ' + n3 + ' + ' + n3, 'Explore ' + n3 + ' + ' + n3), ts: L('Семплювання Томпсона', 'Thompson sampling') }[st];
+}
+function simText() {
+  $('#sim-n-v').textContent = n3;
+  $('#sim-tiles').innerHTML = ['etc', 'ts', 'greedy', 'split'].map(st => {
+    const ex = exactCurve(st)[T], sim = simRes && simRes[st];
+    return '<div class="tile" style="--c:var(' + COL[st] + ')"><div class="k">' + sname(st) + '</div><div class="v mono">' + f2(ex) + '</div><div class="s">' +
+      L('втрачено зі 100', 'lost out of 100') + (sim ? L(' · симуляція ', ' · simulation ') + f2(sim.curve[T]) : '') + '<br>' +
+      L('гірший отримав понад 50 спроб: ', 'worse got over 50 pulls: ') + pct(exactStuck(st), 1) + (sim ? ' · ' + pct(sim.stuck, 1) : '') + '</div></div>';
+  }).join('');
+  $('#sim-note').textContent = simRes
+    ? L('Великі числа в плитках точні, поруч результат 2 000 симульованих ігор для кожної стратегії. Найкраща довжина розвідки для 100 спроб: 16 + 16, втрати 3,54.', 'The big numbers in the tiles are exact; next to them, the result of 2,000 simulated games per strategy. The best exploration length for 100 pulls is 16 + 16, losing 3.54.')
+    : L('Натисніть «Зіграти 2 000 ігор», щоб перевірити точні лінії симуляцією. Найкраща довжина розвідки для 100 спроб: 16 + 16, втрати 3,54.', 'Press "Play 2,000 games" to check the exact lines against a simulation. The best exploration length for 100 pulls is 16 + 16, losing 3.54.');
+}
+function drawSim() {
+  const s = setupCanvas($('#sim-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 36, r = 12, t = 14, b = 30, ymax = 5.5;
+  const x = v => l + v / T * (W - l - r), y = v => t + (1 - v / ymax) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1;
+  for (let v = 0; v <= 5; v++) { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, l - 6, y(v)); }
+  for (let v = 0; v <= T; v += 20) { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, x(v), H - b + 6); }
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(L('спроба →', 'pull →'), W - r, H - 1);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(L('втрачено виграшів', 'wins lost'), l + 4, t);
+  STRATS.forEach(st => {
+    const c = exactCurve(st), col = tok(COL[st]);
+    ctx.strokeStyle = col; ctx.lineWidth = st === 'etc' || st === 'ts' ? 2.5 : 2;
+    ctx.setLineDash(st === 'split' ? [5, 4] : []);
+    ctx.beginPath(); c.forEach((v, i) => i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v))); ctx.stroke();
+    ctx.setLineDash([]);
+    if (simRes && simRes.n === n3) {
+      ctx.fillStyle = col;
+      for (let i = 10; i <= T; i += 10) { ctx.beginPath(); ctx.arc(x(i), y(simRes[st].curve[i]), 3.5, 0, 7); ctx.fill(); }
+    }
+  });
+  // mark the end of the exploration
+  if (n3 < T / 2) {
+    ctx.strokeStyle = tok('--ink'); ctx.globalAlpha = .35; ctx.setLineDash([2, 3]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x(2 * n3), y(0)); ctx.lineTo(x(2 * n3), y(ymax)); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText(L('кінець розвідки', 'end of exploration'), Math.min(x(2 * n3) + 4, W - r - 110), y(0) - 4);
+  }
+}
+
+/* ---------- round 4: binomial bars and the N + N table ---------- */
+function drawBinom() {
+  const s = setupCanvas($('#binom-chart')); if (!s) return;
+  const { ctx, W, H } = s, l = 34, r = 8, t = 10, b = 24, ymax = .3;
+  const A = pmf(10, PB), B = pmf(10, PW), slot = (W - l - r) / 11, bw = Math.min(13, (slot - 8) / 2);
+  const y = v => t + (1 - v / ymax) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1;
+  [0, .1, .2, .3].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(pct(v), l - 4, y(v)); });
+  for (let k = 0; k <= 10; k++) {
+    const cx = l + slot * (k + .5);
+    ctx.fillStyle = tok('--ink'); ctx.fillRect(cx - bw - 1, y(A[k]), bw, y(0) - y(A[k]));
+    ctx.fillStyle = tok('--muted'); ctx.globalAlpha = .55; ctx.fillRect(cx + 1, y(B[k]), bw, y(0) - y(B[k])); ctx.globalAlpha = 1;
+    ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(k, cx, H - b + 6);
+  }
+}
+function etcTable() {
+  $('#etc-tbl').innerHTML = [1, 5, 10, 16, 20, 30, 40].map(n => {
+    const e = etc(n), lost = etcCurve(n)[T];
+    return '<tr' + (n === 10 ? ' class="hl"' : '') + '><td class="num">' + n + '</td><td class="num">' + pct(e.ahead, 1) + '</td><td class="num">' + pct(e.tie, 1) + '</td><td class="num">' + pct(e.wrong, 1) + '</td><td class="num">' + f2(lost) + '</td></tr>';
+  }).join('');
+}
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Багаторукий бандит', 'The Multi-Armed Bandit');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  guessText(); gameText(); simText(); etcTable();
+  redraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+function redraw() { drawHero(); drawStrip(); drawSim(); drawBinom(); }
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+document.addEventListener('visibilitychange', () => { if (document.hidden) { clearInterval(hero.timer); hero.timer = null; } else heroStart(); });
+
+applyLang();
+heroStart();
+})();
+</script>
+
+<script type="application/json" id="mp-terms">{"mean": {"name": "Mean (average)", "short": "The sum of all values divided by how many there are: what everyone would get if it were shared equally.", "hook": "Almost everyone has more legs than average: the average is a little under two.", "url": "https://mathparadoxes.com/glossary/median-vs-mean/en/", "link": "Try it in a simulation"}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'en' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+</body>
+</html>

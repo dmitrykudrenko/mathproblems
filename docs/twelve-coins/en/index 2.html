@@ -1,0 +1,1783 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/twelve-coins/", "en": "/twelve-coins/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "twelve-coins";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>Twelve Coins and Three Weighings: the Fake Coin Interview Puzzle</title>
+<meta name="description" content="12 coins, one fake, lighter or heavier. 3 weighings are enough, since 3³ = 27 ≥ 24. Play an evil coin, check all 24 cases, Dyson&#x27;s scheme, decision trees.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/twelve-coins/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/twelve-coins/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/twelve-coins/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/twelve-coins/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="Twelve coins and a balance">
+<meta property="og:description" content="One of 12 coins is fake, lighter or heavier, nobody knows. How many weighings on a two-pan balance do you need to find it for sure and say which way it is off?">
+<meta property="og:url" content="https://mathparadoxes.com/twelve-coins/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/twelve-coins/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A two-pan balance with numbered coins on its pans. One of 12 coins is fake: how many weighings does it take to find it?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Twelve coins and a balance">
+<meta name="twitter:description" content="One of 12 coins is fake, lighter or heavier, nobody knows. How many weighings on a two-pan balance do you need to find it for sure and say which way it is off?">
+<meta name="twitter:image" content="https://mathparadoxes.com/twelve-coins/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/twelve-coins/en/#page", "url": "https://mathparadoxes.com/twelve-coins/en/", "name": "Twelve Coins and Three Weighings: the Fake Coin Interview Puzzle", "description": "12 coins, one fake, lighter or heavier. 3 weighings are enough, since 3³ = 27 ≥ 24. Play an evil coin, check all 24 cases, Dyson's scheme, decision trees.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "intermediate", "about": {"@type": "Thing", "name": "Balance puzzle", "sameAs": "https://en.wikipedia.org/wiki/Balance_puzzle"}, "image": "https://mathparadoxes.com/twelve-coins/og-en.png", "datePublished": "2026-10-23", "dateModified": "2026-10-25", "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "citation": [{"@type": "Book", "name": "The Gentle Art of Mathematics", "author": [{"@type": "Person", "name": "Dan Pedoe"}], "datePublished": "1958", "isbn": "9780486229492"}], "translationOfWork": {"@id": "https://mathparadoxes.com/twelve-coins/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "Twelve coins and a balance", "item": "https://mathparadoxes.com/twelve-coins/en/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/twelve-coins/en/#faq", "inLanguage": "en", "mainEntity": [{"@type": "Question", "name": "How many weighings does it take to find one fake coin among 12?", "acceptedAnswer": {"@type": "Answer", "text": "Three. First put 4 coins on each pan and set 4 aside. Whatever the balance shows, 8 cases out of 24 remain, and two weighings can handle 9 cases. So in three weighings you find the fake coin and learn whether it is lighter or heavier."}}, {"@type": "Question", "name": "Why are two weighings not enough?", "acceptedAnswer": {"@type": "Answer", "text": "Each weighing has three results: left pan down, right pan down, or balance. Two weighings give 3² = 9 different histories, and there are 24 cases: 12 coins, each lighter or heavier. However you load the pans, some two cases produce the same history."}}, {"@type": "Question", "name": "What if there are 13 coins?", "acceptedAnswer": {"@type": "Answer", "text": "Then three weighings are not enough. There are 26 cases, and 26 ≤ 27, but the first weighing cannot split them evenly enough: with 4 against 4 a balance leaves 10 cases, with 5 against 5 a tilt leaves 10, and two weighings can handle only 9. With n weighings you can handle (3ⁿ − 3)/2 coins: 12 with three, 39 with four."}}, {"@type": "Question", "name": "Where is this idea used in real life?", "acceptedAnswer": {"@type": "Answer", "text": "In decision trees: Ross Quinlan's ID3 algorithm (1986) picks, at every step, the attribute with the largest information gain, that is, the question that splits the cases most evenly. The same rule helps in fault diagnosis and in any search where an answer can take several values."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the poisoned-wine page. A two-pan balance, numbered coins and the 24-cell grid of suspects are this problem's signature objects. */
+:root {
+  --tint: #E6EDF2;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+nav.rounds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+nav.rounds a { text-decoration: none; color: var(--ink); font-size: .88rem; font-weight: 500; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; }
+nav.rounds a:hover { border-color: var(--day); color: var(--day); }
+nav.rounds a span { font-family: var(--f-mono); color: var(--muted); margin-right: 6px; font-size: .78rem; }
+nav.rounds b { font-weight: inherit; }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal canvas { height: 320px; border-radius: 14px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 2.6em; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--day); }
+.ctl output { font-family: var(--f-mono); font-weight: 600; color: var(--ink); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.presets button:disabled { opacity: .45; cursor: default; }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--hit); }
+.msg .bad, .verdict .bad { color: var(--loss); font-weight: 600; }
+
+/* ---------- coins and suspects ---------- */
+.coins { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 5px; }
+.coins button { display: grid; justify-items: center; gap: 1px; padding: 6px 0 4px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; font-family: var(--f-mono); font-weight: 600; font-size: .9rem; min-width: 0; }
+.coins button small { font-size: .62rem; font-weight: 400; color: var(--muted); min-height: 1.3em; }
+.coins button.on-l { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.coins button.on-r { background: var(--cell); color: var(--ink); border: 2px solid var(--ink); }
+.coins button.on-l small, .coins button.on-r small { color: inherit; opacity: .85; }
+.coins button.gen { border-style: dashed; color: var(--muted); }
+.coins button.gen.on-l { color: var(--paper); }
+.coins button.gen.on-r { color: var(--ink); }
+.hgrid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; }
+.hgrid > div { display: grid; gap: 3px; justify-items: stretch; text-align: center; min-width: 0; }
+.hgrid .cn { font-family: var(--f-mono); font-size: .7rem; color: var(--muted); font-weight: 600; }
+.hgrid i { font-style: normal; display: block; height: 26px; line-height: 24px; border-radius: 6px; border: 1.5px solid var(--ink); font-family: var(--f-mono); font-size: .78rem; font-weight: 600; }
+.hgrid i.off { border-color: var(--line); color: var(--line); background: var(--paper); text-decoration: line-through; }
+.hgrid i.last { background: var(--hit); border-color: var(--hit); color: #1A1300; }
+.hgrid i.bad { background: var(--loss); border-color: var(--loss); color: #fff; }
+.hgrid i.n2 { background: var(--cell); }
+.hgrid i.n3 { background: var(--hit-soft); }
+.hgrid i.n4 { background: #F6D7CF; }
+.hgrid i.n5, .hgrid i.n6, .hgrid i.n7 { background: #EDB8AA; }
+.wlog { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-family: var(--f-mono); font-size: .82rem; }
+.wlog li { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; }
+.wlog li b { font-weight: 600; }
+.tree { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: .88rem; }
+.tree li { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; }
+.tree li b { font-family: var(--f-mono); font-weight: 600; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.guess .val { font-family: var(--f-display); font-weight: 800; font-size: 3.4rem; color: var(--day); line-height: 1; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 140px 1fr 56px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.stat { font-family: var(--f-mono); font-size: .84rem; color: var(--muted); }
+.verdict { border-radius: 12px; padding: 12px 14px; background: var(--paper); display: grid; gap: 8px; }
+.verdict b { font-weight: 600; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.6rem; }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .84rem; color: var(--muted); }
+.split { display: grid; gap: 8px; }
+.split .row { display: grid; grid-template-columns: 120px 1fr 40px; gap: 10px; align-items: center; font-size: .85rem; }
+.split .bar { height: 16px; border-radius: 6px; background: var(--paper); border: 1px solid var(--line); position: relative; overflow: hidden; }
+.split .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c, var(--ink)); }
+.split .bar s { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--loss); }
+.split .over { color: var(--loss); font-weight: 600; }
+.sub { background: var(--hit-soft); border-color: transparent; }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.layer { font-family: var(--f-display); font-weight: 800; font-size: 1.2rem; margin-top: 18px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.tbl-wrap { overflow-x: auto; }
+table.t { border-collapse: collapse; width: 100%; font-size: .9rem; }
+.t th, .t td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.t th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+.t td.num, .t th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+.t tr.hl td { font-weight: 600; }
+.t tr.hl td.num:last-child { color: var(--hit); }
+.t td.c { text-align: center; font-family: var(--f-mono); }
+.t td.pl { font-weight: 600; }
+.t td.pr { font-weight: 600; color: var(--day); }
+.t td.me { box-shadow: inset 0 0 0 2px var(--hit); }
+table.t.dense { font-size: .8rem; }
+.t.dense th, .t.dense td { padding: 6px 5px; }
+.ovl { font-family: var(--f-mono); font-size: .82rem; line-height: 1.7; overflow-x: auto; white-space: nowrap; background: var(--paper); border-radius: 10px; padding: 10px 12px; }
+.ovl b { font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips span { font-family: var(--f-mono); font-size: .8rem; border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+.chips span.me { border-color: var(--ink); font-weight: 600; }
+.gain { display: grid; gap: 8px; }
+.gain button { display: grid; grid-template-columns: 110px 1fr 56px; gap: 10px; align-items: center; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 10px; cursor: pointer; font-size: .86rem; }
+.gain button[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.gain .bar { height: 12px; border-radius: 6px; background: var(--paper); position: relative; overflow: hidden; }
+.gain .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c, var(--muted)); }
+.gain .mono { text-align: right; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 560px) {
+  .coins, .hgrid { grid-template-columns: repeat(6, minmax(0, 1fr)); row-gap: 8px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 100px 1fr 48px; }
+  .split .row { grid-template-columns: 92px 1fr 34px; }
+  .gain button { grid-template-columns: 84px 1fr 48px; }
+  .vs { grid-template-columns: 1fr; }
+  .t th, .t td { padding: 8px 5px; }
+  .hero-cal canvas { height: 260px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=45aefab5">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/en/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/twelve-coins/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/twelve-coins/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span>School maths</button><span class="mp-level-hint" hidden>Fractions, percentages, basic probability, powers<a href="https://mathparadoxes.com/en/?l=2#problems">All puzzles of this level →</a></span></span><a class="mp-course" href="https://mathparadoxes.com/courses/interview-puzzles/en/#ch-7"><b>Course «How to pass interviews with puzzles»</b> · chapter 7 of 16 →</a>
+    
+    <h1 class="en"><span class="kw">Twelve coins</span> One is fake: lighter or heavier, nobody knows. <span class="q sp-before">How many weighings?</span><span class="q sp-after">Just 3.</span></h1>
+    
+    
+    <p class="lead en sp-before">You have 12 coins that look identical. One of them is fake and weighs differently from the real ones, but nobody knows whether it is lighter or heavier. You have a two-pan balance and no weights: it only shows which pan is heavier, or that they balance. What is the smallest number of weighings that guarantees you find the fake coin and say whether it is lighter or heavier?</p>
+    <p class="lead en sp-after">It looks as if you should halve: 6 against 6, then 3 against 3, which makes 4 or 5 weighings. But a balance has three answers, not two: left pan down, right pan down, or balance. Three weighings give 3³ = 27 outcomes, and there are only 24 cases: 12 coins, each either lighter or heavier. You just have to split the cases into three equal heaps with every weighing.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="en">3 weighings</b><span><span class="en">are enough for 12 coins</span></span></div>
+      <div class="odd"><b>3³ = 27 ≥ 24</b><span><span class="en">outcomes against cases</span></span></div>
+      <div class="odd"><b>4 : 4</b><span><span class="en">the only right first weighing</span></span></div>
+    </div>
+    <nav class="rounds">
+      <a href="#puzzle"><span>?</span><b class="en">The puzzle</b></a>
+      <a href="#guess"><span>1</span><b class="en">Guess</b></a>
+      <a href="#game"><span>2</span><b class="en">The evil coin</b></a>
+      <a href="#sim"><span>3</span><b class="en">All 24 cases</b></a>
+      <a href="#why"><span>4</span><b class="en">Why it works</b></a>
+      <a href="#more"><span>5</span><b class="en">Scaling up</b></a>
+      <a href="#facts"><span>★</span><b class="en" style="font-weight:inherit">Fun facts</b></a>
+    </nav>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">The puzzle</span></span>
+    <h2><span class="en">Twelve coins, one balance, no weights</span></h2>
+    
+    <p class="lead en">A classic from puzzle books. No source names a company that asks the 12-coin version, but William Poundstone (2003) lists an easier variant, 8 coins with one lighter, as a Microsoft interview question. This puzzle is loved because the first idea, "split in half", fails here, and the right one makes you think not about coins but about how many answers one instrument can give.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="en">The coins</span></h3>
+        
+        <p class="en">12 coins, numbered 1 to 12. Eleven are genuine and weigh exactly the same. One is fake.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="en">The fake</span></h3>
+        
+        <p class="en">The fake weighs differently, but you do not know whether it is lighter or heavier. You cannot tell it by sight.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="en">The balance</span></h3>
+        
+        <p class="en">A two-pan balance with no weights. You may put any number of coins on each pan. The balance shows one of three things: the left pan is heavier, the right pan is heavier, or they balance.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="en">The goal</span></h3>
+        
+        <p class="en">Name the fake coin and say whether it is lighter or heavier. Not guess it: know it for sure, whichever coin is fake.</p></div></li>
+      <li><span class="n">5</span><div><h3><span class="en">The question</span></h3>
+        
+        <p class="en">What is the smallest number of weighings that guarantees this?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="en">Intuition says</span></span>
+        <p class="q"><span class="en">"Split in half: 6 against 6, then 3 against 3, then again… That makes 4 to 6 weighings"</span></p>
+        
+        <p class="en">Some weigh the coins in pairs and get up to 7 weighings. In fact 3 are enough, and 2 are not enough with any strategy. The trick is that the first weighing must be 4 against 4, with the other four coins set aside.</p>
+      </div>
+      <div class="card">
+        <h3><span class="en">Assumptions</span></h3>
+        
+        <ul class="rules en">
+          <li>There is exactly one fake coin, and all genuine coins weigh the same.</li>
+          <li>The balance is exact but shows only "heavier, lighter, equal", no numbers.</li>
+          <li>There are no other weights and no coin known in advance to be genuine.</li>
+          <li>You may choose each weighing based on the results of the previous ones.</li>
+          <li>You need a guarantee: the strategy must work whichever coin is fake and whichever way its weight is off.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="en">How many weighings will find the fake?</span></h2>
+    
+    <p class="lead en">12 coins, one fake, lighter or heavier, unknown. Pick the smallest number of weighings that, in your view, guarantees success.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <span class="note"><span class="en">Smallest number of weighings</span></span>
+      <div class="val mono" id="guess-v">5</div>
+      <div class="presets" id="guess-p" role="group" aria-label="Weighings"></div>
+      <div class="actions"><button class="btn pri" id="guess-go" type="button"><span class="en">Check</span></button></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Hints</span>
+    <p class="mp-hints-intro">Hard to decide? Open the hints one at a time: the easy one first, then stronger ones.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Splitting in half is the trap: the balance gives three answers, not two. "They balance" is information too, so put it to work.</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>Count cases, not coins: each coin may be heavier or lighter. How many different histories of results can n weighings produce?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>There are 24 cases, and each needs its own sequence of readings. How many sequences do n weighings give? That is only a lower bound: check whether the coins can be arranged to reach it.</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Show hint 1 of 3 · easy&quot;, &quot;Show hint 2 of 3 · medium&quot;, &quot;Show hint 3 of 3 · strong&quot;]">Show hint 1 of 3 · easy</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "twelve-coins";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "twelve-coins", RULE = {"right": [[3, 3]]}, MIN = 20, T = {"kicker": "How others answer", "few": "Too few answers for stats yet: {n}. Yours is one of them.", "few_seen": "Too few answers for stats yet: {n}.", "all": "Answers so far: {n}. {p} of them are right.", "yes": "You are among those who got it.", "no": "Don't worry: intuition fails most people here.", "bar": "right", "note": "Only the first answer from each browser counts, given before it saw the solution. Anonymous."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: the evil coin -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 2 · Game</span></span>
+    <h2><span class="en">Weigh the coins while an evil coin tries to hold you up</span></h2>
+    
+    <p class="lead en">Click coins to put them on the left pan, on the right pan, or back off. The pans must hold the same number of coins. The catch: the fake coin has not decided yet which one it is. After each weighing it picks the outcome that leaves you the most work, but it never contradicts earlier results. The grid below shows which of the 24 cases are still possible.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <canvas id="g-cv" style="height:230px" aria-hidden="true"></canvas>
+      <div class="coins" id="g-coins"></div>
+      <p class="stat" id="g-stat"></p>
+      <div class="actions">
+        <button class="btn hit" id="g-weigh" type="button"><span class="en">Weigh</span></button>
+        <button class="btn ghost" id="g-clear" type="button"><span class="en">Clear the pans</span></button>
+        <button class="btn ghost" id="g-new" type="button"><span class="en">Start over</span></button>
+      </div>
+      <div class="actions sp-after">
+        <button class="btn pri" id="g-best" type="button"><span class="en">Suggest the best weighing</span></button>
+        <button class="btn ghost" id="g-auto" type="button"><span class="en">Show a 3-weighing solution</span></button>
+      </div>
+      <h3><span class="en">Cases still possible</span></h3>
+      <div class="hgrid" id="g-grid" aria-live="polite"></div>
+      <p class="note"><span class="en">↑ means "this coin is heavier", ↓ means "lighter". Struck-out cases are ruled out.</span></p>
+    </div>
+    <div class="card" style="display:grid;gap:14px;align-content:start">
+      <h3><span class="en">What happened</span></h3>
+      <div class="verdict" id="g-verdict" aria-live="polite"></div>
+      <h3><span class="en">Weighing log</span></h3>
+      <ol class="wlog" id="g-log"></ol>
+      <div class="sp-after" style="display:grid;gap:10px">
+        <h3><span class="en">The classic solution</span></h3>
+        
+        <ul class="tree en">
+          <li><b>1 2 3 4 : 5 6 7 8</b>. Balance: the fake is among 9–12. Then <b>9 10 11 : 1 2 3</b>; if it balances again, the fake is 12, and <b>12 : 1</b> tells lighter or heavier; otherwise <b>9 : 10</b> picks the coin among 9–11, and the direction is known from the second weighing.</li>
+          <li>Left pan down: either one of 1–4 is heavy or one of 5–8 is light, 8 cases in all. Then <b>1 2 5 : 3 6 9</b>: left down leaves 1↑, 2↑, 6↓ (then <b>1 : 2</b>); right down leaves 3↑, 5↓ (then <b>3 : 9</b>); balance leaves 4↑, 7↓, 8↓ (then <b>7 : 8</b>).</li>
+          <li>Right pan down: the same, mirrored.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: exhaustive check + simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 3 · Check</span></span>
+    <h2><span class="en">All 24 cases exactly, and 100,000 random fakes</span></h2>
+    
+    <p class="lead en">Pick a strategy. The page runs it on each of the 24 cases (which coin is fake and which way) and counts the weighings exactly. Then it simulates 100,000 random fakes and compares the shares with the exact ones.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <div class="ctl"><span><span class="en">Strategy</span></span><div class="presets" id="s-pick"></div></div>
+      <button class="btn pri" id="sim-run" type="button"><span class="en">Run again</span></button>
+      <span class="note" id="sim-prog"></span>
+    </div>
+    <p class="note" id="s-desc" style="margin-bottom:14px"></p>
+    <div class="sim-grid">
+      <div style="display:grid;gap:16px;align-content:start">
+        <div class="hgrid" id="s-grid"></div>
+        <canvas id="sim-cv" style="height:240px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--ink)"><b class="en">exact distribution</b></span>
+          <span style="--c:var(--hit)"><b class="en">simulation</b></span>
+          <span style="--c:var(--loss)"><b class="en">not found</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile" style="--c:var(--hit)"><div class="k"><span class="en">Worst case</span></div><div class="v mono" id="t-max">–</div><div class="s" id="t-maxs"></div></div>
+        <div class="tile"><div class="k"><span class="en">Average, exact</span></div><div class="v mono" id="t-mean">–</div><div class="s" id="t-means"></div></div>
+        <div class="tile"><div class="k"><span class="en">Average, simulated</span></div><div class="v mono" id="t-sim">–</div><div class="s" id="t-sims"></div></div>
+        <div class="tile"><div class="k"><span class="en">Found in 3 weighings or fewer</span></div><div class="v mono" id="t-p3">–</div><div class="s" id="t-p3s"></div></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:12px"><span class="en">The numbers in the grid show how many weighings each case took. A red cell means the strategy could not tell that case from another one.</span></p>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 4 · Five explanations</span></span>
+    <h2><span class="en">Why 3 weighings are enough and 2 are not</span></h2>
+    
+    <p class="lead en">The key is that a balance answers in three ways, and there are not 12 suspects but 24. Here are five ways to see it.</p>
+  </div>
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">In plain words</span><span class="mp-layer-desc">pictures, analogies, small numbers</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“In plain words” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">Counting cases</span></span>
+      <h3><span class="en">Not 12 suspects but 24</span></h3>
+      <div class="hgrid" id="w-grid" aria-hidden="true"></div>
+      
+      <p class="en">Finding the coin is not enough: you must also say whether it is lighter or heavier. So each coin gives two cases, "heavy" and "light". That makes 12 · 2 = 24 cases, and any strategy has to tell them all apart.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Three answers</span></span>
+      <h3><span class="en">Two weighings give only 9 outcomes</span></h3>
+      <div class="tbl-wrap"><table class="t" id="lb-tbl"></table></div>
+      
+      <p class="en">Every weighing ends in one of three results, so n weighings give at most 3<sup>n</sup> different histories. Two weighings give 9 histories for 24 cases: some cases must share a history, and you cannot tell them apart. That is the pigeonhole principle. Three weighings give 27 ≥ 24, so 3 weighings might be enough, and round 2 shows that they are.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">The first weighing</span></span>
+      <h3><span class="en">Only 4 against 4 will do</span></h3>
+      <label class="ctl" for="k-k"><span><span class="en">Coins on each pan</span>: <output id="k-kv">3</output></span><input type="range" id="k-k" min="1" max="6" value="3"></label>
+      <div class="split" id="k-split"></div>
+      <p class="msg" id="k-msg" aria-live="polite"></p>
+      
+      <p class="en">After the first weighing two remain, so each heap must hold at most 3² = 9 cases. With k coins on each pan, a tilt leaves 2k cases (k coins "heavy" on the lower pan and k "light" on the upper one), and a balance leaves 2 · (12 − 2k). Both numbers are at most 9 only for k = 4.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Rigorous</span><span class="mp-layer-desc">tables, charts, formulas</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Rigorous” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">The limit</span></span>
+      <h3><span class="en">Why 13 coins no longer work</span></h3>
+      <div class="vs">
+        <div><span><span class="en">13 coins, 4 against 4</span></span><b class="mono">8 · 10 · 8</b><span><span class="en">a balance leaves 5 coins, that is 10 cases, more than 9</span></span></div>
+        <div><span><span class="en">13 coins, 5 against 5</span></span><b class="mono">10 · 6 · 10</b><span><span class="en">a tilt leaves 10 cases, also more than 9</span></span></div>
+      </div>
+      
+      <p class="en">With 13 coins there are 26 cases, and 26 ≤ 27, so plain counting does not rule out 3 weighings. But the first weighing cannot split 26 as 9 + 8 + 9: a tilt always leaves an even number of cases, so at most 8, and a 4-against-4 balance leaves 10. A full search over all strategies confirms it: 13 coins need 4 weighings. But give yourself one extra coin known to be genuine, and 13 coins fit into 3 weighings.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Genuine coins as a tool</span></span>
+      <h3><span class="en">After the first weighing you gain reference coins</span></h3>
+      <div class="vs">
+        <div class="bb"><span><span class="en">After a balance</span></span><b class="mono">9 10 11 : 1 2 3</b><span><span class="en">8 cases split as 3 + 2 + 3</span></span></div>
+        <div class="bb"><span><span class="en">After a tilt</span></span><b class="mono">1 2 5 : 3 6 9</b><span><span class="en">8 cases split as 3 + 3 + 2</span></span></div>
+      </div>
+      
+      <p class="en">Coins that have sat on a balanced scale are certainly genuine. You can add them to make a weighing uneven in suspects: three suspects against three references. After a tilt, shuffling the pans helps: 1 and 2 stay on the left, 5 moves to the left, 3 and 6 sit on the right, and 9 is a reference. Every heap after the second weighing holds at most 3 cases, and the third weighing tells 3 cases apart.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">For formula lovers</span></span>
+      <h3><span class="en">Where (3ⁿ − 3)/2 comes from</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">N coins give 2N cases. The history "every weighing balanced" serves no case: either it cannot happen, or the coin never sat on the scale and you do not know whether it is lighter or heavier.</span></p>
+          <math display="block"><mn>2</mn><mi>N</mi><mo>≤</mo><msup><mn>3</mn><mi>n</mi></msup><mo>−</mo><mn>1</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">The first weighing is k against k, with m = N − 2k coins aside. A tilt leaves 2k cases, a balance leaves 2m, and either way n − 1 weighings remain.</span></p>
+          <math display="block"><mn>2</mn><mi>k</mi><mo>≤</mo><msup><mn>3</mn><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msup><mo>−</mo><mn>1</mn><mspace width="1.2em"></mspace><mn>2</mn><mi>m</mi><mo>≤</mo><msup><mn>3</mn><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msup><mo>−</mo><mn>1</mn></math>
+          <p class="fx-cap" style="margin-top:10px"><span class="en">The left one holds because 2k is even and 3<sup>n−1</sup> is odd. The right one follows from the same "all balanced" argument, now for the remaining weighings.</span></p>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Add them up: N = 2k + m.</span></p>
+          <math display="block"><mi>N</mi><mo>≤</mo><mo stretchy="false">(</mo><msup><mn>3</mn><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msup><mo>−</mo><mn>1</mn><mo stretchy="false">)</mo><mo>+</mo><mfrac><mrow><msup><mn>3</mn><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msup><mo>−</mo><mn>1</mn></mrow><mn>2</mn></mfrac><mo>=</mo><mfrac><mrow><msup><mn>3</mn><mi>n</mi></msup><mo>−</mo><mn>3</mn></mrow><mn>2</mn></mfrac></math>
+          <math display="block"><mo>⇔</mo><mspace width="0.6em"></mspace><mn>2</mn><mi>N</mi><mo>≤</mo><msup><mn>3</mn><mi>n</mi></msup><mo>−</mo><mn>3</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">For three weighings: k ≤ 4 and m ≤ 4, so N ≤ 12. The bound is reached: see the classic solution above.</span></p>
+          <math display="block"><mi>n</mi><mo>=</mo><mn>3</mn><mo>:</mo><mspace width="0.6em"></mspace><mi>N</mi><mo>≤</mo><mfrac><mrow><mn>27</mn><mo>−</mo><mn>3</mn></mrow><mn>2</mn></mfrac><mo>=</mo><mn class="hl">12</mn></math>
+        </div>
+      </div>
+      
+      <p class="en">In 1946 Freeman Dyson proved that (3ⁿ − 3)/2 coins can be handled in n weighings, and no more. With one coin known to be genuine, the bound grows to (3ⁿ − 1)/2: 13 coins for three weighings.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Deeper</span><span class="mp-layer-desc">generalisations, theory, history</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Deeper” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card sub">
+      <span class="kicker"><span class="en">A bit of theory · information in base 3</span></span>
+      <h3><span class="en">24 cases are about 2.89 trits</span></h3>
+      
+      <p class="en">An answer out of two equally likely options gives 1 bit; out of three equally likely options it gives 1 trit, which is log₂ 3 ≈ 1.585 bits. Picking one case out of 24 takes log₃ 24 ≈ 2.89 trits, so three weighings suffice only if each one gives almost a full trit. How much the first weighing gives depends on how evenly it splits the cases:</p>
+      <div class="tbl-wrap"><table class="t" id="h-tbl"></table></div>
+      
+      <p class="en">The entropy H = −Σ p · log₃ p reaches its maximum of 1 trit when the three outcomes are equally likely. The split 8 + 8 + 8 gives exactly 1 trit, 3 against 3 gives 0.946, and 6 against 6 only 0.631: a balance is impossible with 6 against 6, so the balance's third answer is wasted.</p>
+    </div>
+
+  </div>
+  </div>
+
+<script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "twelve-coins" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 5 · Scaling up</span></span>
+    <h2><span class="en">More coins, a plan in advance, and decision trees</span></h2>
+    
+    <p class="lead en">The coin puzzle grows in three directions. In mathematics it gives an exact formula and a scheme with every weighing written out in advance. In logic it teaches you to ask questions that split the options evenly. In practice the same rule builds decision trees in machine learning.</p>
+  </div>
+  <div class="esc">
+    <p class="layer"><span class="en">Mathematics</span></p>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">More weighings: how many coins?</span></h3>
+        <label class="ctl" for="n-n"><span><span class="en">Weighings</span>: <output id="n-nv">4</output></span><input type="range" id="n-n" min="1" max="7" value="4"></label>
+        <div class="result-row">
+          <div><span class="k"><span class="en">Coins, with direction</span></span><b class="big hit mono" id="n-a" style="font-size:2.2rem">–</b></div>
+          <div><span class="k"><span class="en">With a reference coin</span></span><b class="big mono" id="n-b" style="font-size:2.2rem">–</b></div>
+        </div>
+        <div class="tbl-wrap"><table class="t" id="n-tbl"></table></div>
+        <div class="actions"><button class="btn ghost" id="n-run" type="button"><span class="en">Check by full search (up to 3 weighings)</span></button></div>
+        <p class="note" id="n-out"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">Four versions of the puzzle</span></span>
+        <h3><span class="en">4 weighings: 39 coins</span></h3>
+        
+        <p class="en">The formula (3ⁿ − 3)/2 triples with each weighing: 3, 12, 39, 120 coins. Two changes to the rules add one coin each. With a genuine reference coin, the bound is (3ⁿ − 1)/2. If you only need to find the coin and do not care whether it is lighter or heavier, it is also (3ⁿ − 1)/2: one coin may never touch the scale, and if everything balanced, it is that one.</p>
+        
+        <p class="en">Both changes together give (3ⁿ + 1)/2, which is 14 coins in 3 weighings. The page checks all these numbers by searching every strategy for 1 to 3 weighings; for 4 weighings (39, 40, 40 and 41) we ran the same search separately. A curiosity: two coins without a reference can never be sorted out, because after 1 : 2 you do not know which one is to blame.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">A plan in advance: three weighings fixed beforehand</span></h3>
+        <div class="tbl-wrap"><table class="t dense" id="d-tbl"></table></div>
+        <div class="controls" style="margin:0">
+          <div class="ctl"><span><span class="en">Fake coin</span></span><div class="presets" id="d-c"></div></div>
+          <div class="ctl"><span><span class="en">It is</span></span><div class="presets" id="d-t"></div></div>
+        </div>
+        <p class="ovl" id="d-ovl"></p>
+        <p class="msg" id="d-msg" aria-live="polite"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">Dyson's scheme</span></span>
+        <h3><span class="en">Every coin gets a ternary code</span></h3>
+        
+        <p class="en">Surprisingly, you do not need to adapt to the results. Dyson showed that every weighing can be written down in advance. Give each coin a three-symbol code: L means "on the left pan", R "on the right", – "aside". A heavy coin then produces a history equal to its code, and a light one produces the mirror image.</p>
+        
+        <p class="en">For this to work, three conditions are needed: no code is empty, no code is the mirror of another, and every weighing has equal numbers of coins on its pans. There are 26 non-empty codes, forming 13 mirror pairs; you can take only one code from each pair, and one more pair has to go to balance the pans. Which gives 12 again.</p>
+      </div>
+    </div>
+
+    <p class="layer"><span class="en">Logic</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">Think of a number from 1 to 27</span></h3>
+        <p class="note"><span class="en">The page will find it in 3 questions, each with three possible answers.</span></p>
+        <p class="msg" id="q-msg" aria-live="polite"></p>
+        <div class="actions" id="q-btns"></div>
+        <div class="actions"><button class="btn ghost" id="q-new" type="button"><span class="en">Start over</span></button></div>
+        <div class="chips" id="q-log"></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">The best question</span></span>
+        <h3><span class="en">Ask so that the answers are equally likely</span></h3>
+        
+        <p class="en">The coin puzzle teaches a general rule: the best question splits the remaining options into parts as equal as possible. Then whatever the answer, it cuts away the most. In Shannon's terms it is the question whose answer has the highest entropy: its result is the hardest to predict, so it tells you the most.</p>
+        
+        <p class="en">With two answers the rule gives binary search, as in the <a href="../../poisoned-wine/en/">poisoned wine</a> puzzle. With three answers it gives ternary search: 27 = 3³, so 3 questions. Weighing 6 against 6 is like a question that is never answered "equal": one of the three answers simply goes to waste.</p>
+      </div>
+    </div>
+
+    <p class="layer"><span class="en">Practice</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">A decision tree: which question goes first?</span></h3>
+        <p class="note"><span class="en">14 days from Quinlan's classic example: the weather and whether tennis was played that day (tennis comes from later textbooks). Click an attribute to split the days by it.</span></p>
+        <div class="gain" id="i-gain"></div>
+        <div class="tbl-wrap"><table class="t dense" id="i-tbl"></table></div>
+        <p class="note" id="i-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">ID3 and information gain</span></span>
+        <h3><span class="en">The algorithm picks the "weighing" with the largest information gain</span></h3>
+        
+        <p class="en">In 1986 Ross Quinlan described the ID3 algorithm, which builds a decision tree from a table of examples. At every step it chooses the attribute that cuts the uncertainty about the answer the most: the information gain is the entropy before the split minus the average entropy of the parts. It is the same rule as "4 against 4": the best question removes the most uncertainty.</p>
+        
+        <p class="en">Here the entropy of the answer "played or not" is 0.940 bits. The outlook (sunny, overcast, rain) lowers it the most, by 0.247 bits (Quinlan rounds it to 0.246), so it becomes the root of the tree. After that, humidity decides on sunny days and wind on rainy ones, and the tree classifies all 14 days with no errors. The same rule works in fault diagnosis: you run first the check that splits the possible causes most evenly.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1945</span>
+        <h3><span class="en">First in print</span></h3>
+        
+        <p class="en">The twelve-coin version first appeared in print in January 1945, as a problem proposed by E. D. Schell in the American Mathematical Monthly. The same year Howard Grossman published a note, "The twelve-coin problem", in Scripta Mathematica.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1946</span>
+        <h3><span class="en">Dyson and the pennies</span></h3>
+        
+        <p class="en">Freeman Dyson, later famous for his work on quantum electrodynamics, published "The problem of the pennies" in the Mathematical Gazette. He solved the puzzle for any number of weighings and gave a scheme with ternary codes in which every weighing is fixed in advance.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1939–1945</span>
+        <h3><span class="en">A puzzle as sabotage</span></h3>
+        
+        <p class="en">It is a legend, but a good one. Richard Guy and Richard Nowakowski (1995) write that during World War II the puzzle was popular on both sides of the Atlantic, and that it was even suggested to drop it over Germany to sabotage the enemy's war effort. In 1958 Dan Pedoe told the mirror story: enemy agents had supposedly planted it in Britain, since Operational Research spent so many man-hours on it.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">40</span>
+        <h3><span class="en">Bachet's weights</span></h3>
+        
+        <p class="en">In 1612 Claude-Gaspard Bachet de Méziriac showed in his collection "Problèmes plaisans et délectables" that weights of 1, 3, 9 and 27 can weigh any whole amount from 1 to 40 if weights go on both pans. He noted that many had seen this property but nobody had explained it, and proved it. It is the same base 3 with the digits −1, 0, +1.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1958</span>
+        <h3><span class="en">A ternary computer</span></h3>
+        
+        <p class="en">At Moscow University a team led by Nikolay Brusentsov built Setun, a computer based on balanced ternary: each digit was −1, 0 or +1, like the pans of a balance. About fifty machines were made.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="en">0.246</span></span>
+        <h3><span class="en">Tennis and ID3</span></h3>
+        
+        <p class="en">The 14-day weather table appeared in 1986 in Ross Quinlan's paper "Induction of Decision Trees" in the first volume of the journal Machine Learning. In Quinlan the days are just Saturday mornings suitable "for some unspecified activity", and he prints the information gain of the outlook as 0.246 bits. The activity became tennis in later textbooks, and the table is now perhaps the best-known teaching example of decision trees.</p>
+      </article>
+  </div>
+</section>
+
+<section class="mp-books" id="books">
+  <div class="mp-related-head">
+    <span class="eyebrow">Further reading</span>
+    <h2>Books that discuss this puzzle</h2>
+  </div>
+  <div class="mp-books-grid">
+    <div class="mp-book"><h3>The Gentle Art of Mathematics</h3><p class="mp-book-author">Dan Pedoe</p><p class="mp-book-meta">1958</p></div>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/books/en/">All books →</a>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">More puzzles</span>
+    <h2>Other paradoxes</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/hats-parity/en/"><h3>Hats in a line</h3><p>100 people in a line in black and white hats see only those in front of them. How many can surely name the colour of their own hat?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/pirates-gold/en/"><h3>Pirates and 100 gold coins</h3><p>Five logical pirates split 100 coins, and a captain whose split is not backed by half the crew goes overboard. How many coins does he keep?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/blue-eyed-islanders/en/"><h3>The blue-eyed islanders</h3><p>A visitor tells the islanders what they already knew: &quot;I can see someone with blue eyes.&quot; Can that change anything?</p></a>
+  </div>
+  <p class="mp-related-all"><a href="https://mathparadoxes.com/en/">All puzzles →</a> <a href="https://mathparadoxes.com/glossary/en/">Glossary →</a></p>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Discussion</span>
+    <h2>What do you think?</h2>
+    <p>Share your own explanation, an objection or a variant of the puzzle. You need a GitHub account to comment.</p>
+    <div class="mp-lvote"><p>Is “School maths” the right level for this puzzle?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">No, harder</button><button type="button" data-vote="right">Yes</button><button type="button" data-vote="easier">No, easier</button></div><p class="mp-lvote-thanks">Thank you! This helps set the levels right.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "twelve-coins" + "-lvl", LEVEL = 2, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="twelve-coins" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="en" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Newsletter</span>
+    <h2>New puzzles, explanations and discussions</h2>
+    <p>I keep adding new puzzles, new ways to explain them and write-ups of the discussions they start. Leave your email and I'll write when something new is out. No spam, one-click unsubscribe.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">The sign-up form will appear here soon.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const solved = () => !window.mpSolved || mpSolved();
+const TAU = Math.PI * 2;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const plural = (k, one, few, many) => {
+  const a = k % 10, b = k % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+const wW = n => L(plural(n, 'зважування', 'зважування', 'зважувань'), n === 1 ? 'weighing' : 'weighings');
+const coinsW = n => L(plural(n, 'монета', 'монети', 'монет'), n === 1 ? 'coin' : 'coins');
+const casesW = n => L(plural(n, 'варіант', 'варіанти', 'варіантів'), n === 1 ? 'case' : 'cases');
+const SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+const sup = k => String(k).split('').map(d => SUP[+d]).join('');
+const listJoin = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + L(' і ', ' and ') + a[a.length - 1];
+const outName = o => o === 1 ? L('ліва чаша вниз', 'left pan down') : o === -1 ? L('права чаша вниз', 'right pan down') : L('рівновага', 'balance');
+const outShort = o => o === 1 ? L('Л↓', 'L↓') : o === -1 ? L('П↓', 'R↓') : '=';
+const hypName = (c, t) => L('монета ' + (c + 1) + (t ? ' легша' : ' важча'), 'coin ' + (c + 1) + (t ? ' is light' : ' is heavy'));
+
+/* ---------- maths ---------- */
+const NC = 12;
+// a case is (coin c, type t): t = 0 heavy, t = 1 light; index c * 2 + t
+const allHyp = () => new Uint8Array(2 * NC).fill(1);
+const countHyp = h => h.reduce((s, v) => s + v, 0);
+// +1 left pan down, -1 right pan down, 0 balance
+function weighOut(Lp, Rp, c, t) { const d = t ? -1 : 1; return Lp.includes(c) ? d : Rp.includes(c) ? -d : 0; }
+function applyOut(h, Lp, Rp, o) {
+  const n = new Uint8Array(2 * NC);
+  for (let c = 0; c < NC; c++) for (let t = 0; t < 2; t++) if (h[c * 2 + t] && weighOut(Lp, Rp, c, t) === o) n[c * 2 + t] = 1;
+  return n;
+}
+// counts: u = both directions possible, hv = only heavy, lt = only light, g = known genuine
+function stateOf(h) {
+  let u = 0, hv = 0, lt = 0;
+  for (let c = 0; c < NC; c++) { const a = h[c * 2], b = h[c * 2 + 1]; if (a && b) u++; else if (a) hv++; else if (b) lt++; }
+  return [u, hv, lt, NC - u - hv - lt];
+}
+// every weighing in class counts: left (u1,h1,l1,g1) against right (u2,h2,l2,g2), equal sizes
+function movesOf(u, h, l, g) {
+  const ms = [];
+  for (let u1 = 0; u1 <= u; u1++) for (let h1 = 0; h1 <= h; h1++) for (let l1 = 0; l1 <= l; l1++) for (let g1 = 0; g1 <= g; g1++) {
+    const k = u1 + h1 + l1 + g1; if (!k) continue;
+    for (let u2 = 0; u2 <= u - u1 && u2 <= k; u2++) for (let h2 = 0; h2 <= h - h1 && u2 + h2 <= k; h2++) for (let l2 = 0; l2 <= l - l1 && u2 + h2 + l2 <= k; l2++) {
+      const g2 = k - u2 - h2 - l2; if (g2 > g - g1) continue;
+      ms.push([u1, h1, l1, g1, u2, h2, l2, g2]);
+    }
+  }
+  return ms;
+}
+function movesOut(s, m) {
+  const [u, h, l, g] = s, [u1, h1, l1, g1, u2, h2, l2, g2] = m, tot = u + h + l + g;
+  const mk = (a, b, c) => [a, b, c, tot - a - b - c];
+  return [mk(0, u1 + h1, u2 + l2), mk(u - u1 - u2, h - h1 - h2, l - l1 - l2), mk(0, u2 + h2, u1 + l1)];
+}
+// goal 0: name the coin and its direction; goal 1: name the coin only
+const done = (s, goal) => goal ? s[0] + s[1] + s[2] <= 1 : 2 * s[0] + s[1] + s[2] <= 1;
+const nHyp = s => 2 * s[0] + s[1] + s[2];
+const W_MEMO = [new Map(), new Map()];
+// fewest weighings that settle state s in the worst case (99 = never)
+function Wst(s, goal = 0) {
+  if (done(s, goal)) return 0;
+  const key = ((s[0] * 20 + s[1]) * 20 + s[2]) * 20 + Math.min(s[3], 19), memo = W_MEMO[goal];
+  if (memo.has(key)) return memo.get(key);
+  memo.set(key, 99);
+  let lb = 0, p = 1; const hy = goal ? s[0] + s[1] + s[2] : nHyp(s); while (p < hy) { p *= 3; lb++; }
+  let best = 99;
+  for (const m of movesOf(...s)) {
+    const outs = movesOut(s, m);
+    if (outs.some(o => nHyp(o) > 0 && o[0] === s[0] && o[1] === s[1] && o[2] === s[2])) continue;
+    let w = 0;
+    for (const o of outs) { if (nHyp(o) === 0) continue; w = Math.max(w, Wst(o, goal)); if (w >= best - 1) break; }
+    if (1 + w < best) { best = 1 + w; if (best <= Math.max(lb, 1)) break; }
+  }
+  memo.set(key, best);
+  return best;
+}
+// the evil coin: the outcome that forces the most weighings, then the most cases; ties at random
+function evilPick(h, Lp, Rp) {
+  let bestO = 0, bw = -2, bc = -1, ties = 0;
+  for (const o of [0, 1, -1]) {
+    const n = applyOut(h, Lp, Rp, o), c = countHyp(n), w = c ? Wst(stateOf(n)) : -1;
+    if (w > bw || (w === bw && c > bc)) { bestO = o; bw = w; bc = c; ties = 1; }
+    else if (w === bw && c === bc && Math.random() * ++ties < 1) bestO = o;
+  }
+  return bestO;
+}
+// the best weighing from h, turned into actual coins
+function bestMove(h) {
+  const s = stateOf(h);
+  let bm = null, bw = 99;
+  for (const m of movesOf(...s)) {
+    const outs = movesOut(s, m);
+    if (outs.some(o => nHyp(o) > 0 && o[0] === s[0] && o[1] === s[1] && o[2] === s[2])) continue;
+    const w = 1 + Math.max(...outs.map(o => nHyp(o) ? Wst(o) : 0));
+    const k = m[0] + m[1] + m[2] + m[3];
+    if (w < bw || (w === bw && k < bm[0] + bm[1] + bm[2] + bm[3])) { bw = w; bm = m; }
+  }
+  if (!bm) return null;
+  const cls = [[], [], [], []];
+  for (let c = 0; c < NC; c++) { const a = h[c * 2], b = h[c * 2 + 1]; cls[a && b ? 0 : a ? 1 : b ? 2 : 3].push(c); }
+  const Lp = [], Rp = [];
+  for (let i = 0; i < 4; i++) { Lp.push(...cls[i].slice(0, bm[i])); Rp.push(...cls[i].slice(bm[i], bm[i] + bm[i + 4])); }
+  return [Lp.sort((a, b) => a - b), Rp.sort((a, b) => a - b)];
+}
+// strategies: next(outcomes so far) -> [left, right] (coins 0-based) or null
+const C = a => a.map(x => x - 1);
+function treeNext(os) {
+  const [o1, o2] = os;
+  if (os.length === 0) return [C([1, 2, 3, 4]), C([5, 6, 7, 8])];
+  if (os.length === 1) return o1 === 0 ? [C([9, 10, 11]), C([1, 2, 3])] : [C([1, 2, 5]), C([3, 6, 9])];
+  if (os.length === 2) {
+    if (o1 === 0) return o2 === 0 ? [C([12]), C([1])] : [C([9]), C([10])];
+    return o2 === o1 ? [C([1]), C([2])] : o2 === -o1 ? [C([3]), C([9])] : [C([7]), C([8])];
+  }
+  return null;
+}
+function pairsNext(os) {
+  const i = os.length, t = os.findIndex(o => o !== 0);
+  if (t >= 0) { if (i > t + 1) return null; const a = 2 * t; return [[a], [a === 0 ? 2 : 0]]; }
+  if (i < 5) return [[2 * i], [2 * i + 1]];
+  if (i === 5) return [[10], [0]];
+  if (i === 6) return [[11], [0]];
+  return null;
+}
+const FIXED = [[C([1, 2, 3, 4]), C([5, 6, 7, 8])], [C([3, 4, 8, 12]), C([1, 5, 9, 10])], [C([4, 5, 7, 10]), C([6, 8, 9, 11])]];
+function fixedCode(c) { return FIXED.map(([Lp, Rp]) => Lp.includes(c) ? 1 : Rp.includes(c) ? -1 : 0); }
+function rndNext() {
+  const k = 1 + Math.floor(Math.random() * 6), a = [...Array(NC).keys()];
+  for (let i = 0; i < 2 * k; i++) { const j = i + Math.floor(Math.random() * (NC - i)); [a[i], a[j]] = [a[j], a[i]]; }
+  return [a.slice(0, k), a.slice(k, 2 * k)];
+}
+// play one strategy against a real fake (c, t); adaptive ones stop at one case left, fixed plans run in full
+function runStrat(next, c, t, fixed) {
+  let h = allHyp(); const os = [];
+  for (let guard = 0; guard < 200; guard++) {
+    if (!fixed && countHyp(h) <= 1) break;
+    const w = next(os); if (!w) break;
+    const o = weighOut(w[0], w[1], c, t); os.push(o); h = applyOut(h, w[0], w[1], o);
+  }
+  return { w: os.length, found: countHyp(h) === 1 && h[c * 2 + t] === 1, os };
+}
+// exact distribution of weighings for the random policy: k uniform 1..6, 2k random coins
+const TMAX = 40;
+const comb = (n, k) => { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = r * (n - k + i) / i; return r; };
+const RMEMO = new Map();
+function rndDist(u, h, l, g, tr) { // tr: 0 uH, 1 uL, 2 h, 3 l
+  if (2 * u + h + l <= 1) { const d = new Float64Array(TMAX + 1); d[0] = 1; return d; }
+  const key = [u, h, l, g, tr].join(',');
+  if (RMEMO.has(key)) return RMEMO.get(key);
+  const N = u + h + l + g, cls = tr < 2 ? u : tr === 2 ? h : l, heavy = tr === 0 || tr === 2;
+  const res = new Float64Array(TMAX + 1); let self = 0;
+  for (let k = 1; k <= 6; k++) {
+    const tot = comb(N, k) * comb(N - k, k);
+    for (const m of movesOf(u, h, l, g)) {
+      if (m[0] + m[1] + m[2] + m[3] !== k) continue;
+      const [u1, h1, l1, g1, u2, h2, l2, g2] = m;
+      const w = comb(u, u1) * comb(h, h1) * comb(l, l1) * comb(g, g1) * comb(u - u1, u2) * comb(h - h1, h2) * comb(l - l1, l2) * comb(g - g1, g2) / tot / 6;
+      const c1 = tr < 2 ? u1 : tr === 2 ? h1 : l1, c2 = tr < 2 ? u2 : tr === 2 ? h2 : l2;
+      for (const [pos, p] of [[1, c1 / cls], [-1, c2 / cls], [0, (cls - c1 - c2) / cls]]) {
+        if (!p) continue;
+        const o = pos * (heavy ? 1 : -1);
+        let ns, nt;
+        if (o === 0) { ns = [u - u1 - u2, h - h1 - h2, l - l1 - l2]; nt = tr; }
+        else if (o === 1) { ns = [0, u1 + h1, u2 + l2]; nt = pos === 1 ? 2 : 3; }
+        else { ns = [0, u2 + h2, u1 + l1]; nt = pos === -1 ? 2 : 3; }
+        if (ns[0] === u && ns[1] === h && ns[2] === l && nt === tr) { self += w * p; continue; }
+        const d = rndDist(ns[0], ns[1], ns[2], N - ns[0] - ns[1] - ns[2], nt);
+        for (let t = 0; t < TMAX; t++) res[t + 1] += w * p * d[t];
+      }
+    }
+  }
+  const out = new Float64Array(TMAX + 1);
+  for (let t = 0; t <= TMAX; t++) { let s = 0, q = 1; for (let j = 0; j <= t; j++) { s += q * res[t - j]; q *= self; } out[t] = s; }
+  RMEMO.set(key, out);
+  return out;
+}
+const rndExact = () => { const a = rndDist(NC, 0, 0, 0, 0), b = rndDist(NC, 0, 0, 0, 1); return Array.from(a, (v, i) => (v + b[i]) / 2); };
+const H3 = ps => -ps.reduce((s, p) => s + (p > 0 ? p * Math.log(p) / Math.log(3) : 0), 0);
+// Quinlan (1986), table 1: outlook, temperature, humidity, windy, class (P = play)
+const ID3 = ['sunny hot high F N', 'sunny hot high T N', 'overcast hot high F P', 'rain mild high F P', 'rain cool normal F P', 'rain cool normal T N', 'overcast cool normal T P',
+  'sunny mild high F N', 'sunny cool normal F P', 'rain mild normal F P', 'sunny mild normal T P', 'overcast mild high T P', 'overcast hot normal F P', 'rain mild high T N'].map(r => r.split(' '));
+const H2 = rs => { const n = rs.length, p = rs.filter(r => r[4] === 'P').length; return [p, n - p].reduce((s, x) => s - (x ? x / n * Math.log2(x / n) : 0), 0); };
+function gainOf(a) {
+  const vals = [...new Set(ID3.map(r => r[a]))];
+  const parts = vals.map(v => ID3.filter(r => r[a] === v));
+  return { vals, parts, gain: H2(ID3) - parts.reduce((s, p) => s + p.length / ID3.length * H2(p), 0) };
+}
+
+/* ---------- drawing helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function drawCoin(ctx, x, y, r, label, fill, ink) {
+  ctx.fillStyle = fill; ctx.strokeStyle = ink; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.stroke();
+  ctx.lineWidth = .8; ctx.beginPath(); ctx.arc(x, y, r * .78, 0, TAU); ctx.stroke();
+  ctx.fillStyle = ink; ctx.font = '600 ' + Math.max(8, Math.round(r * .9)) + 'px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(label, x, y + .5);
+}
+// a two-pan balance; ang > 0 tips the left pan down. coins: arrays of {n, fill}
+function drawBalance(ctx, W, H, ang, left, right) {
+  const ink = tok('--ink'), muted = tok('--muted'), line = tok('--line');
+  const cx = W / 2, py = H * .2, B = Math.min(W * .3, 230), hang = H * .44, pw = Math.min(B * .85, 150);
+  // stand
+  ctx.fillStyle = ink; ctx.strokeStyle = ink; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx, py); ctx.lineTo(cx, H - 18); ctx.stroke();
+  rr(ctx, cx - 46, H - 18, 92, 8, 4); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx, py - 4); ctx.lineTo(cx - 8, py + 10); ctx.lineTo(cx + 8, py + 10); ctx.closePath(); ctx.fill();
+  // beam
+  const lx = cx - B * Math.cos(ang), ly = py + B * Math.sin(ang), rx = cx + B * Math.cos(ang), ry = py - B * Math.sin(ang);
+  ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(rx, ry); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, py, 5, 0, TAU); ctx.fill();
+  // pointer
+  ctx.lineWidth = 2; ctx.strokeStyle = muted; ctx.beginPath(); ctx.moveTo(cx, py); ctx.lineTo(cx - Math.sin(ang) * 30, py - Math.cos(ang) * 30); ctx.stroke();
+  [[lx, ly, left], [rx, ry, right]].forEach(([x, y, coins]) => {
+    const pyy = y + hang;
+    ctx.strokeStyle = muted; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - pw / 2, pyy); ctx.moveTo(x, y); ctx.lineTo(x + pw / 2, pyy); ctx.stroke();
+    ctx.fillStyle = line; ctx.strokeStyle = ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x - pw / 2 - 4, pyy); ctx.quadraticCurveTo(x, pyy + 22, x + pw / 2 + 4, pyy); ctx.closePath(); ctx.fill(); ctx.stroke();
+    const n = coins.length; if (!n) return;
+    const per = n <= 4 ? n : Math.ceil(n / 2), rad = Math.min(15, (pw - 6) / (2 * Math.max(per, 3)));
+    coins.forEach((k, i) => {
+      const row = Math.floor(i / per), inRow = Math.min(per, n - row * per), col = i - row * per;
+      const xx = x + (col - (inRow - 1) / 2) * rad * 2.05, yy = pyy - rad - 1 - row * rad * 1.8;
+      drawCoin(ctx, xx, yy, rad, String(k.n), k.fill, ink);
+    });
+  });
+}
+
+/* ---------- hero: the balance ---------- */
+const hero = { t0: performance.now(), raf: 0, visible: true };
+let heroCapText = '';
+function heroDraw(now) {
+  const st = setupCanvas($('#hero-cv')); if (!st) return;
+  const { ctx, W, H } = st, ok = solved();
+  const sur = tok('--surface') || '#fff', cell = tok('--cell'), hit = tok('--hit');
+  ctx.fillStyle = sur; rr(ctx, 0, 0, W, H, 14); ctx.fill();
+  const t = reduce() ? 1.6 : Math.max(0, ((now || performance.now()) - hero.t0) / 1000);
+  const coin = (n, f) => ({ n, fill: f || cell });
+  let cap, ang, left, right;
+  const A = .16;
+  if (!ok) {
+    // the coins wait; the beam sways a little as if someone just touched it
+    ang = reduce() ? 0 : Math.sin(t * 1.7) * .05 * Math.exp(-((t % 6) / 3));
+    left = [1, 2, 3, 4, 5, 6].map(n => coin(n)); right = [7, 8, 9, 10, 11, 12].map(n => coin(n));
+    if (!reduce()) { const g = Math.floor(t * 2) % 12; (g < 6 ? left[g] : right[g - 6]).fill = tok('--line'); }
+    cap = L('Одна з 12 монет фальшива, легша чи важча. Терези без гир. Скільки зважувань потрібно, щоб напевно її знайти і сказати, легша вона чи важча?', 'One of 12 coins is fake, lighter or heavier. A balance with no weights. How many weighings do you need to find it for sure and say which way it is off?');
+  } else {
+    const cyc = 3.2, k = Math.floor(t / cyc) % 3, ph = t - Math.floor(t / cyc) * cyc;
+    const o = [1, 0, -1][k], e = reduce() ? 1 : Math.min(1, ph / .8), ease = 1 - Math.pow(1 - e, 3);
+    ang = o * A * ease;
+    left = [1, 2, 3, 4].map(n => coin(n, o !== 0 ? hit : null)); right = [5, 6, 7, 8].map(n => coin(n, o !== 0 ? hit : null));
+    // coins aside are drawn on the floor
+    const aside = [9, 10, 11, 12];
+    drawBalance(ctx, W, H * .84, ang, left, right);
+    const r = Math.min(14, W / 34);
+    aside.forEach((n, i) => drawCoin(ctx, W / 2 + (i - 1.5) * r * 2.4, H * .91, r, String(n), o === 0 ? hit : cell, tok('--ink')));
+    cap = o === 1 ? L('4 : 4, ліва чаша вниз: одна з 1–4 важча або одна з 5–8 легша. 8 варіантів з 24.', '4 : 4, left pan down: one of 1–4 is heavy or one of 5–8 is light. 8 cases out of 24.')
+      : o === 0 ? L('4 : 4, рівновага: фальшивка серед 9–12, важча чи легша. Знову 8 варіантів з 24.', '4 : 4, balance: the fake is among 9–12, heavy or light. Again 8 cases out of 24.')
+      : L('4 : 4, права чаша вниз: одна з 5–8 важча або одна з 1–4 легша. І знову 8 з 24.', '4 : 4, right pan down: one of 5–8 is heavy or one of 1–4 is light. Once more 8 out of 24.');
+    if (cap !== heroCapText) { heroCapText = cap; $('#hero-cap').textContent = cap; }
+    return;
+  }
+  drawBalance(ctx, W, H * .92, ang, left, right);
+  if (cap !== heroCapText) { heroCapText = cap; $('#hero-cap').textContent = cap; }
+}
+function heroLoop(now) { heroDraw(now); if (!reduce() && hero.visible) hero.raf = requestAnimationFrame(heroLoop); else hero.raf = 0; }
+function heroStart() {
+  if (hero.raf) cancelAnimationFrame(hero.raf);
+  hero.raf = 0;
+  if (reduce()) { heroDraw(); return; }
+  hero.raf = requestAnimationFrame(heroLoop);
+}
+if ('IntersectionObserver' in window) new IntersectionObserver(es => {
+  hero.visible = es[0].isIntersecting;
+  if (hero.visible && !hero.raf && !reduce()) hero.raf = requestAnimationFrame(heroLoop);
+}).observe($('#hero-cv'));
+
+/* ---------- round 1: guess ---------- */
+const GV = [2, 3, 4, 5, 6, 7];
+let gPick = 5, guessed = null;
+// worst case of weighing in pairs, from the exact run over all 24 cases
+const pairsWorst = () => Math.max(...ALL.map(([c, t]) => runStrat(pairsNext, c, t).w));
+const ALL = []; for (let c = 0; c < NC; c++) for (let t = 0; t < 2; t++) ALL.push([c, t]);
+function guessPicker() {
+  $('#guess-p').innerHTML = GV.map(v => '<button type="button" data-v="' + v + '" aria-pressed="' + (v === gPick) + '">' + v + (v === 7 ? '+' : '') + '</button>').join('');
+  $('#guess-v').textContent = gPick + (gPick === 7 ? '+' : '');
+}
+$('#guess-p').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gPick = +b.dataset.v; guessPicker(); });
+$('#guess-go').addEventListener('click', () => { guessed = gPick; guessText(); window.mpSolve && mpSolve(guessed); });
+function guessText() {
+  if (guessed === null) return;
+  const g = guessed, pw = pairsWorst();
+  let verdict;
+  if (g === 2) verdict = L('Два зважування дають щонайбільше 3² = 9 різних результатів, а варіантів 24: 12 монет, кожна легша або важча. Хоч як кладіть монети, якісь варіанти дадуть однакові результати. Потрібно 3.', 'Two weighings give at most 3² = 9 different results, and there are 24 cases: 12 coins, each lighter or heavier. However you load the pans, some cases give the same results. You need 3.');
+  else if (g === 3) verdict = L('Влучно. Три зважування дають 27 результатів на 24 варіанти, і є стратегія, яка їх справді розрізняє.', 'Spot on. Three weighings give 27 results for 24 cases, and there is a strategy that really tells them apart.');
+  else if (g === 4) verdict = L('Близько, але досить 3. Секрет у першому зважуванні: 4 монети на кожну чашу, а 4 осторонь.', 'Close, but 3 will do. The secret is the first weighing: 4 coins on each pan and 4 aside.');
+  else if (g < 7) verdict = L('Так виходить, якщо ділити навпіл, як у двійковому пошуку. Але терези мають три відповіді, а не дві, і досить 3 зважувань.', 'That is what halving gives, as in binary search. But a balance has three answers, not two, and 3 weighings are enough.');
+  else verdict = L('Так буде, якщо важити монети парами: у найгіршому разі ' + pw + ' ' + wW(pw) + '. Але досить 3.', 'That is what weighing in pairs gives: ' + pw + ' weighings in the worst case. But 3 are enough.');
+  const rows = [[L('Ваша відповідь', 'Your answer'), g, 'var(--day)'], [L('Парами, найгірший випадок', 'In pairs, worst case'), pw, 'var(--muted)'], [L('Насправді', 'Actually'), 3, 'var(--hit)']];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">' + L('3 зважування', '3 weighings') + '</p>' +
+    '<p>' + verdict + '</p><div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + Math.max(2, 100 * r[1] / 7) + '%"></i></div><span class="mono">' + r[1] + '</span></div>').join('') + '</div>' +
+    '<div class="tbl-wrap"><table class="t"><thead><tr><th>' + L('Зважувань', 'Weighings') + '</th><th class="num">' + L('Різних результатів', 'Different results') + '</th><th class="num">' + L('Вистачить на 24?', 'Enough for 24?') + '</th></tr></thead><tbody>' +
+    [1, 2, 3, 4].map(n => '<tr' + (n === 3 ? ' class="hl"' : '') + '><td class="num" style="text-align:left">' + n + '</td><td class="num">3' + sup(n) + ' = ' + 3 ** n + '</td><td class="num">' + (3 ** n >= 24 ? L('так', 'yes') : L('ні', 'no')) + '</td></tr>').join('') + '</tbody></table></div>' +
+    '<p>' + L('Ідея: перше зважування 4 на 4. Хоч що покажуть терези, лишиться 8 варіантів з 24, а 8 ≤ 9 = 3², тож двох зважувань на них вистачить. Спробуйте в раунді 2, і злісна монета вам не завадить.', 'The idea: weigh 4 against 4 first. Whatever the balance shows, 8 cases out of 24 remain, and 8 ≤ 9 = 3², so two weighings are enough for them. Try it in round 2, and the evil coin will not stop you.') + '</p>';
+}
+
+/* ---------- round 2: the evil coin ---------- */
+const g = { place: new Array(NC).fill(0), h: allHyp(), log: [], ang: 0, target: 0, anim: 0, lastO: null, auto: 0, busy: false };
+function gReset() { g.place.fill(0); g.h = allHyp(); g.log = []; g.target = 0; g.lastO = null; clearTimeout(g.auto); g.busy = false; gAnimate(0, true); gText(); }
+const pans = () => [g.place.map((p, i) => p === 1 ? i : -1).filter(i => i >= 0), g.place.map((p, i) => p === 2 ? i : -1).filter(i => i >= 0)];
+function coinStatus(c) {
+  const a = g.h[c * 2], b = g.h[c * 2 + 1];
+  return a && b ? '?' : a ? '↑' : b ? '↓' : '✓';
+}
+function gDraw() {
+  const st = setupCanvas($('#g-cv')); if (!st) return;
+  const { ctx, W, H } = st, [Lp, Rp] = pans(), line = tok('--line'), sur = tok('--surface') || '#fff';
+  const fill = c => (g.h[c * 2] || g.h[c * 2 + 1]) ? (countHyp(g.h) === 1 ? tok('--hit') : sur) : line;
+  drawBalance(ctx, W, H, g.ang, Lp.map(c => ({ n: c + 1, fill: fill(c) })), Rp.map(c => ({ n: c + 1, fill: fill(c) })));
+}
+function gAnimate(target, instant) {
+  cancelAnimationFrame(g.anim);
+  const from = g.ang, t0 = performance.now(), D = 650;
+  if (instant || reduce()) { g.ang = target; gDraw(); return; }
+  const step = now => {
+    const e = Math.min(1, (now - t0) / D), k = e < 1 ? 1 - Math.pow(1 - e, 3) * Math.cos(e * 7) : 1;
+    g.ang = from + (target - from) * k; gDraw();
+    if (e < 1) g.anim = requestAnimationFrame(step);
+  };
+  g.anim = requestAnimationFrame(step);
+}
+function gWeigh(Lp, Rp) {
+  const o = evilPick(g.h, Lp, Rp);
+  g.h = applyOut(g.h, Lp, Rp, o);
+  g.log.push({ Lp, Rp, o, left: countHyp(g.h) });
+  g.lastO = o;
+  gAnimate(o * .16);
+  gText();
+}
+function gText() {
+  const [Lp, Rp] = pans(), n = countHyp(g.h), fin = n === 1;
+  $('#g-coins').innerHTML = g.place.map((p, c) => {
+    const s = coinStatus(c), gen = s === '✓';
+    return '<button type="button" data-c="' + c + '" class="' + (p === 1 ? 'on-l' : p === 2 ? 'on-r' : '') + (gen ? ' gen' : '') + '" aria-label="' + L('Монета ', 'Coin ') + (c + 1) + (p === 1 ? L(', ліва чаша', ', left pan') : p === 2 ? L(', права чаша', ', right pan') : '') + '"' + (fin || g.busy ? ' disabled' : '') + '>' + (c + 1) +
+      '<small>' + (p === 1 ? L('ліва', 'left') : p === 2 ? L('права', 'right') : g.log.length ? s : '') + '</small></button>';
+  }).join('');
+  const eq = Lp.length === Rp.length && Lp.length > 0;
+  $('#g-weigh').disabled = !eq || fin || g.busy;
+  $('#g-best').disabled = fin || g.busy;
+  $('#g-auto').disabled = g.busy;
+  $('#g-clear').disabled = g.busy;
+  $('#g-stat').textContent = L('Ліва чаша: ' + Lp.length + ', права: ' + Rp.length + '. ', 'Left pan: ' + Lp.length + ', right: ' + Rp.length + '. ') +
+    (Lp.length !== Rp.length ? L('Покладіть на чаші порівну монет. ', 'Put equal numbers of coins on the pans. ') : !Lp.length ? L('Клацніть монету: ліва чаша, права, назад. ', 'Click a coin: left pan, right pan, back off. ') : '') +
+    L('Зважувань: ' + g.log.length + '. Варіантів: ' + n + ' з 24.', 'Weighings: ' + g.log.length + '. Cases: ' + n + ' of 24.') +
+    (solved() && !fin ? L(' Злісна монета ще може змусити вас зробити щонайменше ' + Wst(stateOf(g.h)) + ' ' + wW(Wst(stateOf(g.h))) + '.', ' The evil coin can still force at least ' + Wst(stateOf(g.h)) + ' more ' + wW(Wst(stateOf(g.h))) + '.') : '');
+  // grid of cases
+  $('#g-grid').innerHTML = gridHTML(i => g.h[i] ? (fin ? 'last' : '') : 'off', i => i % 2 ? '↓' : '↑');
+  // log
+  $('#g-log').innerHTML = g.log.map((e, i) => '<li><span>' + (i + 1) + '. ' + e.Lp.map(c => c + 1).join(' ') + ' : ' + e.Rp.map(c => c + 1).join(' ') + '</span><b>' + outName(e.o) + '</b><span>' + e.left + ' ' + casesW(e.left) + '</span></li>').join('') ||
+    '<li class="note">' + L('Поки що порожньо.', 'Empty so far.') + '</li>';
+  // verdict
+  let v;
+  if (fin) {
+    const i = g.h.indexOf(1), c = i >> 1, t = i & 1, k = g.log.length;
+    v = '<p><b>' + L('Знайдено: ', 'Found: ') + hypName(c, t) + '.</b> ' + L('Зважувань: ' + k + '.', 'Weighings used: ' + k + '.') + '</p>';
+    if (solved()) v += '<p class="note">' + (k <= 3 ? L('Це оптимум: злісна монета не змогла вас затримати, бо менше ніж 3 зважування не вистачить за жодної стратегії.', 'That is optimal: the evil coin could not hold you up, since no strategy works with fewer than 3.')
+      : L('Злісна монета виграла ' + (k - 3) + ' ' + wW(k - 3) + ': з правильною стратегією досить 3. Спробуйте почати з 4 на 4 або натисніть «Показати розв\'язок».', 'The evil coin won ' + (k - 3) + ' extra ' + wW(k - 3) + ': the right strategy needs only 3. Try starting with 4 against 4, or press "Show a 3-weighing solution".')) + '</p>';
+    else v += '<p class="note">' + L('А чи можна було швидше? Перевірте свою відповідь у раунді 1.', 'Could it be done faster? Check your answer in round 1.') + '</p>';
+  } else if (!g.log.length) v = '<p class="note">' + L('Злісна монета чекає. Покладіть монети на чаші і натисніть «Зважити».', 'The evil coin is waiting. Put coins on the pans and press "Weigh".') + '</p>';
+  else {
+    const e = g.log[g.log.length - 1], before = g.log.length > 1 ? g.log[g.log.length - 2].left : 24;
+    const parts = [0, 1, -1].map(o => countHyp(applyOut(g.log.length > 1 ? hypAt(g.log.length - 1) : allHyp(), e.Lp, e.Rp, o)));
+    v = '<p>' + L('Терези: <b>' + outName(e.o) + '</b>. ', 'The balance: <b>' + outName(e.o) + '</b>. ') +
+      L('Це зважування ділило ' + before + ' ' + casesW(before) + ' так: рівновага ' + parts[0] + ', ліва вниз ' + parts[1] + ', права вниз ' + parts[2] + '. Монета обрала результат, після якого вам найважче.', 'This weighing split ' + before + ' cases like this: balance ' + parts[0] + ', left down ' + parts[1] + ', right down ' + parts[2] + '. The coin chose the result that leaves you worst off.') + '</p>' +
+      (before === e.left ? '<p class="note"><span class="bad">' + L('Зважування нічого не дало.', 'The weighing told you nothing.') + '</span> ' + L('Усі підозрювані були на одному боці або осторонь так, що результат був передбачуваний.', 'All the suspects sat where the result could be predicted.') + '</p>' : '');
+  }
+  $('#g-verdict').innerHTML = v;
+  gDraw();
+}
+function hypAt(k) { let h = allHyp(); for (let i = 0; i < k; i++) h = applyOut(h, g.log[i].Lp, g.log[i].Rp, g.log[i].o); return h; }
+function gridHTML(cls, label) {
+  let s = '';
+  for (let c = 0; c < NC; c++) s += '<div><span class="cn">' + (c + 1) + '</span><i class="' + cls(c * 2) + '">' + label(c * 2) + '</i><i class="' + cls(c * 2 + 1) + '">' + label(c * 2 + 1) + '</i></div>';
+  return s;
+}
+$('#g-coins').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  const c = +b.dataset.c; g.place[c] = (g.place[c] + 1) % 3;
+  if (g.lastO !== null) { g.lastO = null; gAnimate(0); }
+  gText();
+});
+$('#g-weigh').addEventListener('click', () => { const [Lp, Rp] = pans(); if (Lp.length !== Rp.length || !Lp.length) return; gWeigh(Lp, Rp); });
+$('#g-clear').addEventListener('click', () => { g.place.fill(0); g.lastO = null; gAnimate(0); gText(); });
+$('#g-new').addEventListener('click', gReset);
+$('#g-best').addEventListener('click', () => {
+  const m = bestMove(g.h); if (!m) return;
+  g.place.fill(0); m[0].forEach(c => { g.place[c] = 1; }); m[1].forEach(c => { g.place[c] = 2; });
+  g.lastO = null; gAnimate(0); gText();
+});
+// the classic tree, played against the evil coin, one weighing at a time
+$('#g-auto').addEventListener('click', () => {
+  gReset(); g.busy = true; gText();
+  const step = () => {
+    const w = treeNext(g.log.map(e => e.o));
+    if (!w || countHyp(g.h) <= 1) { g.busy = false; gText(); return; }
+    g.place.fill(0); w[0].forEach(c => { g.place[c] = 1; }); w[1].forEach(c => { g.place[c] = 2; });
+    gAnimate(0, true); gText();
+    g.auto = setTimeout(() => { gWeigh(w[0], w[1]); g.auto = setTimeout(step, reduce() ? 300 : 1300); }, reduce() ? 200 : 700);
+  };
+  step();
+});
+
+/* ---------- round 3: every case, exactly ---------- */
+const STRATS = ['tree', 'fixed', 'pairs', 'rnd', 'plan'];
+let sKey = 'tree', sim = null, simGen = 0, exactCache = {};
+const stratName = k => ({ tree: L('Класичне дерево', 'Classic tree'), fixed: L('План наперед', 'Fixed plan'), pairs: L('Парами', 'In pairs'), rnd: L('Навмання', 'At random'), plan: L('Ваші зважування', 'Your weighings') })[k];
+const planOf = () => g.log.map(e => [e.Lp, e.Rp]);
+function stratRun(k, c, t) {
+  if (k === 'tree') return runStrat(treeNext, c, t);
+  if (k === 'pairs') return runStrat(pairsNext, c, t);
+  if (k === 'fixed') return runStrat(os => FIXED[os.length] || null, c, t, true);
+  if (k === 'plan') { const P = planOf(); return runStrat(os => P[os.length] || null, c, t, true); }
+  return runStrat(rndNext, c, t);
+}
+// exact: per-case results for deterministic strategies, the full distribution for the random one
+function exact(k) {
+  if (k === 'rnd') { if (!exactCache.rnd) exactCache.rnd = { dist: rndExact() }; return exactCache.rnd; }
+  if (k === 'plan' || !exactCache[k]) {
+    const per = ALL.map(([c, t]) => stratRun(k, c, t)), dist = new Array(TMAX + 1).fill(0);
+    let fail = 0; per.forEach(r => { if (r.found) dist[r.w] += 1 / 24; else fail += 1 / 24; });
+    exactCache[k] = { per, dist, fail };
+  }
+  return exactCache[k];
+}
+const SIM_R = 100000;
+function simRun() {
+  const gen = ++simGen, k = sKey;
+  if (k === 'plan' && !g.log.length) { sim = null; simDraw(); simText(); return; }
+  const P = k === 'plan' ? planOf() : null;
+  sim = { k, n: 0, hist: new Array(TMAX + 2).fill(0), fail: 0, sum: 0 };
+  $('#sim-run').disabled = true;
+  (function chunk() {
+    if (gen !== simGen) return;
+    const t0 = performance.now();
+    while (sim.n < SIM_R && performance.now() - t0 < 30) {
+      for (let i = 0; i < 500 && sim.n < SIM_R; i++) {
+        const c = Math.floor(Math.random() * NC), t = Math.random() < .5 ? 0 : 1;
+        const r = k === 'plan' ? runStrat(os => P[os.length] || null, c, t, true) : stratRun(k, c, t);
+        sim.n++;
+        if (r.found) { sim.hist[Math.min(r.w, TMAX + 1)]++; sim.sum += r.w; } else sim.fail++;
+      }
+    }
+    simDraw(); simText();
+    if (sim.n < SIM_R) setTimeout(chunk, 0); else $('#sim-run').disabled = false;
+  })();
+}
+function simDraw() {
+  const st = setupCanvas($('#sim-cv')); if (!st) return;
+  const { ctx, W, H } = st, k = sKey;
+  if (k === 'plan' && !g.log.length) {
+    ctx.fillStyle = tok('--muted'); ctx.font = '13px ' + tok('--f-body'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(L('Спершу зробіть кілька зважувань у раунді 2.', 'First make a few weighings in round 2.'), W / 2, H / 2); return;
+  }
+  const ex = exact(k), XM = k === 'rnd' ? 14 : Math.max(7, ...ex.dist.map((p, i) => p > 0 ? i : 0)), hasFail = ex.fail > 0;
+  const cols = XM + (hasFail ? 1 : 0), l = 38, r = 8, t = 14, b = 30, bw = (W - l - r) / cols;
+  const yMax = Math.max(.4, ...ex.dist.slice(1, XM + 1), ex.fail || 0) * 1.12;
+  const y = p => t + (1 - p / yMax) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let p = 0; p <= yMax; p += yMax > .6 ? .25 : .1) { ctx.beginPath(); ctx.moveTo(l, y(p)); ctx.lineTo(W - r, y(p)); ctx.stroke(); ctx.fillText(Math.round(p * 100) + '%', l - 6, y(p)); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let i = 1; i <= XM; i++) {
+    const x = l + (i - 1) * bw, p = k === 'rnd' && i === XM ? ex.dist.slice(XM).reduce((s, v) => s + v, 0) : ex.dist[i];
+    ctx.fillStyle = i === 3 ? tok('--hit') : tok('--ink'); ctx.globalAlpha = i === 3 ? .9 : .78;
+    ctx.fillRect(x + bw * .18, y(p), bw * .64, y(0) - y(p)); ctx.globalAlpha = 1;
+    ctx.fillStyle = tok('--muted'); ctx.fillText(k === 'rnd' && i === XM ? XM + '+' : String(i), x + bw / 2, H - b + 7);
+  }
+  if (hasFail) {
+    const x = l + XM * bw; ctx.fillStyle = tok('--loss'); ctx.fillRect(x + bw * .18, y(ex.fail), bw * .64, y(0) - y(ex.fail));
+    ctx.fillStyle = tok('--muted'); ctx.fillText('✗', x + bw / 2, H - b + 7);
+  }
+  if (sim && sim.k === k && sim.n) {
+    ctx.fillStyle = tok('--hit'); ctx.strokeStyle = tok('--surface') || '#fff'; ctx.lineWidth = 2;
+    for (let i = 1; i <= XM; i++) {
+      const cnt = k === 'rnd' && i === XM ? sim.hist.slice(XM).reduce((s, v) => s + v, 0) : sim.hist[i];
+      const p = cnt / sim.n; if (!p && !ex.dist[i]) continue;
+      ctx.beginPath(); ctx.arc(l + (i - .5) * bw, y(p), 4.5, 0, TAU); ctx.fill(); ctx.stroke();
+    }
+    if (hasFail) { ctx.beginPath(); ctx.arc(l + (XM + .5) * bw, y(sim.fail / sim.n), 4.5, 0, TAU); ctx.fill(); ctx.stroke(); }
+  }
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  ctx.fillText(L('зважувань', 'weighings'), W - r, 0);
+}
+function simText() {
+  const k = sKey;
+  $('#s-pick').innerHTML = STRATS.map(s => '<button type="button" data-s="' + s + '" aria-pressed="' + (s === k) + '">' + stratName(s) + '</button>').join('');
+  const D = {
+    tree: L('Класичне дерево з раунду 2: спершу 1 2 3 4 : 5 6 7 8, далі залежно від результату.', 'The classic tree from round 2: first 1 2 3 4 : 5 6 7 8, then depending on the result.'),
+    fixed: L('Три зважування, розписані наперед за схемою Дайсона (раунд 5). Сторінка не підлаштовується під результати.', 'Three weighings written out in advance on Dyson\'s scheme (round 5). The page does not adapt to the results.'),
+    pairs: L('1 : 2, 3 : 4, … поки чаші не перехиляться; тоді одну з двох монет порівнюють зі справжньою.', '1 : 2, 3 : 4, … until a pair tilts; then one of the two coins is compared with a genuine one.'),
+    rnd: L('Щоразу k монет проти k інших, k від 1 до 6 і монети навмання, поки не лишиться один варіант. Точний розподіл рахує ланцюг Маркова за станами.', 'Each time k coins against k others, with k from 1 to 6 and the coins at random, until one case is left. The exact distribution comes from a Markov chain over the states.'),
+    plan: L('Ваші зважування з раунду 2, повторені в тому самому порядку, хоч що показують терези. Якщо ви змінювали план на ходу, це лише наближення до вашої стратегії.', 'Your weighings from round 2, repeated in the same order whatever the balance shows. If you changed plans along the way, this only approximates your strategy.') + (g.log.length ? ' ' + L('Зважувань у плані: ' + g.log.length + '.', 'Weighings in the plan: ' + g.log.length + '.') : '')
+  };
+  $('#s-desc').textContent = D[k];
+  const none = k === 'plan' && !g.log.length;
+  if (none) {
+    $('#s-grid').innerHTML = gridHTML(() => 'off', () => '–');
+    ['t-max', 't-mean', 't-sim', 't-p3'].forEach(id => { $('#' + id).textContent = '–'; $('#' + id + 's').textContent = ''; });
+    $('#sim-prog').textContent = L('Зробіть хоча б одне зважування в раунді 2.', 'Make at least one weighing in round 2.');
+    return;
+  }
+  const ex = exact(k);
+  if (k === 'rnd') {
+    $('#s-grid').innerHTML = gridHTML(() => 'n2', () => '?');
+    $('#t-max').textContent = '∞'; $('#t-maxs').textContent = L('невдача може повторюватися скільки завгодно', 'bad luck can repeat for ever');
+  } else {
+    $('#s-grid').innerHTML = gridHTML(i => ex.per[i].found ? 'n' + Math.min(7, ex.per[i].w) : 'bad', i => ex.per[i].found ? ex.per[i].w : '✗');
+    const mx = Math.max(...ex.per.map(r => r.w)), nf = ex.per.filter(r => !r.found).length;
+    $('#t-max').textContent = nf ? L('не знайдено ' + nf, nf + ' not found') : mx + ' ' + wW(mx);
+    $('#t-maxs').textContent = nf ? L('з 24 варіантів не розрізнено ' + nf, nf + ' of 24 cases cannot be told apart') : L('перевірено всі 24 варіанти', 'all 24 cases checked');
+  }
+  const mean = ex.dist.reduce((s, p, i) => s + p * i, 0) / (1 - (ex.fail || 0)), p3 = ex.dist.slice(0, 4).reduce((s, v) => s + v, 0);
+  $('#t-mean').textContent = dec(mean.toFixed(3));
+  $('#t-means').textContent = k === 'rnd' ? L('точно, за ланцюгом станів', 'exact, from the chain of states') : L('середнє по 24 варіантах', 'average over the 24 cases') + (ex.fail ? L(', лише знайдені', ', found ones only') : '');
+  $('#t-p3').textContent = pct(p3);
+  $('#t-p3s').textContent = k === 'rnd' ? L('точно', 'exact') : L(Math.round(p3 * 24) + ' з 24 варіантів', Math.round(p3 * 24) + ' of 24 cases');
+  if (sim && sim.k === k && sim.n) {
+    const found = sim.n - sim.fail;
+    $('#t-sim').textContent = found ? dec((sim.sum / found).toFixed(3)) : '–';
+    let p3s = 0; for (let i = 0; i <= 3; i++) p3s += sim.hist[i];
+    $('#t-sims').textContent = L(fmt(sim.n) + ' фальшивок; за ≤ 3 зважування ' + pct(p3s / sim.n), fmt(sim.n) + ' fakes; within 3 weighings ' + pct(p3s / sim.n));
+  } else { $('#t-sim').textContent = '–'; $('#t-sims').textContent = ''; }
+  $('#sim-prog').textContent = sim && sim.k === k ? (sim.n < SIM_R ? L('Рахуємо: ' + fmt(sim.n) + ' з ' + fmt(SIM_R) + '…', 'Working: ' + fmt(sim.n) + ' of ' + fmt(SIM_R) + '…') : L('Готово.', 'Done.')) : '';
+}
+$('#s-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; sKey = b.dataset.s; simGen++; sim = null; simText(); simDraw(); setTimeout(simRun, 30); });
+$('#sim-run').addEventListener('click', simRun);
+
+/* ---------- round 4 ---------- */
+function lbText() {
+  $('#lb-tbl').innerHTML = '<thead><tr><th>' + L('Зважувань', 'Weighings') + ' n</th><th class="num">3<sup>n</sup></th><th class="num">' + L('Вистачить на 24 варіанти?', 'Enough for 24 cases?') + '</th></tr></thead><tbody>' +
+    [1, 2, 3].map(n => '<tr' + (n === 3 ? ' class="hl"' : '') + '><td class="num" style="text-align:left">' + n + '</td><td class="num">' + 3 ** n + '</td><td class="num">' + (3 ** n >= 24 ? L('так', 'yes') : L('ні', 'no')) + '</td></tr>').join('') + '</tbody>';
+  $('#w-grid').innerHTML = gridHTML(() => '', i => i % 2 ? '↓' : '↑');
+  $('#h-tbl').innerHTML = '<thead><tr><th>' + L('Чаші', 'Pans') + '</th><th class="num">' + L('Л↓ · = · П↓', 'L↓ · = · R↓') + '</th><th class="num">' + L('Тритів', 'Trits') + '</th></tr></thead><tbody>' +
+    [1, 2, 3, 4, 5, 6].map(k => { const p = [2 * k, 24 - 4 * k, 2 * k]; return '<tr' + (k === 4 ? ' class="hl"' : '') + '><td class="num" style="text-align:left">' + k + ' : ' + k + '</td><td class="num">' + p.join(' · ') + '</td><td class="num">' + dec(H3(p.map(x => x / 24)).toFixed(3)) + '</td></tr>'; }).join('') + '</tbody>';
+}
+function kText() {
+  const k = +$('#k-k').value, p = [2 * k, 24 - 4 * k, 2 * k];
+  $('#k-kv').textContent = k;
+  const names = [L('ліва вниз', 'left down'), L('рівновага', 'balance'), L('права вниз', 'right down')];
+  $('#k-split').innerHTML = p.map((v, i) => '<div class="row"><span>' + names[i] + '</span><div class="bar"><i style="width:' + (100 * v / 24) + '%;--c:' + (v > 9 ? 'var(--loss)' : k === 4 ? 'var(--hit)' : 'var(--ink)') + '"></i><s style="left:' + (100 * 9 / 24) + '%"></s></div><span class="mono' + (v > 9 ? ' over' : '') + '">' + v + '</span></div>').join('');
+  const bad = p.map((v, i) => v > 9 ? names[i] : null).filter(Boolean);
+  $('#k-msg').innerHTML = bad.length ? L('Червона риска означає 9 = 3². Після результату «' + bad[0] + '» лишається ' + Math.max(...p) + ' ' + casesW(Math.max(...p)) + ', а двох зважувань вистачає лише на 9. Злісна монета обере саме цей результат.', 'The red tick marks 9 = 3². After "' + bad[0] + '" ' + Math.max(...p) + ' cases remain, and two weighings can handle only 9. The evil coin will pick exactly that result.')
+    : L('<b>Кожна купка має 8 варіантів</b>, і 8 ≤ 9: двох зважувань, що лишилися, вистачить на будь-який результат.', '<b>Each heap holds 8 cases</b>, and 8 ≤ 9: the two remaining weighings can handle any result.');
+}
+$('#k-k').addEventListener('input', kText);
+
+/* ---------- round 5: the formula, checked by search ---------- */
+const NV = n => [(3 ** n - 3) / 2, (3 ** n - 1) / 2, (3 ** n - 1) / 2, (3 ** n + 1) / 2];
+let nCheck = null;
+function nText() {
+  const n = +$('#n-n').value, v = NV(n);
+  $('#n-nv').textContent = n;
+  $('#n-a').textContent = fmt(v[0]); $('#n-b').textContent = fmt(v[1]);
+  const heads = [L('Знайти і сказати напрямок', 'Find it and tell the direction'), L('Те саме, плюс еталонна монета', 'The same, plus a reference coin'), L('Лише знайти монету', 'Only find the coin'), L('Лише знайти, плюс еталон', 'Only find, plus a reference')];
+  $('#n-tbl').innerHTML = '<thead><tr><th>' + L('Умова', 'Version') + '</th><th class="num">' + L('Формула', 'Formula') + '</th><th class="num">n = ' + n + '</th></tr></thead><tbody>' +
+    heads.map((h, i) => '<tr' + (i === 0 ? ' class="hl"' : '') + '><td>' + h + '</td><td class="num">' + ['(3ⁿ − 3)/2', '(3ⁿ − 1)/2', '(3ⁿ − 1)/2', '(3ⁿ + 1)/2'][i] + '</td><td class="num">' + fmt(v[i]) + '</td></tr>').join('') + '</tbody>';
+  $('#n-out').innerHTML = nCheck || L('Повний перебір шукає для кожної кількості монет найкращу стратегію проти злісної монети.', 'The full search finds, for every number of coins, the best strategy against the evil coin.');
+}
+// largest N solvable within n weighings, for goal and reference coin, by searching every strategy
+function maxCoins(n, goal, extra) { let best = 0; for (let N = 1; N <= NV(n)[3] + 2; N++) if (Wst([N, 0, 0, extra], goal) <= n) best = N; return best; }
+$('#n-n').addEventListener('input', nText);
+$('#n-run').addEventListener('click', () => {
+  const rows = [1, 2, 3].map(n => [maxCoins(n, 0, 0), maxCoins(n, 0, 1), maxCoins(n, 1, 0), maxCoins(n, 1, 1)]);
+  const ok = rows.every((r, i) => r.every((x, j) => x === NV(i + 1)[j]));
+  nCheck = rows.map((r, i) => 'n = ' + (i + 1) + ': ' + r.join(' · ')).join('<br>') + '<br>' + (ok ? L('<b>Усі 12 чисел збігаються з формулами.</b>', '<b>All 12 numbers match the formulas.</b>') : L('<span class="bad">Розбіжність!</span>', '<span class="bad">Mismatch!</span>'));
+  nText();
+});
+
+/* ---------- round 5: Dyson's fixed plan ---------- */
+let dC = 6, dT = 1;
+const sym = x => x === 1 ? L('Л', 'L') : x === -1 ? L('П', 'R') : '–';
+function dText() {
+  $('#d-c').innerHTML = Array.from({ length: NC }, (_, c) => '<button type="button" data-c="' + c + '" aria-pressed="' + (c === dC) + '">' + (c + 1) + '</button>').join('');
+  $('#d-t').innerHTML = [0, 1].map(t => '<button type="button" data-t="' + t + '" aria-pressed="' + (t === dT) + '">' + (t ? L('легша', 'lighter') : L('важча', 'heavier')) + '</button>').join('');
+  $('#d-tbl').innerHTML = '<thead><tr><th>' + L('Монета', 'Coin') + '</th>' + Array.from({ length: NC }, (_, c) => '<th class="num" style="text-align:center">' + (c + 1) + '</th>').join('') + '</tr></thead><tbody>' +
+    FIXED.map((w, j) => '<tr><td>' + L('Зваж. ', 'W') + (j + 1) + '</td>' + Array.from({ length: NC }, (_, c) => { const x = fixedCode(c)[j]; return '<td class="c ' + (x === 1 ? 'pl' : x === -1 ? 'pr' : '') + (c === dC ? ' me' : '') + '">' + sym(x) + '</td>'; }).join('') + '</tr>').join('') + '</tbody>';
+  const os = FIXED.map(([Lp, Rp]) => weighOut(Lp, Rp, dC, dT));
+  // decoding: the history equals a coin's code (heavy) or its mirror (light)
+  let found = null;
+  for (let c = 0; c < NC; c++) { const k = fixedCode(c); if (k.every((x, j) => x === os[j])) found = [c, 0]; if (k.every((x, j) => -x === os[j])) found = [c, 1]; }
+  $('#d-ovl').innerHTML = FIXED.map(([Lp, Rp], j) => (j + 1) + '. ' + Lp.map(c => c + 1).join(' ') + ' : ' + Rp.map(c => c + 1).join(' ') + ' → <b>' + outShort(os[j]) + '</b>').join('<br>') +
+    '<br>' + L('Історія: ', 'History: ') + os.map(sym).join(' ') + L('; код монети ' + (dC + 1) + ': ', '; code of coin ' + (dC + 1) + ': ') + fixedCode(dC).map(sym).join(' ');
+  $('#d-msg').innerHTML = L('Історія ' + (dT ? 'дзеркальна до коду' : 'збігається з кодом') + ' монети ' + (found[0] + 1) + ', отже ', 'The history ' + (dT ? 'mirrors the code' : 'matches the code') + ' of coin ' + (found[0] + 1) + ', so ') + '<b>' + hypName(found[0], found[1]) + '</b>. ' +
+    L('Жодна інша монета такої історії не дає.', 'No other coin produces this history.');
+}
+$('#d-c').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; dC = +b.dataset.c; dText(); });
+$('#d-t').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; dT = +b.dataset.t; dText(); });
+
+/* ---------- round 5: ternary search ---------- */
+const q = { lo: 1, hi: 27, n: 0, log: [] };
+function qParts() { const s = (q.hi - q.lo + 1) / 3; return [[q.lo, q.lo + s - 1], [q.lo + s, q.lo + 2 * s - 1], [q.lo + 2 * s, q.hi]]; }
+const rng = ([a, b]) => a === b ? String(a) : a + '–' + b;
+function qText() {
+  const ps = qParts();
+  if (q.lo === q.hi) { $('#q-msg').innerHTML = L('Ваше число <b>' + q.lo + '</b>. Питань: ' + q.n + '.', 'Your number is <b>' + q.lo + '</b>. Questions: ' + q.n + '.'); $('#q-btns').innerHTML = ''; }
+  else {
+    $('#q-msg').textContent = L('Питання ' + (q.n + 1) + ': ваше число в якій групі?', 'Question ' + (q.n + 1) + ': which group is your number in?');
+    $('#q-btns').innerHTML = ps.map((p, i) => '<button class="btn pri" type="button" data-i="' + i + '">' + rng(p) + '</button>').join('');
+  }
+  $('#q-log').innerHTML = q.log.map(s => '<span>' + s + '</span>').join('');
+}
+$('#q-btns').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const p = qParts()[+b.dataset.i]; q.log.push(rng(p)); q.lo = p[0]; q.hi = p[1]; q.n++; qText(); });
+$('#q-new').addEventListener('click', () => { q.lo = 1; q.hi = 27; q.n = 0; q.log = []; qText(); });
+
+/* ---------- round 5: ID3 ---------- */
+let iA = 0;
+const ATTR = () => [L('Прогноз', 'Outlook'), L('Температура', 'Temperature'), L('Вологість', 'Humidity'), L('Вітер', 'Windy')];
+const VAL = v => ({ sunny: L('сонячно', 'sunny'), overcast: L('хмарно', 'overcast'), rain: L('дощ', 'rain'), hot: L('спека', 'hot'), mild: L('тепло', 'mild'), cool: L('прохолодно', 'cool'), high: L('висока', 'high'), normal: L('нормальна', 'normal'), T: L('так', 'yes'), F: L('ні', 'no'), P: L('грали', 'played'), N: L('ні', 'no') })[v];
+function iText() {
+  const gs = [0, 1, 2, 3].map(gainOf), best = gs.reduce((b, x, i) => x.gain > gs[b].gain ? i : b, 0), gm = gs[best].gain;
+  $('#i-gain').innerHTML = gs.map((x, i) => '<button type="button" data-a="' + i + '" aria-pressed="' + (i === iA) + '"><span>' + ATTR()[i] + '</span><span class="bar"><i style="width:' + (100 * x.gain / gm) + '%;--c:' + (i === best ? 'var(--hit)' : 'var(--muted)') + '"></i></span><span class="mono">' + dec(x.gain.toFixed(3)) + '</span></button>').join('');
+  const x = gs[iA];
+  $('#i-tbl').innerHTML = '<thead><tr><th>' + ATTR()[iA] + '</th><th class="num">' + L('Днів', 'Days') + '</th><th class="num">' + L('Грали', 'Played') + '</th><th class="num">' + L('Ні', 'No') + '</th><th class="num">' + L('Ентропія, біт', 'Entropy, bits') + '</th></tr></thead><tbody>' +
+    x.vals.map((v, j) => { const p = x.parts[j], y = p.filter(r => r[4] === 'P').length; return '<tr><td>' + VAL(v) + '</td><td class="num">' + p.length + '</td><td class="num">' + y + '</td><td class="num">' + (p.length - y) + '</td><td class="num">' + dec(H2(p).toFixed(3)) + '</td></tr>'; }).join('') +
+    '<tr class="hl"><td>' + L('Усі дні', 'All days') + '</td><td class="num">14</td><td class="num">9</td><td class="num">5</td><td class="num">' + dec(H2(ID3).toFixed(3)) + '</td></tr></tbody>';
+  $('#i-txt').textContent = L('Приріст інформації: ' + dec(H2(ID3).toFixed(3)) + ' − середня ентропія частин = ' + dec(x.gain.toFixed(3)) + ' біта.', 'Information gain: ' + dec(H2(ID3).toFixed(3)) + ' − average entropy of the parts = ' + dec(x.gain.toFixed(3)) + ' bits.') +
+    (iA === best ? L(' Це найбільший приріст, тож ID3 ставить цю ознаку в корінь дерева.', ' This is the largest gain, so ID3 puts this attribute at the root of the tree.') : L(' Прогноз дає більше: ' + dec(gm.toFixed(3)) + '.', ' Outlook gives more: ' + dec(gm.toFixed(3)) + '.'));
+}
+$('#i-gain').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; iA = +b.dataset.a; iText(); });
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('12 монет і 3 зважування', 'Twelve Coins and Three Weighings');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  heroCapText = ''; heroDraw(); guessPicker(); guessText(); gText(); simText(); simDraw(); lbText(); kText(); nText(); dText(); qText(); iText();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang || lang; applyLang(); });
+document.addEventListener('solved', () => { heroCapText = ''; heroDraw(); gText(); });
+const redraw = () => { heroDraw(); gDraw(); simDraw(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state ---------- */
+[0, 1, 2, 3, 4, 5].forEach(c => { g.place[c] = 1; }); [6, 7, 8, 9, 10, 11].forEach(c => { g.place[c] = 2; });
+applyLang();
+heroStart();
+setTimeout(simRun, 30);
+})();
+</script>
+<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'en' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+</body>
+</html>

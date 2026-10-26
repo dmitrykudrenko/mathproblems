@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/courses/ab-testing/check/", "en": "/courses/ab-testing/check/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = null;
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+
+<title>Перевірте свій A/B-тест: поділ трафіку, значущість, розмір і вердикт</title>
+<meta name="description" content="Впишіть числа з дашборда: перевірка поділу трафіку, p-значення, довірчий інтервал, шанс перемогти, потужність і чесний вердикт простими словами.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/courses/ab-testing/check/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/courses/ab-testing/check/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/courses/ab-testing/check/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/courses/ab-testing/check/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Перевірте свій A/B-тест: поділ трафіку, значущість, розмір і вердикт">
+<meta property="og:description" content="Впишіть числа з дашборда: перевірка поділу трафіку, p-значення, довірчий інтервал, шанс перемогти, потужність і чесний вердикт простими словами.">
+<meta property="og:url" content="https://mathparadoxes.com/courses/ab-testing/check/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/courses/ab-testing/check/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Перевірка A/B-тесту за числами з дашборда: що каже ваш тест">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Перевірте свій A/B-тест: поділ трафіку, значущість, розмір і вердикт">
+<meta name="twitter:description" content="Впишіть числа з дашборда: перевірка поділу трафіку, p-значення, довірчий інтервал, шанс перемогти, потужність і чесний вердикт простими словами.">
+<meta name="twitter:image" content="https://mathparadoxes.com/courses/ab-testing/check/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebPage", "@id": "https://mathparadoxes.com/courses/ab-testing/check/#page", "url": "https://mathparadoxes.com/courses/ab-testing/check/", "name": "Перевірте свій A/B-тест: поділ трафіку, значущість, розмір і вердикт", "description": "Впишіть числа з дашборда: перевірка поділу трафіку, p-значення, довірчий інтервал, шанс перемогти, потужність і чесний вердикт простими словами.", "inLanguage": "uk", "isAccessibleForFree": true, "author": {"@id": "https://mathparadoxes.com/#author"}, "image": "https://mathparadoxes.com/courses/ab-testing/check/og-uk.png", "datePublished": "2026-10-26", "dateModified": "2026-10-26", "isPartOf": {"@type": "Course", "@id": "https://mathparadoxes.com/courses/ab-testing/#course", "name": "Парадокси A/B-тестування", "url": "https://mathparadoxes.com/courses/ab-testing/"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "Курси", "item": "https://mathparadoxes.com/courses/"}, {"@type": "ListItem", "position": 3, "name": "Парадокси A/B-тестування", "item": "https://mathparadoxes.com/courses/ab-testing/"}, {"@type": "ListItem", "position": 4, "name": "Перевірте свій тест", "item": "https://mathparadoxes.com/courses/ab-testing/check/"}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: a course tool. The reader types their dashboard numbers and a few yes/no answers about how the test ran;
+   the page writes a report top to bottom like the course teaches it: traffic split (ch 13), result (10, 11), size (9),
+   process (2–7), then one verdict in plain words with its reasons, a copy button and a share link that keeps the inputs
+   in the hash. Calm and book-like: hairlines, one bold rule above the verdict, status marks in ink, magenta only for
+   the verdict word. */
+:root { --tint: #EAF4E2; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul, dl, dd, fieldset { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+.ck-head { padding-block: 48px 40px; }
+.ck-head h1 { font-size: clamp(2rem, 5.6vw, 3.6rem); }
+
+/* the form: two columns of hairline rows, the questions below them */
+.ck-form { margin-top: 40px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 56px; }
+.ck-form fieldset { border: 0; padding: 0; min-width: 0; }
+.ck-form legend { display: block; width: 100%; padding: 0 0 10px; margin-bottom: 2px; border-bottom: 2px solid var(--ink); font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.ck-form legend b { display: block; font-size: 1.02rem; font-weight: 800; color: var(--ink); text-transform: none; letter-spacing: 0; }
+.f-row { display: grid; grid-template-columns: minmax(0, 1fr) 9.5em; align-items: center; gap: 4px 16px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.f-row > span { font-size: .95rem; line-height: 1.35; }
+.f-row small { display: block; color: var(--muted); font-size: .82rem; }
+.f-row input, .f-row select { font: inherit; font-size: 1rem; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; width: 100%; min-width: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.f-row select { text-align: left; }
+.f-row input:focus, .f-row select:focus { border-color: var(--ink); outline: none; }
+.f-row input[aria-invalid="true"] { border-color: var(--ink); border-width: 2px; }
+.ck-q { grid-column: 1 / -1; }
+.ck-q .qs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 56px; }
+.q-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 16px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: .95rem; line-height: 1.35; }
+.q-row .yn { display: flex; gap: 14px; white-space: nowrap; }
+.q-row .yn label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; font-size: .92rem; }
+.q-row input[type=radio] { accent-color: var(--ink); width: 16px; height: 16px; margin: 0; }
+.q-row input[type=text] { font: inherit; font-size: 1rem; width: 4.5em; text-align: right; border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; background: var(--paper); color: var(--ink); font-variant-numeric: tabular-nums; }
+.q-row input[type=text]:focus { border-color: var(--ink); outline: none; }
+.q-row input[type=text]:disabled { opacity: .4; }
+.ck-err { grid-column: 1 / -1; font-weight: 600; min-height: 1.5em; }
+
+/* the report */
+.rep { max-width: 780px; margin-top: 56px; display: grid; gap: 0; }
+.rep > h2 { font-size: clamp(1.5rem, 3.4vw, 2.3rem); }
+.brief { margin: 14px 0 20px; font-size: 1rem; }
+.brief a { font-weight: 600; }
+.ck { display: grid; grid-template-columns: 2em minmax(0, 1fr); gap: 4px 12px; padding: 22px 0; border-top: 1px solid var(--line); }
+.ck .mk { font-weight: 800; font-size: 1.2rem; line-height: 1.3; text-align: center; }
+.ck-body { display: grid; gap: 8px; min-width: 0; }
+.ck-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 16px; }
+.ck-top h3 { font-size: 1.15rem; }
+.ck-top a { font-size: .86rem; color: var(--muted); white-space: nowrap; }
+.ck-body p { max-width: 68ch; }
+.ck-body p a { font-weight: 600; }
+dl.nums { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 130px), 1fr)); gap: 10px 24px; margin-top: 4px; }
+dl.nums dt { font-size: .8rem; color: var(--muted); }
+dl.nums dd { font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+ul.lines { list-style: none; padding: 0; display: grid; }
+ul.lines li { display: grid; grid-template-columns: 1.4em minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: .95rem; }
+ul.lines li:last-child { border-bottom: 0; }
+ul.lines li > b:first-child { text-align: center; }
+ul.lines a { font-weight: 600; white-space: nowrap; }
+#ci-cv { height: 118px; background: none; border-radius: 0; margin-top: 6px; }
+.muted { color: var(--muted); }
+
+/* the verdict: one bold rule, the verdict word in magenta */
+.vd { margin-top: 8px; border-top: 2px solid var(--ink); padding-top: 22px; display: grid; gap: 14px; scroll-margin-top: 16px; }
+.vd .eyb { font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.vd-title { font-size: clamp(1.45rem, 3.2vw, 2.1rem); font-weight: 800; line-height: 1.15; letter-spacing: -0.015em; }
+.vd-title .w { color: var(--signal); }
+.vd-sub { font-size: 1.05rem; max-width: 64ch; }
+.vd .gl-btns { margin-top: 6px; align-items: center; }
+.vd .gl-btns a { font-weight: 600; margin-left: 6px; }
+.msg { min-height: 1.5em; color: var(--muted); font-size: .92rem; }
+
+/* notes */
+.notes { max-width: 780px; margin-top: 56px; display: grid; gap: 12px; }
+.notes h2 { font-size: clamp(1.3rem, 2.6vw, 1.7rem); }
+.notes > p { max-width: 68ch; }
+.notes ul { padding-left: 22px; display: grid; gap: 6px; max-width: 68ch; }
+.notes ul a { font-weight: 600; }
+details.how { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); max-width: 780px; margin-top: 28px; }
+details.how summary { cursor: pointer; list-style: none; padding: 14px 0; font-weight: 700; }
+details.how summary::-webkit-details-marker { display: none; }
+details.how summary::after { content: " +"; color: var(--muted); }
+details.how[open] summary::after { content: " −"; }
+details.how > div { display: grid; gap: 10px; padding-bottom: 18px; }
+details.how p { max-width: 68ch; font-size: .95rem; }
+
+@media (max-width: 860px) {
+  .ck-form { grid-template-columns: 1fr; gap: 28px; }
+  .ck-q .qs { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .ck-head { padding: 36px 20px 30px; }
+  .f-row { grid-template-columns: minmax(0, 1fr) 7.2em; gap: 4px 10px; }
+  .q-row { grid-template-columns: 1fr; }
+  .q-row .yn { gap: 16px; }
+  .ck { grid-template-columns: 1.5em minmax(0, 1fr); gap: 4px 8px; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=45aefab5">
+</head>
+<body>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", NAME = "ab-testing";
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  window.mpCourseEvent = function (k) {
+    var mark = "mp-cev:" + NAME + ":" + k;
+    if (!API || !window.fetch || get(mark) || get("mp-notrack") === "1") return;
+    set(mark, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: "course-" + NAME, k: k, h: 0 }) }).catch(function () {});
+  };
+})();
+</script>
+<script type="application/json" id="mp-terms">{"p-value": {"name": "p-значення", "short": "Як часто сам лише випадок дав би розрив щонайменше такий, як у вас, якби різниці насправді не було.", "hook": "Коли ефекту немає зовсім, p < 0,05 випадає так само часто, як p між 0,50 і 0,55.", "url": "https://mathparadoxes.com/glossary/p-value/", "link": "Спробувати на симуляції"}, "confidence-interval": {"name": "Довірчий інтервал", "short": "Діапазон навколо виміряного числа, побудований методом, що накриває справжнє значення в обраній частці вибірок, наприклад у 95%.", "hook": "Із двадцяти чесних 95% інтервалів у середньому один промахується, і жоден не знає, чи це він.", "url": "https://mathparadoxes.com/glossary/confidence-interval/", "link": "Спробувати на симуляції"}, "mean": {"name": "Середнє", "short": "Сума всіх значень, поділена на їхню кількість: скільки дісталося б кожному, якби поділити порівну.", "hook": "Майже кожна людина має більше ніг, ніж у середньому: середнє трохи менше за дві.", "url": "https://mathparadoxes.com/glossary/median-vs-mean/", "link": "Спробувати на симуляції"}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="https://mathparadoxes.com/"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+    <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="https://mathparadoxes.com/courses/ab-testing/check/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="https://mathparadoxes.com/courses/ab-testing/check/en/" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="https://mathparadoxes.com/courses/"><span class="uk">Курси</span></a> / <a href="https://mathparadoxes.com/courses/ab-testing/"><span class="uk">Парадокси A/B-тестування</span></a> / <span class="uk">Перевірте свій тест</span></p>
+
+  <header class="cs-head ck-head">
+    <span class="eyebrow"><span class="uk">Курс · інструмент</span></span>
+    <h1><span class="uk">Перевірте свій тест</span></h1>
+    <p class="lead uk">Впишіть числа з дашборда і дайте кілька відповідей про те, як ішов тест. Сторінка зробить ті самі перевірки, що й курс: поділ трафіку, результат, розмір тесту і процес. Наприкінці — вердикт простими словами і причини. Посилання «Поділитися» зберігає ваші числа, тож колега побачить той самий звіт.</p>
+    
+  </header>
+
+  <form class="ck-form" id="ck-form" autocomplete="off" novalidate>
+    <fieldset>
+      <legend><span class="uk">Крок 1</span><b><span class="uk">Числа з дашборда</span></b></legend>
+      <label class="f-row" for="f-na"><span><span class="uk">Відвідувачі <span class="vl">A</span></span></span><input type="text" inputmode="numeric" id="f-na" value="5000"></label>
+      <label class="f-row" for="f-a"><span><span class="uk">Конверсії <span class="vl">A</span></span></span><input type="text" inputmode="numeric" id="f-a" value="250"></label>
+      <label class="f-row" for="f-nb"><span><span class="uk">Відвідувачі <span class="vl">B</span></span></span><input type="text" inputmode="numeric" id="f-nb" value="5000"></label>
+      <label class="f-row" for="f-b"><span><span class="uk">Конверсії <span class="vl">B</span></span></span><input type="text" inputmode="numeric" id="f-b" value="293"></label>
+      <label class="f-row" for="f-src"><span><span class="uk">Що показує дашборд</span></span><select id="f-src"><option value="c"></option><option value="b"></option><option value="p"></option></select></label>
+    </fieldset>
+    <fieldset>
+      <legend><span class="uk">Крок 2</span><b><span class="uk">План тесту</span></b></legend>
+      <label class="f-row" for="f-s"><span><span class="uk">Планова частка <span class="vl">A</span>, %</span></span><input type="text" inputmode="decimal" id="f-s" value="50"></label>
+      <label class="f-row" for="f-m"><span><span class="uk">MDE, %</span><small><span class="uk">найменший ліфт, який для вас важливий</span></small></span><input type="text" inputmode="decimal" id="f-m" value="10"></label>
+      <label class="f-row" for="f-n"><span><span class="uk">Заплановано на варіант</span><small><span class="uk">необов'язково</span></small></span><input type="text" inputmode="numeric" id="f-n" value="" placeholder="–"></label>
+      <label class="f-row" for="f-d"><span><span class="uk">Днів тесту</span><small><span class="uk">необов'язково</span></small></span><input type="text" inputmode="numeric" id="f-d" value="9" placeholder="–"></label>
+    </fieldset>
+    <fieldset class="ck-q">
+      <legend><span class="uk">Крок 3</span><b><span class="uk">Як ішов тест</span></b></legend>
+      <div class="qs">
+        <div class="q-row" role="radiogroup" aria-labelledby="q-day-t"><span id="q-day-t"><span class="uk">Результат узяли в запланований день, а не коли дашборд показав 95%?</span></span>
+          <span class="yn"><label><input type="radio" name="q-day" value="y"><span class="uk">так</span></label><label><input type="radio" name="q-day" value="n"><span class="uk">ні</span></label><label><input type="radio" name="q-day" value="u" checked><span class="uk">не знаю</span></label></span></div>
+        <div class="q-row" role="radiogroup" aria-labelledby="q-wk-t"><span id="q-wk-t"><span class="uk">Тест ішов повними тижнями?</span></span>
+          <span class="yn"><label><input type="radio" name="q-wk" value="y"><span class="uk">так</span></label><label><input type="radio" name="q-wk" value="n"><span class="uk">ні</span></label><label><input type="radio" name="q-wk" value="u" checked><span class="uk">не знаю</span></label></span></div>
+        <div class="q-row" role="radiogroup" aria-labelledby="q-sh-t"><span id="q-sh-t"><span class="uk">Частка <span class="vl">B</span> була сталою весь тест?</span></span>
+          <span class="yn"><label><input type="radio" name="q-sh" value="y"><span class="uk">так</span></label><label><input type="radio" name="q-sh" value="n"><span class="uk">ні</span></label><label><input type="radio" name="q-sh" value="u" checked><span class="uk">не знаю</span></label></span></div>
+        <div class="q-row" role="radiogroup" aria-labelledby="q-me-t"><span id="q-me-t"><span class="uk">Конверсію рахують на всіх відвідувачів, а не на пізнішому кроці воронки?</span></span>
+          <span class="yn"><label><input type="radio" name="q-me" value="y"><span class="uk">так</span></label><label><input type="radio" name="q-me" value="n"><span class="uk">ні</span></label><label><input type="radio" name="q-me" value="u" checked><span class="uk">не знаю</span></label></span></div>
+        <label class="q-row" for="f-k"><span><span class="uk">На скільки зрізів дивилися: країни, пристрої, джерела? 1, якщо лише на загальний результат</span></span>
+          <span class="yn"><input type="text" inputmode="numeric" id="f-k" value="1"></span></label>
+        <div class="q-row" role="radiogroup" aria-labelledby="q-var-t"><span id="q-var-t"><span class="uk">Варіантів у тесті більше двох?</span></span>
+          <span class="yn"><label><input type="radio" name="q-var" value="n" checked><span class="uk">ні, лише <span class="vl">A</span> і <span class="vl">B</span></span></label><label><input type="radio" name="q-var" value="y"><span class="uk">так, усього</span></label><input type="text" inputmode="numeric" id="f-v" value="3" aria-label="Скільки варіантів разом з A" data-aria-en="How many variants including A" disabled></span></div>
+      </div>
+    </fieldset>
+    <p class="ck-err" id="ck-err" aria-live="polite"></p>
+  </form>
+
+  <section class="rep" id="report" aria-live="polite">
+    <h2><span class="uk">Звіт перевірки</span></h2>
+    <p class="brief" id="brief"></p>
+    <div id="checks"></div>
+    <div class="vd" id="verdict">
+      <span class="eyb"><span class="uk">Вердикт</span></span>
+      <p class="vd-title" id="vd-title"></p>
+      <p class="vd-sub" id="vd-sub"></p>
+      <ul class="lines" id="vd-why"></ul>
+      <div class="gl-btns">
+        <button type="button" class="btn" id="b-copy"><span class="uk">Скопіювати висновок</span></button>
+        <button type="button" class="btn ghost" id="b-share"><span class="uk">Поділитися</span></button>
+        <a href="https://mathparadoxes.com/courses/ab-testing/#ch-16"><span class="uk">Перенести у звіт для керівника →</span></a>
+      </div>
+      <p class="msg" id="b-msg" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <h2><span class="uk">Чого ця перевірка не бачить</span></h2>
+    <p class="uk">Сторінка вірить вашим числам і відповідям. Три речі вона перевірити не може, і кожна здатна перевернути вердикт:</p>
+    
+    <ul>
+      <li><span class="uk">Виручку на відвідувача. Вона шумить сильніше за конверсію, а одне велике замовлення може вирішити тест (<a href="https://mathparadoxes.com/courses/ab-testing/#ch-12">розділ 12</a>). Ця перевірка — лише для частки «купив чи ні».</span></li>
+      <li><span class="uk">Сесії замість людей. Якщо інструмент ділить людей, а рахує сесії, шум здається сигналом (<a href="https://mathparadoxes.com/courses/ab-testing/#ch-18">розділ 18</a>). Впишіть людей, а не сесії.</span></li>
+      <li><span class="uk">План до старту. Розмір тесту, день рішення і сегменти чесні, лише коли їх записано наперед (<a href="https://mathparadoxes.com/courses/ab-testing/#ch-15">розділ 15</a>). Для наступного тесту почніть з плану.</span></li>
+    </ul>
+  </section>
+
+  <details class="how">
+    <summary><span class="uk">Як це рахується</span></summary>
+    <div>
+      <p class="uk">Поділ трафіку: хі-квадрат з одним ступенем свободи проти планової частки; тривога, якщо <a href="https://mathparadoxes.com/glossary/p-value/" class="mp-term" data-term="p-value" aria-expanded="false">p-значення</a> менше за 0,001, як у розділі 13.</p>
+      
+      <p class="uk">Результат: двосторонній z-тест для двох часток зі спільною конверсією; впевненість = 1 − p. <a href="https://mathparadoxes.com/glossary/confidence-interval/" class="mp-term" data-term="confidence-interval" aria-expanded="false">Довірчий інтервал</a> 95% для різниці конверсій, поділеної на конверсію <span class="vl">A</span>. Якщо зрізів k, а нових варіантів v, поріг для кожного порівняння — 5%, поділені на k·v, як у розділах 3 і 4.</p>
+      
+      <p class="uk">Шанс перемогти: рівне початкове припущення Beta(1, 1) для обох конверсій і чисельне інтегрування за сіткою з 4&nbsp;000 точок; очікувана втрата — <a href="https://mathparadoxes.com/glossary/median-vs-mean/" class="mp-term" data-term="mean" aria-expanded="false">середнє</a> max(pA − pB, 0), у пунктах конверсії, як у розділі 11.</p>
+      
+      <p class="uk">Розмір: формула вибірки з розділу 9 (двосторонні 5%, потужність 80%, база — конверсія A), для нерівного поділу — з плановою часткою. Потужність — частка тестів такого розміру, які помітили б ліфт рівно на MDE.</p>
+      
+    </div>
+  </details>
+
+  <footer>
+    <span class="uk">Математичні парадокси · автор <a href="https://mathparadoxes.com/#author">Дмитро Кудренко</a> · <a href="https://mathparadoxes.com/courses/ab-testing/">курс «Парадокси A/B-тестування»</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const root = document.documentElement, $ = s => document.querySelector(s);
+  let en = root.dataset.lang === 'en';
+  const L = (uk, e) => en ? e : uk;
+  const tok = n => getComputedStyle(root).getPropertyValue(n).trim();
+  const col = () => ({ ink: tok('--ink') || '#151515', muted: tok('--muted') || '#5F5F5F', line: tok('--line') || '#E4E4E4', paper: tok('--paper') || '#FFFFFF' });
+  const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+  // numbers: Ukrainian comma decimals and spaces, a true minus sign (as on the course page)
+  const nf = (v, d = 0) => (v < 0 && Math.abs(v) >= 0.5 * 10 ** -d ? '−' : '') + Math.abs(v).toLocaleString(en ? 'en-US' : 'uk-UA', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fmt = v => nf(Math.round(v));
+  const pct = (p, d = 0) => nf(100 * p, d) + '%';
+  const sgn = (v, d = 0) => (Math.round(100 * v * 10 ** d) > 0 ? '+' : '') + nf(100 * v, d) + '%';
+  const pval = p => p >= .001 ? nf(p, p >= .1 ? 2 : 3) : p < 1e-9 ? L('< 0,000000001', '< 0.000000001') : nf(p, Math.ceil(-Math.log10(p)) + 1);
+  const conf = p => { const c = 1 - p; return c > .999 ? L('понад 99,9%', 'over 99.9%') : pct(c, c > .99 ? 1 : 0); };
+  // a probability that rounds to 100.0% or 0.0% is shown as a bound
+  const chance = P => P > .999 ? L('понад 99,9%', 'over 99.9%') : P < .001 ? L('менше 0,1%', 'below 0.1%') : pct(P, 1);
+  const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+  const CH = { 2: 'https://mathparadoxes.com/courses/ab-testing/#ch-2', 3: 'https://mathparadoxes.com/courses/ab-testing/#ch-3', 4: 'https://mathparadoxes.com/courses/ab-testing/#ch-4', 5: 'https://mathparadoxes.com/courses/ab-testing/#ch-5', 6: 'https://mathparadoxes.com/courses/ab-testing/#ch-6', 7: 'https://mathparadoxes.com/courses/ab-testing/#ch-7', 9: 'https://mathparadoxes.com/courses/ab-testing/#ch-9', 10: 'https://mathparadoxes.com/courses/ab-testing/#ch-10', 11: 'https://mathparadoxes.com/courses/ab-testing/#ch-11', 13: 'https://mathparadoxes.com/courses/ab-testing/#ch-13', 14: 'https://mathparadoxes.com/courses/ab-testing/#ch-14', 15: 'https://mathparadoxes.com/courses/ab-testing/#ch-15', 17: 'https://mathparadoxes.com/courses/ab-testing/#ch-17' };
+  const chA = n => `<a href="${CH[n]}">${L('розділ', 'chapter')} ${n}</a>`;
+
+  /*CORE: pure maths and the decision rules, no DOM (the node tests run this part) */
+  // the course's helpers: Lanczos log-gamma, erfc to 1e-7, bisection for the normal quantile
+  function lgamma(x) { const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, .1208650973866179e-2, -.5395239384953e-5]; let y = x, t = x + 5.5; t -= (x + .5) * Math.log(t); let s = 1.000000000190015; for (const v of c) s += v / ++y; return -t + Math.log(2.5066282746310005 * s / x); }
+  function erfc(x) { const z = Math.abs(x), t = 1 / (1 + .5 * z), r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (.37409196 + t * (.09678418 + t * (-.18628806 + t * (.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-.82215223 + t * .17087277))))))))); return x >= 0 ? r : 2 - r; }
+  const Phi = x => x >= 0 ? 1 - erfc(x / Math.SQRT2) / 2 : erfc(-x / Math.SQRT2) / 2;
+  function qnorm(p) { let lo = -10, hi = 10; for (let i = 0; i < 90; i++) { const m = (lo + hi) / 2; if (Phi(m) < p) lo = m; else hi = m; } return (lo + hi) / 2; }
+  const ZA = qnorm(.975), ZB = qnorm(.8);
+  const pTwo = z => erfc(Math.abs(z) / Math.SQRT2);
+  function zTest(a, na, b, nb) { const p = (a + b) / (na + nb); if (p <= 0 || p >= 1) return 0; return (b / nb - a / na) / Math.sqrt(p * (1 - p) * (1 / na + 1 / nb)); }
+  // visitors in B for 80% power at a relative lift m over base p, with nA = r·nB (r = share A / share B);
+  // for r = 1 this is exactly the course's formula of chapter 9 (31,234 for 5% → +10%)
+  function needB(p, m, r) {
+    const p2 = p * (1 + m), pb = (r * p + p2) / (r + 1), d = p2 - p;
+    return Math.pow(ZA * Math.sqrt(pb * (1 - pb) * (1 / r + 1)) + ZB * Math.sqrt(p * (1 - p) / r + p2 * (1 - p2)), 2) / (d * d);
+  }
+  // power of the two-sided 5% z-test for a true p1 → p2 with na, nb visitors (the same equation solved for zβ)
+  function power(p1, p2, na, nb) {
+    const pb = (na * p1 + nb * p2) / (na + nb), se0 = Math.sqrt(pb * (1 - pb) * (1 / na + 1 / nb)), se1 = Math.sqrt(p1 * (1 - p1) / na + p2 * (1 - p2) / nb);
+    return Phi((Math.abs(p2 - p1) - ZA * se0) / se1);
+  }
+  // the smallest relative lift this test detects with 80% power
+  function detects(p, na, nb) {
+    let lo = 1e-4, hi = 50; if (p * (1 + hi) >= 1) hi = (1 - 1e-9) / p - 1;
+    if (power(p, p * (1 + hi), na, nb) < .8) return NaN;
+    for (let i = 0; i < 70; i++) { const m = (lo + hi) / 2; if (power(p, p * (1 + m), na, nb) >= .8) hi = m; else lo = m; }
+    return hi;
+  }
+  // chance that B beats A and the expected losses, Beta(1,1) priors, by integration over one grid (as in chapter 11)
+  function bayes(a, na, b, nb) {
+    const lb = (x, p, q) => (p - 1) * Math.log(x) + (q - 1) * Math.log(1 - x) - (lgamma(p) + lgamma(q) - lgamma(p + q));
+    const A = [a + 1, na - a + 1], B = [b + 1, nb - b + 1];
+    const mv = ([x, y]) => [x / (x + y), Math.sqrt(x * y / ((x + y) ** 2 * (x + y + 1)))], [ma, sa] = mv(A), [mb, sb] = mv(B);
+    const lo = Math.max(1e-12, Math.min(ma - 9 * sa, mb - 9 * sb)), hi = Math.min(1 - 1e-12, Math.max(ma + 9 * sa, mb + 9 * sb)), K = 4000, dx = (hi - lo) / K;
+    const xs = new Float64Array(K), fa = new Float64Array(K), fb = new Float64Array(K); let ta = 0, tb = 0;
+    for (let i = 0; i < K; i++) { const x = lo + (i + .5) * dx; xs[i] = x; fa[i] = Math.exp(lb(x, A[0], A[1])); fb[i] = Math.exp(lb(x, B[0], B[1])); ta += fa[i]; tb += fb[i]; }
+    let P = 0, cA = 0, cAx = 0, cB = 0, cBx = 0, LB = 0, LA = 0;
+    for (let i = 0; i < K; i++) {
+      const u = fa[i] / ta, v = fb[i] / tb, x = xs[i];
+      P += v * (cA + u / 2); LB += u * (x * cB - cBx); LA += v * (x * cA - cAx);
+      cA += u; cAx += u * x; cB += v; cBx += v * x;
+    }
+    return { P, LB, LA };
+  }
+  /* The decision rules, top to bottom; the first that applies gives the verdict. Nothing here is new doctrine:
+     each rule is a take-away of the course chapter named next to it.
+     0. Bad input → ask to fix it.
+     1. Traffic split p < 0.001 → 'srm': fix the traffic first, no other verdict (ch 13). 0.001 ≤ p < 0.05 is only a warning.
+        Skipped when the metric is a later funnel step: those counts are not the randomised visitors (rule 2 applies).
+     2. B's share changed, or the metric is a later funnel step ('no' answers) → 'process': the pooled numbers compare
+        different people, whichever way they point (ch 5, 6).
+     3. No conversions in A (or everyone converted) → 'small': too little data to say anything.
+     Significance uses the threshold 5% / (slices × new variants) (ch 3, 4); "significant and B better" also needs the
+     95% interval's lower end above 0, "significant and B worse" its upper end below 0 (ch 10).
+     Enough sample = power at the MDE is at least 80% (ch 9) and the planned sample, if given, is reached.
+     4. Significant, B better:
+        a. decided before the planned day or not in whole weeks ('no') → 'process' (ch 2, 7);
+        b. sample not enough → 'small': top up to N; an early significant result is the peeking of ch 2;
+        c. any process answer unknown → 'process' (unknown), saying it would be 'ship' if all are yes;
+        d. otherwise → 'ship' (ch 16: significant on the planned day, sample reached, clean process, lower end > 0).
+     5. Significant, B worse → 'worse' (keeping A needs no clean process; the flags are still listed).
+     6. Not significant: enough sample → 'none' (ch 15's plan rule "not significant: the effect is below the MDE or
+        absent"; 'absent' when the interval's upper end is below the MDE, 'unproven' otherwise); not enough → 'small'. */
+  function decide(I) {
+    const R = { I };
+    const n = I.na + I.nb, ea = n * I.s, eb = n * (1 - I.s), chi = (I.na - ea) ** 2 / ea + (I.nb - eb) ** 2 / eb, sp = erfc(Math.sqrt(chi / 2));
+    // with a funnel-step metric the counts are not the randomised visitors, so their split proves nothing
+    const skip = I.metric === 'n';
+    R.srm = { ea, chi, p: sp, sd: Math.sqrt(n * I.s * (1 - I.s)), skip, st: skip ? '!' : sp < .001 ? 'x' : sp < .05 ? '!' : 'ok' };
+    // process answers; whole weeks are read off the days when the answer is "don't know"
+    const wk = I.wk === 'u' && I.d ? (I.d % 7 === 0 ? 'y' : 'n') : I.wk;
+    R.proc = { day: I.day, wk, wkFromDays: I.wk === 'u' && !!I.d, share: I.share, metric: I.metric };
+    R.comps = I.k * (I.v - 1); R.alpha = .05 / R.comps;
+    if (sp < .001 && !skip) { R.v = { key: 'srm' }; return R; }
+    const pa = I.a / I.na, pb = I.b / I.nb;
+    if (I.a > 0 && I.a < I.na) {
+      const z = zTest(I.a, I.na, I.b, I.nb), p = pTwo(z), se = Math.sqrt(pa * (1 - pa) / I.na + pb * (1 - pb) / I.nb);
+      const lo = (pb - pa - ZA * se) / pa, hi = (pb - pa + ZA * se) / pa, lift = pb / pa - 1, by = bayes(I.a, I.na, I.b, I.nb);
+      const sig = p < R.alpha && (lift > 0 ? lo > 0 : lift < 0 ? hi < 0 : false);
+      R.res = { pa, pb, lift, p, z, lo, hi, P: by.P, LB: by.LB, LA: by.LA, sig, small: Math.min(I.a, I.b, I.na - I.a, I.nb - I.b) < 10 };
+      const r = I.s / (1 - I.s), nmin = Math.min(I.na, I.nb);
+      if (pa * (1 + I.m) < 1) {
+        const nB = Math.ceil(needB(pa, I.m, r)), nA = Math.ceil(r * needB(pa, I.m, r)), pw = power(pa, pa * (1 + I.m), I.na, I.nb);
+        const tA = Math.max(nA, I.N || 0), tB = Math.max(nB, I.N || 0);
+        const planOk = !I.N || nmin >= I.N, enough = pw >= .8 && planOk;
+        // days to the target at the current pace, rounded up to whole weeks
+        const days = I.d ? Math.max(I.d, Math.ceil(Math.max(tA / I.na, tB / I.nb) * I.d)) : null;
+        R.size = { nA, nB, tA, tB, pw, det: detects(pa, I.na, I.nb), planOk, enough, days, weeks: days ? Math.ceil(days / 7) : null };
+      } else R.size = { tooBig: true, enough: false };
+    } else R.res = null;
+    const P = R.proc, known = ['day', 'wk', 'share', 'metric'].every(k => P[k] === 'y');
+    if (P.share === 'n' || P.metric === 'n') { R.v = { key: 'process', sub: 'no' }; return R; }
+    if (!R.res) { R.v = { key: 'small', sub: 'nodata' }; return R; }
+    const S = R.size, res = R.res;
+    if (res.sig && res.lift > 0) {
+      if (P.day === 'n' || P.wk === 'n') R.v = { key: 'process', sub: 'no' };
+      else if (!S.enough) R.v = { key: 'small', sub: S.tooBig ? 'mde' : 'sig' };
+      else if (!known) R.v = { key: 'process', sub: 'unknown', would: 'ship' };
+      else R.v = { key: 'ship' };
+    } else if (res.sig) R.v = { key: 'worse' };
+    else if (S.enough) R.v = { key: 'none', sub: res.hi < I.m ? 'absent' : 'unproven' };
+    else R.v = { key: 'small', sub: S.tooBig ? 'mde' : 'ns' };
+    return R;
+  }
+  /*END CORE*/
+
+  /* ---------- inputs: the form and the hash ---------- */
+  const F = id => $('#f-' + id);
+  const radio = name => { const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : 'u'; };
+  const setRadio = (name, v) => { const r = document.querySelector(`input[name="${name}"][value="${v}"]`); if (r) r.checked = true; };
+  // "5 000", "5,000" and "5000" are all 5000 for counts; "2,5" and "2.5" are both 2.5 for percentages
+  const int = s => { const t = String(s).replace(/[\s  ,.'’]/g, ''); return /^\d{1,10}$/.test(t) ? +t : NaN; };
+  const dec = s => { const t = String(s).replace(/[\s  %]/g, '').replace(',', '.'); return /^\d{0,6}(\.\d+)?$/.test(t) && t !== '' && t !== '.' ? +t : NaN; };
+  function read() {
+    const bad = [], v = { na: int(F('na').value), a: int(F('a').value), nb: int(F('nb').value), b: int(F('b').value), s: dec(F('s').value), m: dec(F('m').value) };
+    const nStr = F('n').value.trim(), dStr = F('d').value.trim(), kStr = F('k').value.trim();
+    v.N = nStr ? int(nStr) : 0; v.d = dStr ? int(dStr) : 0; v.k = kStr ? int(kStr) : 1;
+    v.v = radio('q-var') === 'y' ? int(F('v').value) : 2;
+    v.day = radio('q-day'); v.wk = radio('q-wk'); v.share = radio('q-sh'); v.metric = radio('q-me'); v.src = F('src').value;
+    const chk = (id, ok) => { const el = F(id); el.setAttribute('aria-invalid', ok ? 'false' : 'true'); if (!ok) bad.push(id); };
+    chk('na', v.na >= 1); chk('nb', v.nb >= 1);
+    chk('a', v.a >= 0 && (!(v.na >= 1) || v.a <= v.na)); chk('b', v.b >= 0 && (!(v.nb >= 1) || v.b <= v.nb));
+    chk('s', v.s >= 1 && v.s <= 99); chk('m', v.m > 0 && v.m <= 1000);
+    chk('n', !nStr || v.N >= 1); chk('d', !dStr || v.d >= 1); chk('k', v.k >= 1 && v.k <= 10000);
+    chk('v', radio('q-var') !== 'y' || (v.v >= 3 && v.v <= 100));
+    v.s /= 100; v.m /= 100;
+    return { v, bad };
+  }
+  const HKEY = ['a', 'b', 's', 'm', 'n', 'd', 'q', 'k', 'v', 'src'];
+  function toHash() {
+    const q = ['q-day', 'q-wk', 'q-sh', 'q-me'].map(radio).join('');
+    const cnt = id => { const x = int(F(id).value); return isFinite(x) ? String(x) : F(id).value.replace(/[,\s]/g, ''); };
+    const h = { a: cnt('na') + ',' + cnt('a'), b: cnt('nb') + ',' + cnt('b'), s: F('s').value, m: F('m').value, n: cnt('n'), d: cnt('d'), q, k: cnt('k'),
+      v: radio('q-var') === 'y' ? cnt('v') : '2', src: F('src').value };
+    return '#' + HKEY.filter(k => h[k] !== '').map(k => k + '=' + encodeURIComponent(String(h[k]).replace(/[\s  ]/g, '')).replace(/%2C/gi, ',')).join('&');
+  }
+  function fromHash() {
+    const raw = location.hash.slice(1); if (!/(^|&)a=/.test(raw)) return false;
+    const h = {}; raw.split('&').forEach(kv => { const i = kv.indexOf('='); if (i > 0) { try { h[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); } catch (e) {} } });
+    const clean = s => String(s || '').slice(0, 14).replace(/[^\d.,\s]/g, '');
+    const pair = (s, n, c) => { const [x, y] = String(s || '').split(','); F(n).value = clean(x); F(c).value = clean(y); };
+    pair(h.a, 'na', 'a'); pair(h.b, 'nb', 'b');
+    if ('s' in h) F('s').value = clean(h.s); if ('m' in h) F('m').value = clean(h.m);
+    F('n').value = clean(h.n); F('d').value = clean(h.d); F('k').value = clean(h.k) || '1';
+    const q = String(h.q || 'uuuu'); ['q-day', 'q-wk', 'q-sh', 'q-me'].forEach((nm, i) => setRadio(nm, /[ynu]/.test(q[i] || '') ? q[i] : 'u'));
+    const vv = int(h.v || '2'); setRadio('q-var', vv > 2 ? 'y' : 'n'); if (vv > 2) F('v').value = String(vv);
+    if (/^[cbp]$/.test(h.src || '')) F('src').value = h.src;
+    return true;
+  }
+  function langLinks() { document.querySelectorAll('#lang a').forEach(a => { a.href = a.href.split('#')[0] + location.hash; }); }
+
+  /* ---------- the report ---------- */
+  const MK = { ok: '✓', '!': '!', x: '✕' };
+  const mkTitle = st => ({ ok: L('гаразд', 'fine'), '!': L('увага', 'caution'), x: L('проблема', 'problem') })[st];
+  const check = (st, title, ch, body) => `<div class="ck"><b class="mk" title="${mkTitle(st)}" aria-label="${mkTitle(st)}">${MK[st]}</b><div class="ck-body"><div class="ck-top"><h3>${title}</h3>${ch ? chA(ch) : ''}</div>${body}</div></div>`;
+  const nums = rows => `<dl class="nums">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
+  const lines = rows => `<ul class="lines">${rows.map(([st, t]) => `<li><b>${MK[st]}</b><span>${t}</span></li>`).join('')}</ul>`;
+  const perVar = (S, sep) => S.tA === S.tB ? L(`${fmt(S.tB)} на варіант`, `${fmt(S.tB)} per variant`) : L(`${fmt(S.tA)} в A${sep}${fmt(S.tB)} у B`, `${fmt(S.tA)} in A${sep}${fmt(S.tB)} in B`);
+  let R = null, ran = false;
+
+  function srmCheck() {
+    const S = R.srm, I = R.I, d = I.na - S.ea;
+    const txt = S.skip
+      ? L('Ви вписали не всіх відвідувачів, а тих, хто дійшов до пізнішого кроку воронки. За такими числами поділ трафіку не перевірити: різниця між групами тут очікувана. Перевірте поділ на всіх відвідувачах.', 'You entered not all visitors but those who reached a later funnel step. The traffic split cannot be checked on such numbers: a difference between the groups is expected here. Check the split on all visitors.')
+      : S.st === 'x'
+      ? L(`За плану ${pct(I.s)} група A мала б ${fmt(S.ea)} людей, а має ${fmt(I.na)}. Шум дає такий або більший перекіс з імовірністю ${pval(S.p)}, тобто майже ніколи. Десь губляться певні люди: боти, переадресація, повільна сторінка, банер згоди лише в одній групі, помилка в коді поділу. Спершу знайдіть причину: доти ліфт порівнює різних людей.`,
+          `With a planned ${pct(I.s)} share, group A should have ${fmt(S.ea)} people, and it has ${fmt(I.na)}. Noise gives a skew this big or bigger with probability ${pval(S.p)}, that is almost never. Particular people are getting lost: bots, a redirect, a slow page, a consent banner in one group only, a bug in the split code. Find the cause first: until then the lift compares different people.`)
+      : S.st === '!'
+        ? L(`Підозріло, але ще може бути шум: p = ${pval(S.p)}. Поріг тривоги — 0,001. Подивіться, чи не змінювали частку посеред тесту, і перевірте ще раз наприкінці.`, `Suspicious, but it may still be noise: p = ${pval(S.p)}. The alarm threshold is 0.001. See whether the share changed mid-test, and check again at the end.`)
+        : L(`У межах шуму: такий розрив трапляється часто, p = ${pval(S.p)}. Поділу можна довіряти.`, `Within noise: a gap like this is common, p = ${pval(S.p)}. The split can be trusted.`);
+    return check(S.st, L('1. Поділ трафіку', '1. Traffic split'), 13, nums([
+      [L('Відхилення A від плану', 'A off the plan by'), (d > 0 ? '+' : d < 0 ? '−' : '') + fmt(Math.abs(d))],
+      [L('Шум зазвичай дає', 'Noise usually gives'), '±' + fmt(2 * S.sd)],
+      [L('p-значення поділу', 'Split p-value'), pval(S.p)]]) + `<p>${txt}</p>`);
+  }
+  function resCheck() {
+    const I = R.I, r = R.res;
+    if (!r) return check('!', L('2. Результат', '2. Result'), 10, `<p>${I.a === 0 ? L('У групі A ще немає жодної конверсії: ліфт у відсотках не порахувати. Зачекайте перших конверсій.', 'Group A has no conversions yet: a lift in percent cannot be computed. Wait for the first conversions.') : L('У групі A сконвертувалися всі: такі числа не схожі на конверсію з дашборда. Перевірте, що вписано відвідувачів і конверсії.', 'Everyone in group A converted: that does not look like a dashboard conversion rate. Check that you entered visitors and conversions.')}</p>`);
+    const rng = L(`від ${sgn(r.lo, 1)} до ${sgn(r.hi, 1)}`, `from ${sgn(r.lo, 1)} to ${sgn(r.hi, 1)}`);
+    const thr = R.comps > 1 ? L(`поріг ${nf(R.alpha, R.alpha < .01 ? 4 : 3)} (5%, поділені на ${R.comps})`, `threshold ${nf(R.alpha, R.alpha < .01 ? 4 : 3)} (5% divided by ${R.comps})`) : L('поріг 0,05', 'threshold 0.05');
+    const st = r.sig ? (r.lift > 0 ? 'ok' : 'x') : '!';
+    const often = p => { const x = Math.round(100 * p); return p < .01 ? L(`з імовірністю ${pval(p)}`, `with probability ${pval(p)}`) : L(`приблизно в ${x} ${plural(x, 'тесті', 'тестах', 'тестах')} зі 100`, `in about ${x} ${x === 1 ? 'test' : 'tests'} out of 100`); };
+    let p1 = r.sig
+      ? (r.lift > 0 ? L(`Значущо: однакові сторінки дають такий розрив з імовірністю ${pval(r.p)}, менше за ${thr}. B, найпевніше, кращий, але відомо це лише приблизно: дані узгоджуються з ліфтом ${rng}.`, `Significant: identical pages give a gap like this with probability ${pval(r.p)}, below the ${thr}. B is most likely better, but only roughly known: the data fit a lift ${rng}.`)
+                    : L(`Значущо, але на користь A: p = ${pval(r.p)}, менше за ${thr}. B, найпевніше, гірший: дані узгоджуються з ліфтом ${rng}.`, `Significant, but in favour of A: p = ${pval(r.p)}, below the ${thr}. B is most likely worse: the data fit a lift ${rng}.`))
+      : L(`Незначущо: однакові сторінки дали б такий або більший розрив ${often(r.p)} (${thr}). Дані узгоджуються з будь-яким ліфтом ${rng}` + (r.lo < 0 && r.hi > 0 ? ', тобто й з нулем.' : '.') + ' «Незначущо» не означає «ефекту немає»: про це скаже розмір тесту нижче.',
+          `Not significant: identical pages would give a gap this big or bigger ${often(r.p)} (${thr}). The data fit any lift ${rng}` + (r.lo < 0 && r.hi > 0 ? ', zero included.' : '.') + ' "Not significant" does not mean "no effect": the test size below tells you more.');
+    if (R.comps > 1 && r.p < .05 && !r.sig) p1 += L(` За звичного порогу 0,05 це вийшло б «значущо», але зрізів чи варіантів кілька, і кожен дає шуму ще одну спробу.`, ` At the usual 0.05 threshold this would be "significant", but there are several slices or variants, and each gives noise another try.`);
+    const src = I.src === 'b'
+      ? L(`Ваш дашборд показує шанс перемогти: тут ${chance(r.P)}. Це не впевненість: впевненість тут ${conf(r.p)}, бо питає про розрив у будь-який бік. Поріг «шанс 95%» відповідає впевненості лише близько 90%.`, `Your dashboard shows a chance to beat: here ${chance(r.P)}. That is not confidence: confidence here is ${conf(r.p)}, because it asks about a gap either way. A "95% chance" threshold matches a confidence of only about 90%.`)
+      : I.src === 'p'
+        ? L(`Ваш дашборд показує p-значення: ${pval(r.p)}. Те саме як впевненість — ${conf(r.p)}, а байєсівський шанс, що B кращий, — ${chance(r.P)}.`, `Your dashboard shows a p-value: ${pval(r.p)}. The same as confidence is ${conf(r.p)}, and the Bayesian chance that B is better is ${chance(r.P)}.`)
+        : L(`Впевненість ${conf(r.p)} означає не «${conf(r.p)}, що B кращий», а 1 − p. Число, яке відповідає саме на питання «наскільки ймовірно, що B кращий», — шанс перемогти: ${chance(r.P)}.`, `Confidence ${conf(r.p)} does not mean "${conf(r.p)} that B is better"; it is 1 − p. The number that answers exactly "how likely is B to be better" is the chance to beat: ${chance(r.P)}.`);
+    const lp = 100 * r.LB, tiny = lp < .001, per = r.LB > 0 ? 1 / r.LB : Infinity, perR = per > 1e4 ? Math.round(per / 1000) * 1000 : Math.round(per);
+    const lv = tiny ? L('менш ніж 0,001', 'less than 0.001') : nf(lp, lp < .01 ? 3 : 2);
+    const loss = L(`Якщо оберете B, а він насправді гірший, у середньому втратите ${lv} пункта конверсії` + (!tiny && isFinite(per) && perR >= 1 ? `, приблизно одну покупку на ${fmt(perR)} відвідувачів` : '') + '. Це міра ризику, а не доказ ефекту.',
+      `If you pick B and it is actually worse, you lose ${lv} points of conversion on average` + (!tiny && isFinite(per) && perR >= 1 ? `, about one purchase per ${fmt(perR)} visitors` : '') + '. It measures risk, not evidence of an effect.');
+    return check(st, L('2. Результат', '2. Result'), 10, nums([
+      [L('Конверсія A · B', 'Conversion A · B'), pct(r.pa, 2) + ' · ' + pct(r.pb, 2)],
+      [L('Ліфт B', 'Lift of B'), sgn(r.lift, 1)],
+      [L('p-значення · впевненість', 'p-value · confidence'), pval(r.p) + ' · ' + conf(r.p)],
+      [L('Шанс, що B кращий', 'Chance B is better'), chance(r.P)]]) +
+      `<canvas class="gl-canvas" id="ci-cv" aria-label="${L('95% довірчий інтервал ліфту, нуль і MDE', '95% confidence interval of the lift, zero and the MDE')}"></canvas>` +
+      `<p>${p1}</p><p>${src.replace(/\.$/, '')} (${chA(11)}).</p><p class="muted">${loss}</p>` +
+      (r.small ? `<p class="muted">${L('Конверсій або неконверсій менше за 10 в групі: формули тут дуже приблизні.', 'Fewer than 10 conversions or non-conversions in a group: the formulas are very rough here.')}</p>` : ''));
+  }
+  function sizeCheck() {
+    const I = R.I, S = R.size, r = R.res;
+    if (!r) return '';
+    if (S.tooBig) return check('!', L('3. Розмір тесту', '3. Test size'), 9, `<p>${L(`MDE ${sgn(I.m)} за конверсії A ${pct(r.pa, 1)} дає конверсію понад 100%. Візьміть менший MDE.`, `An MDE of ${sgn(I.m)} on A's conversion of ${pct(r.pa, 1)} gives a conversion above 100%. Pick a smaller MDE.`)}</p>`);
+    const st = S.enough ? 'ok' : 'x', nmin = Math.min(I.na, I.nb);
+    let t = L(`Якби B справді давав ${sgn(I.m)}, тест такого розміру помітив би це в ${fmt(100 * S.pw)} ${plural(Math.round(100 * S.pw), 'випадку', 'випадках', 'випадках')} зі 100. Стандарт — 80. `, `If B truly gave ${sgn(I.m)}, a test of this size would notice it ${fmt(100 * S.pw)} times out of 100. The standard is 80. `)
+      + (isFinite(S.det) ? L(`Із вашою вибіркою тест надійно помічає лише ліфт від ${sgn(S.det)}.`, `With your sample the test reliably detects only lifts from ${sgn(S.det)}.`) : L('З такою вибіркою тест не помічає надійно жодного ліфту.', 'With this sample the test reliably detects no lift at all.'));
+    if (I.N && !S.planOk) t += L(` За планом ${fmt(I.N)} на варіант, набрано ${pct(nmin / I.N)}.`, ` The plan is ${fmt(I.N)} per variant; ${pct(nmin / I.N)} is reached.`);
+    if (I.N && S.planOk && S.pw < .8) t += L(` План (${fmt(I.N)} на варіант) набрано, але для MDE ${sgn(I.m)} він замалий.`, ` The plan (${fmt(I.N)} per variant) is reached, but it is too small for an MDE of ${sgn(I.m)}.`);
+    if (!S.enough && S.days) t += L(` За вашого темпу до ${perVar(S, ' і ')} — приблизно ${fmt(S.days)} ${plural(S.days, 'день', 'дні', 'днів')} від старту, тобто ${fmt(S.weeks)} ${plural(S.weeks, 'повний тиждень', 'повні тижні', 'повних тижнів')}.`, ` At your pace, ${perVar(S, ' and ')} takes about ${fmt(S.days)} days from the start, that is ${fmt(S.weeks)} whole ${S.weeks === 1 ? 'week' : 'weeks'}.`);
+    return check(st, L('3. Розмір тесту', '3. Test size'), 9, nums([
+      [L('Потужність для MDE', 'Power at the MDE'), pct(S.pw)],
+      [L('Треба для 80%', 'Needed for 80%'), I.s === .5 ? fmt(S.nB) : fmt(S.nA) + ' / ' + fmt(S.nB)],
+      [L('У вас', 'You have'), I.s === .5 && I.na === I.nb ? fmt(I.na) : fmt(I.na) + ' / ' + fmt(I.nb)],
+      [L('Надійно помічає', 'Reliably detects'), isFinite(S.det) ? L('від ', 'from ') + sgn(S.det) : '–']]) + `<p>${t}</p>`);
+  }
+  function procItems() {
+    const I = R.I, P = R.proc, out = [];
+    out.push(P.day === 'y' ? ['ok', L('Результат узято в запланований день.', 'The result was taken on the planned day.')]
+      : P.day === 'n' ? ['x', L(`Рішення ухвалене не в запланований день: поріг 95% чесний лише для одного погляду наприкінці. Щовечірній погляд з правом зупинитися дає значно більше фальшивих перемог`, `The decision was not made on the planned day: the 95% threshold is honest only for one look at the end. Looking every evening with the right to stop gives far more false wins`) + ` (${chA(2)}; ${L('чесні способи закінчити раніше', 'honest ways to finish early')} — ${chA(14)}).`]
+      : ['!', L(`Невідомо, чи це запланований день рішення, чи просто вечір, коли хтось глянув на дашборд`, `Unknown whether this is the planned decision day or just an evening when someone looked at the dashboard`) + ` (${chA(2)}).`]);
+    out.push(P.wk === 'y' ? ['ok', P.wkFromDays ? L(`${fmt(I.d)} ${plural(I.d, 'день', 'дні', 'днів')} — повні тижні.`, `${fmt(I.d)} days are whole weeks.`) : L('Повні тижні.', 'Whole weeks.')]
+      : P.wk === 'n' ? ['x', (P.wkFromDays ? L(`${fmt(I.d)} ${plural(I.d, 'день', 'дні', 'днів')} — це не повні тижні. `, `${fmt(I.d)} days are not whole weeks. `) : '') + L('Будні й вихідні поводяться по-різному, а перший тиждень часто роздутий новизною. Доберіть до повних тижнів і подивіться на ліфт по тижнях', 'Weekdays and weekends behave differently, and the first week is often inflated by novelty. Top up to whole weeks and look at the lift week by week') + ` (${chA(7)}).`]
+      : ['!', L('Невідомо, чи тест ішов повними тижнями. Впишіть кількість днів, і сторінка перевірить сама', 'Unknown whether the test ran in whole weeks. Enter the number of days and the page will check') + ` (${chA(7)}).`]);
+    out.push(P.share === 'y' ? ['ok', L('Частка B стала весь тест.', 'B\'s share was constant throughout.')]
+      : P.share === 'n' ? ['x', L('Частку B змінювали: сума всіх днів змішує ефект B зі змінами трафіку, і підсумок може вказувати навіть не туди. Порівнюйте лише період зі сталою часткою або в межах днів', 'B\'s share changed: the sum over all days mixes B\'s effect with changes in traffic, and the total may even point the wrong way. Compare only the period with a constant share, or within days') + ` (${chA(5)}).`]
+      : ['!', L('Невідомо, чи частка B була сталою. Якщо запускали поступово, підсумок може обманювати', 'Unknown whether B\'s share was constant. After a gradual rollout the total can mislead') + ` (${chA(5)}).`]);
+    out.push(P.metric === 'y' ? ['ok', L('Конверсія на всіх відвідувачів.', 'Conversion over all visitors.')]
+      : P.metric === 'n' ? ['x', L('Частка на пізнішому кроці воронки порівнює різних людей: B міг привести туди інших. Перерахуйте на всіх відвідувачів і впишіть ці числа сюди', 'A rate at a later funnel step compares different people: B may have brought others there. Recount over all visitors and enter those numbers here') + ` (${chA(6)}).`]
+      : ['!', L('Невідомо, на кого рахують конверсію. Вердикт дає лише метрика на всіх відвідувачів', 'Unknown what conversion is counted over. Only a per-visitor metric gives a verdict') + ` (${chA(6)}).`]);
+    if (I.k > 1) out.push(['!', L(`Ви дивилися на ${fmt(I.k)} ${plural(I.k, 'зріз', 'зрізи', 'зрізів')}: кожен — окрема спроба для шуму. Поріг для кожного — 5%, поділені на ${fmt(I.k)}` + (I.v > 2 ? '' : `, тобто ${nf(R.alpha, R.alpha < .01 ? 4 : 3)}`) + '. Зріз, якого не було в плані, — гіпотеза для нового тесту, а не висновок', `You looked at ${fmt(I.k)} slices: each is another try for noise. The threshold for each is 5% divided by ${fmt(I.k)}` + (I.v > 2 ? '' : `, that is ${nf(R.alpha, R.alpha < .01 ? 4 : 3)}`) + '. A slice that was not in the plan is a hypothesis for a new test, not a conclusion') + ` (${chA(3)}).`]);
+    else out.push(['ok', L('Лише загальний результат, без пошуку по зрізах.', 'Only the overall result, no hunting through slices.')]);
+    if (I.v > 2) out.push(['!', L(`${fmt(I.v - 1)} ${plural(I.v - 1, 'новий варіант', 'нові варіанти', 'нових варіантів')} проти A: поріг для кожного порівняння — 5%, поділені на ${fmt(R.comps)}, тобто ${nf(R.alpha, R.alpha < .01 ? 4 : 3)}. «Переможець» такого тесту ще й перебільшений; перш ніж робити велику зміну, підтвердіть його окремим A/B-тестом`, `${fmt(I.v - 1)} new variants against A: each comparison's threshold is 5% divided by ${fmt(R.comps)}, that is ${nf(R.alpha, R.alpha < .01 ? 4 : 3)}. The "winner" of such a test is exaggerated too; before a big change, confirm it in a separate A/B test`) + ` (${chA(4)}).`]);
+    return out;
+  }
+  function procCheck() {
+    const it = procItems(), st = it.some(x => x[0] === 'x') ? 'x' : it.some(x => x[0] === '!') ? '!' : 'ok';
+    return check(st, L('4. Як ішов тест', '4. How the test ran'), 0, lines(it));
+  }
+  function verdictText() {
+    const v = R.v, I = R.I, r = R.res, S = R.size, P = R.proc;
+    const W = (w, rest) => ({ w, rest });
+    let t, sub, why = [];
+    const rng = r ? L(`від ${sgn(r.lo, 1)} до ${sgn(r.hi, 1)}`, `from ${sgn(r.lo, 1)} to ${sgn(r.hi, 1)}`) : '';
+    if (v.key === 'srm') {
+      t = W(L('Спершу полагодьте трафік', 'Fix the traffic first'), '');
+      sub = L('Поділ трафіку не схожий на план, тож будь-який ліфт тут порівнює різних людей. Інші перевірки не мають сенсу, доки не знайдено, де губляться люди.', 'The traffic split does not match the plan, so any lift here compares different people. The other checks make no sense until you find where people get lost.');
+      why = [['x', L(`Перекіс поділу: p = ${pval(R.srm.p)}, менше за 0,001`, `Split skew: p = ${pval(R.srm.p)}, below 0.001`) + ` (${chA(13)}).`], ['!', L('Після виправлення запустіть тест заново: дані з перекосом не рятує жодна формула.', 'After the fix, run the test again: no formula rescues skewed data.')]];
+    } else if (v.key === 'process') {
+      const onlyMetric = v.sub === 'no' && P.metric === 'n' && P.share !== 'n' && P.day !== 'n' && P.wk !== 'n';
+      t = v.sub === 'no'
+        ? (onlyMetric ? W(L('Не висновок', 'No conclusion'), L(': порахуйте на відвідувача', ': count per visitor')) : W(L('Не висновок', 'No conclusion'), L(': рішення ухвалене не за планом — перевірте новим тестом', ': the decision was not made by the plan — check with a new test')))
+        : W(L('Ще не висновок', 'Not a conclusion yet'), L(': невідомо, чи тест ішов за планом', ': it is unknown whether the test followed the plan'));
+      sub = v.sub === 'no'
+        ? (onlyMetric ? L('Метрика на пізнішому кроці воронки не дає вердикту. Перерахуйте конверсію на всіх відвідувачів і перевірте ще раз.', 'A metric at a later funnel step gives no verdict. Recount conversion over all visitors and check again.')
+                      : L('Цифри дашборда можуть бути правдою, а можуть бути наслідком того, як ішов тест. Чесно відповісти можна лише тестом, проведеним за планом.', 'The dashboard figures may be true, or they may come from how the test ran. Only a test run by the plan can answer honestly.'))
+        : L('Результат значущий і вибірку набрано, але на частину питань про процес відповідь «не знаю». Якщо на всі відповідь «так», вердикт — «Запускати».', 'The result is significant and the sample is reached, but some process questions are answered "don\'t know". If all of them are "yes", the verdict is "Ship".');
+      why = procItems().filter(x => x[0] !== 'ok' && (v.sub === 'unknown' || x[0] === 'x'));
+      if (r) why.push([r.sig ? 'ok' : '!', L(`Ліфт ${sgn(r.lift, 1)}, p = ${pval(r.p)}, інтервал ${rng}.`, `Lift ${sgn(r.lift, 1)}, p = ${pval(r.p)}, interval ${rng}.`)]);
+    } else if (v.key === 'ship') {
+      t = W(L('Запускати', 'Ship'), L(' B', ' B'));
+      sub = L(`B, найпевніше, дає ${rng} до конверсії. Навіть нижня межа — плюс.`, `B most likely gives ${rng} in conversion. Even the lower end is a gain.`);
+      why = [['ok', L(`Значущо: p = ${pval(r.p)}` + (R.comps > 1 ? `, нижче за суворіший поріг ${nf(R.alpha, R.alpha < .01 ? 4 : 3)}` : '') + '.', `Significant: p = ${pval(r.p)}` + (R.comps > 1 ? `, below the stricter threshold ${nf(R.alpha, R.alpha < .01 ? 4 : 3)}` : '') + '.') + ` (${chA(10)})`],
+        ['ok', L(`Вибірку набрано: потужність для MDE ${sgn(I.m)} — ${pct(S.pw)}.`, `The sample is reached: power at the MDE of ${sgn(I.m)} is ${pct(S.pw)}.`) + ` (${chA(9)})`],
+        ['ok', L(`Поділ трафіку в межах шуму (p = ${pval(R.srm.p)}), процес за планом.`, `The traffic split is within noise (p = ${pval(R.srm.p)}), the process followed the plan.`) + ` (${chA(13)})`]];
+      if (r.lo < I.m) why.push(['!', L(`Нижня межа ${sgn(r.lo, 1)} менша за ваш MDE ${sgn(I.m)}: чи окупає зміну навіть ${sgn(r.lo, 1)}, вирішуєте ви.`, `The lower end ${sgn(r.lo, 1)} is below your MDE of ${sgn(I.m)}: whether even ${sgn(r.lo, 1)} pays for the change is your call.`)]);
+      if (R.srm.st === '!') why.push(['!', L(`Поділ трафіку підозрілий (p = ${pval(R.srm.p)}): перевірте його ще раз.`, `The traffic split is suspicious (p = ${pval(R.srm.p)}): check it again.`)]);
+      if (I.v > 2) why.push(['!', L('Варіантів кілька: «переможця» варто підтвердити окремим A/B-тестом.', 'There are several variants: confirm the "winner" in a separate A/B test.') + ` (${chA(4)})`]);
+      why.push(['!', L('Після запуску перевірте ефект ще раз, наприклад невеликою контрольною групою на старій версії.', 'After the launch, check the effect again, for example with a small holdout on the old version.') + ` (${chA(17)})`]);
+    } else if (v.key === 'worse') {
+      t = W(L('Не запускати', 'Don\'t ship'), L(': B, найпевніше, гірший', ': B is most likely worse'));
+      sub = L(`Дані узгоджуються з ліфтом ${rng}: навіть верхня межа — мінус.`, `The data fit a lift ${rng}: even the upper end is a loss.`);
+      why = [['x', L(`Значущо на користь A: p = ${pval(r.p)}.`, `Significant in favour of A: p = ${pval(r.p)}.`) + ` (${chA(10)})`]].concat(procItems().filter(x => x[0] !== 'ok'));
+    } else if (v.key === 'none') {
+      t = v.sub === 'absent' ? W(L('Ефекту, який вам важливий, тут, найпевніше, немає', 'The effect that matters to you is most likely not here'), '') : W(L('Не запускати', 'Don\'t ship'), L(': ефект не доведено', ': the effect is not proven'));
+      sub = v.sub === 'absent'
+        ? L(`Тест мав достатньо людей, щоб помітити ${sgn(I.m)}, і не помітив. Дані узгоджуються з ліфтом ${rng}: навіть верхня межа менша за ваш MDE. Це теж знання: запишіть його у звіт, щоб не повторювати той самий тест.`, `The test had enough people to notice ${sgn(I.m)}, and it did not. The data fit a lift ${rng}: even the upper end is below your MDE. That is knowledge too: write it into the report so the same test is not run again.`)
+        : L(`Тест мав достатньо людей для MDE ${sgn(I.m)}, але різниця незначуща. Дані узгоджуються з ліфтом ${rng}, тож великого ефекту вони не виключають повністю, але й не показують. За правилом плану незначущий результат не запускають.`, `The test had enough people for an MDE of ${sgn(I.m)}, but the difference is not significant. The data fit a lift ${rng}, so they do not fully rule out a large effect, but they do not show one either. By the plan's rule, a non-significant result is not shipped.`);
+      why = [['!', L(`Незначущо: p = ${pval(r.p)}.`, `Not significant: p = ${pval(r.p)}.`) + ` (${chA(10)})`], ['ok', L(`Потужність для MDE ${sgn(I.m)} — ${pct(S.pw)}.`, `Power at the MDE of ${sgn(I.m)} is ${pct(S.pw)}.`) + ` (${chA(9)})`]].concat(procItems().filter(x => x[0] !== 'ok'));
+    } else {
+      const N = S && !S.tooBig ? perVar(S, ' і ') : '';
+      t = v.sub === 'nodata' ? W(L('Не висновок', 'No conclusion'), L(': даних ще замало', ': too little data yet'))
+        : v.sub === 'mde' ? W(L('Не висновок', 'No conclusion'), L(': перевірте MDE', ': check the MDE'))
+          : W(L('Не висновок', 'No conclusion'), L(`: тест замалий — доберіть до ${N}`, `: the test is too small — top up to ${perVar(S, ' and ')}`));
+      sub = v.sub === 'nodata' ? L('Поки в групах немає конверсій для порівняння, жодна формула нічого не скаже.', 'Until the groups have conversions to compare, no formula can say anything.')
+        : v.sub === 'mde' ? L('MDE такого розміру неможливий для цієї конверсії.', 'An MDE this large is impossible for this conversion.')
+          : v.sub === 'sig' ? L('Результат значущий, але тест ще не набрав потрібної вибірки. Значущість до запланованого кінця — це щовечірній погляд із розділу 2, а ліфт малого тесту часто перебільшений. Не запускайте і не викидайте B: доведіть тест до кінця.', 'The result is significant, but the test has not reached the sample it needs. Significance before the planned end is the evening look of chapter 2, and a small test\'s lift is often exaggerated. Don\'t ship B and don\'t throw it away: run the test to its end.')
+            : L('Не запускайте і не викидайте B: такий тест не відрізнить ваш MDE від шуму. Запишіть план із вибіркою і днем рішення і доведіть тест до кінця.', 'Don\'t ship B and don\'t throw it away: a test like this cannot tell your MDE from noise. Write a plan with the sample and the decision day, and run the test to its end.');
+      if (r) why.push(['!', (r.sig ? L(`Значущо (p = ${pval(r.p)}), але рано.`, `Significant (p = ${pval(r.p)}), but early.`) : L(`Незначущо: p = ${pval(r.p)}, інтервал ${rng}.`, `Not significant: p = ${pval(r.p)}, interval ${rng}.`)) + ` (${chA(10)})`]);
+      if (S && !S.tooBig) why.push(['x', L(`Потужність для MDE ${sgn(I.m)} — лише ${pct(S.pw)}` + (isFinite(S.det) ? `; тест надійно помічає ліфт від ${sgn(S.det)}` : '') + '.', `Power at the MDE of ${sgn(I.m)} is only ${pct(S.pw)}` + (isFinite(S.det) ? `; the test reliably detects lifts from ${sgn(S.det)}` : '') + '.') + ` (${chA(9)})`]);
+      if (S && S.pw >= .8 && !S.planOk) why.push(['x', L(`Запланованих ${fmt(I.N)} на варіант ще не набрано.`, `The planned ${fmt(I.N)} per variant is not reached yet.`) + ` (${chA(15)})`]);
+      if (S && S.days) why.push(['!', L(`За вашого темпу це ${fmt(S.weeks)} ${plural(S.weeks, 'повний тиждень', 'повні тижні', 'повних тижнів')} від старту.`, `At your pace that is ${fmt(S.weeks)} whole ${S.weeks === 1 ? 'week' : 'weeks'} from the start.`)]);
+      if (r) why = why.concat(procItems().filter(x => x[0] !== 'ok'));
+    }
+    return { t, sub, why };
+  }
+
+  /* ---------- the chart: the 95% interval of the lift on an axis with 0 and the MDE ---------- */
+  function setup(cv) {
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (!r.width || !r.height) return null;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, r.width, r.height);
+    return { g, w: r.width, h: r.height };
+  }
+  const font = (g, wt, px) => { g.font = `${wt} ${px}px Inter, system-ui, sans-serif`; };
+  function ciDraw() {
+    const cv = $('#ci-cv'); if (!cv || !R || !R.res) return;
+    const s = setup(cv); if (!s) return;
+    const { g, w, h } = s, c = col(), r = R.res, m = R.I.m, pl = 14, pr = 14, y = 58;
+    let lo = Math.min(r.lo, 0, -m * .3), hi = Math.max(r.hi, m, 0);
+    const pad = (hi - lo) * .12; lo -= pad; hi += pad;
+    const X = v => pl + (v - lo) / (hi - lo) * (w - pl - pr);
+    const span = hi - lo, raw = span / Math.max(3, Math.floor(w / 90)), mag = 10 ** Math.floor(Math.log10(raw)), step = [1, 2, 2.5, 5, 10].map(k => k * mag).find(k => k >= raw);
+    font(g, 400, 12); g.textAlign = 'center'; g.fillStyle = c.muted; g.strokeStyle = c.line; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(pl, y + 22.5); g.lineTo(w - pr, y + 22.5); g.stroke();
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-12; v += step) { const x = X(v); g.beginPath(); g.moveTo(x, y + 18); g.lineTo(x, y + 27); g.stroke(); g.fillText(sgn(v, step < .01 ? 1 : 0), x, h - 8); }
+    // zero and the MDE as quiet vertical rules
+    const rule = (v, dash, label, color) => { const x = X(v); g.strokeStyle = color; g.lineWidth = 1.5; g.setLineDash(dash); g.beginPath(); g.moveTo(x, 14); g.lineTo(x, y + 22); g.stroke(); g.setLineDash([]); font(g, 600, 12); g.fillStyle = color; g.textAlign = x > w - 70 ? 'right' : x < 70 ? 'left' : 'center'; g.fillText(label, x, 10); };
+    rule(0, [3, 3], '0', c.ink);
+    rule(m, [6, 4], 'MDE ' + sgn(m), c.muted);
+    // the interval and the lift
+    g.strokeStyle = c.ink; g.lineWidth = 2; g.beginPath(); g.moveTo(X(r.lo), y); g.lineTo(X(r.hi), y); g.stroke();
+    [r.lo, r.hi].forEach(v => { g.beginPath(); g.moveTo(X(v), y - 7); g.lineTo(X(v), y + 7); g.stroke(); });
+    g.fillStyle = c.ink; g.beginPath(); g.arc(X(r.lift), y, 5, 0, 7); g.fill();
+    font(g, 600, 12); g.fillStyle = c.ink;
+    const labs = [[r.lo, 'right', -8], [r.hi, 'left', 8]];
+    labs.forEach(([v, al, dx]) => { let x = X(v) + dx; g.textAlign = al; const tw = g.measureText(sgn(v, 1)).width; if (al === 'right' && x - tw < 2) { g.textAlign = 'left'; x = 2; } if (al === 'left' && x + tw > w - 2) { g.textAlign = 'right'; x = w - 2; } g.fillText(sgn(v, 1), x, y + 4 - 14); });
+  }
+
+  /* ---------- wiring ---------- */
+  function run(byUser) {
+    const { v, bad } = read();
+    $('#f-v').disabled = radio('q-var') !== 'y';
+    if (bad.length) {
+      R = null;
+      $('#ck-err').textContent = L('Перевірте виділені поля: відвідувачі — ціле число від 1, конверсії — від 0 до кількості відвідувачів, частка A — від 1 до 99%, MDE — більше нуля, варіантів — від 3.', 'Check the highlighted fields: visitors are a whole number from 1, conversions from 0 up to the visitors, A\'s share from 1 to 99%, the MDE above zero, variants from 3.');
+      $('#brief').textContent = ''; $('#checks').innerHTML = ''; $('#vd-title').textContent = L('Не висновок: виправте числа вище', 'No conclusion: fix the numbers above'); $('#vd-sub').textContent = ''; $('#vd-why').innerHTML = '';
+      return;
+    }
+    $('#ck-err').textContent = '';
+    R = decide(v);
+    $('#checks').innerHTML = srmCheck() + (R.v.key === 'srm' ? '' : resCheck() + sizeCheck() + procCheck());
+    const V = verdictText();
+    $('#vd-title').innerHTML = `<span class="w">${esc(V.t.w)}</span>${esc(V.t.rest)}`;
+    $('#vd-sub').textContent = V.sub;
+    $('#vd-why').innerHTML = V.why.map(([st, t]) => `<li><b>${MK[st]}</b><span>${t}</span></li>`).join('');
+    $('#brief').innerHTML = `${L('Коротко', 'In short')}: <a href="#verdict" id="brief-a">${esc(V.t.w + V.t.rest)}</a>.`;
+    $('#brief-a').onclick = e => { e.preventDefault(); $('#verdict').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); };
+    $('#b-msg').textContent = '';
+    if (byUser) {
+      try { history.replaceState(null, '', toHash()); } catch (e) {}
+      langLinks();
+      if (!ran && window.mpCourseEvent) mpCourseEvent('check.run');
+      ran = true;
+    }
+    requestAnimationFrame(ciDraw);
+  }
+  const strip = h => h.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+  function summary() {
+    const url = location.origin + location.pathname + toHash();
+    if (!R) return url;
+    const V = verdictText(), I = R.I, r = R.res;
+    const head = L('Перевірка A/B-тесту', 'A/B test check') + `: A ${fmt(I.a)} / ${fmt(I.na)}, B ${fmt(I.b)} / ${fmt(I.nb)}`;
+    const nums = r ? L(`Ліфт ${sgn(r.lift, 1)}, p = ${pval(r.p)} (впевненість ${conf(r.p)}), інтервал від ${sgn(r.lo, 1)} до ${sgn(r.hi, 1)}, шанс, що B кращий, ${chance(r.P)}. Поділ трафіку: p = ${pval(R.srm.p)}.`,
+      `Lift ${sgn(r.lift, 1)}, p = ${pval(r.p)} (confidence ${conf(r.p)}), interval from ${sgn(r.lo, 1)} to ${sgn(r.hi, 1)}, chance B is better ${chance(r.P)}. Traffic split: p = ${pval(R.srm.p)}.`) : L(`Поділ трафіку: p = ${pval(R.srm.p)}.`, `Traffic split: p = ${pval(R.srm.p)}.`);
+    return [head, '', L('Вердикт', 'Verdict') + ': ' + V.t.w + V.t.rest, V.sub, '', nums, ''].concat(V.why.map(([st, t]) => `${MK[st]} ${strip(t)}`)).concat(['', url]).join('\n');
+  }
+  async function copyText(t) {
+    try { await navigator.clipboard.writeText(t); return true; } catch (e) {
+      const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.append(ta); ta.select();
+      let ok = false; try { ok = document.execCommand('copy'); } catch (e2) {} ta.remove(); return ok;
+    }
+  }
+  $('#b-copy').onclick = async () => {
+    const ok = await copyText(summary());
+    if (ok && window.mpCourseEvent) mpCourseEvent('check.copy');
+    $('#b-msg').textContent = ok ? L('Висновок скопійовано: вставте його в лист, чат чи звіт.', 'The verdict is copied: paste it into an email, a chat or a report.') : L('Не вдалося скопіювати: виділіть вердикт вище вручну.', 'Could not copy: select the verdict above by hand.');
+  };
+  $('#b-share').onclick = async () => {
+    const url = location.origin + location.pathname + toHash();
+    if (window.mpCourseEvent) mpCourseEvent('check.share');
+    if (navigator.share) { try { await navigator.share({ title: L('Перевірте свій тест', 'Check your test'), text: R ? strip(verdictText().t.w + verdictText().t.rest) : '', url }); $('#b-msg').textContent = ''; return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+    const ok = await copyText(url);
+    $('#b-msg').textContent = ok ? L('Посилання з вашими числами скопійовано.', 'The link with your numbers is copied.') : L('Посилання: ', 'The link: ') + url;
+  };
+  function srcNames() { const o = $('#f-src').options; o[0].textContent = L('впевненість', 'confidence'); o[1].textContent = L('шанс перемогти', 'chance to beat'); o[2].textContent = L('p-значення', 'p-value'); }
+  function ariaEn() { if (en) document.querySelectorAll('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn)); }
+  $('#ck-form').addEventListener('input', () => run(true));
+  $('#ck-form').addEventListener('change', () => run(true));
+  $('#ck-form').addEventListener('submit', e => { e.preventDefault(); run(true); });
+  window.addEventListener('hashchange', () => { if (fromHash()) { langLinks(); run(false); } });
+  document.addEventListener('langchange', () => { en = root.dataset.lang === 'en'; ariaEn(); srcNames(); run(false); });
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(ciDraw, 100); });
+  new MutationObserver(ciDraw).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+  ariaEn(); srcNames(); fromHash(); langLinks(); run(false);
+  if (window.mpCourseEvent) mpCourseEvent('check.open');
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'uk' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+</body>
+</html>
