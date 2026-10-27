@@ -63,6 +63,7 @@ python3 build.py
 Без залежностей, потрібен лише Python 3. Сайт живе на https://mathparadoxes.com (файл `docs/CNAME` пише збірка).
 Для іншого домену: `python3 build.py --base-url https://example.com/`.
 Після змін у `problems/` перезберіть сайт і закомітьте `docs/` разом з ними.
+Скрипт тизера (`<script>` у `teaser.html`) збірка виносить у `docs/teasers/<slug>-<hash>.js`, а головна завантажує його, лише коли картка наближається до екрана (IntersectionObserver). Тож тизер має бути самодостатнім: шукати свій корінь за id і не чекати `DOMContentLoaded`.
 
 ## Нова задача
 

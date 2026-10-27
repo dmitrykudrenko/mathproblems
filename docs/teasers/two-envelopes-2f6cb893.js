@@ -1,0 +1,32 @@
+
+(() => {
+  const root = document.getElementById('tz-two-envelopes');
+  const en = () => document.documentElement.dataset.lang === 'en';
+  const L = (uk, e) => en() ? e : uk;
+  const box = root.querySelector('div'), msg = root.querySelector('.tz-msg'), btns = root.querySelectorAll('.tz-btn');
+  const money = v => en() ? '$' + v.toLocaleString('en-US') : v.toLocaleString('uk-UA') + ' ₴';
+  const X = [5, 10, 20, 40, 80, 160, 320];
+  let pair, done = false, last = null, n = 0, keep = 0, sw = 0;
+  function deal() { const x = X[Math.floor(Math.random() * 7)]; pair = Math.random() < 0.5 ? [x, 2 * x] : [2 * x, x]; done = false; draw(); text(); }
+  function env(v, open, mine, big) {
+    return '<div style="flex:1 1 0;min-width:0;aspect-ratio:1.5;background:#fff;border:1.5px solid var(--ink);border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:1.4rem;' +
+      (mine ? 'outline:3px solid var(--signal);outline-offset:3px;' : '') + 'color:' + (big ? 'var(--signal)' : open ? 'var(--ink)' : 'var(--muted)') + '">' + (open ? money(v) : '?') + '</div>';
+  }
+  function draw() { box.innerHTML = env(pair[0], true, true, done && pair[0] > pair[1]) + env(pair[1], done, false, done && pair[1] > pair[0]); }
+  function play(s) {
+    if (done) { deal(); return; }
+    n++; keep += pair[0]; sw += pair[1]; last = s; done = true; draw(); text();
+  }
+  function text() {
+    const r = keep ? (sw / keep).toFixed(2) : '–', rr = en() ? r : r.replace('.', ',');
+    const head = done ? (last ? L('Ви обміняли й отримали ', 'You switched and got ') + money(pair[1]) + '. ' : L('Ви залишили собі ', 'You kept ') + money(pair[0]) + '. ')
+      : L('У вашому конверті ' + money(pair[0]) + '. Міняти?', 'Your envelope holds ' + money(pair[0]) + '. Switch?') + ' ';
+    msg.textContent = head + (n ? L('«Завжди міняти» ÷ «завжди залишати» = ' + rr + ' за ' + n + ' ' + (n % 10 === 1 && n % 100 !== 11 ? 'раунд' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'раунди' : 'раундів') + '.', '"Always switch" ÷ "always keep" = ' + rr + ' over ' + n + (n === 1 ? ' round.' : ' rounds.')) : '');
+    btns[0].textContent = done ? L('Нова пара', 'New pair') : L('Залишити', 'Keep');
+    btns[1].textContent = done ? L('Нова пара', 'New pair') : L('Обміняти', 'Switch');
+  }
+  btns[0].addEventListener('click', () => play(false));
+  btns[1].addEventListener('click', () => play(true));
+  document.addEventListener('langchange', () => { draw(); text(); });
+  deal();
+})();

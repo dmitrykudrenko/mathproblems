@@ -1,0 +1,69 @@
+
+(() => {
+  const root = document.getElementById('tz-friendship-paradox');
+  const L = (uk, e) => document.documentElement.dataset.lang === 'en' ? e : uk;
+  const dec = s => document.documentElement.dataset.lang === 'en' ? s : s.replace('.', ',');
+  const NS = 'http://www.w3.org/2000/svg', N = 16, W = 360, H = 260;
+  const svg = root.querySelector('svg'), msg = root.querySelector('.tz-msg'), b = root.querySelector('.tz-btn');
+  let adj, sel, started = false;
+  const fm = i => adj[i].reduce((s, j) => s + adj[j].length, 0) / adj[i].length;
+  function build() {
+    // preferential attachment: each newcomer befriends one person, chosen in proportion to their friend count, plus a few extra links
+    adj = Array.from({ length: N }, () => []); const ends = [0, 1]; adj[0].push(1); adj[1].push(0);
+    for (let v = 2; v < N; v++) { const u = ends[Math.floor(Math.random() * ends.length)]; adj[v].push(u); adj[u].push(v); ends.push(u, v); }
+    for (let t = 0; t < 4; t++) { const u = ends[Math.floor(Math.random() * ends.length)], v = Math.floor(Math.random() * N); if (u !== v && !adj[u].includes(v)) { adj[u].push(v); adj[v].push(u); } }
+    // small force layout
+    const x = [], y = [], k = Math.sqrt(W * H / N) * .8;
+    for (let i = 0; i < N; i++) { x.push(W / 2 + 100 * Math.cos(i)); y.push(H / 2 + 80 * Math.sin(i)); }
+    for (let it = 0, T = 40; it < 300; it++, T = Math.max(.5, T * .98)) {
+      const dx = new Array(N).fill(0), dy = new Array(N).fill(0);
+      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (i !== j) {
+        const ex = x[i] - x[j], ey = y[i] - y[j], d2 = Math.max(ex * ex + ey * ey, .01);
+        dx[i] += ex * k * k / d2; dy[i] += ey * k * k / d2;
+        if (adj[i].includes(j)) { const d = Math.sqrt(d2); dx[i] -= ex * d / k; dy[i] -= ey * d / k; }
+      }
+      for (let i = 0; i < N; i++) { dx[i] += (W / 2 - x[i]) * .03; dy[i] += (H / 2 - y[i]) * .03; const d = Math.hypot(dx[i], dy[i]) || 1, s = Math.min(d, T) / d; x[i] += dx[i] * s; y[i] += dy[i] * s; }
+    }
+    const x0 = Math.min(...x), x1 = Math.max(...x), y0 = Math.min(...y), y1 = Math.max(...y);
+    for (let i = 0; i < N; i++) { x[i] = 24 + (x[i] - x0) / (x1 - x0 || 1) * (W - 48); y[i] = 24 + (y[i] - y0) / (y1 - y0 || 1) * (H - 48); }
+    svg.innerHTML = '';
+    for (let i = 0; i < N; i++) for (const j of adj[i]) if (j > i) {
+      const l = document.createElementNS(NS, 'line');
+      [['x1', x[i]], ['y1', y[i]], ['x2', x[j]], ['y2', y[j]]].forEach(([a, v]) => l.setAttribute(a, v.toFixed(1)));
+      l.dataset.a = i; l.dataset.b = j; l.style.strokeWidth = '1.5'; svg.appendChild(l);
+    }
+    for (let i = 0; i < N; i++) {
+      const g = document.createElementNS(NS, 'g'), c = document.createElementNS(NS, 'circle'), t = document.createElementNS(NS, 'text'), d = adj[i].length;
+      c.setAttribute('cx', x[i].toFixed(1)); c.setAttribute('cy', y[i].toFixed(1)); c.setAttribute('r', (9 + 2.5 * Math.sqrt(d)).toFixed(1));
+      c.style.stroke = '#fff'; c.style.strokeWidth = '1.5';
+      t.setAttribute('x', x[i].toFixed(1)); t.setAttribute('y', y[i].toFixed(1)); t.setAttribute('text-anchor', 'middle'); t.setAttribute('dominant-baseline', 'central');
+      t.style.cssText = 'font-size:11px;font-weight:700;fill:#fff;pointer-events:none'; t.textContent = d;
+      g.style.cursor = 'pointer'; g.dataset.i = i; g.append(c, t); svg.appendChild(g);
+    }
+    const lows = adj.map((a, i) => i).filter(i => adj[i].length === 1);
+    sel = lows.length ? lows[Math.floor(Math.random() * lows.length)] : 0;
+    paint();
+  }
+  function paint() {
+    const fr = new Set(adj[sel]);
+    svg.querySelectorAll('line').forEach(l => { const on = +l.dataset.a === sel || +l.dataset.b === sel; l.style.stroke = on ? 'var(--ink)' : '#CFCFCF'; l.style.strokeWidth = on ? '2.6' : '1.5'; });
+    svg.querySelectorAll('g').forEach(g => {
+      const i = +g.dataset.i, c = g.firstChild, d = adj[i].length, f = fm(i);
+      c.style.fill = !started ? 'var(--ink)' : Math.abs(f - d) < 1e-9 ? '#A9A9A9' : d < f ? 'var(--signal)' : 'var(--ink)';
+      c.style.stroke = i === sel ? 'var(--ink)' : '#fff'; c.style.strokeWidth = i === sel ? '3.5' : '1.5';
+      g.style.opacity = i === sel || fr.has(i) ? '1' : '.35';
+    });
+    text();
+  }
+  function text() {
+    const d = adj[sel].length, f = fm(sel), lt = adj.filter((_, i) => adj[i].length < fm(i) - 1e-9).length;
+    b.textContent = L('Нова мережа', 'New network');
+    if (!started) { msg.textContent = L('Ви в обведеному кружку, число в кружку означає кількість друзів. Натисніть на будь-кого в мережі або «Нова мережа», щоб порівняти людей з їхніми друзями.', 'You are the outlined circle; the number is a friend count. Click anyone in the network or "New network" to compare people with their friends.'); return; }
+    msg.textContent = L('Ви: друзів ' + d + '. У ваших друзів у середньому ' + dec(f.toFixed(1)) + '. Рожеві (' + lt + ' з ' + N + ') мають менше друзів, ніж їхні друзі в середньому.',
+      'You: ' + d + ' friend' + (d === 1 ? '' : 's') + '. Your friends average ' + f.toFixed(1) + '. The magenta ones (' + lt + ' of ' + N + ') have fewer friends than their friends on average.');
+  }
+  svg.addEventListener('click', e => { const g = e.target.closest('g'); if (!g) return; sel = +g.dataset.i; started = true; paint(); });
+  b.addEventListener('click', () => { started = true; build(); });
+  document.addEventListener('langchange', text);
+  build();
+})();

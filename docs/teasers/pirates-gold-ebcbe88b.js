@@ -1,0 +1,54 @@
+
+(() => {
+  const root = document.getElementById('tz-pirates-gold');
+  const en = () => document.documentElement.dataset.lang === 'en';
+  const L = (uk, e) => en() ? e : uk;
+  const row = root.querySelector('div[style]'), msg = root.querySelector('.tz-msg'), btn = root.querySelector('.tz-btn');
+  // three pirates, 10 coins; without the captain pirate 2 takes all 10 and pirate 3 gets 0
+  const NEXT = [10, 0];
+  let give = [0, 0], res = null, touched = false;
+  const coins = n => L(n % 10 === 1 && n % 100 !== 11 ? 'монета' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'монети' : 'монет', n === 1 ? 'coin' : 'coins');
+  function pirate(cap, c) {
+    const hat = cap ? '<path d="M3 13Q16 0 29 13Q16 9 3 13Z" fill="' + c + '"/>' : '<path d="M6 13Q16 4 26 13Q16 10 6 13Z" fill="' + c + '"/>';
+    return '<svg viewBox="0 0 32 40" width="32" height="40" aria-hidden="true"><path d="M8 40L9.6 27Q16 23.5 22.4 27L24 40Z" fill="' + c + '"/><circle cx="16" cy="17.5" r="5.6" fill="#fff" stroke="' + c + '" stroke-width="1.3"/>' + hat + '</svg>';
+  }
+  const pill = 'font:600 .9rem/1 ui-monospace,Menlo,monospace;width:30px;height:30px;border-radius:999px;border:1.5px solid var(--ink);background:#fff;color:var(--ink);cursor:pointer';
+  function draw() {
+    const keep = 10 - give[0] - give[1];
+    row.innerHTML = [0, 1, 2].map(i => {
+      const v = res ? (i === 0 || res.votes[i - 1]) : null;
+      const col = v === false ? '#9A9A9A' : 'var(--ink)';
+      const n = i === 0 ? keep : give[i - 1];
+      const ctl = i === 0 ? '<span style="height:30px;display:block"></span>' : '<span style="display:flex;gap:4px"><button type="button" data-i="' + (i - 1) + '" data-d="-1" style="' + pill + '" aria-label="' + L('Менше піратові ', 'Less for pirate ') + (i + 1) + '">−</button><button type="button" data-i="' + (i - 1) + '" data-d="1" style="' + pill + '" aria-label="' + L('Більше піратові ', 'More for pirate ') + (i + 1) + '">+</button></span>';
+      return '<div style="display:grid;justify-items:center;gap:4px;min-width:84px;font:500 .74rem/1.3 ui-monospace,Menlo,monospace;color:#5F5F5F">' + pirate(i === 0, col) +
+        '<b style="font-size:1.1rem;color:var(--ink)">' + n + '</b><span>' + (i === 0 ? L('капітан (ви)', 'captain (you)') : L('пірат ', 'pirate ') + (i + 1)) + '</span>' + ctl +
+        (res ? '<b style="color:' + (v ? '#13823B' : '#CC2F2B') + '">' + (v ? L('за', 'yes') : L('проти', 'no')) + '</b>' : '') + '</div>';
+    }).join('');
+  }
+  function text() {
+    draw();
+    btn.textContent = L('Поставити на голосування', 'Put it to a vote');
+    const keep = 10 - give[0] - give[1];
+    if (!touched) msg.textContent = L('Розминка: троє піратів і 10 монет. Ви капітан. Роздайте монети кнопками + і −, а потім поставте поділ на голосування.', 'Warm-up: three pirates and 10 coins. You are the captain. Hand out coins with + and −, then put your split to a vote.');
+    else if (!res) msg.textContent = L('Вам лишається ' + keep + ' ' + coins(keep) + '. Потрібно 2 голоси з 3.', 'You keep ' + keep + ' ' + coins(keep) + '. You need 2 votes out of 3.');
+    else {
+      const why = [0, 1].map(i => L('пірат ' + (i + 2) + ' без вас отримає ' + NEXT[i] + ', ви даєте ' + give[i], 'pirate ' + (i + 2) + ' gets ' + NEXT[i] + ' without you, you offer ' + give[i])).join('; ');
+      msg.textContent = (res.pass ? L('Ухвалено: ви залишаєте собі ' + keep + '. ', 'Accepted: you keep ' + keep + '. ') : L('За борт! ', 'Overboard! ')) + L('Пояснення: ', 'Why: ') + why + '. ' +
+        (res.pass && keep === 9 ? L('Більше не вийде. А скільки забере капітан п\'ятьох зі 100?', 'You cannot do better. So how much does the captain of five keep out of 100?') : L('Пірат голосує «за», лише коли ви даєте більше, ніж він отримав би без вас.', 'A pirate votes yes only if you offer more than he would get without you.'));
+    }
+  }
+  row.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const i = +b.dataset.i, d = +b.dataset.d;
+    if (d > 0 && give[0] + give[1] >= 10) return;
+    give[i] = Math.max(0, give[i] + d); touched = true; res = null; text();
+  });
+  btn.addEventListener('click', () => {
+    touched = true;
+    const votes = [give[0] > NEXT[0], give[1] > NEXT[1]];
+    res = { votes, pass: 1 + votes.filter(Boolean).length >= 2 };
+    text();
+  });
+  document.addEventListener('langchange', text);
+  text();
+})();
