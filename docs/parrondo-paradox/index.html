@@ -1,0 +1,1638 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/parrondo-paradox/", "en": "/parrondo-paradox/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "parrondo-paradox";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>Парадокс Паррондо: дві програшні гри разом виграють</title>
+<meta name="description" content="Гра A програшна, гра B теж, а навмання змішані вони дають +1,57 на 100 партій. Зіграйте самі, симуляція, ланцюг Маркова і броунівський храповик.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/parrondo-paradox/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/parrondo-paradox/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/parrondo-paradox/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/parrondo-paradox/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Парадокс Паррондо">
+<meta property="og:description" content="Гра A програшна. Гра B програшна. Що буде з грошима, якщо перед кожною партією обирати одну з них навмання?">
+<meta property="og:url" content="https://mathparadoxes.com/parrondo-paradox/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/parrondo-paradox/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Дві гри з монетками, A і B, і графіки капіталу, що обидва йдуть униз. Що буде, якщо грати в обидві навмання?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Парадокс Паррондо">
+<meta name="twitter:description" content="Гра A програшна. Гра B програшна. Що буде з грошима, якщо перед кожною партією обирати одну з них навмання?">
+<meta name="twitter:image" content="https://mathparadoxes.com/parrondo-paradox/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/parrondo-paradox/#page", "url": "https://mathparadoxes.com/parrondo-paradox/", "name": "Парадокс Паррондо: дві програшні гри разом виграють", "description": "Гра A програшна, гра B теж, а навмання змішані вони дають +1,57 на 100 партій. Зіграйте самі, симуляція, ланцюг Маркова і броунівський храповик.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "advanced", "about": {"@type": "Thing", "name": "Parrondo's paradox", "sameAs": "https://en.wikipedia.org/wiki/Parrondo%27s_paradox"}, "image": "https://mathparadoxes.com/parrondo-paradox/og-uk.png", "datePublished": "2026-10-27", "dateModified": "2026-10-27", "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "workTranslation": {"@id": "https://mathparadoxes.com/parrondo-paradox/en/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "Парадокс Паррондо", "item": "https://mathparadoxes.com/parrondo-paradox/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/parrondo-paradox/#faq", "inLanguage": "uk", "mainEntity": [{"@type": "Question", "name": "Що таке парадокс Паррондо?", "acceptedAnswer": {"@type": "Answer", "text": "Це ситуація, коли дві ігри, кожна з яких окремо програшна, разом дають виграш. 1996 року її придумав іспанський фізик Хуан Паррондо, а назву дали Грегорі Гармер і Дерек Ебботт у статті в Nature 1999 року."}}, {"@type": "Question", "name": "Чому суміш двох програшних ігор виграє?", "acceptedAnswer": {"@type": "Answer", "text": "Гра B підкидає погану монетку, коли капітал кратний 3, і добру в інших випадках. Сама по собі вона ставить капітал на кратне 3 у 38,4% партій замість третини, і через це програє. Гра A майже чесна і перемішує капітал, тож у суміші B частіше грає доброю монеткою. Партії B тоді вигравають 52,1%, і разом з A виходить +1,57 на 100 партій."}}, {"@type": "Question", "name": "Чи можна так обіграти казино?", "acceptedAnswer": {"@type": "Answer", "text": "Ні. Ігри в казино не залежать від вашого капіталу чи історії, а суміш незалежних програшних ігор завжди програє: шанс кожної партії — середнє чисел, менших за 1/2. Парадокс працює лише тоді, коли одна гра залежить від стану, який інша змінює."}}, {"@type": "Question", "name": "Де парадокс Паррондо трапляється насправді?", "acceptedAnswer": {"@type": "Answer", "text": "Паррондо придумав ігри як дискретну модель броунівського храповика: частинки, які не рухає ні тепловий шум, ні нерухома несиметрична пилка, їдуть, коли пилку вмикають і вимикають. 1994 року такий рух показали на досліді з пластиковими кульками. Подібними моделями описують молекулярні мотори в клітинах."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the gambler's-ruin page. Two coin games A and B and a balance that drifts are this problem's signature objects. */
+:root {
+  --tint: #E9DCEC;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --ga: #3E7CB1;
+  --gb: #B5651D;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 2.6em; }
+
+/* ---------- coins ---------- */
+.coins { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.coin { display: inline-grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; font-family: var(--f-mono); font-weight: 700; font-size: .82rem; color: #fff; text-align: center; line-height: 1.1; }
+.coin.a { background: var(--ga); }
+.coin.bad { background: var(--loss); }
+.coin.good { background: var(--win); }
+.coin small { display: block; font-size: .62rem; font-weight: 600; opacity: .85; }
+.trap { color: var(--loss); font-weight: 600; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn.ga { background: var(--ga); color: #fff; min-width: 120px; }
+.btn.gb { background: var(--gb); color: #fff; min-width: 120px; }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 100%; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.legend > span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .76rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+td.up { color: var(--hit); font-weight: 700; }
+.opts { display: grid; gap: 8px; }
+.opts button { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; cursor: pointer; font-size: .95rem; }
+.opts button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.status { display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.7rem; font-weight: 800; }
+.msg { min-height: 3em; font-weight: 500; }
+.pgroup { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.next { display: flex; align-items: center; gap: 12px; min-height: 64px; font-size: .92rem; }
+.next .coin { width: 56px; height: 56px; flex: none; }
+.hist { display: flex; flex-wrap: wrap; gap: 3px; min-height: 18px; }
+.hist i { width: 14px; height: 14px; border-radius: 3px; font-style: normal; font-family: var(--f-mono); font-size: .55rem; display: inline-grid; place-items: center; color: #fff; }
+.hist i.a { background: var(--ga); }
+.hist i.b { background: var(--gb); }
+.hist i.l { opacity: .4; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs.three { grid-template-columns: 1fr 1fr 1fr; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; align-content: start; }
+.vs b { font-family: var(--f-display); font-size: 1.4rem; }
+.vs span { font-size: .84rem; color: var(--muted); }
+.vs .bb b { color: var(--hit); }
+.chain-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: center; }
+.chain-wrap > * { min-width: 0; }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.layer { font-family: var(--f-display); font-weight: 800; font-size: 1.2rem; margin-top: 18px; }
+.esc-block { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block, .chain-wrap { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .vs, .vs.three { grid-template-columns: 1fr; }
+  td, th { padding: 7px 4px; }
+  table { font-size: .8rem; }
+  .status { gap: 16px; }
+  .status b { font-size: 1.4rem; }
+  .btn.ga, .btn.gb { min-width: 0; flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=d9a074c5">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+  <nav class="mp-nav" aria-label="Розділи" data-t="{&quot;cont&quot;: &quot;Продовжити&quot;, &quot;course&quot;: &quot;Продовжити курс&quot;}" data-slug="parrondo-paradox" data-me="{&quot;s&quot;: &quot;parrondo-paradox&quot;, &quot;n&quot;: {&quot;uk&quot;: &quot;Парадокс Паррондо&quot;, &quot;en&quot;: &quot;Parrondo&#x27;s paradox&quot;}, &quot;u&quot;: {&quot;uk&quot;: &quot;https://mathparadoxes.com/parrondo-paradox/&quot;, &quot;en&quot;: &quot;https://mathparadoxes.com/parrondo-paradox/en/&quot;}}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Меню"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Продовжити: <b></b></a><a href="https://mathparadoxes.com/#all" aria-current="page">Задачі</a><a href="https://mathparadoxes.com/courses/">Курси</a><a href="https://mathparadoxes.com/glossary/">Словник</a></div></nav>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/parrondo-paradox/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/parrondo-paradox/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <div class="mp-meta"><span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i></span>Поглиблено</button><span class="mp-level-hint" hidden>Сподівання, дисперсія, кореляція, логарифми, ряди<a href="https://mathparadoxes.com/?l=3#all">Усі задачі цього рівня →</a></span></span></div>
+    <h1 class="uk"><span class="kw">Парадокс Паррондо</span> Гра <span class="vl">A</span> програшна. Гра <span class="vl">B</span> програшна. <span class="q sp-before">А якщо грати в обидві навмання?</span><span class="q sp-after">Разом вони виграють.</span></h1>
+    
+    <p class="lead uk sp-before">Дві прості ігри з монетками, кожна з яких у довгу дорогу забирає ваші гроші. Перед кожною партією ви підкидаєте ще одну, чесну монетку і за нею обираєте, в яку з двох грати. Що станеться з грошима за тисячі партій? Зафіксуйте відповідь, а потім зіграйте самі, запустіть тисячі гравців і подивіться, звідки береться результат.</p>
+    <p class="lead uk sp-after">Гра <span class="vl">A</span> програє в середньому 1 гривню на кожні 100 партій, гра <span class="vl">B</span> 0,87 гривні. Але якщо перед кожною партією навмання обирати <span class="vl">A</span> чи <span class="vl">B</span>, ви виграєте в середньому 1,57 гривні на 100 партій. Секрет у тому, що гра <span class="vl">B</span> залежить від вашого капіталу: сама по собі вона надто часто заганяє вас у погану для себе позицію, а гра <span class="vl">A</span> вас звідти вибиває. Тут ви зіграєте самі, порахуєте точний ланцюг Маркова і побачите той самий трюк у фізиці молекулярних моторів.</p>
+    
+    
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="mono" id="odd-r">+1,57</b><span><span class="uk">навмання <span class="vl">A</span> або <span class="vl">B</span>, на 100 партій</span></span></div>
+      <div class="odd"><b class="mono" id="odd-a">−1,00</b><span><span class="uk">лише <span class="vl">A</span></span></span></div>
+      <div class="odd"><b class="mono" id="odd-b">−0,87</b><span><span class="uk">лише <span class="vl">B</span></span></span></div>
+    </div>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv" style="height:300px"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span></span>
+    <h2><span class="uk">Три монетки й один капітал</span></h2>
+    <p class="lead uk">У казино два столи. За кожним ви ставите 1 гривню на підкидання монетки: вгадали — капітал зростає на 1, ні — зменшується на 1. Різниця лише в тому, яку монетку там підкидають.</p>
+    
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Капітал</span></h3>
+        <p class="uk">Рахуємо від нуля: +5 означає, що ви в плюсі на 5 гривень, −4 — що в мінусі на 4. Позичати можна скільки завгодно, тож гра ніколи не зупиняється.</p>
+        </div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Гра <span class="vl">A</span></span></h3>
+        <p class="uk">Одна монетка, трохи нечесна: виграє з шансом 49,5%. Кожна партія в середньому забирає 1 копійку, 1 гривню за 100 партій.</p>
+        
+        <div class="coins" aria-hidden="true"><span class="coin a">49,5%<small><span class="vl">A</span></small></span></div></div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Гра <span class="vl">B</span></span></h3>
+        <p class="uk">Дві монетки, і яку підкидати, залежить від капіталу. Якщо він кратний 3 (…, −6, −3, 0, 3, 6, …), підкидають погану монетку з шансом 9,5%. Інакше добру, з шансом 74,5%. Якщо грати лише в <span class="vl">B</span>, вона теж у середньому програє, трохи менше за <span class="vl">A</span>: 0,87 гривні на 100 партій.</p>
+        
+        <div class="coins" aria-hidden="true"><span class="coin bad">9,5%<small class="uk">кратний 3</small></span><span class="coin good">74,5%<small class="uk">інакше</small></span></div></div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span></h3>
+        <p class="uk">Перед кожною партією ви підкидаєте чесну монетку: орел — граєте в <span class="vl">A</span>, решка — в <span class="vl">B</span>. Що буде з капіталом за тисячі партій?</p>
+        </div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span></span>
+        <p class="q"><span class="uk">«Два мінуси разом дають мінус»</span></p>
+        <p class="uk">Насправді капітал росте: у середньому +1,57 гривні на 100 партій. Гра <span class="vl">B</span> погана лише тому, що сама часто ставить вас на число, кратне 3, де її монетка погана. Гра <span class="vl">A</span> майже чесна, і вона перемішує капітал так, що <span class="vl">B</span> частіше грає доброю монеткою.</p>
+        
+      </div>
+      <div class="card">
+        <h3><span class="uk">Припущення моделі</span></h3>
+        <ul class="rules uk">
+          <li>Усі монетки незалежні, шанси не змінюються.</li>
+          <li>Ставка завжди 1 гривня, програш і виграш однакові.</li>
+          <li>Вибір між <span class="vl">A</span> і <span class="vl">B</span> не залежить від капіталу: його робить чесна монетка.</li>
+        </ul>
+        
+        <p class="note"><span class="uk">Ці шанси взяли Грегорі Гармер і Дерек Ебботт 1999 року: 1/2 − ε, 1/10 − ε і 3/4 − ε при ε = 0,005.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span></span>
+    <h2><span class="uk">Що буде, якщо обирати гру навмання?</span></h2>
+    <p class="lead uk">Оберіть варіант, перш ніж читати далі. Перед кожною партією чесна монетка вирішує, <span class="vl">A</span> чи <span class="vl">B</span>. Граєте тисячі партій.</p>
+    
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <span class="note"><span class="uk">Капітал у довгу дорогу</span></span>
+      <div class="opts" id="guess-opts" role="group" aria-label="Варіанти / Options"></div>
+      <div class="actions"><button class="btn pri" id="guess-go" disabled><span class="uk">Перевірити</span></button></div>
+      <p class="note"><span class="uk">Нагадування: лише <span class="vl">A</span> втрачає 1 гривню на 100 партій, лише <span class="vl">B</span> 0,87.</span></p>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться розбір вашої відповіді.</p>
+      
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Підказки</span>
+    <p class="mp-hints-intro">Важко вирішити? Відкривайте підказки по одній: спочатку легка, далі сильніша.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Не думайте про гру <span class="vl">B</span> як про одну монетку. Яку з двох монеток підкидати, вирішує капітал. Отже, важливо, як часто капітал буває кратним 3.</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>Пограйте подумки лише в <span class="vl">B</span> з капіталом 5. Добра монетка найчастіше піднімає вас на 6. А що найчастіше відбувається на 6 і куди ви повертаєтеся?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>Гра <span class="vl">A</span> майже чесна і не дивиться на капітал. Як вона змінює частку партій, у яких <span class="vl">B</span> стоїть на кратному 3? І що стане з виграшами <span class="vl">B</span>, якщо ця частка наблизиться до третини?</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Показати підказку 1 з 3 · легка&quot;, &quot;Показати підказку 2 з 3 · середня&quot;, &quot;Показати підказку 3 з 3 · сильна&quot;]">Показати підказку 1 з 3 · легка</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "parrondo-paradox";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "parrondo-paradox", RULE = {"right": ["win"]}, MIN = 20, T = {"kicker": "Як відповідають інші", "few": "Відповідей поки замало для статистики: {n}. Ваша вже серед них.", "few_seen": "Відповідей поки замало для статистики: {n}.", "all": "Відповідей: {n}. Правильних серед них {p}.", "yes": "Ви серед тих, хто впорався.", "no": "Не засмучуйтеся: інтуїція підводить більшість.", "bar": "правильно", "note": "Рахуємо лише першу відповідь з кожного браузера, до того як він побачив розв'язок. Анонімно."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    // "crowd" pages have no right answer: they get the raw counts and draw their own block
+    if (RULE.crowd) { document.dispatchEvent(new CustomEvent("mp-crowd", { detail: { k: data.k || {}, mine: mine } })); return; }
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span></span>
+    <h2><span class="uk">Оберіть, як чергувати столи</span></h2>
+    <p class="lead uk">Увімкніть один зі способів і зіграйте 100 чи 1000 партій: лише <span class="vl">A</span>, лише <span class="vl">B</span>, по черзі ABAB, парами AABB або навмання. Одна гра — це лотерея, тож порівнюйте з пунктирною лінією, точним середнім. А в режимі «Сам» обирайте стіл перед кожною партією: 50 партій, хто більше?</p>
+    
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="pgroup"><span><span class="uk">Як обирати гру</span></span><div class="presets" id="mode-pick"></div></div>
+      <div class="next" id="g-next"></div>
+      <div class="status">
+        <div><span class="k"><span class="uk">Капітал</span></span><b class="mono" id="g-bal">0</b></div>
+        <div><span class="k"><span class="uk">Партій</span></span><b class="mono" id="g-n">0</b></div>
+        <div><span class="k" id="g-k3"></span><b class="mono" id="g-v3">–</b></div>
+      </div>
+      <div class="hist" id="g-hist" aria-hidden="true"></div>
+      <p class="msg" id="g-msg" aria-live="polite"></p>
+      <div class="actions" id="g-auto">
+        <button class="btn pri" id="g-1" type="button"><span class="uk">1 партія</span></button>
+        <button class="btn" id="g-100" type="button"><span class="uk">+100</span></button>
+        <button class="btn" id="g-1000" type="button"><span class="uk">+1000</span></button>
+        <button class="btn ghost" id="g-new" type="button"><span class="uk">Спочатку</span></button>
+      </div>
+      <div class="actions" id="g-hand" hidden>
+        <button class="btn ga" id="h-a" type="button"><span class="uk">Грати <span class="vl">A</span></span></button>
+        <button class="btn gb" id="h-b" type="button"><span class="uk">Грати <span class="vl">B</span></span></button>
+        <button class="btn ghost" id="h-new" type="button"><span class="uk">Нові 50 партій</span></button>
+      </div>
+    </div>
+    <div class="card" style="display:grid;gap:14px">
+      <h3><span class="uk">Капітал після кожної партії</span></h3>
+      <canvas id="g-cv" style="height:240px"></canvas>
+      <div class="legend" id="g-leg"></div>
+      <div class="vs">
+        <div><span id="g-k1"></span><b class="mono" id="g-v1">–</b><span id="g-s1"></span></div>
+        <div><span id="g-k2"></span><b class="mono" id="g-v2">–</b><span id="g-s2"></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span></span>
+    <h2><span class="uk">Дві тисячі гравців на кожен спосіб</span></h2>
+    <p class="lead uk">Кожен гравець починає з нуля і грає 1000 партій. Суцільні лінії — середній капітал гравців у симуляції, пунктир — точне середнє з ланцюга Маркова. Праворуч точний виграш на 100 партій поруч із симуляцією і частка гравців, що закінчили в плюсі.</p>
+    
+  </div>
+  <div class="card">
+    <div class="sim-grid">
+      <div>
+        <canvas id="sim-cv" style="height:320px"></canvas>
+        <div class="legend" id="sim-leg"></div>
+      </div>
+      <div style="display:grid;gap:14px;align-content:start">
+        <div class="tbl-wrap"><table>
+          <thead><tr><th><span class="uk">Спосіб</span></th><th class="num"><span class="uk">Точно, /100</span></th><th class="num"><span class="uk">Симуляція</span></th><th class="num"><span class="uk">У плюсі</span></th></tr></thead>
+          <tbody id="sim-tbl"></tbody>
+        </table></div>
+        <p class="note" id="sim-txt"></p>
+        <div class="actions"><button class="btn pri" id="sim-go" type="button"><span class="uk">Запустити ще раз</span></button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Чому так</span></span>
+    <h2><span class="uk">Гра <span class="vl">B</span> непогана. Погане місце, куди вона вас заводить</span></h2>
+    <p class="lead uk">Шанси гри <span class="vl">B</span> залежать від того, де стоїть капітал. Тому важливо не лише, які монетки в грі, а й як часто кожна з них підкидається.</p>
+    
+  </div>
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">На пальцях</span><span class="mp-layer-desc">картинки, аналогії, маленькі числа</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «На пальцях» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Коротко, без формул (і не вся правда)</span></span>
+      <h3><span class="uk"><span class="vl">B</span> програє лише через одну пастку, а <span class="vl">A</span> з неї виштовхує</span></h3>
+      <p class="uk">Гра <span class="vl">B</span> майже завжди грає доброю монеткою, 74,5%. Погана монетка лише одна, на числах, кратних 3. Якби капітал потрапляв на них у кожній третій партії, <span class="vl">B</span> вигравала б. Але гра <span class="vl">B</span> сама весь час повертає вас на ці числа. Гра <span class="vl">A</span> майже чесна і сама нічого не дає, зате штовхає капітал навмання вгору чи вниз і збиває його з пастки. Чому <span class="vl">B</span> заганяє в пастку і скільки це коштує, розберемо нижче.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Пінг-понг</span></span>
+      <h3><span class="uk">Добра монетка веде просто в пастку</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">Капітал 2, 5, 8… (на 1 нижче за кратне 3)</span></span><b class="mono"><span class="uk">74,5% ↑</span></b><span><span class="uk">добра монетка піднімає на кратне 3</span></span></div>
+        <div><span><span class="uk">Капітал 3, 6, 9… (кратне 3)</span></span><b class="mono"><span class="uk">90,5% ↓</span></b><span><span class="uk">погана монетка скидає назад</span></span></div>
+      </div>
+      <p class="uk">Ось пастка: з 5 добра монетка найчастіше піднімає на 6, а з 6 погана скидає назад на 5. Капітал бігає туди-сюди між 5 і 6, і погану монетку підкидають знову і знову. Щоб вирватися вгору, треба пройти 6, а там шанс лише 9,5%. Тому в грі <span class="vl">B</span> капітал стоїть на кратному 3 не в третині партій, а в <b class="e-trap-b">38,4%</b>.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Де грає <span class="vl">B</span></span></span>
+      <h3><span class="uk">Ті самі монетки, різний результат</span></h3>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th><span class="uk">Партії <span class="vl">B</span> зіграно…</span></th><th class="num"><span class="uk">на кратному 3</span></th><th class="num"><span class="uk"><span class="vl">B</span> виграє</span></th></tr></thead>
+        <tbody id="e-tbl"></tbody>
+      </table></div>
+      <p class="uk">Різниця в кілька відсоткових пунктів вирішує все, бо монетки дуже різні: кожен зайвий відсоток часу на пастці коштує близько 0,65 відсоткового пункту виграшів. Коли гру обирає монетка, половину партій грає <span class="vl">A</span>, і капітал заходить на пастку рідше. Партії <span class="vl">B</span> тепер вигравають 52,1%, партії <span class="vl">A</span> 49,5%, разом 50,8%. Це й дає +1,57 гривні на 100 партій.</p>
+      
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Строго</span><span class="mp-layer-desc">таблиці, графіки, формули</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Строго» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Ланцюг Маркова</span></span>
+      <h3><span class="uk">Важлива лише остача від ділення на 3</span></h3>
+      <div class="presets" id="ch-pick"></div>
+      <div class="chain-wrap">
+        <canvas id="ch-cv" style="height:300px"></canvas>
+        <div style="display:grid;gap:12px">
+          <div class="tbl-wrap"><table>
+            <thead><tr><th><span class="uk">Остача</span></th><th class="num"><span class="uk">Шанс виграти</span></th><th class="num"><span class="uk">Частка часу</span></th></tr></thead>
+            <tbody id="ch-tbl"></tbody>
+          </table></div>
+          <p class="note" id="ch-txt"></p>
+        </div>
+      </div>
+      <p class="uk">Монетка обирається лише за остачею капіталу від ділення на 3: 0, 1 чи 2. Виграш переводить остачу на крок за годинниковою стрілкою, програш — проти. Це ланцюг Маркова з трьома станами. За тисячі партій частка часу в кожному стані перестає змінюватися: це стаціонарний розподіл π. Його знаходять з умови рівноваги: скільки ймовірності щокроку входить у стан, стільки й виходить. Тоді середній виграш за партію дорівнює π₀ · (2p₀ − 1) + π₁ · (2p₁ − 1) + π₂ · (2p₂ − 1), де pᵢ — шанс виграти в стані i.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Одне коло</span></span>
+      <h3><span class="uk">Три кроки вгору проти трьох униз</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">Лише <span class="vl">B</span></span></span><b class="mono" id="lap-b">–</b><span id="lap-b-s"></span></div>
+        <div class="bb"><span><span class="uk">Навмання <span class="vl">A</span> або <span class="vl">B</span></span></span><b class="mono" id="lap-r">–</b><span id="lap-r-s"></span></div>
+      </div>
+      <p class="uk">Є коротший тест. Щоб піднятися на 3, капітал має пройти по одному разу кожну остачу: один раз 0 і двічі «не 0». Для гри <span class="vl">B</span> зростання чи падіння вирішує порівняння p₀ · p₁² з (1 − p₀) · (1 − p₁)²: добуток шансів трьох кроків угору проти трьох униз. У навмання змішаній грі кожна монетка — <a href="https://mathparadoxes.com/glossary/median-vs-mean/" class="mp-term" data-term="mean" aria-expanded="false">середнє</a> монеток <span class="vl">A</span> і <span class="vl">B</span>: 29,5% на кратному 3 і 62% деінде. Пастка стає м'якшою, і добуток угору переважає.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Не кожна суміш</span></span>
+      <h3><span class="uk">ABAB програє, AABB і ABB виграють</span></h3>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th><span class="uk">Порядок</span></th><th class="num"><span class="uk"><span class="vl">B</span> на кратному 3</span></th><th class="num"><span class="uk">На 100 партій</span></th></tr></thead>
+        <tbody id="mix-tbl"></tbody>
+      </table></div>
+      <p class="uk">Періодичний порядок рахують так само: беруть ланцюг за один повний період (для AABB чотири партії) і його стаціонарний розподіл. У ABAB гра <span class="vl">A</span> стоїть рівно перед кожною <span class="vl">B</span> і погано перемішує: перед партією <span class="vl">B</span> капітал на пастці в 38% випадків, майже як без <span class="vl">A</span>. Пара AA зсуває капітал на −2, 0 або +2 і збиває його з пастки краще.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span></span>
+      <h3><span class="uk">Стаціонарний розподіл і точний виграш</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Гра з монетками p₀ на кратному 3 і p₁ деінде. Умова рівноваги для трьох станів (q = 1 − p):</span></p>
+          <math display="block"><msub><mi>π</mi><mn>0</mn></msub><mo>=</mo><msub><mi>p</mi><mn>1</mn></msub><msub><mi>π</mi><mn>2</mn></msub><mo>+</mo><msub><mi>q</mi><mn>1</mn></msub><msub><mi>π</mi><mn>1</mn></msub><mo>,</mo><mspace width="0.5em"></mspace><msub><mi>π</mi><mn>1</mn></msub><mo>=</mo><msub><mi>p</mi><mn>0</mn></msub><msub><mi>π</mi><mn>0</mn></msub><mo>+</mo><msub><mi>q</mi><mn>1</mn></msub><msub><mi>π</mi><mn>2</mn></msub><mo>,</mo><mspace width="0.5em"></mspace><msub><mi>π</mi><mn>0</mn></msub><mo>+</mo><msub><mi>π</mi><mn>1</mn></msub><mo>+</mo><msub><mi>π</mi><mn>2</mn></msub><mo>=</mo><mn>1</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Без ε гра B (p₀ = 1/10, p₁ = 3/4) рівно чесна: капітал на кратному 3 у 5/13 партій, і шанс виграти рівно 1/2.</span></p>
+          <math display="block"><mi>π</mi><mo>=</mo><mo stretchy="false">(</mo><mfrac><mn>5</mn><mn>13</mn></mfrac><mo>,</mo><mfrac><mn>2</mn><mn>13</mn></mfrac><mo>,</mo><mfrac><mn>6</mn><mn>13</mn></mfrac><mo stretchy="false">)</mo><mo>,</mo><mspace width="0.6em"></mspace><mfrac><mn>5</mn><mn>13</mn></mfrac><mo>·</mo><mfrac><mn>1</mn><mn>10</mn></mfrac><mo>+</mo><mfrac><mn>8</mn><mn>13</mn></mfrac><mo>·</mo><mfrac><mn>3</mn><mn>4</mn></mfrac><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Тест одного кола: гра виграє, коли три кроки вгору ймовірніші за три вниз.</span></p>
+          <math display="block"><msub><mi>p</mi><mn>0</mn></msub><msubsup><mi>p</mi><mn>1</mn><mn>2</mn></msubsup><mo>&gt;</mo><msub><mi>q</mi><mn>0</mn></msub><msubsup><mi>q</mi><mn>1</mn><mn>2</mn></msubsup></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Точний середній виграш за партію при ε = 1/200, звичайними дробами:</span></p>
+          <math display="block"><msub><mi>g</mi><mi>A</mi></msub><mo>=</mo><mo>−</mo><mfrac><mn>1</mn><mn>100</mn></mfrac><mo>,</mo><mspace width="0.6em"></mspace><msub><mi>g</mi><mi>B</mi></msub><mo>=</mo><mo>−</mo><mfrac><mn>73443</mn><mn>8446300</mn></mfrac><mo>≈</mo><mo>−</mo><mn class="uk">0,0087</mn></math>
+          <math display="block"><msub><mi>g</mi><mrow><mi>A</mi><mo>+</mo><mi>B</mi></mrow></msub><mo>=</mo><mfrac><mn>223</mn><mn>14200</mn></mfrac><mo>≈</mo><mi class="hl uk">+0,0157</mi></math>
+        </div>
+      </div>
+      <p class="uk">Зверніть увагу, де саме ховається парадокс. Змішана гра має монетки, які є середніми монеток <span class="vl">A</span> і <span class="vl">B</span>. Але виграш — не середнє виграшів, бо разом з монетками змінюється й частка часу в кожному стані. Виграш нелінійно залежить від монеток, тому середнє двох програшних ігор може виграти.</p>
+      
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Глибше</span><span class="mp-layer-desc">узагальнення, теорія, історія</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Глибше» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Звідки ігри</span></span>
+      <h3><span class="uk">Храповик, перекладений на монетки</span></h3>
+      <p class="uk">Хуан Паррондо, фізик з Мадрида, 1996 року розбирав броунівський храповик: частинку, яку теплові поштовхи штовхають навмання, а несиметричний пилкоподібний потенціал то вмикають, то вимикають. Кожен режим окремо нікуди частинку не везе, а їх чергування везе. Ігри <span class="vl">A</span> і <span class="vl">B</span> — дискретна версія цієї картини: <span class="vl">A</span> схожа на вільну дифузію, <span class="vl">B</span> на пилку з крутим і пологим схилом.</p>
+      
+      <p class="uk">Ідею він показав у неопублікованій доповіді того ж року в Турині. Широко відомою вона стала після короткої статті Грегорі Гармера і Дерека Ебботта в Nature 1999 року «Програшні стратегії можуть вигравати завдяки парадоксу Паррондо», яка й дала ефекту назву.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Парадокс чи ні</span></span>
+      <h3><span class="uk">Залежність ламає наївний підрахунок</span></h3>
+      <p class="uk">Суперечності тут немає. Якби ігри були <a href="https://mathparadoxes.com/glossary/independence/" class="mp-term" data-term="independence" aria-expanded="false">незалежні</a> від капіталу, будь-яка суміш двох програшних ігор програвала б: середнє двох шансів, менших за 1/2, теж менше за 1/2. Парадокс з'являється лише тому, що <span class="vl">B</span> «пам'ятає» капітал, тобто своє минуле. Сам Ебботт називав такі парадокси позірними: це не логічна суперечність, а результат, що суперечить інтуїції.</p>
+      
+      <p class="uk">Безкоштовного обіду теж немає. Гравець не обирає гру за капіталом: її обирає монетка. Але сама гра <span class="vl">B</span> — це правило, що дивиться на капітал. Інформація про капітал вбудована в <span class="vl">B</span>, а <span class="vl">A</span> лише не дає <span class="vl">B</span> застрягати там, де правило проти вас.</p>
+      
+    </div>
+
+  </div>
+  </div>
+
+<script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "parrondo-paradox" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Масштабуємо</span></span>
+    <h2><span class="uk">Будь-яка частка, ігри з пам'яттю і молекулярні мотори</span></h2>
+    <p class="lead uk">Від однієї суміші 50 на 50 до всієї родини: яка частка <span class="vl">A</span> найкраща і чи потрібен саме капітал. Потім логіка: що робить парадокс можливим. І фізика, з якої ігри виросли: храповик, що везе частинки, хоча жоден його режим їх не везе.</p>
+    
+  </div>
+  <div class="esc">
+    <p class="layer"><span class="uk">Математика</span></p>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Скільки грати <span class="vl">A</span>?</span></h3>
+        <label class="ctl" for="gm-g"><span><span class="uk">Частка партій <span class="vl">A</span>:</span> <b class="mono" id="gm-gv"></b></span><input type="range" id="gm-g" min="0" max="100" value="50"></label>
+        <label class="ctl" for="gm-e"><span><span class="uk">Нечесність ε:</span> <b class="mono" id="gm-ev"></b></span><input type="range" id="gm-e" min="0" max="20" value="5"></label>
+        <canvas id="gm-cv" style="height:240px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--hit)"><b class="uk"><span class="vl">B</span> залежить від капіталу</b></span>
+          <span style="--c:var(--ink)"><b class="uk"><span class="vl">B</span> залежить від двох останніх партій</b></span>
+        </div>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Капітал, на 100 партій</span></span><b class="big mono" id="gm-c" style="font-size:1.7rem">–</b></div>
+          <div><span class="k"><span class="uk">Історія, на 100 партій</span></span><b class="big mono" id="gm-h" style="font-size:1.7rem">–</b></div>
+        </div>
+        <p class="note" id="gm-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Капітал чи історія</span></span>
+        <h3><span class="uk">Парадоксу потрібен стан, а не саме капітал</span></h3>
+        <p class="uk">Частку <span class="vl">A</span> можна брати будь-яку. При ε = 0,005 суміш виграє приблизно від 7% до 85% партій <span class="vl">A</span>, а найкраща частка близько 41%: +1,66 на 100 партій. Але нечесність має бути малою: для суміші 50 на 50 парадокс зникає вже при ε ≈ 0,013.</p>
+        
+        <p class="uk">2000 року Паррондо, Гармер і Ебботт прибрали з гри <span class="vl">B</span> капітал. У новій грі <span class="vl">B</span> монетка залежить від двох попередніх результатів: після двох програшів 9/10 − ε, після виграшу й програшу в будь-якому порядку 1/4 − ε, після двох виграшів 7/10 − ε. Стан тепер — пам'ять гри, а не гроші, а ефект той самий: ця <span class="vl">B</span> і <span class="vl">A</span> програють окремо й виграють разом, коли ε менше за 1/168. Ефект тут слабший, зате не потрібно знати капітал.</p>
+        
+      </div>
+    </div>
+
+    <p class="layer"><span class="uk">Логіка</span></p>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Заберіть у <span class="vl">B</span> пам'ять</span></h3>
+        <div class="presets" id="lg-pick"></div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th><span class="uk">Гра</span></th><th class="num"><span class="uk">Точно, /100</span></th><th class="num"><span class="uk">Симуляція</span></th></tr></thead>
+          <tbody id="lg-tbl"></tbody>
+        </table></div>
+        <p class="note" id="lg-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Два «погані» разом</span></span>
+        <h3><span class="uk">Одна гра створює стан, інша його збиває</span></h3>
+        <p class="uk">Замініть дві монетки <span class="vl">B</span> однією, що виграє з тим самим загальним шансом 49,57%, але не дивиться на капітал. Окремо нова <span class="vl">B</span> програє стільки ж, скільки стара. А суміш з <span class="vl">A</span> тепер програє: шанс кожної партії — середнє двох чисел, менших за 1/2.</p>
+        
+        <p class="uk">Звідси загальне правило. Дві програшні дії можуть разом вигравати, лише якщо одна з них залежить від стану, який друга змінює. Тоді оцінка «<span class="vl">B</span> програє» правдива лише для того стану, який <span class="vl">B</span> сама створює. В іншому оточенні та сама <span class="vl">B</span> виграє. Оцінювати таку дію окремо від усього, що її оточує, означає оцінювати не те.</p>
+        
+      </div>
+    </div>
+
+    <p class="layer"><span class="uk">Практика</span></p>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Храповик, що миготить</span></h3>
+        <div class="presets" id="rt-pick"></div>
+        <div class="presets" id="rt-size"></div>
+        <canvas id="rt-cv" style="height:150px"></canvas>
+        <canvas id="rt-ch" style="height:170px"></canvas>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Точно, періодів за цикл</span></span><b class="big mono" id="rt-e" style="font-size:1.6rem">–</b></div>
+          <div><span class="k"><span class="uk">Симуляція, 400 частинок</span></span><b class="big mono" id="rt-s" style="font-size:1.6rem">–</b></div>
+        </div>
+        <p class="note" id="rt-txt"></p>
+        <div class="actions"><button class="btn pri" id="rt-go" type="button"><span class="uk">Запустити</span></button></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Броунівські мотори</span></span>
+        <h3><span class="uk">Ні тепло, ні пилка не везуть, а разом везуть</span></h3>
+        <p class="uk">Частинки у воді смикає тепловий рух. Коли пилкоподібний потенціал увімкнено, кожна скочується на дно своєї западини й стоїть. Коли вимкнено, частинки розпливаються в обидва боки порівну. Але якщо вмикати й вимикати по черзі, частинки їдуть: найближча вершина пилки стоїть з одного боку, і за час дифузії частинка частіше перескакує саме її.</p>
+        
+        <p class="uk">Це перевірили на досліді: 1994 року Русле, Саломе, Аждарі і Прост рухали в один бік пластикові кульки в рідині, вмикаючи й вимикаючи несиметричне електричне поле. Дрібні кульки дифундують швидше і їдуть швидше, що видно й у симуляції. Енергію тут дає не тепло, а той, хто перемикає поле, тож закони термодинаміки не порушуються.</p>
+        
+        <p class="uk">Схожими моделями фізики й біологи описують молекулярні мотори в клітинах, наприклад білки, що крокують уздовж мікротрубочок: Дін Астуміан 1997 року в Science, Френк Юліхер, Аждарі і Прост у тому ж році в оглядовій статті. Модель «храповика, що миготить» — одна з основних у цій галузі.</p>
+        
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span></span>
+    <h2><span class="uk">Що розповісти друзям</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1996</span>
+        <h3><span class="uk">Як обдурити поганого математика</span></h3>
+        <p class="uk">Так називалася доповідь Хуана Паррондо в Турині, де він уперше показав ігри. Її так і не опублікували, але на неї досі посилаються як на початок історії.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1999</span>
+        <h3><span class="uk">Одна сторінка в Nature</span></h3>
+        <p class="uk">Стаття Гармера й Ебботта «Losing strategies can win by Parrondo's paradox» в Nature займає одну сторінку, 864-ту в 402-му томі. Саме з неї ці ігри стали відомі як парадокс Паррондо.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">38,4%</span>
+        <h3><span class="uk">Увесь парадокс у п'яти пунктах</span></h3>
+        <p class="uk">Стільки партій гра <span class="vl">B</span> грає на числі, кратному 3, замість чесної третини, 33,3%. Цих п'яти відсоткових пунктів досить, щоб гра, яка могла б вигравати, програвала.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">ABAB</span>
+        <h3><span class="uk">Не всяке чергування рятує</span></h3>
+        <p class="uk">Строге чергування ABAB… програє 0,67 на 100 партій. А AABB… виграє 1,47, ABB… навіть 5,74. Важливо не те, що ігри змішані, а те, як саме <span class="vl">A</span> збиває капітал перед <span class="vl">B</span>.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1963</span>
+        <h3><span class="uk">Храповик Фейнмана</span></h3>
+        <p class="uk">У 46-му розділі першого тому «Фейнманівських лекцій з фізики» Річард Фейнман розбирає храповик із собачкою, який мав би крутитися від теплових ударів молекул. Він показує, чому при однаковій температурі такий двигун не працює. Броунівські мотори обходять заборону, бо їх живить зовнішнє перемикання.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1/168</span>
+        <h3><span class="uk">Ігри з пам'яттю</span></h3>
+        <p class="uk">У версії 2000 року гра <span class="vl">B</span> дивиться не на капітал, а на два останні результати. Парадокс там працює, коли нечесність ε від нуля до 1/168, тобто до 0,006. Автори наголошували, що така гра працює для ширшого кола параметрів.</p>
+        
+      </article>
+  </div>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">Ще задачі</span>
+    <h2>Інші парадокси</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/monty-hall/"><h3>Парадокс Монті Голла</h3><p>Ви на телешоу й обрали одні з трьох дверей. Ведучий, який знає, де авто, відчиняє інші двері з козою й пропонує змінити вибір. Змінювати?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/birthday/"><h3>Парадокс днів народження</h3><p>Скільки людей має зібратися в кімнаті, щоб двоє з них, імовірно, народилися в один день?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/false-positive/"><h3>Парадокс хибнопозитивного тесту</h3><p>Хворобу має 1% людей. Тест точний на 99%, і ваш результат позитивний. Який шанс, що ви справді хворі?</p></a>
+  </div>
+  <p class="mp-related-all"><a href="https://mathparadoxes.com/">Усі задачі →</a> <a href="https://mathparadoxes.com/glossary/">Словник →</a></p>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Обговорення</span>
+    <h2>Що ви думаєте?</h2>
+    <p>Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub.</p>
+    <div class="mp-lvote"><p>Рівень «Поглиблено» відповідає задачі?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">Ні, складніше</button><button type="button" data-vote="right">Так</button><button type="button" data-vote="easier">Ні, простіше</button></div><p class="mp-lvote-thanks">Дякуємо! Це допоможе точніше ставити рівні.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "parrondo-paradox" + "-lvl", LEVEL = 3, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="parrondo-paradox" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="uk" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Розсилка</span>
+    <h2>Нові задачі, пояснення й обговорення</h2>
+    <p>Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">Форма підписки з'явиться тут найближчим часом.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+<footer>
+  <span class="uk">Ігри придумав Хуан Паррондо (1996), назву і числа з цієї сторінки дали Грегорі Гармер і Дерек Ебботт (Nature, 1999). Ігри з пам'яттю: Паррондо, Гармер, Ебботт (Physical Review Letters, 2000).</span>
+  
+  <span class="mono">g = Σ πᵢ (2pᵢ − 1)</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const solved = () => !window.mpSolved || mpSolved();
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA', { maximumFractionDigits: 0 });
+// signed number with a real minus sign: +1,57 / −0,87
+const sg = (x, d = 2) => { const v = +x.toFixed(d); return (v > 0 ? '+' : v < 0 ? '−' : '') + dec(Math.abs(v).toFixed(d)); };
+const plural = (k, one, few, many) => { const a = k % 10, b = k % 100; if (a === 1 && b !== 11) return one; if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few; return many; };
+const roundsW = n => L(plural(n, 'партія', 'партії', 'партій'), n === 1 ? 'round' : 'rounds');
+
+/* ---------- maths ---------- */
+// Harmer & Abbott (1999): A wins with 1/2 − ε; B wins with 1/10 − ε on a multiple of 3, else 3/4 − ε.
+const EPS = .005, PA = .5 - EPS, P1 = .1 - EPS, P2 = .75 - EPS;
+const mod3 = c => ((c % 3) + 3) % 3;
+const pGame = (g, s) => g === 'A' ? PA : s === 0 ? P1 : P2;
+// strategies: a periodic order of games, or a random mix (share of A)
+const STR = {
+  A: { uk: 'Лише A', en: 'Only A', seq: 'A', col: '--ga' },
+  B: { uk: 'Лише B', en: 'Only B', seq: 'B', col: '--gb' },
+  ABAB: { uk: 'ABAB…', en: 'ABAB…', seq: 'AB', col: '--muted' },
+  AABB: { uk: 'AABB…', en: 'AABB…', seq: 'AABB', col: '--ink' },
+  R: { uk: 'Навмання', en: 'At random', mix: .5, col: '--hit' }
+};
+const KEYS = ['A', 'B', 'ABAB', 'AABB', 'R'];
+// chance of winning the round t (0-based) from remainder s under strategy st
+const pStr = (st, t, s) => st.mix !== undefined ? st.mix * PA + (1 - st.mix) * pGame('B', s) : pGame(st.seq[t % st.seq.length], s);
+const period = st => st.mix !== undefined ? 1 : st.seq.length;
+const pick = (st, t) => st.mix !== undefined ? (Math.random() < st.mix ? 'A' : 'B') : st.seq[t % st.seq.length];
+
+// stationary distribution of a Markov matrix M (rows sum to 1): solve pi M = pi, sum pi = 1
+function stationary(M) {
+  const n = M.length, A = [];
+  for (let j = 0; j < n - 1; j++) { const r = []; for (let i = 0; i < n; i++) r.push(M[i][j] - (i === j ? 1 : 0)); r.push(0); A.push(r); }
+  A.push(new Array(n).fill(1).concat(1));
+  for (let c = 0; c < n; c++) {
+    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    [A[c], A[p]] = [A[p], A[c]];
+    const v = A[c][c]; for (let k = c; k <= n; k++) A[c][k] /= v;
+    for (let r = 0; r < n; r++) if (r !== c && A[r][c]) { const f = A[r][c]; for (let k = c; k <= n; k++) A[r][k] -= f * A[c][k]; }
+  }
+  return A.map(r => r[n]);
+}
+const cycMat = pf => { const M = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]; for (let s = 0; s < 3; s++) { const w = pf(s); M[s][(s + 1) % 3] += w; M[s][(s + 2) % 3] += 1 - w; } return M; };
+const mul = (X, Y) => X.map(r => Y[0].map((_, j) => r.reduce((a, v, k) => a + v * Y[k][j], 0)));
+const step = (d, M) => [0, 1, 2].map(j => d[0] * M[0][j] + d[1] * M[1][j] + d[2] * M[2][j]);
+// long-run analysis: gain per round, share of all rounds on a multiple of 3, share of B's rounds on a multiple of 3
+function analyse(st) {
+  const T = period(st); let M = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  for (let t = 0; t < T; t++) M = mul(M, cycMat(s => pStr(st, t, s)));
+  let d = stationary(M), g = 0, trap = 0, bTrap = 0, nB = 0;
+  for (let t = 0; t < T; t++) {
+    for (let s = 0; s < 3; s++) g += d[s] * (2 * pStr(st, t, s) - 1);
+    trap += d[0];
+    if (st.mix !== undefined) { bTrap += d[0]; nB++; } else if (st.seq[t % st.seq.length] === 'B') { bTrap += d[0]; nB++; }
+    d = step(d, cycMat(s => pStr(st, t, s)));
+  }
+  return { g: g / T, trap: trap / T, bTrap: nB ? bTrap / nB : NaN };
+}
+const AN = {}; KEYS.forEach(k => { AN[k] = analyse(STR[k]); });
+const ABB = analyse({ seq: 'ABB' });
+// the exact average capital after each of n rounds, starting at 0 (a multiple of 3)
+function meanPath(pf, n) {
+  let d = [1, 0, 0], m = 0; const out = new Float64Array(n + 1);
+  for (let t = 0; t < n; t++) { for (let s = 0; s < 3; s++) m += d[s] * (2 * pf(t, s) - 1); d = step(d, cycMat(s => pf(t, s))); out[t + 1] = m; }
+  return out;
+}
+// the exact chance of being ahead (capital > 0) after n rounds: dynamic programming over the capital itself
+function aheadExact(pf, n) {
+  let cur = new Float64Array(2 * n + 3), nxt = new Float64Array(2 * n + 3); const o = n + 1; cur[o] = 1;
+  for (let t = 0; t < n; t++) {
+    nxt.fill(0);
+    for (let c = -t; c <= t; c += 2) { const v = cur[o + c]; if (!v) continue; const w = pf(t, mod3(c)); nxt[o + c + 1] += v * w; nxt[o + c - 1] += v * (1 - w); }
+    [cur, nxt] = [nxt, cur];
+  }
+  let a = 0; for (let c = 1; c <= n; c++) a += cur[o + c]; return a;
+}
+const pfOf = st => (t, s) => pStr(st, t, s);
+// hand play done perfectly: A on a multiple of 3, B otherwise
+const pfSmart = (t, s) => s === 0 ? PA : P2;
+const HANDN = 50;
+const SMART50 = meanPath(pfSmart, HANDN)[HANDN], RAND50 = meanPath(pfOf(STR.R), HANDN)[HANDN];
+const G = k => 100 * AN[k].g;   // gain per 100 rounds
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, Hh = c.clientHeight;
+  if (!W || !Hh) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(Hh * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, Hh);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H: Hh };
+}
+// a frame for capital against rounds; returns scale functions
+function frame(s, nMax, yMin, yMax, opt = {}) {
+  const { ctx, W, H: Hh } = s, l = opt.l || 40, r = opt.r || 10, t = 12, b = 22;
+  const x = n => l + n / nMax * (W - l - r), y = v => t + (yMax - v) / (yMax - yMin) * (Hh - t - b);
+  ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  const span = yMax - yMin, stp = span > 120 ? 50 : span > 60 ? 20 : span > 24 ? 10 : 5;
+  for (let v = Math.ceil(yMin / stp) * stp; v <= yMax; v += stp) {
+    ctx.strokeStyle = v === 0 ? tok('--muted') : tok('--line'); ctx.globalAlpha = v === 0 ? .6 : 1;
+    ctx.beginPath(); ctx.moveTo(l, Math.round(y(v)) + .5); ctx.lineTo(W - r, Math.round(y(v)) + .5); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = tok('--muted'); ctx.fillText(v > 0 ? '+' + v : v < 0 ? '−' + (-v) : '0', l - 6, y(v));
+  }
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('0', l, Hh - b + 6);
+  ctx.textAlign = 'right'; ctx.fillText(fmt(nMax) + ' ' + (opt.unit || L('партій', 'rounds')), W - r, Hh - b + 6);
+  return { x, y, l, r, t, b };
+}
+function line(ctx, arr, x, y, n, opt = {}) {
+  ctx.strokeStyle = opt.c; ctx.lineWidth = opt.w || 2; ctx.setLineDash(opt.dash || []);
+  const k = Math.max(1, Math.floor(n / 600));
+  ctx.beginPath(); for (let i = 0; i <= n; i += k) i ? ctx.lineTo(x(i), y(arr[i])) : ctx.moveTo(x(0), y(arr[0]));
+  ctx.lineTo(x(n), y(arr[n])); ctx.stroke(); ctx.setLineDash([]);
+}
+const legendHTML = keys => keys.map(k => '<span style="--c:var(' + STR[k].col + ')"><b>' + STR[k][lang] + '</b></span>').join('');
+
+/* ---------- hero: the exact average capital of each way ---------- */
+const HN = 1000, HERO = { A: meanPath(pfOf(STR.A), HN), B: meanPath(pfOf(STR.B), HN), R: meanPath(pfOf(STR.R), HN) };
+let heroT = HN, heroTimer = null;
+function heroDraw() {
+  const s = setupCanvas($('#hero-cv')); if (!s) return;
+  const ok = solved(), { x, y } = frame(s, HN, -15, 20), ctx = s.ctx, n = Math.min(heroT, HN);
+  const keys = ok ? ['A', 'B', 'R'] : ['A', 'B'];
+  keys.forEach(k => line(ctx, HERO[k], x, y, n, { c: tok(STR[k].col), w: k === 'R' ? 3 : 2.2 }));
+  ctx.font = '600 12px ' + tok('--f-body'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+  if (n >= HN) {
+    keys.forEach(k => { ctx.fillStyle = tok(STR[k].col); ctx.fillText(STR[k][lang] + ' ' + sg(HERO[k][HN], 1), x(HN) - 4, y(HERO[k][HN]) + (k === 'B' ? -12 : k === 'A' ? 18 : -6)); });
+    if (!ok) { ctx.font = '800 30px ' + tok('--f-display'); ctx.fillStyle = tok('--hit'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('A + B = ?', x(HN) - 6, y(11)); }
+  }
+  $('#hero-cap').textContent = ok
+    ? L('Середній капітал за 1000 партій, точний розрахунок. Лише A: ' + sg(HERO.A[HN], 1) + ', лише B: ' + sg(HERO.B[HN], 1) + ', навмання A або B: ' + sg(HERO.R[HN], 1) + '.', 'Average capital over 1,000 rounds, exact. Only A: ' + sg(HERO.A[HN], 1) + ', only B: ' + sg(HERO.B[HN], 1) + ', A or B at random: ' + sg(HERO.R[HN], 1) + '.')
+    : L('Середній капітал за 1000 партій. Обидві гри окремо ведуть у мінус. А якщо перед кожною партією обирати гру навмання?', 'Average capital over 1,000 rounds. Each game alone leads into the red. And if you pick the game at random before each round?');
+}
+function heroStart() {
+  clearInterval(heroTimer);
+  if (reduce()) { heroT = HN; heroDraw(); return; }
+  heroT = 0; heroTimer = setInterval(() => { heroT += 20; if (heroT >= HN) { heroT = HN; clearInterval(heroTimer); } heroDraw(); }, 30);
+}
+document.addEventListener('solved', heroStart);
+
+/* ---------- round 1: guess ---------- */
+const OPTS = [
+  { k: 'worse', uk: 'Програє ще швидше, ніж кожна гра окремо', en: 'It loses even faster than either game alone' },
+  { k: 'between', uk: 'Програє, десь між A і B', en: 'It loses, somewhere between A and B' },
+  { k: 'even', uk: 'Приблизно в нуль', en: 'It roughly breaks even' },
+  { k: 'win', uk: 'Виграє', en: 'It wins' }
+];
+let gPick = null, guessed = null;
+function optsText() {
+  $('#guess-opts').innerHTML = OPTS.map((o, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (gPick === i) + '">' + o[lang] + '</button>').join('');
+  $('#guess-go').disabled = gPick === null;
+}
+$('#guess-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gPick = +b.dataset.i; optsText(); });
+$('#guess-go').addEventListener('click', () => { if (gPick === null) return; guessed = OPTS[gPick].k; guessText(); window.mpSolve && mpSolve(guessed); });
+function guessText() {
+  if (guessed === null) return;
+  const verdict = guessed === 'win'
+    ? L('Так, виграє. Здається, що два мінуси разом дають мінус, але гра B програє лише через те, де вона сама тримає капітал. Гра A цей капітал перемішує.', 'Yes, it wins. It seems that two losers make a loser, but game B loses only because of where it keeps the capital itself. Game A shuffles that capital.')
+    : L('Насправді суміш виграє. Гра B програє лише тому, що сама часто ставить капітал на число, кратне 3, де її монетка погана. Гра A перемішує капітал, і B частіше грає доброю монеткою.', 'In fact the mix wins. Game B loses only because it often puts the capital on a multiple of 3 itself, where its coin is bad. Game A shuffles the capital, and B more often plays its good coin.');
+  const rows = KEYS.map(k => '<tr><td>' + STR[k][lang] + '</td><td class="num' + (G(k) > 0 ? ' up' : '') + '">' + sg(G(k)) + '</td></tr>').join('');
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат, на 100 партій', 'Result, per 100 rounds') + '</span><p class="big hit mono">' + sg(G('R')) + '</p>' +
+    '<p>' + verdict + '</p><div class="tbl-wrap"><table><thead><tr><th>' + L('Як обирати гру', 'How to pick the game') + '</th><th class="num">' + L('Виграш на 100 партій', 'Gain per 100 rounds') + '</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<p class="note">' + L('Поворот: парами AABB теж виграє, а строго по черзі ABAB програє. У раунді 2 спробуйте всі способи, а в режимі «Сам» обирайте стіл власноруч.', 'The twist: in pairs, AABB, also wins, but strictly in turn, ABAB, loses. In round 2 try every way, and in "By hand" mode pick the table yourself.') + '</p>';
+}
+
+/* ---------- round 2: the tables ---------- */
+const MODES = ['A', 'B', 'ABAB', 'AABB', 'R', 'H'];
+const R2 = { mode: 'A', bal: 0, n: 0, path: [0], games: [], bOn0: 0, nB: 0, best: null, bot: null, hands: 0 };
+const isHand = () => R2.mode === 'H';
+function r2New() { R2.bal = 0; R2.n = 0; R2.path = [0]; R2.games = []; R2.bOn0 = 0; R2.nB = 0; R2.bot = null; }
+function r2Play(g) {
+  const s = mod3(R2.bal);
+  if (g === 'B') { R2.nB++; if (s === 0) R2.bOn0++; }
+  const won = Math.random() < pGame(g, s);
+  R2.bal += won ? 1 : -1; R2.n++; R2.path.push(R2.bal); R2.games.push([g, won]);
+  if (R2.games.length > 60) R2.games.shift();
+}
+function r2Auto(k) { const st = STR[R2.mode]; for (let i = 0; i < k; i++) r2Play(pick(st, R2.n)); r2Refresh(); }
+function coinHTML(g, s) {
+  if (g === 'A') return '<span class="coin a">' + dec('49.5') + '%<small>A</small></span>';
+  return s === 0 ? '<span class="coin bad">' + dec('9.5') + '%<small>B</small></span>' : '<span class="coin good">' + dec('74.5') + '%<small>B</small></span>';
+}
+function r2Text() {
+  $('#mode-pick').innerHTML = MODES.map(m => '<button type="button" data-m="' + m + '" aria-pressed="' + (m === R2.mode) + '">' + (m === 'H' ? L('Сам', 'By hand') : STR[m][lang]) + '</button>').join('');
+  $('#g-auto').hidden = isHand(); $('#g-hand').hidden = !isHand();
+  const s = mod3(R2.bal), onTrap = s === 0;
+  $('#g-bal').textContent = sg(R2.bal, 0) || '0';
+  $('#g-n').textContent = fmt(R2.n) + (isHand() ? ' / ' + HANDN : '');
+  $('#g-k3').textContent = L('B на кратному 3', 'B on a multiple of 3');
+  $('#g-v3').textContent = R2.nB ? pct(R2.bOn0 / R2.nB, 0) : '–';
+  $('#g-hist').innerHTML = R2.games.map(([g, w]) => '<i class="' + g.toLowerCase() + (w ? '' : ' l') + '">' + g + '</i>').join('');
+  // what happens next
+  const here = L('Капітал ' + (sg(R2.bal, 0) || '0') + (onTrap ? ' <span class="trap">кратний 3</span>' : ' не кратний 3') + '.', 'Capital ' + (sg(R2.bal, 0) || '0') + (onTrap ? ' is <span class="trap">a multiple of 3</span>' : ' is not a multiple of 3') + '.');
+  if (isHand()) $('#g-next').innerHTML = coinHTML('A', s) + coinHTML('B', s) + '<span>' + here + L(' Так зараз підкидали б монетки A і B.', ' These are the coins A and B would toss now.') + '</span>';
+  else if (STR[R2.mode].mix !== undefined) $('#g-next').innerHTML = '<span>' + here + L(' Наступну гру обере чесна монетка: A чи B.', ' A fair coin will pick the next game: A or B.') + '</span>';
+  else { const g = STR[R2.mode].seq[R2.n % STR[R2.mode].seq.length]; $('#g-next').innerHTML = coinHTML(g, s) + '<span>' + here + L(' Наступна партія: гра ', ' Next round: game ') + g + '.</span>'; }
+  // the boxes under the chart
+  if (isHand()) {
+    $('#g-k1').textContent = L('Ваш найкращий результат за 50', 'Your best result in 50');
+    $('#g-v1').textContent = R2.best === null ? '–' : sg(R2.best, 0) || '0';
+    $('#g-s1').textContent = R2.hands ? L('зіграно наборів: ' + R2.hands, 'sets played: ' + R2.hands) : L('ще жодного набору', 'no sets yet');
+    $('#g-k2').textContent = L('Бот «навмання» за ті самі 50', 'The "at random" bot in the same 50');
+    $('#g-v2').textContent = R2.bot === null ? '–' : sg(R2.bot, 0) || '0';
+    $('#g-s2').textContent = L('у середньому ', 'on average ') + sg(RAND50, 1);
+  } else {
+    $('#g-k1').textContent = L('Точно, на 100 партій', 'Exact, per 100 rounds');
+    $('#g-v1').textContent = sg(G(R2.mode));
+    $('#g-s1').textContent = L('пунктир на графіку', 'the dashed line on the chart');
+    $('#g-k2').textContent = L('Ваша гра, на 100 партій', 'Your run, per 100 rounds');
+    $('#g-v2').textContent = R2.n ? sg(100 * R2.bal / R2.n) : '–';
+    $('#g-s2').textContent = R2.n < 1000 ? L('за кількасот партій це ще лотерея', 'over a few hundred rounds it is still a lottery') : L('за ' + fmt(R2.n) + ' ' + roundsW(R2.n), 'over ' + fmt(R2.n) + ' rounds');
+  }
+  let msg;
+  if (isHand()) {
+    if (!R2.n) msg = L('50 партій, починаєте з нуля. Перед кожною обирайте A або B. Бот поруч обирає навмання. Чи наберете +10?', '50 rounds, starting from zero. Before each one choose A or B. A bot next to you chooses at random. Can you reach +10?');
+    else if (R2.n >= HANDN) {
+      msg = R2.bal >= 10
+        ? L('Ви знайшли трюк: грати A на кратному 3, щоб обійти погану монетку, і B деінде. Так у середньому виходить ' + sg(SMART50, 1) + ' за 50 партій. Але це вже не парадокс: ви дивитесь на капітал. Парадокс у тому, що виграє навіть сліпе чергування.', 'You found the trick: play A on a multiple of 3 to dodge the bad coin, and B elsewhere. That gives ' + sg(SMART50, 1) + ' per 50 rounds on average. But this is no longer the paradox: you are looking at the capital. The paradox is that even blind switching wins.')
+        : L('Набір завершено: ' + (sg(R2.bal, 0) || '0') + '. Підказка: подивіться на монетку, яку B підкидала б зараз, перш ніж обирати.', 'Set over: ' + (sg(R2.bal, 0) || '0') + '. Hint: look at the coin B would toss right now before you choose.');
+    } else msg = L('Партія ' + R2.n + ' з 50. Капітал ' + (sg(R2.bal, 0) || '0') + '.', 'Round ' + R2.n + ' of 50. Capital ' + (sg(R2.bal, 0) || '0') + '.');
+  } else {
+    if (!R2.n) msg = L('Натисніть «+100» або «+1000». Одна партія змінює капітал на 1, тож різницю між способами видно лише на сотнях партій.', 'Press "+100" or "+1,000". A round moves the capital by 1, so the difference between the ways shows only over hundreds of rounds.');
+    else msg = L('Після ' + fmt(R2.n) + ' ' + plural(R2.n, 'партії', 'партій', 'партій') + ' капітал ' + (sg(R2.bal, 0) || '0') + ', точне середнє ' + sg(G(R2.mode) * R2.n / 100, 1) + '.', 'After ' + fmt(R2.n) + ' ' + roundsW(R2.n) + ' the capital is ' + (sg(R2.bal, 0) || '0') + ', the exact average ' + sg(G(R2.mode) * R2.n / 100, 1) + '.');
+  }
+  $('#g-msg').textContent = msg;
+  $('#h-a').disabled = $('#h-b').disabled = isHand() && R2.n >= HANDN;
+  $('#g-leg').innerHTML = isHand() ? '<span style="--c:var(--ink)"><b>' + L('ви', 'you') + '</b></span><span style="--c:var(--hit)"><b>' + L('бот «навмання»', 'the "at random" bot') + '</b></span>'
+    : '<span style="--c:var(' + STR[R2.mode].col + ')"><b>' + STR[R2.mode][lang] + '</b></span><span style="--c:var(--muted)"><b>' + L('пунктир: точне середнє', 'dashed: the exact average') + '</b></span>';
+}
+let botPath = null;
+function r2Draw() {
+  const s = setupCanvas($('#g-cv')); if (!s) return;
+  const n = isHand() ? HANDN : Math.max(100, R2.n), ctx = s.ctx;
+  const exp = isHand() ? null : meanPath(pfOf(STR[R2.mode]), n);
+  let lo = -6, hi = 6; R2.path.forEach(v => { lo = Math.min(lo, v); hi = Math.max(hi, v); });
+  if (exp) { lo = Math.min(lo, exp[n]); hi = Math.max(hi, exp[n]); }
+  if (isHand() && botPath) botPath.forEach(v => { lo = Math.min(lo, v); hi = Math.max(hi, v); });
+  const { x, y } = frame(s, n, lo - 2, hi + 2);
+  if (exp) line(ctx, exp, x, y, n, { c: tok('--muted'), w: 1.5, dash: [5, 4] });
+  if (isHand() && botPath && R2.n >= HANDN) line(ctx, botPath, x, y, HANDN, { c: tok('--hit'), w: 1.8 });
+  if (R2.n) line(ctx, R2.path, x, y, R2.n, { c: isHand() ? tok('--ink') : tok(STR[R2.mode].col), w: 2 });
+  ctx.fillStyle = isHand() ? tok('--ink') : tok(STR[R2.mode].col); ctx.beginPath(); ctx.arc(x(R2.n), y(R2.bal), 3.5, 0, 7); ctx.fill();
+}
+function r2Refresh() { r2Text(); r2Draw(); }
+function handPlay(g) {
+  if (R2.n >= HANDN) return;
+  r2Play(g);
+  if (R2.n >= HANDN) {
+    let c = 0; botPath = [0]; const st = STR.R; for (let t = 0; t < HANDN; t++) { c += Math.random() < pGame(pick(st, t), mod3(c)) ? 1 : -1; botPath.push(c); }
+    R2.bot = c; R2.hands++; R2.best = R2.best === null ? R2.bal : Math.max(R2.best, R2.bal);
+  }
+  r2Refresh();
+}
+$('#mode-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; R2.mode = b.dataset.m; r2New(); botPath = null; r2Refresh(); });
+$('#g-1').addEventListener('click', () => r2Auto(1));
+$('#g-100').addEventListener('click', () => r2Auto(100));
+$('#g-1000').addEventListener('click', () => r2Auto(1000));
+$('#g-new').addEventListener('click', () => { r2New(); r2Refresh(); });
+$('#h-a').addEventListener('click', () => handPlay('A'));
+$('#h-b').addEventListener('click', () => handPlay('B'));
+$('#h-new').addEventListener('click', () => { r2New(); botPath = null; r2Refresh(); });
+
+/* ---------- round 3: two thousand players for each way ---------- */
+const NP = 2000, NG = 1000;
+const EXACT = {}, AHEAD = {};
+KEYS.forEach(k => { EXACT[k] = meanPath(pfOf(STR[k]), NG); });
+let S3 = null, s3job = 0;
+function runSim() {
+  const job = ++s3job;
+  S3 = { done: 0, sum: {}, ahead: {} };
+  KEYS.forEach(k => { S3.sum[k] = new Float64Array(NG + 1); S3.ahead[k] = 0; });
+  $('#sim-go').disabled = true;
+  (function chunk() {
+    if (job !== s3job) return;
+    const t0 = performance.now();
+    while (S3.done < NP && performance.now() - t0 < 25) {
+      KEYS.forEach(k => {
+        const st = STR[k], sum = S3.sum[k]; let c = 0;
+        for (let t = 0; t < NG; t++) { c += Math.random() < pGame(pick(st, t), mod3(c)) ? 1 : -1; sum[t + 1] += c; }
+        if (c > 0) S3.ahead[k]++;
+      });
+      S3.done++;
+    }
+    simText(); simDraw();
+    if (S3.done < NP) setTimeout(chunk, 0); else $('#sim-go').disabled = false;
+  })();
+}
+function simText() {
+  $('#sim-leg').innerHTML = legendHTML(KEYS) + '<span style="--c:var(--muted)"><b>' + L('пунктир: точно', 'dashed: exact') + '</b></span>';
+  const n = S3 ? S3.done : 0;
+  $('#sim-tbl').innerHTML = KEYS.map(k => {
+    const sim = n ? 100 * S3.sum[k][NG] / n / NG : null;
+    return '<tr><td>' + STR[k][lang] + '</td><td class="num' + (G(k) > 0 ? ' up' : '') + '">' + sg(G(k)) + '</td><td class="num">' + (sim === null ? '–' : sg(sim)) + '</td><td class="num">' + (n ? pct(S3.ahead[k] / n, 0) : '–') + '</td></tr>';
+  }).join('');
+  $('#sim-txt').textContent = L('Гравців: ' + fmt(n) + ' на кожен спосіб. Точна частка тих, хто після 1000 партій у плюсі: лише A ' + pct(AHEAD.A, 1) + ', лише B ' + pct(AHEAD.B, 1) + ', навмання ' + pct(AHEAD.R, 1) + '. Навіть у виграшній суміші майже третина гравців не в плюсі: ефект малий порівняно з везінням.',
+    'Players: ' + fmt(n) + ' for each way. The exact share who are ahead after 1,000 rounds: only A ' + pct(AHEAD.A, 1) + ', only B ' + pct(AHEAD.B, 1) + ', at random ' + pct(AHEAD.R, 1) + '. Even in the winning mix almost a third of the players are not ahead: the effect is small compared with luck.');
+}
+function simDraw() {
+  const s = setupCanvas($('#sim-cv')); if (!s) return;
+  const { x, y } = frame(s, NG, -15, 20), ctx = s.ctx, n = S3 ? S3.done : 0;
+  KEYS.forEach(k => line(ctx, EXACT[k], x, y, NG, { c: tok(STR[k].col), w: 1.2, dash: [5, 4] }));
+  if (n) KEYS.forEach(k => { const m = new Float64Array(NG + 1); for (let t = 0; t <= NG; t++) m[t] = S3.sum[k][t] / n; line(ctx, m, x, y, NG, { c: tok(STR[k].col), w: k === 'R' ? 2.6 : 2 }); });
+}
+$('#sim-go').addEventListener('click', runSim);
+
+/* ---------- round 4: easy table, the chain, one lap, mixes ---------- */
+const trapRow = (label, z) => '<tr><td>' + label + '</td><td class="num">' + pct(z, 1) + '</td><td class="num">' + pct(z * P1 + (1 - z) * P2, 1) + '</td></tr>';
+function easyText() {
+  document.querySelectorAll('.e-trap-b').forEach(el => { el.textContent = pct(AN.B.trap, 1); });
+  $('#e-tbl').innerHTML = trapRow(L('у чесній третині', 'on a fair third'), 1 / 3) + trapRow(L('лише B', 'only B'), AN.B.bTrap) + trapRow(L('навмання з A', 'at random with A'), AN.R.bTrap);
+}
+const CH = [{ k: 'A', uk: 'Гра A', en: 'Game A' }, { k: 'B', uk: 'Гра B', en: 'Game B' }, { k: 'R', uk: 'Навмання A або B', en: 'A or B at random' }];
+let chI = 1;
+function chainInfo() {
+  const st = STR[CH[chI].k], p = [0, 1, 2].map(s => pStr(st, 0, s));
+  return { p, pi: stationary(cycMat(s => p[s])), g: AN[CH[chI].k].g };
+}
+function chainText() {
+  $('#ch-pick').innerHTML = CH.map((c, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === chI) + '">' + c[lang] + '</button>').join('');
+  const { p, pi, g } = chainInfo();
+  $('#ch-tbl').innerHTML = [0, 1, 2].map(s => '<tr><td>' + s + (s === 0 ? L(' (кратне 3)', ' (multiple of 3)') : '') + '</td><td class="num">' + pct(p[s], 1) + '</td><td class="num">' + pct(pi[s], 1) + '</td></tr>').join('');
+  $('#ch-txt').innerHTML = L('Середній виграш за партію: ', 'Average gain per round: ') + '<b>' + sg(g, 4) + '</b>' + L(', тобто ', ', that is ') + sg(100 * g) + L(' на 100 партій.', ' per 100 rounds.');
+}
+function chainDraw() {
+  const s = setupCanvas($('#ch-cv')); if (!s) return;
+  const { ctx, W, H: Hh } = s, { p, pi } = chainInfo();
+  const cx = W / 2, cy = Hh / 2 + 6, R = Math.min(W * .32, Hh * .36);
+  const pos = [0, 1, 2].map(i => { const a = -Math.PI / 2 + i * 2 * Math.PI / 3; return [cx + R * Math.cos(a), cy + R * Math.sin(a)]; });
+  const rad = i => 16 + 40 * Math.sqrt(pi[i]);
+  // arrows: win moves i -> i+1 (outer), loss moves i -> i-1 (inner)
+  const arrow = (i, j, w) => {
+    const [x1, y1] = pos[i], [x2, y2] = pos[j], dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy), ux = dx / d, uy = dy / d;
+    const nx = -uy, ny = ux, off = 11;
+    const sx = x1 + ux * rad(i) + nx * off, sy = y1 + uy * rad(i) + ny * off, ex = x2 - ux * (rad(j) + 4) + nx * off, ey = y2 - uy * (rad(j) + 4) + ny * off;
+    ctx.strokeStyle = ctx.fillStyle = w > .5 ? tok('--win') : tok('--loss'); ctx.lineWidth = 1 + 5 * w;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ex + ux * 4, ey + uy * 4); ctx.lineTo(ex - ux * 9 + nx * 6, ey - uy * 9 + ny * 6); ctx.lineTo(ex - ux * 9 - nx * 6, ey - uy * 9 - ny * 6); ctx.fill();
+    const mx = (sx + ex) / 2 + nx * 20, my = (sy + ey) / 2 + ny * 20;
+    ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(pct(w, 1), mx, my);
+  };
+  for (let i = 0; i < 3; i++) { arrow(i, (i + 1) % 3, p[i]); arrow(i, (i + 2) % 3, 1 - p[i]); }
+  for (let i = 0; i < 3; i++) {
+    const [px, py] = pos[i];
+    ctx.fillStyle = i === 0 ? tok('--hit-soft') : tok('--cell'); ctx.strokeStyle = i === 0 ? tok('--loss') : tok('--line'); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(px, py, rad(i), 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = tok('--ink'); ctx.font = '800 16px ' + tok('--f-display'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i), px, py - 7);
+    ctx.font = '11px ' + tok('--f-mono'); ctx.fillText(pct(pi[i], 1), px, py + 10);
+  }
+}
+$('#ch-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; chI = +b.dataset.i; chainText(); chainDraw(); });
+function lapText() {
+  const lap = (p0, p1) => [p0 * p1 * p1, (1 - p0) * (1 - p1) * (1 - p1)];
+  const b = lap(P1, P2), r = lap((PA + P1) / 2, (PA + P2) / 2), f = v => dec(v.toFixed(4));
+  $('#lap-b').textContent = f(b[0]) + ' < ' + f(b[1]); $('#lap-b-s').textContent = L('угору менше, ніж униз: програє', 'up is less than down: it loses');
+  $('#lap-r').textContent = f(r[0]) + ' > ' + f(r[1]); $('#lap-r-s').textContent = L('угору більше: виграє', 'up is more: it wins');
+  const rows = [['B', AN.B.bTrap, G('B')], ['ABAB', AN.ABAB.bTrap, G('ABAB')], ['AABB', AN.AABB.bTrap, G('AABB')], ['ABB', ABB.bTrap, 100 * ABB.g], [L('навмання', 'at random'), AN.R.bTrap, G('R')]];
+  $('#mix-tbl').innerHTML = rows.map(r => '<tr><td>' + r[0] + '</td><td class="num">' + pct(r[1], 1) + '</td><td class="num' + (r[2] > 0 ? ' up' : '') + '">' + sg(r[2]) + '</td></tr>').join('');
+}
+
+/* ---------- round 5: the mix share, the unfairness and history-dependent games ---------- */
+// capital-dependent: share gamma of A, the rest B
+function capGain(eps, gam) {
+  const pa = .5 - eps, p = [0, 1, 2].map(s => gam * pa + (1 - gam) * (s === 0 ? .1 - eps : .75 - eps));
+  const pi = stationary(cycMat(s => p[s])); return pi.reduce((a, v, s) => a + v * (2 * p[s] - 1), 0);
+}
+// history-dependent (Parrondo, Harmer, Abbott 2000): B's coin depends on the last two results
+function histGain(eps, gam) {
+  const pa = .5 - eps, pb = [.9 - eps, .25 - eps, .25 - eps, .7 - eps];   // index 2·(t−2) + (t−1), 0 = loss, 1 = win
+  const M = [0, 1, 2, 3].map(() => [0, 0, 0, 0]), w = [];
+  for (let i = 0; i < 4; i++) { const p = gam * pa + (1 - gam) * pb[i]; w.push(p); const last = i & 1; M[i][2 * last + 1] += p; M[i][2 * last] += 1 - p; }
+  const pi = stationary(M); return pi.reduce((a, v, i) => a + v * (2 * w[i] - 1), 0);
+}
+const gmG = () => +$('#gm-g').value / 100, gmE = () => +$('#gm-e').value / 1000;
+function bisectEps(f) { let lo = 0, hi = .05; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (f(m) > 0) lo = m; else hi = m; } return lo; }
+const EPS_CAP = bisectEps(e => capGain(e, .5)), EPS_HIST = bisectEps(e => histGain(e, .5));
+function gmText() {
+  const g = gmG(), e = gmE();
+  $('#gm-gv').textContent = Math.round(g * 100) + '%'; $('#gm-ev').textContent = dec(e.toFixed(3));
+  const c = 100 * capGain(e, g), h = 100 * histGain(e, g);
+  $('#gm-c').textContent = sg(c); $('#gm-h').textContent = sg(h);
+  let best = 0, bg = 0; for (let k = 0; k <= 1000; k++) { const v = capGain(e, k / 1000); if (v > best) { best = v; bg = k / 1000; } }
+  $('#gm-txt').textContent = (best > 0
+    ? L('При цьому ε найкраща частка A для гри з капіталом — ' + Math.round(bg * 100) + '%: ' + sg(100 * best) + ' на 100 партій. ', 'At this ε the best share of A for the capital game is ' + Math.round(bg * 100) + '%: ' + sg(100 * best) + ' per 100 rounds. ')
+    : L('При такому ε жодна суміш гри з капіталом не виграє. ', 'At this ε no mix of the capital game wins. ')) +
+    L('Суміш 50 на 50 виграє, поки ε < ' + dec(EPS_CAP.toFixed(4)) + ' (капітал) і ε < ' + dec(EPS_HIST.toFixed(4)) + ' = 1/168 (історія).', 'A 50-50 mix wins while ε < ' + EPS_CAP.toFixed(4) + ' (capital) and ε < ' + EPS_HIST.toFixed(4) + ' = 1/168 (history).');
+}
+function gmDraw() {
+  const s = setupCanvas($('#gm-cv')); if (!s) return;
+  const { ctx, W, H: Hh } = s, e = gmE(), l = 44, r = 10, t = 10, b = 24;
+  const cs = [], hs = []; for (let k = 0; k <= 100; k++) { cs.push(100 * capGain(e, k / 100)); hs.push(100 * histGain(e, k / 100)); }
+  const lo = Math.min(-1, ...cs, ...hs), hi = Math.max(1, ...cs, ...hs);
+  const x = g => l + g * (W - l - r), y = v => t + (hi - v) / (hi - lo) * (Hh - t - b);
+  ctx.strokeStyle = tok('--muted'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(l, Math.round(y(0)) + .5); ctx.lineTo(W - r, Math.round(y(0)) + .5); ctx.stroke();
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ctx.fillText('0', l - 6, y(0)); ctx.fillText(sg(hi, 1), l - 6, y(hi) + 4); ctx.fillText(sg(lo, 1), l - 6, y(lo) - 4);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [0, .25, .5, .75, 1].forEach(g => ctx.fillText(Math.round(g * 100) + '% A', Math.min(W - r - 18, Math.max(l + 14, x(g))), Hh - b + 6));
+  const curve = (arr, c, dash) => { ctx.strokeStyle = c; ctx.lineWidth = 2.4; ctx.setLineDash(dash); ctx.beginPath(); arr.forEach((v, k) => k ? ctx.lineTo(x(k / 100), y(v)) : ctx.moveTo(x(0), y(v))); ctx.stroke(); ctx.setLineDash([]); };
+  curve(hs, tok('--ink'), [6, 4]); curve(cs, tok('--hit'), []);
+  const g = gmG(); ctx.strokeStyle = tok('--muted'); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x(g), t); ctx.lineTo(x(g), Hh - b); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(L('виграш на 100 партій', 'gain per 100 rounds'), l + 6, t);
+}
+['#gm-g', '#gm-e'].forEach(id => $(id).addEventListener('input', () => { gmText(); gmDraw(); }));
+
+// logic: B with its memory, or a memoryless coin with the same overall chance
+const BFLAT = AN.B.trap * P1 + (1 - AN.B.trap) * P2;
+let lgI = 0, lgSim = [null, null];
+function lgExact(i) {
+  return i === 0 ? [G('A'), G('B'), G('R')] : [G('A'), 100 * (2 * BFLAT - 1), 100 * (PA + BFLAT - 1)];
+}
+function lgRun(i) {
+  const N = 4e5, pB = (c) => i === 0 ? (mod3(c) === 0 ? P1 : P2) : BFLAT, res = [];
+  [g => 'A', g => 'B', g => Math.random() < .5 ? 'A' : 'B'].forEach(f => { let c = 0; for (let t = 0; t < N; t++) { const gm = f(); c += Math.random() < (gm === 'A' ? PA : pB(c)) ? 1 : -1; } res.push(100 * c / N); });
+  lgSim[i] = res;
+}
+function lgText() {
+  $('#lg-pick').innerHTML = [L('B дивиться на капітал', 'B looks at the capital'), L('B без пам\'яті, ', 'B without memory, ') + pct(BFLAT, 2)].map((t, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === lgI) + '">' + t + '</button>').join('');
+  const ex = lgExact(lgI), sim = lgSim[lgI], names = [L('Лише A', 'Only A'), L('Лише B', 'Only B'), L('Навмання A або B', 'A or B at random')];
+  $('#lg-tbl').innerHTML = names.map((nm, k) => '<tr><td>' + nm + '</td><td class="num' + (ex[k] > 0 ? ' up' : '') + '">' + sg(ex[k]) + '</td><td class="num">' + (sim ? sg(sim[k]) : '–') + '</td></tr>').join('');
+  $('#lg-txt').textContent = L('Симуляція: по 400 000 партій на рядок, похибка близько ±0,16 на 100 партій.', 'Simulation: 400,000 rounds per row, error about ±0.16 per 100 rounds.');
+}
+$('#lg-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; lgI = +b.dataset.i; if (!lgSim[lgI]) lgRun(lgI); lgText(); });
+
+// the flashing ratchet: wells at integers, the near crest a = 0.2 to the left, the far one 0.8 to the right
+const RA = .2, RN = 400, RC = 40;
+const SIZES = [{ uk: 'Дрібні кульки', en: 'Small beads', sd: .4 }, { uk: 'Великі кульки', en: 'Large beads', sd: .2 }];
+const RMODES = [{ k: 'flash', uk: 'Вмикати й вимикати', en: 'Switch on and off' }, { k: 'on', uk: 'Завжди ввімкнено', en: 'Always on' }, { k: 'off', uk: 'Завжди вимкнено', en: 'Always off' }];
+let rtM = 0, rtS = 0, RT = null, rtTimer = null;
+const erf = z => { const t = 1 / (1 + .3275911 * Math.abs(z)), y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - .284496736) * t + .254829592) * t * Math.exp(-z * z); return z >= 0 ? y : -y; };
+const Phi = z => .5 * (1 + erf(z / Math.SQRT2));
+// exact average shift in periods per on-off cycle: the particle lands in well j if it diffused into (j − a, j + 1 − a)
+function ratchetExact(sd) { let m = 0; for (let j = -6; j <= 6; j++) m += j * (Phi((j + 1 - RA) / sd) - Phi((j - RA) / sd)); return m; }
+const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+function rtNew() { RT = { x: new Float64Array(RN), jit: Array.from({ length: RN }, () => Math.random()), c: 0, mean: [0] }; }
+function rtStep() {
+  const sd = SIZES[rtS].sd, mode = RMODES[rtM].k;
+  for (let i = 0; i < RN; i++) {
+    if (mode === 'on') continue;
+    const xx = RT.x[i] + sd * gauss();
+    RT.x[i] = mode === 'off' ? xx : Math.floor(xx + RA);   // switched on again: slide to the bottom of the well you are in
+  }
+  RT.c++; let s = 0; for (let i = 0; i < RN; i++) s += RT.x[i]; RT.mean.push(s / RN);
+}
+function rtExactNow() { const m = RMODES[rtM].k; return m === 'flash' ? ratchetExact(SIZES[rtS].sd) : 0; }
+function rtText() {
+  $('#rt-pick').innerHTML = RMODES.map((m, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === rtM) + '">' + m[lang] + '</button>').join('');
+  $('#rt-size').innerHTML = SIZES.map((m, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === rtS) + '">' + m[lang] + '</button>').join('');
+  const ex = rtExactNow();
+  $('#rt-e').textContent = sg(ex, 3);
+  $('#rt-s').textContent = RT && RT.c ? sg(RT.mean[RT.c] / RT.c, 3) : '–';
+  const mode = RMODES[rtM].k;
+  $('#rt-txt').textContent = mode === 'flash'
+    ? L('Цикл: вимкнути, дати частинкам розпливтися, увімкнути знову. Найближча вершина пилки ліворуч, тож частинки їдуть ліворуч. Дрібні кульки: ' + sg(ratchetExact(SIZES[0].sd), 3) + ', великі: ' + sg(ratchetExact(SIZES[1].sd), 3) + ' періоду за цикл.', 'A cycle: switch off, let the particles spread, switch on again. The nearest crest of the saw is on the left, so the particles travel left. Small beads: ' + sg(ratchetExact(SIZES[0].sd), 3) + ', large: ' + sg(ratchetExact(SIZES[1].sd), 3) + ' of a period per cycle.')
+    : mode === 'on' ? L('Пилка ввімкнена весь час: кожна частинка лежить на дні своєї западини й нікуди не їде.', 'The saw is on all the time: each particle lies at the bottom of its well and goes nowhere.')
+      : L('Пилка вимкнена: частинки розпливаються в обидва боки, середнє зміщення нуль.', 'The saw is off: the particles spread out both ways, the average shift is zero.');
+}
+function rtDraw() {
+  const s = setupCanvas($('#rt-cv')); if (!s) return;
+  const { ctx, W, H: Hh } = s, per = 8, mid = RT && RT.c ? RT.mean[RT.c] : 0, x0 = mid - per / 2;
+  const x = v => (v - x0) / per * W, base = Hh - 22, top = 28, mode = RMODES[rtM].k;
+  // the sawtooth: crest at j − a, well at j
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2; ctx.globalAlpha = mode === 'off' ? .2 : 1; ctx.beginPath();
+  for (let j = Math.floor(x0) - 1; j <= Math.ceil(x0 + per) + 1; j++) { ctx.lineTo(x(j - RA), top); ctx.lineTo(x(j), base); ctx.lineTo(x(j + 1 - RA), top); }
+  ctx.stroke(); ctx.globalAlpha = 1;
+  if (RT) { ctx.fillStyle = tok('--day'); ctx.globalAlpha = .55; for (let i = 0; i < RN; i++) { const px = x(RT.x[i]); if (px < -4 || px > W + 4) continue; ctx.beginPath(); ctx.arc(px, base - 6 - RT.jit[i] * 34, SIZES[rtS].sd > .3 ? 2.2 : 3.4, 0, 7); ctx.fill(); } ctx.globalAlpha = 1; }
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(L('цикл ', 'cycle ') + (RT ? RT.c : 0), 6, 4);
+  // chart: average position, exact dashed
+  const c = setupCanvas($('#rt-ch')); if (!c) return;
+  const ex = rtExactNow(), lo = Math.min(-1, ex * RC * 1.1, ...(RT ? RT.mean : [0])), hi = Math.max(1, ...(RT ? RT.mean : [0]));
+  const f = frame(c, RC, Math.floor(lo), Math.ceil(hi), { l: 34, unit: L('циклів', 'cycles') });
+  const exArr = Array.from({ length: RC + 1 }, (_, k) => ex * k);
+  line(c.ctx, exArr, f.x, f.y, RC, { c: tok('--muted'), w: 1.5, dash: [5, 4] });
+  if (RT && RT.c) line(c.ctx, RT.mean, f.x, f.y, RT.c, { c: tok('--day'), w: 2.2 });
+}
+function rtRun() {
+  clearInterval(rtTimer); rtNew();
+  if (reduce()) { for (let k = 0; k < RC; k++) rtStep(); rtText(); rtDraw(); return; }
+  rtText(); rtDraw();
+  rtTimer = setInterval(() => { rtStep(); rtText(); rtDraw(); if (RT.c >= RC) clearInterval(rtTimer); }, 120);
+}
+$('#rt-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rtM = +b.dataset.i; rtRun(); });
+$('#rt-size').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; rtS = +b.dataset.i; rtRun(); });
+$('#rt-go').addEventListener('click', rtRun);
+
+/* ---------- static numbers that depend on the locale ---------- */
+function numsText() {
+  $('#odd-r').textContent = sg(G('R')); $('#odd-a').textContent = sg(G('A')); $('#odd-b').textContent = sg(G('B'));
+}
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Парадокс Паррондо', "Parrondo's Paradox");
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  numsText(); optsText(); guessText(); heroDraw(); r2Refresh(); simText(); simDraw(); easyText(); chainText(); chainDraw(); lapText(); gmText(); gmDraw(); lgText(); rtText(); rtDraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+const redraw = () => { heroDraw(); r2Draw(); simDraw(); chainDraw(); gmDraw(); rtDraw(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state: everything filled ---------- */
+KEYS.forEach(k => { AHEAD[k] = aheadExact(pfOf(STR[k]), NG); });
+rtNew();
+applyLang();
+heroStart();
+runSim();
+setTimeout(() => { lgRun(0); lgText(); rtRun(); }, 80);
+})();
+</script>
+
+<script type="application/json" id="mp-terms">{"mean": {"name": "Середнє", "short": "Сума всіх значень, поділена на їхню кількість: скільки дісталося б кожному, якби поділити порівну.", "hook": "Майже кожна людина має більше ніг, ніж у середньому: середнє трохи менше за дві.", "url": "https://mathparadoxes.com/glossary/median-vs-mean/", "link": "Спробувати на симуляції"}, "independence": {"name": "Незалежність", "short": "Події незалежні, якщо знання про одну не змінює шансів іншої.", "hook": "Після п'яти орлів поспіль решка не стає ймовірнішою: монета нічого не пам'ятає.", "url": "https://mathparadoxes.com/glossary/independence/", "link": "Спробувати на симуляції"}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'uk' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Розділи"><a href="https://mathparadoxes.com/#all" aria-current="page">Задачі</a><a href="https://mathparadoxes.com/courses/">Курси</a><a href="https://mathparadoxes.com/glossary/">Словник</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1105 @@
+<title>Морозиво на пляжі: де стануть два продавці</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same running order as braess-paradox. The signature object is a strip of beach with holidaymakers and two kiosks.
+   Sources: Hotelling, "Stability in Competition", Economic Journal 39 (1929) 41–57 (parties remark p. 54);
+   Black, "On the Rationale of Group Decision-making", J. Political Economy 56 (1948) 23–34;
+   Downs, An Economic Theory of Democracy (1957);
+   d'Aspremont, Gabszewicz, Thisse, "On Hotelling's Stability in Competition", Econometrica 47 (1979) 1145–1150;
+   Eaton, Lipsey, "The Principle of Minimum Differentiation Reconsidered", Review of Economic Studies 42 (1975) 27–49.
+   All numbers checked exactly (fractions) and by simulation. */
+:root {
+  --tint: #F6EAD3;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --sand: #F3E4C3;
+  --sea: #BFDDEB;
+  --you: #2F6FD6;
+  --bot: #D9762B;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal canvas { height: 300px; border-radius: 14px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 2.6em; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn.sm { padding: 7px 11px; font-size: .86rem; }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--day); }
+.ctl select { font: inherit; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.ctl output { font-family: var(--f-mono); font-weight: 600; color: var(--ink); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--hit); }
+.msg .bad, .verdict .bad { color: var(--loss); font-weight: 600; }
+.msg .good, .verdict .good { color: var(--win); font-weight: 600; }
+
+/* ---------- the beach strip ---------- */
+.beach { display: block; width: 100%; height: auto; max-width: 620px; margin: 0 auto; }
+.beach text { font-family: var(--f-mono); font-size: 15px; fill: var(--ink); }
+.beach text.m { fill: var(--muted); font-size: 13px; }
+.beach text.b { font-weight: 700; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.opts { display: grid; gap: 10px; }
+.opts button { text-align: left; border: 1.5px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; cursor: pointer; font-weight: 600; display: grid; gap: 2px; }
+.opts button small { font-weight: 400; color: var(--muted); font-size: .84rem; }
+.opts button:hover { border-color: var(--ink); }
+.opts button[aria-pressed="true"] { border-color: var(--day); box-shadow: inset 0 0 0 1px var(--day); }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 150px 1fr 70px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+.crow .mono { text-align: right; white-space: nowrap; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.score { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.score > div { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.score .k { font-size: .76rem; color: var(--muted); display: block; }
+.score b { font-family: var(--f-display); font-size: 1.3rem; }
+.score .y b { color: var(--you); }
+.score .o b { color: var(--bot); }
+.stat { font-family: var(--f-mono); font-size: .84rem; color: var(--muted); }
+.verdict { border-radius: 12px; padding: 12px 14px; background: var(--paper); display: grid; gap: 8px; }
+.verdict b { font-weight: 600; }
+.nudge { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.5rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.6rem; }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .84rem; color: var(--muted); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.layer { font-family: var(--f-display); font-weight: 800; font-size: 1.2rem; margin-top: 18px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.tbl-wrap { overflow-x: auto; }
+table.t { border-collapse: collapse; width: 100%; font-size: .9rem; }
+.t th, .t td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.t th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+.t td.num, .t th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+.t th.num { white-space: normal; }
+.t tr.hl td { font-weight: 600; }
+.t td.hit { color: var(--hit); font-weight: 700; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 96px 1fr 64px; }
+  .vs { grid-template-columns: 1fr; }
+  .t th, .t td { padding: 8px 5px; }
+  .hero-cal canvas { height: 240px; }
+  .score b { font-size: 1.1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+<div class="topbar">
+  <span class="brand">Hotelling · 1 km of beach · 2 kiosks</span>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <h1 class="uk"><span class="kw">Задача Готеллінга</span> Два продавці морозива на одному пляжі. <span class="q sp-before">Де вони стануть?</span><span class="q sp-after">Посередині, спиною до спини.</span></h1>
+    <h1 class="en"><span class="kw">Hotelling's beach</span> Two ice cream sellers share one beach. <span class="q sp-before">Where will they stand?</span><span class="q sp-after">In the middle, back to back.</span></h1>
+    <p class="lead uk sp-before">Пляж завдовжки 1 км, відпочивальники лежать рівномірно від краю до краю, і кожен по морозиво йде до найближчого кіоску. Ціни однакові. Два продавці щоранку можуть пересунути свій кіоск куди завгодно. Чесно було б поділити пляж: один на 250 м, другий на 750 м, і ніхто не йде далі ніж 250 м. Де продавці опиняться насправді?</p>
+    <p class="lead uk sp-after">Кожен крок до середини забирає в суперника покупців, тож продавці підсуваються, доки не стануть поруч рівно посередині. Покупців у кожного й далі половина, але тепер найдальший відпочивальник іде 500 м замість 250, а середній шлях подвоюється: 250 м замість 125.</p>
+    <p class="lead en sp-before">A beach is 1 km long, holidaymakers lie evenly from end to end, and everyone walks to the nearest kiosk for ice cream. Prices are the same. Each morning the two sellers may move their kiosk anywhere. The fair split would be one at 250 m and the other at 750 m, so nobody walks more than 250 m. Where will the sellers really end up?</p>
+    <p class="lead en sp-after">Every step towards the middle takes customers from the rival, so the sellers creep closer until they stand side by side exactly in the middle. Each still gets half the customers, but now the farthest holidaymaker walks 500 m instead of 250, and the average walk doubles: 250 m instead of 125.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="uk">250 м</b><b class="en">250 m</b><span><span class="uk">середній шлях, коли обидва посередині</span><span class="en">average walk with both in the middle</span></span></div>
+      <div class="odd"><b class="uk">125 м</b><b class="en">125 m</b><span><span class="uk">якби стояли на 250 і 750 м</span><span class="en">if they stood at 250 and 750 m</span></span></div>
+      <div class="odd"><b>50 / 50</b><span><span class="uk">покупців в обох випадках</span><span class="en">customers either way</span></span></div>
+    </div>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span><span class="en">The puzzle</span></span>
+    <h2><span class="uk">Кілометр пляжу, тисяча відпочивальників, два кіоски</span><span class="en">A kilometre of beach, a thousand holidaymakers, two kiosks</span></h2>
+    <p class="lead uk">1929 року американський статистик і економіст Гарольд Готеллінг описав, як два продавці ділять покупців, розкиданих уздовж однієї вулиці. Пізніше його модель стали розповідати як історію про морозиво на пляжі.</p>
+    <p class="lead en">In 1929 the American statistician and economist Harold Hotelling described how two sellers share customers spread along one street. Later his model came to be told as a story about ice cream on a beach.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Пляж</span><span class="en">The beach</span></h3>
+        <p class="uk">Пляж прямий і має довжину 1000 м. На ньому 1000 відпочивальників, рівномірно від краю до краю: приблизно одна людина на кожен метр.</p>
+        <p class="en">The beach is straight and 1,000 m long. There are 1,000 holidaymakers on it, spread evenly from end to end: about one person per metre.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Покупці</span><span class="en">The customers</span></h3>
+        <p class="uk">Кожен відпочивальник хоче одне морозиво на день і йде по нього до найближчого кіоску. Морозиво й ціна в обох кіосках однакові, тож важить лише відстань. Якщо кіоски стоять в одному місці, покупці діляться навпіл.</p>
+        <p class="en">Each holidaymaker wants one ice cream a day and walks to the nearest kiosk for it. The ice cream and the price are the same at both kiosks, so only distance matters. If the kiosks stand in the same spot, the customers split half and half.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Продавці</span><span class="en">The sellers</span></h3>
+        <p class="uk">Двоє продавців хочуть продати якомога більше. Кіоск на колесах, тож щоранку кожен може його пересунути. Домовлятися між собою вони не можуть.</p>
+        <p class="en">Two sellers each want to sell as much as possible. The kiosk is on wheels, so each morning either of them can move it. They can't make deals with each other.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Перший ранок</span><span class="en">The first morning</span></h3>
+        <p class="uk">Адміністрація пляжу поставила кіоски на 250 м і на 750 м. Кожному дістається половина пляжу, 500 покупців, і ніхто не йде по морозиво далі ніж 250 м.</p>
+        <p class="en">The beach office placed the kiosks at 250 m and at 750 m. Each gets half the beach, 500 customers, and nobody walks more than 250 m for ice cream.</p></div></li>
+      <li><span class="n">5</span><div><h3><span class="uk">Питання</span><span class="en">The question</span></h3>
+        <p class="uk">Продавці пересувають кіоски, кожен на свою користь, доки ніхто вже не захоче нічого міняти. Де тоді стоятимуть кіоски?</p>
+        <p class="en">The sellers move their kiosks, each for their own good, until neither wants to change anything. Where will the kiosks stand then?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span><span class="en">Intuition says</span></span>
+        <p class="q"><span class="uk">«Їм вигідно поділити пляж навпіл і стояти кожному посередині своєї половини»</span><span class="en">"It pays them to split the beach in half and each stand in the middle of their half"</span></p>
+        <p class="uk">Такий поділ найкращий для відпочивальників, але нестійкий: хто перший зробить крок до центру, той забере частину чужих покупців. Суперник відповість тим самим, і обидва опиняться посередині.</p>
+        <p class="en">That split is best for the holidaymakers, but it doesn't hold: whoever steps towards the centre first takes some of the rival's customers. The rival answers in kind, and both end up in the middle.</p>
+      </div>
+      <div class="card">
+        <h3><span class="uk">Припущення</span><span class="en">Assumptions</span></h3>
+        <ul class="rules uk">
+          <li>Відпочивальники купують морозиво однаково охоче, хоч як далеко кіоск: важить лише, який ближчий.</li>
+          <li>Ціни однакові й не змінюються.</li>
+          <li>Продавець рахує лише своїх покупців. Відстань, яку проходять люди, його не обходить.</li>
+          <li>Відповідь шукаємо там, де жодному продавцеві вже не вигідно пересуватися самому.</li>
+        </ul>
+        <ul class="rules en">
+          <li>Holidaymakers are equally keen on ice cream however far the kiosk is: all that matters is which one is nearer.</li>
+          <li>Prices are the same and never change.</li>
+          <li>A seller counts only their own customers. How far people walk is not their concern.</li>
+          <li>We look for the answer where neither seller gains any more by moving alone.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="uk">Де зрештою стоятимуть кіоски?</span><span class="en">Where will the kiosks end up?</span></h2>
+    <p class="lead uk">Продавці вже кілька тижнів пересувають кіоски кожен на свою користь, і тепер жоден не хоче нічого міняти. Оберіть, що ви бачите на пляжі.</p>
+    <p class="lead en">For a few weeks the sellers have moved their kiosks, each for their own good, and now neither wants to change anything. Pick what you see on the beach.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <span class="note"><span class="uk">Ваша відповідь</span><span class="en">Your answer</span></span>
+      <div class="opts" id="g-opts"></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться розбір вашої відповіді.</p>
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span><span class="en">Round 2 · Game</span></span>
+    <h2><span class="uk">Десять днів на пляжі: ви проти бота</span><span class="en">Ten days on the beach: you against a bot</span></h2>
+    <p class="lead uk">Ви продаєте морозиво з синього кіоску, бот з помаранчевого. Щоранку ви першим пересуваєте кіоск не далі ніж на 100 м, потім бот пересуває свій туди, де йому дістанеться найбільше покупців. Скільки він може проїхати за ранок, ви не знаєте: від 40 до 100 м. Продайте за 10 днів більше морозива, ніж бот.</p>
+    <p class="lead en">You sell ice cream from the blue kiosk, the bot from the orange one. Each morning you move your kiosk first, no more than 100 m, then the bot moves its own to wherever it gets the most customers. You don't know how far it can go in a morning: somewhere from 40 to 100 m. Sell more ice cream than the bot in 10 days.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div id="gm-beach"></div>
+      <label class="ctl" for="gm-x"><span><span class="uk">Ваш кіоск завтра</span><span class="en">Your kiosk tomorrow</span>: <output id="gm-xv">250</output></span><input type="range" id="gm-x" min="150" max="350" step="10" value="250" style="width:100%"></label>
+      <div class="nudge">
+        <button type="button" class="btn ghost sm" data-d="-100">−100</button>
+        <button type="button" class="btn ghost sm" data-d="-10">−10</button>
+        <button type="button" class="btn ghost sm" data-d="0"><span class="uk">на місці</span><span class="en">stay</span></button>
+        <button type="button" class="btn ghost sm" data-d="10">+10</button>
+        <button type="button" class="btn ghost sm" data-d="100">+100</button>
+      </div>
+      <div class="actions">
+        <button class="btn pri" id="gm-go" type="button"><span class="uk">Відкрити кіоск на день</span><span class="en">Open for the day</span></button>
+        <button class="btn ghost" id="gm-new" type="button"><span class="uk">Нова гра</span><span class="en">New game</span></button>
+      </div>
+      <canvas id="gm-cv" style="height:190px"></canvas>
+      <div class="legend">
+        <span style="--c:var(--you)"><b class="uk">ваш кіоск день за днем</b><b class="en">your kiosk day by day</b></span>
+        <span style="--c:var(--bot)"><b class="uk">кіоск бота</b><b class="en">the bot's kiosk</b></span>
+      </div>
+    </div>
+    <div class="card" style="display:grid;gap:14px;align-content:start">
+      <div class="score">
+        <div><span class="k"><span class="uk">День</span><span class="en">Day</span></span><b class="mono" id="gm-day">1</b></div>
+        <div class="y"><span class="k"><span class="uk">Ви продали</span><span class="en">You sold</span></span><b class="mono" id="gm-you">0</b></div>
+        <div class="o"><span class="k"><span class="uk">Бот продав</span><span class="en">Bot sold</span></span><b class="mono" id="gm-bot">0</b></div>
+      </div>
+      <p class="stat" id="gm-walk"></p>
+      <div class="verdict" id="gm-msg" aria-live="polite"></div>
+      <p class="note"><span class="uk">Покупці рахуються в морозивах: 1000 відпочивальників купують по одному. Кордон між вашими покупцями й покупцями бота проходить рівно посередині між кіосками.</span><span class="en">Customers are counted in ice creams: 1,000 holidaymakers buy one each. The border between your customers and the bot's lies exactly halfway between the kiosks.</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="uk">2000 пляжів: куди сходяться кіоски</span><span class="en">2,000 beaches: where the kiosks meet</span></h2>
+    <p class="lead uk">На кожному з 2000 пляжів два продавці починають у випадкових місцях. По черзі кожен пересуває кіоск у межах свого кроку туди, де в нього найбільше покупців. Гістограма показує, де стоять кіоски після кожного ходу, а графік показує, скільки в середньому йде відпочивальник.</p>
+    <p class="lead en">On each of 2,000 beaches two sellers start in random spots. Taking turns, each moves the kiosk within their step to wherever they get the most customers. The histogram shows where the kiosks stand after each move, and the chart shows how far a holidaymaker walks on average.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="sim-r"><span><span class="uk">Крок за один хід</span><span class="en">Step per move</span>: <output id="sim-rv">50</output></span><input type="range" id="sim-r" min="20" max="300" step="10" value="50"></label>
+      <label class="ctl" for="sim-st"><span class="uk">Початок</span><span class="en">Start</span>
+        <select id="sim-st"><option value="rand" class="uk">випадкові місця</option><option value="rand" class="en">random spots</option><option value="q" class="uk">250 м і 750 м</option><option value="q" class="en">250 m and 750 m</option></select></label>
+      <button class="btn pri" id="sim-run"><span class="uk">Запустити ще раз</span><span class="en">Run again</span></button>
+    </div>
+    <div class="sim-grid">
+      <div style="display:grid;gap:14px">
+        <canvas id="sim-h" style="height:170px"></canvas>
+        <canvas id="sim-cv" style="height:210px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--ink)"><b class="uk">середній шлях покупця</b><b class="en">average walk of a customer</b></span>
+          <span style="--c:var(--win)"><b class="uk">125 м: кіоски на 250 і 750 м</b><b class="en">125 m: kiosks at 250 and 750 m</b></span>
+          <span style="--c:var(--hit)"><b class="uk">250 м: обидва посередині</b><b class="en">250 m: both in the middle</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k"><span class="uk">Середній шлях на старті</span><span class="en">Average walk at the start</span></div><div class="v mono" id="t-start">–</div><div class="s" id="t-starts"></div></div>
+        <div class="tile" style="--c:var(--hit)"><div class="k"><span class="uk">Середній шлях наприкінці</span><span class="en">Average walk at the end</span></div><div class="v mono" id="t-end">–</div><div class="s" id="t-ends"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Пляжів, де обидва кіоски на 500 м</span><span class="en">Beaches with both kiosks at 500 m</span></div><div class="v mono" id="t-mid">–</div><div class="s" id="t-mids"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Перевірка: 100 000 відпочивальників</span><span class="en">Check: 100,000 holidaymakers</span></div><div class="v mono" id="t-mc">–</div><div class="s" id="t-mcs"></div></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:12px"><span class="uk">Місця кіосків беруться з кроком 10 м. Частку покупців і середній шлях для кожного пляжу рахуємо точно: покупці ліворуч від середини між кіосками йдуть до лівого, праворуч до правого. В останній плитці ми окремо кидаємо 100 000 випадкових відпочивальників на пляж, де кіоски стоять так, як наприкінці симуляції, і міряємо їхній шлях.</span><span class="en">Kiosk spots are taken in steps of 10 m. The share of customers and the average walk on each beach are computed exactly: customers left of the midpoint between the kiosks go to the left one, those to the right go to the right one. In the last tile we separately drop 100,000 random holidaymakers on a beach with the kiosks where they ended the simulation and measure their walk.</span></p>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Пояснення</span><span class="en">Round 4 · Explanations</span></span>
+    <h2><span class="uk">Чому продавці сходяться і хто за це платить</span><span class="en">Why the sellers meet and who pays for it</span></h2>
+    <p class="lead uk">Ніхто з продавців не помиляється. Кожен рахує лише своїх покупців, а кроки, які через нього проходять відпочивальники, не рахує ніхто.</p>
+    <p class="lead en">Neither seller makes a mistake. Each counts only their own customers, and nobody counts the steps the holidaymakers have to walk because of it.</p>
+  </div>
+  <div class="mp-layer" data-layer="easy">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Крок до середини</span><span class="en">A step to the middle</span></span>
+      <h3><span class="uk">Хто підходить до суперника, той забирає його покупців</span><span class="en">Whoever moves towards the rival takes the rival's customers</span></h3>
+      <label class="ctl" for="ex-a"><span><span class="uk">Синій кіоск</span><span class="en">Blue kiosk</span>: <output id="ex-av">250</output></span><input type="range" id="ex-a" min="0" max="740" step="10" value="250" style="width:100%"></label>
+      <div id="ex-beach"></div>
+      <p id="ex-txt"></p>
+      <p class="uk">Це пояснення неповне, але суть у ньому: усі покупці ліворуч від синього кіоску й так його, бо він для них найближчий. Тож, підходячи до середини, синій їх не втрачає, а кордон між покупцями зсувається вправо на половину його кроку. Помаранчевий робить те саме з іншого боку, і так доти, доки підходити вже нікуди.</p>
+      <p class="en">This explanation is incomplete, but it has the core: everyone to the left of the blue kiosk is its customer anyway, because it's their nearest one. So by moving towards the middle blue loses none of them, and the border between the customers shifts right by half its step. Orange does the same from the other side, and so on until there is nowhere left to move.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Хто платить</span><span class="en">Who pays</span></span>
+      <h3><span class="uk">Продавці при своїх, відпочивальники йдуть удвічі далі</span><span class="en">The sellers break even, the holidaymakers walk twice as far</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">Кіоски на 250 і 750 м</span><span class="en">Kiosks at 250 and 750 m</span></span><b class="mono"><span class="uk">125 м</span><span class="en">125 m</span></b><span><span class="uk">у середньому, найдальше 250 м</span><span class="en">on average, at most 250 m</span></span></div>
+        <div class="bb"><span><span class="uk">Обидва на 500 м</span><span class="en">Both at 500 m</span></span><b class="mono"><span class="uk">250 м</span><span class="en">250 m</span></b><span><span class="uk">у середньому, найдальше 500 м</span><span class="en">on average, at most 500 m</span></span></div>
+      </div>
+      <p class="uk">Коли кіоски на 250 і 750 м, кожен відпочивальник лежить не далі ніж за 250 м від кіоску, а відстані рівномірно розкидані від 0 до 250 м. Тому в середньому виходить половина, 125 м. Коли обидва кіоски посередині, відстані розкидані від 0 до 500 м, і в середньому виходить 250 м. Продавці продають стільки ж, по 500 морозив, а люди ходять удвічі більше.</p>
+      <p class="en">With the kiosks at 250 and 750 m, every holidaymaker lies within 250 m of a kiosk, and the distances are spread evenly from 0 to 250 m. So the average is half of that, 125 m. With both kiosks in the middle, distances spread from 0 to 500 m, and the average is 250 m. The sellers sell just as much, 500 ice creams each, and people walk twice as far.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Рівновага Неша</span><span class="en">Nash equilibrium</span></span>
+      <h3><span class="uk">Середина: єдине місце, звідки нікому не вигідно йти</span><span class="en">The middle: the only place nobody gains by leaving</span></h3>
+      <div class="tbl-wrap"><table class="t">
+        <thead><tr><th><span class="uk">Кіоски</span><span class="en">Kiosks</span></th><th class="num"><span class="uk">Покупці</span><span class="en">Customers</span></th><th class="num"><span class="uk">Середній шлях</span><span class="en">Average walk</span></th><th class="num"><span class="uk">Стійко?</span><span class="en">Stable?</span></th></tr></thead>
+        <tbody>
+          <tr><td><span class="uk">250 і 750 м</span><span class="en">250 and 750 m</span></td><td class="num">500 / 500</td><td class="num"><span class="uk">125 м</span><span class="en">125 m</span></td><td class="num"><span class="uk">ні</span><span class="en">no</span></td></tr>
+          <tr><td><span class="uk">350 і 750 м</span><span class="en">350 and 750 m</span></td><td class="num">550 / 450</td><td class="num"><span class="uk">132,5 м</span><span class="en">132.5 m</span></td><td class="num"><span class="uk">ні</span><span class="en">no</span></td></tr>
+          <tr class="hl"><td><span class="uk">500 і 500 м</span><span class="en">500 and 500 m</span></td><td class="num">500 / 500</td><td class="num hit"><span class="uk">250 м</span><span class="en">250 m</span></td><td class="num"><span class="uk">так</span><span class="en">yes</span></td></tr>
+        </tbody>
+      </table></div>
+      <p class="uk">1950 року Джон Неш назвав рівновагою такий стан гри, з якого жодному гравцеві не вигідно йти самому. Тут вона одна. Якщо кіоски стоять у різних місцях, кожен виграє, підійшовши ближче до суперника. Якщо в одному місці, але не посередині, то кожен виграє, переступивши на бік, де більше пляжу: там понад половину покупців. Лишається тільки 500 і 500 м: звідти будь-який крок дає менше половини.</p>
+      <p class="en">In 1950 John Nash called an equilibrium a state of a game that no player gains by leaving alone. Here there is exactly one. If the kiosks stand in different spots, each gains by moving closer to the rival. If they share a spot that isn't the middle, either one gains by stepping to the side with more beach: there lies more than half of the customers. Only 500 and 500 m is left: from there any step gives less than half.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Рівновага проти оптимуму</span><span class="en">Equilibrium versus optimum</span></span>
+      <h3><span class="uk">Той самий механізм, що в парадоксі Браеса</span><span class="en">The same mechanism as in Braess's paradox</span></h3>
+      <p class="uk">Якби кіоски ставив той, кого обходить зручність відпочивальників, він обрав би 250 і 750 м: так найменший середній шлях, 125 м. Продавцям такий поділ теж нічим не гірший, але він нестійкий, бо кожен окремо виграє, порушивши його. Рівновага дає 250 м, удвічі гірше за оптимум.</p>
+      <p class="en">If the kiosks were placed by someone who cares about the holidaymakers' comfort, they would choose 250 and 750 m: that gives the shortest average walk, 125 m. The sellers lose nothing under that split either, but it doesn't hold, because each one alone gains by breaking it. The equilibrium gives 250 m, twice as bad as the optimum.</p>
+      <p class="uk">Те саме відбувається в <a href="../braess-paradox/">парадоксі Браеса</a>: кожен водій обирає найшвидшу дорогу для себе й не рахує час, який забирає в інших, і всі їдуть довше. Там платять водії, тут відпочивальники, які навіть не грають у гру.</p>
+      <p class="en">The same thing happens in <a href="../../braess-paradox/en/">Braess's paradox</a>: each driver picks the fastest road for themselves and doesn't count the time they take from others, and everyone drives longer. There the drivers pay; here it's the holidaymakers, who don't even play the game.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span><span class="en">For formula lovers</span></span>
+      <h3><span class="uk">Частки покупців і середній шлях</span><span class="en">Customer shares and the average walk</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Пляж має довжину 1 (кілометр), кіоски стоять у точках a &lt; b. Кордон між покупцями лежить посередині, у точці (a + b)/2.</span><span class="en">The beach has length 1 (kilometre), the kiosks stand at a &lt; b. The border between customers lies halfway, at (a + b)/2.</span></p>
+          <math display="block"><msub><mi>S</mi><mi>a</mi></msub><mo>=</mo><mfrac><mrow><mi>a</mi><mo>+</mo><mi>b</mi></mrow><mn>2</mn></mfrac><mo>,</mo><mspace width="1em"></mspace><msub><mi>S</mi><mi>b</mi></msub><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><mi>a</mi><mo>+</mo><mi>b</mi></mrow><mn>2</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Частка лівого зростає з a, поки a &lt; b, тож кожен хоче підійти до суперника. Коли a = b = x, крок убік дає x або 1 − x, тож стійко лише x = 1/2.</span><span class="en">The left share grows with a while a &lt; b, so each wants to move up to the rival. When a = b = x, a step aside gives x or 1 − x, so only x = 1/2 holds.</span></p>
+          <math display="block"><mfrac><mrow><mo>∂</mo><msub><mi>S</mi><mi>a</mi></msub></mrow><mrow><mo>∂</mo><mi>a</mi></mrow></mfrac><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>&gt;</mo><mn>0</mn><mo>,</mo><mspace width="1em"></mspace><mi>max</mi><mo stretchy="false">(</mo><mi>x</mi><mo>,</mo><mn>1</mn><mo>−</mo><mi>x</mi><mo stretchy="false">)</mo><mo>≤</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>⇔</mo><mi>x</mi><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Середній шлях: на краях люди йдуть до найближчого кіоску, між кіосками кожен відрізок довжини d дає середнє d/4.</span><span class="en">The average walk: at the ends people walk to the nearest kiosk, and between the kiosks a gap of length d gives an average of d/4.</span></p>
+          <math display="block"><mi>W</mi><mo stretchy="false">(</mo><mi>a</mi><mo>,</mo><mi>b</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><msup><mi>a</mi><mn>2</mn></msup><mn>2</mn></mfrac><mo>+</mo><mfrac><msup><mrow><mo stretchy="false">(</mo><mi>b</mi><mo>−</mo><mi>a</mi><mo stretchy="false">)</mo></mrow><mn>2</mn></msup><mn>4</mn></mfrac><mo>+</mo><mfrac><msup><mrow><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>b</mi><mo stretchy="false">)</mo></mrow><mn>2</mn></msup><mn>2</mn></mfrac></math>
+          <math display="block"><mi>W</mi><mo stretchy="false">(</mo><mfrac><mn>1</mn><mn>4</mn></mfrac><mo>,</mo><mfrac><mn>3</mn><mn>4</mn></mfrac><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mn>32</mn></mfrac><mo>+</mo><mfrac><mn>1</mn><mn>16</mn></mfrac><mo>+</mo><mfrac><mn>1</mn><mn>32</mn></mfrac><mo>=</mo><mfrac><mn>1</mn><mn>8</mn></mfrac><mo>,</mo><mspace width="1em"></mspace><mi>W</mi><mo stretchy="false">(</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>,</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mn>8</mn></mfrac><mo>+</mo><mfrac><mn>1</mn><mn>8</mn></mfrac><mo>=</mo><mfrac><mn class="hl">1</mn><mn class="hl">4</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Мінімум W: похідні за a і b дорівнюють нулю лише в точці a = 1/4, b = 3/4. Якщо кіоски стоять навмання, середній шлях у середньому 5/24 км ≈ 208 м.</span><span class="en">The minimum of W: the derivatives in a and b vanish only at a = 1/4, b = 3/4. With the kiosks placed at random, the average walk is 5/24 km ≈ 208 m on average.</span></p>
+          <math display="block"><mfrac><mrow><mo>∂</mo><mi>W</mi></mrow><mrow><mo>∂</mo><mi>a</mi></mrow></mfrac><mo>=</mo><mi>a</mi><mo>−</mo><mfrac><mrow><mi>b</mi><mo>−</mo><mi>a</mi></mrow><mn>2</mn></mfrac><mo>=</mo><mn>0</mn><mo>,</mo><mspace width="1em"></mspace><mfrac><mrow><mo>∂</mo><mi>W</mi></mrow><mrow><mo>∂</mo><mi>b</mi></mrow></mfrac><mo>=</mo><mfrac><mrow><mi>b</mi><mo>−</mo><mi>a</mi></mrow><mn>2</mn></mfrac><mo>−</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>b</mi><mo stretchy="false">)</mo><mo>=</mo><mn>0</mn><mspace width="1em"></mspace><mo>⇒</mo><mspace width="1em"></mspace><mi>a</mi><mo>=</mo><mfrac><mn>1</mn><mn>4</mn></mfrac><mo>,</mo><mi>b</mi><mo>=</mo><mfrac><mn>3</mn><mn>4</mn></mfrac></math>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Готеллінг, 1929</span><span class="en">Hotelling, 1929</span></span>
+      <h3><span class="uk">Вулиця, сидр і церкви</span><span class="en">A street, cider and churches</span></h3>
+      <p class="uk">У статті «Stability in Competition» Готеллінг розглянув двох продавців на відрізку, уздовж якого рівномірно живуть покупці. Він показав, що продавцям вигідно ставати поруч, і переніс це з відстані на самі товари: виробники роблять їх надто схожими. За його ж жартом, методистська й пресвітеріанська церкви надто подібні, а сидр надто однаковий.</p>
+      <p class="en">In "Stability in Competition" Hotelling took two sellers on a line along which buyers live evenly. He showed that the sellers gain by standing close together and carried the idea over from distance to the goods themselves: producers make them too much alike. As he quipped, Methodist and Presbyterian churches are too much alike, and cider is too homogeneous.</p>
+      <p class="uk">Наприкінці статті він помітив те саме в політиці: республіканці й демократи у США намагаються зробити свої програми якомога схожішими, бо кожна різка відмінність коштувала б голосів.</p>
+      <p class="en">Near the end of the paper he saw the same in politics: Republicans and Democrats in the USA try to make their platforms as much alike as they can, because any sharp difference would cost votes.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Коли продавці міняють ціни</span><span class="en">When sellers set prices</span></span>
+      <h3><span class="uk">Ціни можуть розвести продавців</span><span class="en">Prices can push the sellers apart</span></h3>
+      <p class="uk">У нашій задачі ціни однакові. У Готеллінга продавці обирали і місце, і ціну. 1979 року Клод д'Аспремон, Жан Габшевич і Жак-Франсуа Тісс показали, що в такій моделі продавці, які стоять близько, не можуть домовитися до стійких цін: кожен може збити ціну й забрати всіх покупців суперника. А якщо шлях коштує покупцеві пропорційно квадрату відстані, продавці розходяться аж до країв, щоб не воювати цінами.</p>
+      <p class="en">In our puzzle prices are fixed. In Hotelling's paper the sellers chose both a place and a price. In 1979 Claude d'Aspremont, Jean Gabszewicz and Jacques-François Thisse showed that in such a model sellers standing close together find no stable prices: either one can undercut and grab all the rival's buyers. And if the walk costs a buyer in proportion to the square of the distance, the sellers move all the way to the ends so as not to fight over prices.</p>
+      <p class="uk">Тож «ставай поруч із конкурентом» працює, коли ціна однакова і конкурують лише місцем чи схожістю товару.</p>
+      <p class="en">So "stand next to your rival" works when the price is fixed and the competition is only over place or how similar the product is.</p>
+    </div>
+
+  </div>
+  </div>
+
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Масштабуємо</span><span class="en">Round 5 · Scaling up</span></span>
+    <h2><span class="uk">Три кіоски, нерівний пляж і вибори</span><span class="en">Three kiosks, an uneven beach and elections</span></h2>
+    <p class="lead uk">Пляж Готеллінга веде у три світи. У математиці з'ясовується, що вже з трьома продавцями рівноваги може не бути зовсім. У логіці це теорема про медіанного виборця. А на практиці видно, скільки кроків коштує відпочивальникам така конкуренція.</p>
+    <p class="lead en">Hotelling's beach leads into three worlds. In mathematics it turns out that with just three sellers there may be no equilibrium at all. In logic it is the median voter theorem. And in practice you can see how many steps such competition costs the holidaymakers.</p>
+  </div>
+  <div class="esc">
+    <p class="layer"><span class="uk">Математика</span><span class="en">Mathematics</span></p>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Три кіоски, які не можуть зупинитися</span><span class="en">Three kiosks that can't stop</span></h3>
+        <div id="th-beach"></div>
+        <p class="stat" id="th-stat"></p>
+        <div class="actions">
+          <button class="btn pri" id="th-step" type="button"><span class="uk">Наступний хід</span><span class="en">Next move</span></button>
+          <button class="btn ghost" id="th-new" type="button"><span class="uk">Нові місця</span><span class="en">New spots</span></button>
+        </div>
+        <p class="msg" id="th-msg" aria-live="polite"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Троє, четверо, п'ятеро</span><span class="en">Three, four, five</span></span>
+        <h3><span class="uk">З трьома продавцями стійкого місця немає</span><span class="en">With three sellers there is no stable spot</span></h3>
+        <p class="uk">Щоходу продавець із найменшою часткою переставляє кіоск туди, де йому дістанеться найбільше. Якщо двоє крайніх притиснуться до середнього, йому лишається вузька смужка, і він перестрибує назовні. Тоді новий середній опиняється затиснутим, і все повторюється. Ми перебрали всі розстановки трьох кіосків з кроком 25 м: у жодній усім трьом не вигідно стояти на місці. І в жодному з 2000 випадкових запусків кіоски не зупинилися за 300 ходів.</p>
+        <p class="en">Each move, the seller with the smallest share moves to wherever they get the most. When the two outer sellers press in on the middle one, it is left with a thin strip and jumps outside. Then the new middle one is squeezed, and it all repeats. We checked every placement of three kiosks in steps of 25 m: in none of them do all three gain nothing by moving. And in none of 2,000 random runs did the kiosks stop within 300 moves.</p>
+        <p class="uk">Із чотирма продавцями рівновага знову є: дві пари спиною до спини на 250 і 750 м. Середній шлях тоді 125 м, а найкраща розстановка, на 125, 375, 625 і 875 м, дала б 62,5 м. Знову вдвічі гірше. Ці випадки 1975 року докладно розібрали Кертіс Ітон і Річард Ліпсі.</p>
+        <p class="en">With four sellers there is an equilibrium again: two back-to-back pairs at 250 and 750 m. The average walk is then 125 m, while the best layout, at 125, 375, 625 and 875 m, would give 62.5 m. Twice as bad again. Curtis Eaton and Richard Lipsey worked through these cases in detail in 1975.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Нерівний пляж: зустріч на медіані</span><span class="en">An uneven beach: they meet at the median</span></h3>
+        <label class="ctl" for="un-c"><span><span class="uk">Вхід на пляж, де найбільше людей</span><span class="en">Beach entrance, where the crowd is thickest</span>: <output id="un-cv">300</output></span><input type="range" id="un-c" min="0" max="1000" step="10" value="300" style="width:100%"></label>
+        <canvas id="un-cv-c" style="height:170px"></canvas>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Кіоски сходяться на</span><span class="en">The kiosks meet at</span></span><b class="big hit mono" id="un-m" style="font-size:2rem">–</b></div>
+          <div><span class="k"><span class="uk">Середнє місце людей</span><span class="en">People's average spot</span></span><b class="big mono" id="un-a" style="font-size:2rem">–</b></div>
+        </div>
+        <p class="note" id="un-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Медіана, а не середнє</span><span class="en">The median, not the mean</span></span>
+        <h3><span class="uk">Важить, де половина людей ліворуч і половина праворуч</span><span class="en">What matters is where half the people are on each side</span></h3>
+        <p class="uk">Біля входу людей найбільше, і що далі від нього, то менше. Продавці й тут сходяться в одну точку, але не посередині пляжу, а там, де ліворуч і праворуч рівно по половині людей. Таку точку називають медіаною. Хто стоїть не на медіані, тому суперник може стати поруч з більшого боку й забрати понад половину покупців.</p>
+        <p class="en">The crowd is thickest by the entrance and thins out away from it. The sellers again meet at one point, but not in the middle of the beach: where exactly half the people are on each side. That point is called the median. Whoever stands off the median lets the rival stand next to them on the bigger side and take more than half the customers.</p>
+        <p class="uk">Середнє місце людей зазвичай інше: кілька далеких відпочивальників тягнуть середнє до себе, а на медіану не впливає, як далеко вони лежать.</p>
+        <p class="en">People's average spot is usually different: a few far-off holidaymakers pull the mean towards themselves, while the median doesn't care how far away they lie.</p>
+        <p class="uk">А на круглому озері без країв середини немає зовсім. Двоє продавців у будь-яких двох місцях ділять берег навпіл, і жодному не вигідно рушати. Схожі кіоски там можуть стояти далеко один від одного.</p>
+        <p class="en">And on a round lake with no ends there is no middle at all. Two sellers in any two spots split the shore in half, and neither gains by moving. There similar kiosks can stand far apart.</p>
+      </div>
+    </div>
+
+    <p class="layer"><span class="uk">Логіка</span><span class="en">Logic</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Двоє кандидатів і дев'ятеро виборців</span><span class="en">Two candidates and nine voters</span></h3>
+        <div id="mv-beach"></div>
+        <div class="actions">
+          <button class="btn pri" id="mv-go" type="button"><span class="uk">Кампанія: кандидати сходяться</span><span class="en">Campaign: the candidates move</span></button>
+          <button class="btn ghost" id="mv-new" type="button"><span class="uk">Інші виборці</span><span class="en">Other voters</span></button>
+        </div>
+        <p class="msg" id="mv-msg" aria-live="polite"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Теорема про медіанного виборця</span><span class="en">The median voter theorem</span></span>
+        <h3><span class="uk">Виграє той, хто ближчий до середнього з виборців</span><span class="en">The winner is whoever is nearer the middle voter</span></h3>
+        <p class="uk">Замініть пляж шкалою поглядів від лівих до правих, відпочивальників виборцями, а кіоски кандидатами. Кожен голосує за ближчого. Двоє кандидатів, щоб отримати більшість, зсуваються до виборця, який стоїть посередині черги: ліворуч від нього стільки ж виборців, скільки праворуч. 1948 року Дункан Блек довів, що за такої будови переможе позиція цього медіанного виборця. 1957 року Ентоні Даунс у книжці «An Economic Theory of Democracy» переніс модель Готеллінга на партії.</p>
+        <p class="en">Replace the beach with a scale of views from left to right, the holidaymakers with voters and the kiosks with candidates. Each votes for the nearer one. To win a majority, the two candidates move towards the voter in the middle of the line: as many voters on the left as on the right. In 1948 Duncan Black proved that in this setting the position of this median voter wins. In 1957 Anthony Downs carried Hotelling's model over to parties in his book "An Economic Theory of Democracy".</p>
+        <p class="uk">Логіка така: якщо позиція програє голосування проти будь-якої іншої, з неї варто йти, тож стійка лише позиція, яку не можна перемогти. Але умов багато: погляди мають вкладатися в одну шкалу, голосують усі, кандидатів двоє, і їм вірять, хоч куди вони зсунуться.</p>
+        <p class="en">The logic: if a position loses a vote against some other one, it pays to leave it, so the only stable position is one that can't be beaten. But there are many conditions: views have to fit on a single scale, everyone votes, there are two candidates, and voters believe them wherever they move.</p>
+      </div>
+    </div>
+
+    <p class="layer"><span class="uk">Практика</span><span class="en">Practice</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Скільки зайвих кілометрів проходить пляж</span><span class="en">How many extra kilometres the beach walks</span></h3>
+        <label class="ctl" for="pr-n"><span><span class="uk">Покупців за день</span><span class="en">Customers a day</span>: <output id="pr-nv">1000</output></span><input type="range" id="pr-n" min="100" max="5000" step="100" value="1000" style="width:100%"></label>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Зайвий шлях за день, туди й назад</span><span class="en">Extra walking a day, there and back</span></span><b class="big hit mono" id="pr-km" style="font-size:2rem">–</b></div>
+          <div><span class="k"><span class="uk">За літо, 90 днів</span><span class="en">Over a summer, 90 days</span></span><b class="big mono" id="pr-s" style="font-size:2rem">–</b></div>
+        </div>
+        <p class="note" id="pr-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Де шукати Готеллінга</span><span class="en">Where to look for Hotelling</span></span>
+        <h3><span class="uk">Схожі товари, програми партій, сусідні заправки</span><span class="en">Similar products, party platforms, neighbouring petrol stations</span></h3>
+        <p class="uk">Перевірити легко: кожен відпочивальник іде в середньому на 125 м далі, і ще стільки ж назад. На 1000 покупців це 1000 · 125 · 2 = 250 000 м, тобто 250 км на день. Тому адміністрація пляжу, яка видає місця для кіосків, може просто закріпити 250 і 750 м, як у нашій умові.</p>
+        <p class="en">It is easy to check: each holidaymaker walks 125 m further on average, and as much back. For 1,000 customers that is 1,000 · 125 · 2 = 250,000 m, or 250 km a day. So a beach office that hands out kiosk spots can simply fix them at 250 and 750 m, as in our puzzle.</p>
+        <p class="uk">Ту саму силу бачать у схожих товарах конкурентів, що тягнуться до «середнього» покупця, і в партійних програмах, що зсуваються до центру перед виборами. Але Готеллінг пояснює не все. Заправки й аптеки стоять поруч ще й тому, що там проходить потік машин і людей, туди пускають будівельні правила, а покупцям зручно порівнювати кілька магазинів в одному місці. А партії не завжди сходяться в центрі: виборці голосують не лише за ближчу позицію, і не всі ходять на вибори.</p>
+        <p class="en">The same force is seen in rivals' similar products aimed at the "average" customer and in party platforms drifting to the centre before an election. But Hotelling doesn't explain everything. Petrol stations and pharmacies cluster also because that's where the flow of cars and people is, where zoning rules allow them, and because buyers like to compare several shops in one place. And parties don't always meet in the centre: voters don't vote only for the nearest position, and not everyone turns out.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="uk">Що розповісти друзям</span><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1929</span>
+        <h3><span class="uk">Стаття Готеллінга</span><span class="en">Hotelling's paper</span></h3>
+        <p class="uk">Стаття «Stability in Competition» вийшла в британському «The Economic Journal», том 39, сторінки 41–57. Пляжу й морозива в ній немає: Готеллінг говорив про продавців на одній вулиці. Історію про морозиво на пляжі придумали пізніше, щоб пояснювати модель.</p>
+        <p class="en">"Stability in Competition" appeared in the British Economic Journal, volume 39, pages 41–57. There is no beach and no ice cream in it: Hotelling wrote about sellers on one street. The ice cream beach story came later, as a way to teach the model.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2 <span class="uk">церкви</span><span class="en">churches</span></span>
+        <h3><span class="uk">Церкви й сидр</span><span class="en">Churches and cider</span></h3>
+        <p class="uk">Готеллінг перевів ідею з відстаней на товари: продавцям вигідно робити свій товар схожим на товар конкурента. Як приклади надмірної схожості він згадав методистську й пресвітеріанську церкви та сидр.</p>
+        <p class="en">Hotelling carried the idea from distances over to goods: sellers gain by making their product like the rival's. As examples of excessive sameness he named Methodist and Presbyterian churches, and cider.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">p. 54</span>
+        <h3><span class="uk">Партії</span><span class="en">Parties</span></h3>
+        <p class="uk">Ще 1929 року, у тій самій статті, Готеллінг написав, що республіканці й демократи у США не розводять свої програми, а роблять їх якомога схожішими, бо кожна різка відмінність коштувала б голосів.</p>
+        <p class="en">Back in 1929, in the same paper, Hotelling wrote that US Republicans and Democrats don't set their platforms apart but make them as alike as they can, because any sharp difference would cost votes.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1948</span>
+        <h3><span class="uk">Медіанний виборець</span><span class="en">The median voter</span></h3>
+        <p class="uk">Шотландський економіст Дункан Блек надрукував статтю «On the Rationale of Group Decision-making» у «Journal of Political Economy». У ній він показав, що коли погляди лежать на одній шкалі, перемагає позиція медіанного виборця.</p>
+        <p class="en">The Scottish economist Duncan Black published "On the Rationale of Group Decision-making" in the Journal of Political Economy. In it he showed that when views lie on one scale, the median voter's position wins.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1957</span>
+        <h3><span class="uk">Даунс</span><span class="en">Downs</span></h3>
+        <p class="uk">Ентоні Даунс у книжці «An Economic Theory of Democracy» переніс модель Готеллінга на партії, які змагаються за виборців на шкалі від лівих до правих. Звідси пішла «просторова» теорія голосування.</p>
+        <p class="en">In his book "An Economic Theory of Democracy" Anthony Downs carried Hotelling's model over to parties competing for voters on a left–right scale. The "spatial" theory of voting grew from there.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1979</span>
+        <h3><span class="uk">Поправка через 50 років</span><span class="en">A correction 50 years on</span></h3>
+        <p class="uk">Д'Аспремон, Габшевич і Тісс у статті «On Hotelling's "Stability in Competition"» в «Econometrica» знайшли в оригінальному розрахунку Готеллінга, де продавці міняють і ціни, помилку: коли кіоски близько, стійких цін немає.</p>
+        <p class="en">In "On Hotelling's 'Stability in Competition'" in Econometrica, d'Aspremont, Gabszewicz and Thisse found a flaw in Hotelling's original analysis, where the sellers also set prices: when the kiosks are close, there are no stable prices.</p>
+      </article>
+  </div>
+</section>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const solved = () => !window.mpSolved || mpSolved();
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const TAU = Math.PI * 2;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const num = (x, d = 1) => dec(String(+x.toFixed(d)));
+const mW = (x, d = 1) => num(x, d) + L(' м', ' m');
+
+/* ---------- the model: a 1000 m beach, customers spread evenly ---------- */
+const LEN = 1000, STEP = 10;
+// customers (out of 1000) who go to a kiosk at a when the rival is at b; same spot splits in half
+const share = (a, b) => a === b ? LEN / 2 : a < b ? (a + b) / 2 : LEN - (a + b) / 2;
+// average walk in metres for kiosks at a and b
+function walkAvg(a, b) { const lo = Math.min(a, b), hi = Math.max(a, b); return (lo * lo / 2 + (hi - lo) * (hi - lo) / 4 + (LEN - hi) * (LEN - hi) / 2) / LEN; }
+const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+// best spot within reach r of p against a rival at o; ties go to the shorter move
+function bestSpot(p, o, r) {
+  let bp = p, bs = share(p, o);
+  for (let x = Math.max(0, p - r); x <= Math.min(LEN, p + r); x += STEP) {
+    const s = share(x, o);
+    if (s > bs + 1e-9 || (Math.abs(s - bs) < 1e-9 && Math.abs(x - p) < Math.abs(bp - p))) { bs = s; bp = x; }
+  }
+  return bp;
+}
+// shares of any number of kiosks (out of 1000)
+function sharesN(x) {
+  const s = x.map(() => 0), pts = [...new Set(x)].sort((u, v) => u - v);
+  pts.forEach((p, i) => {
+    const lo = i ? (pts[i - 1] + p) / 2 : 0, hi = i < pts.length - 1 ? (p + pts[i + 1]) / 2 : LEN;
+    const who = x.map((v, j) => v === p ? j : -1).filter(j => j >= 0);
+    who.forEach(j => { s[j] += (hi - lo) / who.length; });
+  });
+  return s;
+}
+
+/* ---------- the beach strip as SVG ---------- */
+// kiosks: [{x, col, label}], opt: {border, crowd: density fn, ticks}
+function beachSVG(kiosks, opt = {}) {
+  const W = 400, X = v => 20 + v / LEN * (W - 40), H = opt.h || 120;
+  let h = '<svg class="beach" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + L('Пляж із кіосками', 'Beach with kiosks') + '">';
+  h += '<rect x="20" y="0" width="' + (W - 40) + '" height="16" rx="4" fill="var(--sea)"/>';
+  h += '<rect x="20" y="16" width="' + (W - 40) + '" height="46" fill="var(--sand)"/>';
+  // territories
+  if (opt.territory && kiosks.length) {
+    const xs = kiosks.map(k => k.x), order = xs.map((v, i) => i).sort((i, j) => xs[i] - xs[j]);
+    order.forEach((i, n) => {
+      const lo = n ? (xs[order[n - 1]] + xs[i]) / 2 : 0, hi = n < order.length - 1 ? (xs[i] + xs[order[n + 1]]) / 2 : LEN;
+      if (hi > lo) h += '<rect x="' + X(lo).toFixed(1) + '" y="62" width="' + (X(hi) - X(lo)).toFixed(1) + '" height="7" fill="' + kiosks[i].col + '" opacity=".8"/>';
+    });
+  }
+  // holidaymakers
+  for (let i = 0; i < 50; i++) {
+    const v = (i + .5) * LEN / 50, y = 26 + ((i * 37) % 26);
+    h += '<circle cx="' + X(v).toFixed(1) + '" cy="' + y + '" r="2.6" fill="var(--muted)" opacity=".55"/>';
+  }
+  if (opt.voters) opt.voters.forEach(v => { h += '<circle cx="' + X(v.x).toFixed(1) + '" cy="40" r="7" fill="' + (v.mid ? 'var(--hit)' : 'var(--muted)') + '"/>'; });
+  // kiosks: if two share a spot, put them back to back
+  const seen = {}, labs = [];
+  kiosks.forEach(k => {
+    const all = kiosks.filter(q => q.x === k.x).length, n = seen[k.x] = (seen[k.x] || 0) + 1;
+    const cx = X(k.x) + (n - (all + 1) / 2) * 18;
+    h += '<rect x="' + (cx - 8).toFixed(1) + '" y="30" width="16" height="22" rx="3" fill="' + k.col + '"/><path d="M' + (cx - 11).toFixed(1) + ' 31 L' + cx.toFixed(1) + ' 21 L' + (cx + 11).toFixed(1) + ' 31 Z" fill="' + k.col + '"/>';
+    if (k.label) labs.push({ x: cx, t: k.label, col: k.col });
+  });
+  // labels under the beach, pushed apart so close kiosks stay readable
+  labs.sort((p, q) => p.x - q.x);
+  for (let i = 1; i < labs.length; i++) if (labs[i].x - labs[i - 1].x < 40) labs[i].x = labs[i - 1].x + 40;
+  const over = labs.length ? Math.max(0, labs[labs.length - 1].x - (W - 20)) : 0;
+  labs.forEach(l => { h += '<text x="' + (l.x - over).toFixed(1) + '" y="88" text-anchor="middle" class="b" fill="' + l.col + '">' + l.t + '</text>'; });
+  [0, 250, 500, 750, 1000].forEach(v => { h += '<text x="' + X(v) + '" y="' + (H - 4) + '" text-anchor="middle" class="m">' + v + '</text>'; });
+  return h + '</svg>';
+}
+
+/* ---------- drawing helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function axes(ctx, W, H, o) {
+  const { l = 40, r = 12, t = 14, b = 28, x0, x1, y0, y1, xs, ys, xl, yl } = o;
+  const x = v => l + (v - x0) / (x1 - x0) * (W - l - r), y = v => t + (1 - (v - y0) / (y1 - y0)) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ys.forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.fillText(yl ? yl(v) : v, l - 6, y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  xs.forEach(v => ctx.fillText(xl ? xl(v) : v, x(v), H - b + 7));
+  return { x, y };
+}
+
+/* ---------- hero: holidaymakers walking to the kiosks ---------- */
+const hero = { t0: performance.now(), raf: 0, visible: true, ppl: Array.from({ length: 60 }, (_, i) => ({ x: (i + .5) / 60, y: Math.random(), ph: Math.random() })) };
+let heroCapText = '';
+function heroDraw(now) {
+  const st = setupCanvas($('#hero-cv')); if (!st) return;
+  const { ctx, W, H } = st, ok = solved();
+  const ink = tok('--ink'), muted = tok('--muted'), sur = tok('--surface') || '#fff', hit = tok('--hit');
+  const t = reduce() ? 2.2 : ((now || performance.now()) - hero.t0) / 1000;
+  ctx.fillStyle = sur; rr(ctx, 0, 0, W, H, 14); ctx.fill();
+  const pad = 18, bx = v => pad + v * (W - 2 * pad), top = 36, sea = 30, bot = H - 70;
+  ctx.fillStyle = tok('--sea'); rr(ctx, pad, top - sea + 6, W - 2 * pad, sea, 6); ctx.fill();
+  ctx.fillStyle = tok('--sand'); ctx.fillRect(pad, top, W - 2 * pad, bot - top);
+  const ks = ok ? [.5, .5] : [.25, .75], kx = [bx(ks[0]) - (ok ? 11 : 0), bx(ks[1]) + (ok ? 11 : 0)], ky = bot - 26;
+  // each holidaymaker walks to the nearest kiosk and back, at a speed that shows the distance
+  hero.ppl.forEach(p => {
+    const k = Math.abs(p.x - ks[0]) <= Math.abs(p.x - ks[1]) ? 0 : 1, d = Math.abs(p.x - ks[k]);
+    const per = 2 + d * 14, ph = ((p.ph * per + t) % per) / per, f = ph < .5 ? ph * 2 : 2 - ph * 2;
+    const sx = bx(p.x), sy = top + 12 + p.y * (bot - top - 60);
+    const x = sx + (kx[k] - sx) * f, y = sy + (ky - sy) * f;
+    ctx.strokeStyle = muted; ctx.globalAlpha = .18; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(kx[k], ky); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = ok && d > .25 ? hit : ink; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, TAU); ctx.fill();
+  });
+  [[kx[0], tok('--you')], [kx[1], tok('--bot')]].forEach(([x, c]) => {
+    ctx.fillStyle = c; ctx.fillRect(x - 9, ky - 4, 18, 24); ctx.beginPath(); ctx.moveTo(x - 13, ky - 3); ctx.lineTo(x, ky - 15); ctx.lineTo(x + 13, ky - 3); ctx.fill();
+  });
+  ctx.fillStyle = muted; ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [0, 250, 500, 750, 1000].forEach(v => ctx.fillText(v + (v === 1000 ? L(' м', ' m') : ''), bx(v / LEN), bot + 6));
+  ctx.font = '800 ' + (W < 420 ? 15 : 18) + 'px ' + tok('--f-display'); ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = ok ? hit : ink;
+  ctx.fillText(ok ? L('шлях 250 м', 'walk 250 m') : L('шлях 125 м → ?', 'walk 125 m → ?'), W - 14, H - 12);
+  const cap = ok ? L('Обидва кіоски посередині, спиною до спини. Покупців у кожного 500, як і раніше, але середній шлях до морозива виріс зі 125 до 250 м.', 'Both kiosks in the middle, back to back. Each still has 500 customers, but the average walk to ice cream has grown from 125 to 250 m.')
+    : L('Перший ранок: кіоски на 250 і 750 м, кожен відпочивальник іде до найближчого. Куди продавці пересунуться далі?', 'The first morning: kiosks at 250 and 750 m, everyone walks to the nearest. Where will the sellers move next?');
+  if (cap !== heroCapText) { heroCapText = cap; $('#hero-cap').textContent = cap; }
+}
+function heroLoop(now) { heroDraw(now); if (!reduce() && hero.visible) hero.raf = requestAnimationFrame(heroLoop); else hero.raf = 0; }
+function heroStart() {
+  if (hero.raf) cancelAnimationFrame(hero.raf);
+  hero.raf = 0;
+  if (reduce()) { heroDraw(); return; }
+  hero.raf = requestAnimationFrame(heroLoop);
+}
+if ('IntersectionObserver' in window) new IntersectionObserver(es => {
+  hero.visible = es[0].isIntersecting;
+  if (hero.visible && !hero.raf && !reduce()) hero.raf = requestAnimationFrame(heroLoop);
+}).observe($('#hero-cv'));
+
+/* ---------- round 1: guess ---------- */
+const OPTS = [
+  { k: 'quarters', uk: ['Лишаються на 250 і 750 м', 'кожен у центрі своєї половини'], en: ['They stay at 250 and 750 m', 'each in the centre of their half'] },
+  { k: 'middle', uk: ['Обидва посередині, спиною до спини', 'на 500 м, поруч'], en: ['Both in the middle, back to back', 'at 500 m, side by side'] },
+  { k: 'ends', uk: ['Розходяться до країв пляжу', 'щоб не заважати одне одному'], en: ['They move apart to the ends', 'to keep out of each other\'s way'] },
+  { k: 'cycle', uk: ['Ніколи не зупиняються', 'вічно переставляють кіоски'], en: ['They never settle', 'forever moving their kiosks'] }
+];
+let gPick = null;
+function optsText() {
+  $('#g-opts').innerHTML = OPTS.map(o => '<button type="button" data-k="' + o.k + '" aria-pressed="' + (o.k === gPick) + '">' + o[lang][0] + '<small>' + o[lang][1] + '</small></button>').join('');
+}
+function guessText() {
+  optsText();
+  if (gPick === null) return;
+  const verdict = {
+    quarters: L('Так відповідає більшість, і для відпочивальників це справді найкраще. Але продавцеві на 250 м досить зробити крок до центру, щоб забрати частину чужих покупців: на 350 м у нього вже 550 замість 500. Суперник відповідає тим самим, і кіоски сходяться посередині.', 'That is what most people say, and for the holidaymakers it really is best. But the seller at 250 m only has to step towards the centre to take some of the rival\'s customers: at 350 m they already have 550 instead of 500. The rival answers in kind, and the kiosks meet in the middle.'),
+    middle: L('Точно. Хто стоїть ближче до середини, забирає більше пляжу, тож обидва підсуваються, доки не стануть поруч на 500 м. Звідти будь-який крок дає менше половини покупців.', 'Exactly. Whoever is nearer the middle takes more of the beach, so both creep closer until they stand side by side at 500 m. From there any step gives less than half the customers.'),
+    ends: L('Здається, що так менше конкуренції, але все навпаки. Покупці між кіосками діляться посередині, тож продавець біля краю забирає собі лише кут пляжу. Кожен крок до суперника приносить нових покупців, і кіоски сходяться посередині.', 'It seems that would mean less competition, but it\'s the other way round. Customers between the kiosks split halfway, so a seller near an end gets only a corner of the beach. Every step towards the rival brings new customers, and the kiosks meet in the middle.'),
+    cycle: L('З двома продавцями ні: є місце, звідки нікому не вигідно йти, і це середина. Обидва стають там спиною до спини. А от із трьома продавцями ваша відповідь правильна, це видно в раунді 5.', 'Not with two sellers: there is a spot nobody gains by leaving, and it is the middle. Both stand there back to back. With three sellers, though, your answer is right, as round 5 shows.')
+  }[gPick];
+  const rows = [[L('250 і 750 м', '250 and 750 m'), 125, 'var(--win)'], [L('обидва на 500 м', 'both at 500 m'), 250, 'var(--hit)']];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Де стоять кіоски', 'Where the kiosks stand') + '</span><p class="big hit mono">500 · 500' + L(' м', ' m') + '</p>' +
+    '<p>' + verdict + '</p>' + beachSVG([{ x: 500, col: 'var(--you)' }, { x: 500, col: 'var(--bot)' }], { territory: true, h: 90 }) +
+    '<span class="kicker">' + L('Середній шлях до морозива', 'Average walk to ice cream') + '</span><div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1] / 260) + '%"></i></div><span class="mono">' + mW(r[1], 0) + '</span></div>').join('') + '</div>' +
+    '<p class="note">' + L('Продавці продають стільки ж, по 500 морозив, а відпочивальники ходять удвічі далі. Спробуйте втримати 250 м проти бота в раунді 2.', 'The sellers sell just as much, 500 ice creams each, while the holidaymakers walk twice as far. Try to hold 250 m against a bot in round 2.') + '</p>';
+}
+$('#g-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gPick = b.dataset.k; guessText(); window.mpSolve && mpSolve(gPick); });
+
+/* ---------- round 2: you against the bot ---------- */
+const DAYS = 10, REACH = 100;
+const gm = {};
+function gmNew() {
+  Object.assign(gm, { you: 150 + 10 * Math.floor(Math.random() * 21), bot: 650 + 10 * Math.floor(Math.random() * 21), day: 1, sy: 0, sb: 0, hist: [], last: null });
+  gm.next = gm.you;
+  gmText();
+}
+function gmRange() {
+  const s = $('#gm-x'); s.min = Math.max(0, gm.you - REACH); s.max = Math.min(LEN, gm.you + REACH); s.value = gm.next;
+  s.disabled = gm.day > DAYS;
+}
+function gmGo() {
+  if (gm.day > DAYS) return;
+  const from = gm.bot, you = gm.next, reach = 40 + 10 * Math.floor(Math.random() * 7);
+  gm.you = you; gm.bot = bestSpot(gm.bot, you, reach);
+  const y = share(gm.you, gm.bot), b = LEN - y;
+  gm.sy += y; gm.sb += b; gm.hist.push([gm.you, gm.bot]);
+  gm.last = { from, reach, y, b, w: walkAvg(gm.you, gm.bot) };
+  gm.day++; gm.next = gm.you;
+  gmText();
+}
+function gmText() {
+  gmRange();
+  $('#gm-xv').textContent = gm.next;
+  $('#gm-beach').innerHTML = beachSVG([{ x: gm.next, col: 'var(--you)', label: L('ви', 'you') }, { x: gm.bot, col: 'var(--bot)', label: L('бот', 'bot') }], { territory: true });
+  $('#gm-day').textContent = Math.min(gm.day, DAYS) + '/' + DAYS;
+  $('#gm-you').textContent = fmt(gm.sy); $('#gm-bot').textContent = fmt(gm.sb);
+  const ny = share(gm.next, gm.bot);
+  $('#gm-walk').textContent = gm.last ? L('Учора відпочивальники йшли в середньому ' + mW(gm.last.w) + '.', 'Yesterday holidaymakers walked ' + mW(gm.last.w) + ' on average.') : L('Якщо обидва кіоски лишаться на місці, у вас ' + fmt(ny) + ' покупців, у бота ' + fmt(LEN - ny) + '.', 'If both kiosks stay put, you have ' + fmt(ny) + ' customers and the bot ' + fmt(LEN - ny) + '.');
+  let v = '';
+  if (gm.last) {
+    const l = gm.last, moved = Math.abs(gm.bot - l.from);
+    v += '<p>' + L('Бот ' + (moved ? 'переїхав з ' + l.from + ' на ' + gm.bot + ' м' : 'лишився на ' + gm.bot + ' м') + ' (сьогодні він міг проїхати ' + l.reach + ' м). ', 'The bot ' + (moved ? 'moved from ' + l.from + ' to ' + gm.bot + ' m' : 'stayed at ' + gm.bot + ' m') + ' (today it could go ' + l.reach + ' m). ') +
+      L('За день: ви <b>' + fmt(l.y) + '</b>, бот ' + fmt(l.b) + '.', 'That day: you <b>' + fmt(l.y) + '</b>, bot ' + fmt(l.b) + '.') + '</p>';
+  } else v += '<p>' + L('Оберіть, де відкритися завтра, і натисніть «Відкрити кіоск на день». Бот побачить ваше місце і відповість.', 'Pick where to open tomorrow and press "Open for the day". The bot sees your spot and responds.') + '</p>';
+  if (gm.day > DAYS) {
+    const win = gm.sy > gm.sb, tie = gm.sy === gm.sb;
+    v += '<p><span class="' + (win || tie ? 'good' : 'bad') + '">' + (win ? L('Ви виграли!', 'You won!') : tie ? L('Нічия.', 'A draw.') : L('Бот виграв.', 'The bot won.')) + '</span> ' +
+      L('Ви продали ' + fmt(gm.sy) + ' морозив, бот ' + fmt(gm.sb) + '. ', 'You sold ' + fmt(gm.sy) + ' ice creams, the bot ' + fmt(gm.sb) + '. ') +
+      L('Хто стоїть ближче до середини, той має більше пляжу. Якщо ви на 500 м, бот уже не може взяти більше половини.', 'Whoever is nearer the middle has more of the beach. Once you stand at 500 m, the bot can no longer take more than half.') + '</p>';
+  }
+  $('#gm-msg').innerHTML = v;
+  $('#gm-go').disabled = gm.day > DAYS;
+  gmDraw();
+}
+function gmDraw() {
+  const st = setupCanvas($('#gm-cv')); if (!st) return;
+  const { ctx, W, H } = st;
+  const { x, y } = axes(ctx, W, H, { l: 30, x0: 0, x1: LEN, y0: DAYS + .5, y1: .5, xs: [0, 250, 500, 750, 1000], ys: [1, 5, 10], yl: v => v });
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(L('день', 'day'), 2, 0);
+  ctx.strokeStyle = tok('--line'); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x(500), 14); ctx.lineTo(x(500), H - 28); ctx.stroke(); ctx.setLineDash([]);
+  [[0, '--you'], [1, '--bot']].forEach(([k, c]) => {
+    ctx.strokeStyle = tok(c); ctx.fillStyle = tok(c); ctx.lineWidth = 2; ctx.beginPath();
+    gm.hist.forEach((p, i) => { i ? ctx.lineTo(x(p[k]), y(i + 1)) : ctx.moveTo(x(p[k]), y(1)); }); ctx.stroke();
+    gm.hist.forEach((p, i) => { ctx.beginPath(); ctx.arc(x(p[k]), y(i + 1), 4, 0, TAU); ctx.fill(); });
+  });
+}
+$('#gm-x').addEventListener('input', () => { gm.next = +$('#gm-x').value; gmText(); });
+document.querySelector('#game .nudge').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || gm.day > DAYS) return;
+  const d = +b.dataset.d; gm.next = d ? clamp(gm.next + d, Math.max(0, gm.you - REACH), Math.min(LEN, gm.you + REACH)) : gm.you; gmText();
+});
+$('#gm-go').addEventListener('click', gmGo);
+$('#gm-new').addEventListener('click', gmNew);
+
+/* ---------- round 3: best-response dynamics on many beaches ---------- */
+const SIM = { M: 2000, T: 60 };
+let simRes = null, simTimer = 0, simShown = 0;
+const rnd10 = () => 10 * Math.floor(Math.random() * (LEN / STEP + 1));
+function simulate(r, start) {
+  const { M, T } = SIM, pos = [], walk = new Float64Array(T + 1);
+  const a = new Int16Array(M), b = new Int16Array(M);
+  for (let m = 0; m < M; m++) { a[m] = start === 'q' ? 250 : rnd10(); b[m] = start === 'q' ? 750 : rnd10(); }
+  const snap = () => { const h = new Uint16Array(20); for (let m = 0; m < M; m++) { h[Math.min(19, a[m] / 50 | 0)]++; h[Math.min(19, b[m] / 50 | 0)]++; } return h; };
+  pos.push(snap());
+  for (let t = 0; t <= T; t++) {
+    if (t) for (let m = 0; m < M; m++) { if (t % 2) a[m] = bestSpot(a[m], b[m], r); else b[m] = bestSpot(b[m], a[m], r); }
+    let s = 0; for (let m = 0; m < M; m++) s += walkAvg(a[m], b[m]); walk[t] = s / M;
+    if (t) pos.push(snap());
+  }
+  let mid = 0; for (let m = 0; m < M; m++) if (a[m] === 500 && b[m] === 500) mid++;
+  // Monte Carlo check: 100,000 holidaymakers on beach 1 with its final kiosks
+  let mc = 0; const N = 100000; for (let i = 0; i < N; i++) { const u = Math.random() * LEN; mc += Math.min(Math.abs(u - a[0]), Math.abs(u - b[0])); }
+  return { walk, pos, mid, mc: mc / N, ex: walkAvg(a[0], b[0]), fa: a[0], fb: b[0] };
+}
+function simRun() {
+  clearTimeout(simTimer);
+  simRes = simulate(+$('#sim-r').value, $('#sim-st').value);
+  if (reduce()) { simShown = SIM.T; simDraw(); simText(); return; }
+  simShown = 0;
+  (function tick() { simShown = Math.min(SIM.T, simShown + 1); simDraw(); simText(); if (simShown < SIM.T) simTimer = setTimeout(tick, 70); })();
+}
+function simDraw() {
+  if (!simRes) return;
+  let st = setupCanvas($('#sim-h'));
+  if (st) {
+    const { ctx, W, H } = st, h = simRes.pos[simShown], mx = 2 * SIM.M;
+    const { x, y } = axes(ctx, W, H, { x0: 0, x1: LEN, y0: 0, y1: 100, xs: [0, 250, 500, 750, 1000], ys: [0, 50, 100], yl: v => v + '%' });
+    ctx.fillStyle = tok('--ink');
+    for (let i = 0; i < 20; i++) { const v = 100 * h[i] / mx; ctx.fillStyle = i === 9 || i === 10 ? tok('--hit') : tok('--ink'); ctx.fillRect(x(i * 50) + 1, y(v), x(50) - x(0) - 2, y(0) - y(v)); }
+    ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(L('де стоять кіоски, хід ', 'where the kiosks stand, move ') + simShown, 44, 0);
+  }
+  st = setupCanvas($('#sim-cv'));
+  if (st) {
+    const { ctx, W, H } = st;
+    const { x, y } = axes(ctx, W, H, { x0: 0, x1: SIM.T, y0: 100, y1: 300, xs: [0, 10, 20, 30, 40, 50, 60], ys: [100, 125, 200, 250, 300] });
+    [[125, '--win'], [250, '--hit']].forEach(([v, c]) => { ctx.strokeStyle = tok(c); ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(0), y(v)); ctx.lineTo(x(SIM.T), y(v)); ctx.stroke(); });
+    ctx.setLineDash([]); ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let t = 0; t <= simShown; t++) { const px = x(t), py = y(clamp(simRes.walk[t], 100, 300)); t ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+    ctx.stroke();
+    ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(L('хід', 'move'), W - 12, H - 30);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(L('середній шлях, м', 'average walk, m'), 44, 0);
+  }
+}
+function simText() {
+  $('#sim-rv').textContent = $('#sim-r').value + L(' м', ' m');
+  if (!simRes) return;
+  const done = simShown >= SIM.T, q = $('#sim-st').value === 'q';
+  $('#t-start').textContent = mW(simRes.walk[0]);
+  $('#t-starts').textContent = q ? L('точно 125 м: кіоски на 250 і 750 м', 'exactly 125 m: kiosks at 250 and 750 m') : L('для випадкових місць точно 5/24 км ≈ 208,3 м', 'for random spots exactly 5/24 km ≈ 208.3 m');
+  $('#t-end').textContent = done ? mW(simRes.walk[SIM.T]) : '…';
+  $('#t-ends').textContent = L('точно: 250 м, коли обидва на 500 м', 'exact: 250 m with both at 500 m');
+  $('#t-mid').textContent = done ? num(100 * simRes.mid / SIM.M, 1) + '%' : '…';
+  $('#t-mids').textContent = done ? L(fmt(simRes.mid) + ' з ' + fmt(SIM.M) + ' пляжів', fmt(simRes.mid) + ' of ' + fmt(SIM.M) + ' beaches') : '';
+  $('#t-mc').textContent = done ? mW(simRes.mc, 2) : '…';
+  $('#t-mcs').textContent = done ? L('пляж № 1, кіоски на ' + simRes.fa + ' і ' + simRes.fb + ' м; точно ' + mW(simRes.ex), 'beach no. 1, kiosks at ' + simRes.fa + ' and ' + simRes.fb + ' m; exact ' + mW(simRes.ex)) : '';
+}
+$('#sim-r').addEventListener('input', simText);
+$('#sim-r').addEventListener('change', simRun);
+$('#sim-st').addEventListener('change', simRun);
+$('#sim-run').addEventListener('click', simRun);
+
+/* ---------- round 4: one step towards the middle ---------- */
+function exText() {
+  const a = +$('#ex-a').value, s = share(a, 750);
+  $('#ex-av').textContent = a + L(' м', ' m');
+  $('#ex-beach').innerHTML = beachSVG([{ x: a, col: 'var(--you)', label: fmt(s) }, { x: 750, col: 'var(--bot)', label: fmt(LEN - s) }], { territory: true });
+  $('#ex-txt').textContent = L('Помаранчевий стоїть на 750 м. Кордон між покупцями на ' + num((a + 750) / 2) + ' м, тож у синього ' + fmt(s) + ' покупців. ', 'Orange stands at 750 m. The border between customers is at ' + num((a + 750) / 2) + ' m, so blue has ' + fmt(s) + ' customers. ') +
+    (a < 250 ? L('Біля краю синій втрачає: частина пляжу між ним і краєм дістається йому й так.', 'Near the end blue loses out: the stretch between it and the end is its anyway.')
+      : a === 250 ? L('Порівну. Тепер посуньте синій на 100 м до центру.', 'An even split. Now move blue 100 m towards the centre.')
+      : L('Кожні 100 м до центру дають синьому ще 50 покупців.', 'Every 100 m towards the centre gives blue 50 more customers.'));
+}
+$('#ex-a').addEventListener('input', exText);
+
+/* ---------- round 5: three sellers ---------- */
+const TH_COLS = ['var(--you)', 'var(--bot)', 'var(--win)'];
+let th = { x: [200, 500, 800], moves: 0, last: '' };
+function thNew() { th = { x: [rnd10(), rnd10(), rnd10()], moves: 0, last: '' }; thText(); }
+function thStep() {
+  const s = sharesN(th.x), order = [0, 1, 2].sort((i, j) => s[i] - s[j]);
+  for (const i of order) {
+    let bp = th.x[i], bs = s[i];
+    for (let p = 0; p <= LEN; p += STEP) { const y = th.x.slice(); y[i] = p; const v = sharesN(y)[i]; if (v > bs + 1e-9) { bs = v; bp = p; } }
+    if (bp !== th.x[i]) { th.last = L('Кіоск ' + (i + 1) + ' переїхав з ' + th.x[i] + ' на ' + bp + ' м: ' + num(s[i], 0) + ' → ' + num(bs, 0) + ' покупців.', 'Kiosk ' + (i + 1) + ' moved from ' + th.x[i] + ' to ' + bp + ' m: ' + num(s[i], 0) + ' → ' + num(bs, 0) + ' customers.'); th.x[i] = bp; th.moves++; thText(); return; }
+  }
+  th.last = L('Ніхто не хоче рухатися.', 'Nobody wants to move.'); thText();
+}
+function thText() {
+  const s = sharesN(th.x);
+  $('#th-beach').innerHTML = beachSVG(th.x.map((v, i) => ({ x: v, col: TH_COLS[i], label: String(i + 1) })), { territory: true, h: 130 });
+  $('#th-stat').textContent = L('Покупці: ', 'Customers: ') + s.map((v, i) => (i + 1) + ': ' + num(v, 0)).join(' · ') + L(' · ходів: ', ' · moves: ') + th.moves;
+  $('#th-msg').textContent = th.last || L('Натискайте «Наступний хід»: щоразу продавець з найменшою часткою переставляє кіоск на найкраще для себе місце.', 'Press "Next move": each time the seller with the smallest share moves to the best spot for themselves.');
+}
+$('#th-step').addEventListener('click', thStep);
+$('#th-new').addEventListener('click', thNew);
+
+/* ---------- round 5: uneven beach ---------- */
+// crowd density rises linearly to the entrance at c and falls linearly after it (a triangle)
+const unMedian = c => c >= .5 ? Math.sqrt(c / 2) : 1 - Math.sqrt((1 - c) / 2);
+function unText() {
+  const c = +$('#un-c').value / LEN, m = unMedian(c) * LEN, mean = (1 + c) / 3 * LEN;
+  $('#un-cv').textContent = Math.round(c * LEN) + L(' м', ' m');
+  $('#un-m').textContent = mW(m, 0); $('#un-a').textContent = mW(mean, 0);
+  $('#un-txt').textContent = L('Ліворуч від ' + mW(m, 0) + ' рівно половина людей, праворуч друга половина. Кіоски стають там поруч і знову ділять покупців навпіл.', 'Exactly half the people are left of ' + mW(m, 0) + ' and half to the right. The kiosks stand there side by side and again split the customers in half.');
+  unDraw();
+}
+function unDraw() {
+  const st = setupCanvas($('#un-cv-c')); if (!st) return;
+  const { ctx, W, H } = st, c = +$('#un-c').value / LEN, m = unMedian(c), dens = v => v < c ? 2 * v / c : 2 * (1 - v) / (1 - c);
+  const { x, y } = axes(ctx, W, H, { l: 20, x0: 0, x1: 1, y0: 0, y1: 2.1, xs: [0, .25, .5, .75, 1], ys: [0], xl: v => String(v * LEN), yl: () => '' });
+  ctx.beginPath(); ctx.moveTo(x(0), y(0));
+  for (let v = 0; v <= m + 1e-9; v += .005) ctx.lineTo(x(v), y(dens(Math.min(v, 1))));
+  ctx.lineTo(x(m), y(dens(m))); ctx.lineTo(x(m), y(0)); ctx.closePath(); ctx.fillStyle = tok('--you'); ctx.globalAlpha = .28; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x(m), y(0)); ctx.lineTo(x(m), y(dens(m)));
+  for (let v = m; v <= 1; v += .005) ctx.lineTo(x(v), y(dens(v)));
+  ctx.lineTo(x(1), y(0)); ctx.closePath(); ctx.fillStyle = tok('--bot'); ctx.fill(); ctx.globalAlpha = 1;
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x(0), y(dens(0))); ctx.lineTo(x(c), y(2)); ctx.lineTo(x(1), y(dens(1))); ctx.stroke();
+  ctx.strokeStyle = tok('--hit'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x(m), y(0)); ctx.lineTo(x(m), y(2.1)); ctx.stroke();
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(L('скільки людей на кожному метрі', 'people per metre'), 24, 0);
+}
+$('#un-c').addEventListener('input', unText);
+
+/* ---------- round 5: the median voter ---------- */
+const mv = { v: [], a: 100, b: 900, timer: 0 };
+function mvNew() {
+  clearTimeout(mv.timer);
+  mv.v = Array.from({ length: 9 }, () => 20 + 10 * Math.floor(Math.random() * 97)).sort((p, q) => p - q);
+  mv.a = 100; mv.b = 900; mvText();
+}
+const votes = (a, b) => { let n = 0; mv.v.forEach(u => { const da = Math.abs(u - a), db = Math.abs(u - b); n += da < db ? 1 : da === db ? .5 : 0; }); return n; };
+function mvText() {
+  const med = mv.v[4], va = votes(mv.a, mv.b);
+  $('#mv-beach').innerHTML = beachSVG([{ x: mv.a, col: 'var(--you)', label: 'A' }, { x: mv.b, col: 'var(--bot)', label: 'B' }], { voters: mv.v.map((x, i) => ({ x, mid: i === 4 })), h: 130 });
+  $('#mv-msg').innerHTML = L('Голоси: A ' + num(va, 1) + ', B ' + num(9 - va, 1) + '. Медіанний виборець (п\'ятий зліва) стоїть на ' + med + '. ', 'Votes: A ' + num(va, 1) + ', B ' + num(9 - va, 1) + '. The median voter (fifth from the left) stands at ' + med + '. ') +
+    (mv.a === med && mv.b === med ? L('<b>Обидва кандидати на позиції медіанного виборця.</b> Звідти будь-який крок програє.', '<b>Both candidates sit on the median voter\'s position.</b> From there any step loses.') : '');
+}
+function mvGo() {
+  clearTimeout(mv.timer);
+  const med = mv.v[4];
+  // each candidate in turn moves up to 40 points to the spot with the most votes against the other (ties: nearer the median)
+  const move = (p, o) => { let bp = p, bv = votes(p, o); for (let x = Math.max(0, p - 40); x <= Math.min(LEN, p + 40); x += 10) { const v = votes(x, o); if (v > bv || (v === bv && Math.abs(x - med) < Math.abs(bp - med))) { bv = v; bp = x; } } return bp; };
+  let n = 0;
+  const step = () => { mv.a = move(mv.a, mv.b); mv.b = move(mv.b, mv.a); n++; return (mv.a !== med || mv.b !== med) && n < 200; };
+  if (reduce()) { while (step()); mvText(); return; }
+  (function tick() { const more = step(); mvText(); if (more) mv.timer = setTimeout(tick, 260); })();
+}
+$('#mv-go').addEventListener('click', mvGo);
+$('#mv-new').addEventListener('click', mvNew);
+
+/* ---------- round 5: extra kilometres ---------- */
+function prText() {
+  const n = +$('#pr-n').value, km = n * 125 * 2 / 1000;
+  $('#pr-nv').textContent = fmt(n);
+  $('#pr-km').textContent = num(km, 1) + L(' км', ' km');
+  $('#pr-s').textContent = fmt(Math.round(km * 90)) + L(' км', ' km');
+  $('#pr-txt').textContent = L(fmt(n) + ' · 125 м · 2 = ' + fmt(n * 250) + ' м. Стільки зайвого проходять відпочивальники за день, бо кіоски стоять посередині, а не на 250 і 750 м.', fmt(n) + ' · 125 m · 2 = ' + fmt(n * 250) + ' m. That is how much extra the holidaymakers walk each day because the kiosks stand in the middle rather than at 250 and 750 m.');
+}
+$('#pr-n').addEventListener('input', prText);
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Морозиво на пляжі: де стануть два продавці', 'Ice Cream on the Beach: Where Two Sellers Stand');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  heroCapText = ''; heroDraw(); guessText(); gmText(); simDraw(); simText(); exText(); thText(); unText(); mvText(); prText();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang || lang; applyLang(); });
+document.addEventListener('solved', () => { heroCapText = ''; heroDraw(); });
+const redraw = () => { heroDraw(); gmDraw(); simDraw(); unDraw(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state ---------- */
+gmNew(); mvNew();
+simRes = simulate(50, 'rand'); simShown = SIM.T;
+applyLang();
+heroStart();
+})();
+</script>
