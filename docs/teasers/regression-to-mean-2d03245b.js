@@ -1,0 +1,51 @@
+
+(() => {
+  const root = document.getElementById('tz-regression-to-mean');
+  const en = () => document.documentElement.dataset.lang === 'en';
+  const L = (uk, e) => en() ? e : uk;
+  const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), btns = root.querySelectorAll('.tz-btn');
+  const col = (name, fb) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb;
+  const randn = () => { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); };
+  // 16 players; score = skill + luck, equal weight; the top 3 and bottom 3 of round 1 are highlighted
+  let ps = [], revealed = false;
+  const avg = (a, k) => a.reduce((t, p) => t + p[k], 0) / a.length;
+  function roll() {
+    ps = Array.from({ length: 16 }, () => { const s = 50 + 7.07 * randn(); return { x: s + 7.07 * randn(), y: s + 7.07 * randn(), g: '' }; });
+    const o = [...ps].sort((a, b) => b.x - a.x);
+    o.slice(0, 3).forEach(p => p.g = 't'); o.slice(-3).forEach(p => p.g = 'b');
+  }
+  const grp = g => ps.filter(p => p.g === g);
+  function draw() {
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+    if (!W) return;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const ink = col('--ink', '#151515'), sig = col('--signal', '#D9318F'), mut = col('--muted', '#5F5F5F');
+    const t = 26, b = 10, x1 = 40, x2 = W - 40, y = v => t + (1 - (Math.max(20, Math.min(80, v)) - 20) / 60) * (H - t - b);
+    ctx.font = '600 11px ' + (col('--f', 'system-ui')); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = ink;
+    ctx.fillText(L('Раунд 1', 'Round 1'), x1, 4); ctx.fillText(L('Раунд 2', 'Round 2'), x2, 4);
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = mut; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(14, y(50)); ctx.lineTo(W - 14, y(50)); ctx.stroke(); ctx.setLineDash([]);
+    ['', 'b', 't'].forEach(g => grp(g).forEach(p => {
+      const c = g === 't' ? sig : g === 'b' ? ink : mut;
+      ctx.globalAlpha = g ? 1 : .3; ctx.strokeStyle = ctx.fillStyle = c; ctx.lineWidth = g ? 2 : 1;
+      if (revealed) { ctx.beginPath(); ctx.moveTo(x1, y(p.x)); ctx.lineTo(x2, y(p.y)); ctx.stroke(); ctx.beginPath(); ctx.arc(x2, y(p.y), g ? 4 : 2.5, 0, 7); ctx.fill(); }
+      ctx.beginPath(); ctx.arc(x1, y(p.x), g ? 4 : 2.5, 0, 7); ctx.fill();
+    }));
+    ctx.globalAlpha = 1;
+    if (!revealed) { ctx.fillStyle = mut; ctx.font = '800 28px ' + col('--f', 'system-ui'); ctx.textBaseline = 'middle'; ctx.fillText('?', x2, y(50) + 20); }
+  }
+  function text() {
+    const r = v => Math.round(v), T = grp('t'), B = grp('b');
+    msg.textContent = revealed
+      ? L('Трійка найкращих: ' + r(avg(T, 'x')) + ' → ' + r(avg(T, 'y')) + '. Трійка найгірших: ' + r(avg(B, 'x')) + ' → ' + r(avg(B, 'y')) + '. Ніхто нікого не хвалив і не сварив.', 'Top three: ' + r(avg(T, 'x')) + ' → ' + r(avg(T, 'y')) + '. Bottom three: ' + r(avg(B, 'x')) + ' → ' + r(avg(B, 'y')) + '. Nobody was praised or scolded.')
+      : L('Раунд 1: трійка найкращих набрала в середньому ' + r(avg(T, 'x')) + ', трійка найгірших ' + r(avg(B, 'x')) + '. Що буде в раунді 2?', 'Round 1: the top three averaged ' + r(avg(T, 'x')) + ', the bottom three ' + r(avg(B, 'x')) + '. What happens in round 2?');
+    btns[0].textContent = L('Нова група', 'New group');
+    btns[1].textContent = L('Зіграти раунд 2', 'Play round 2');
+    btns[1].disabled = revealed;
+  }
+  btns[0].addEventListener('click', () => { roll(); revealed = false; draw(); text(); });
+  btns[1].addEventListener('click', () => { revealed = true; draw(); text(); });
+  document.addEventListener('langchange', () => { draw(); text(); });
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
+  roll(); draw(); text();
+})();

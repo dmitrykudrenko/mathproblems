@@ -1133,6 +1133,35 @@ def build_problem(slug, base, metas, books):
     return slug, meta, urls
 
 
+TEASER_LOADER = """<script>
+(function () {
+  // a panel's script loads when the panel nears the screen; hidden shelf panels wait until they are shown
+  var arts = document.querySelectorAll("article[data-js]");
+  function load(a) { var s = document.createElement("script"); s.src = a.getAttribute("data-js"); a.removeAttribute("data-js"); document.body.appendChild(s); }
+  if (!("IntersectionObserver" in window)) { arts.forEach(load); return; }
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { io.unobserve(e.target); load(e.target); } });
+  }, { rootMargin: "600px 0px" });
+  arts.forEach(function (a) { io.observe(a); });
+})();
+</script>"""
+
+
+def lazy_teasers(body, base):
+    """Moves each panel's inline script to docs/teasers/<slug>-<hash>.js and names it in the article's data-js."""
+    def one(m):
+        slug, art = m.group(1), m.group(0)
+        code = "\n".join(re.findall(r"<script>(.*?)</script>", art, re.S))
+        if not code:
+            return art
+        name = f"{slug}-{hashlib.sha1(code.encode()).hexdigest()[:8]}.js"
+        (DOCS / "teasers").mkdir(parents=True, exist_ok=True)
+        (DOCS / "teasers" / name).write_text(code, encoding="utf-8")
+        art = re.sub(r"\s*<script>.*?</script>", "", art, flags=re.S)
+        return art.replace(f'id="{slug}"', f'id="{slug}" data-js="{base}teasers/{name}"', 1)
+    return re.sub(r'<article class="problem" id="([^"]+)".*?</article>', one, body, flags=re.S)
+
+
 def build_hub(problems, base):
     """Catalogue page: hub/page.html with each problem's teaser.html dropped into <!--PROBLEMS-->."""
     meta = json.loads((HUB / "meta.json").read_text(encoding="utf-8"))
@@ -1195,8 +1224,9 @@ def build_hub(problems, base):
         ]}
         h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["og_alt"], ld, base)
         body = with_subscribe(body, lang)
+        body = lazy_teasers(body, base)
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
-               f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{LEVEL_SCRIPT}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
+               f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{TEASER_LOADER}\n{LEVEL_SCRIPT}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
         write(DOCS / LANG_PATH[lang] / "index.html", doc)
     for f in (HUB / "assets").iterdir():
         if f.suffix in {".png", ".jpg"}:

@@ -1,0 +1,70 @@
+
+(() => {
+  const root = document.getElementById('tz-persuadables');
+  const en = () => document.documentElement.dataset.lang === 'en';
+  const L = (uk, e) => en() ? e : uk;
+  const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), btns = root.querySelectorAll('.tz-btn');
+  const col = (name, fb) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb;
+  // sure things, persuadables, lost causes, sleeping dogs: chance to buy without and with a coupon
+  const PRI = [.1, .15, .6, .15], P0 = [.9, .1, .02, .4], P1 = [.9, .5, .03, .25];
+  const KC = ['#2F5D8A', '#1E7A46', '#8A8371', '#C2560C'];
+  // nothing about the result is shown before the first click
+  let shop = null, picked = null, tally = [[0, 0], [0, 0]], last = -1;
+  function newShop() {
+    shop = [];
+    for (let i = 0; i < 12; i++) {
+      let r = Math.random(), k = 0; while (r >= PRI[k] && k < 3) { r -= PRI[k]; k++; }
+      const u = Math.random(); shop.push({ k, w0: u < P0[k], w1: u < P1[k] });
+    }
+  }
+  function give(s) {
+    newShop();
+    const idx = shop.map((v, i) => i);
+    if (s === 0) idx.sort((a, b) => P0[shop[b].k] - P0[shop[a].k] || Math.random() - .5);
+    else for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+    picked = new Set(idx.slice(0, 3));
+    let d = 0; picked.forEach(i => { d += shop[i].w1 - shop[i].w0; });
+    tally[s][0] += d; tally[s][1]++; last = s;
+  }
+  function draw() {
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+    if (!W) return;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const ink = col('--ink', '#151515'), sig = col('--signal', '#D9318F'), mut = col('--muted', '#5F5F5F'), f = col('--f', 'system-ui');
+    const cols = 6, cw = W / cols, rh = 72;
+    for (let i = 0; i < 12; i++) {
+      const v = shop ? shop[i] : null, cx = (i % cols + .5) * cw, y0 = Math.floor(i / cols) * rh + 6, has = picked && picked.has(i);
+      const c = v ? KC[v.k] : mut;
+      ctx.fillStyle = c; ctx.globalAlpha = v ? 1 : .5;
+      ctx.beginPath(); ctx.arc(cx, y0 + 12, 7, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx - 11, y0 + 34); ctx.quadraticCurveTo(cx, y0 + 15, cx + 11, y0 + 34); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 1;
+      if (has) { ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.setLineDash([3, 2]); ctx.strokeRect(cx - 17, y0 - 2, 34, 40); ctx.setLineDash([]); }
+      if (v && has) {
+        const d = v.w1 - v.w0;
+        ctx.fillStyle = d < 0 ? sig : ink; ctx.font = '800 13px ' + f; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(d > 0 ? '+1' : d < 0 ? '−1' : '0', cx, y0 + 42);
+      } else if (v) {
+        ctx.fillStyle = mut; ctx.font = '600 10px ' + f; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(Math.round(100 * P0[v.k]) + '%', cx, y0 + 43);
+      }
+    }
+    ctx.fillStyle = mut; ctx.font = '11px ' + f; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(shop ? L('рамка: купон · число: що він змінив', 'frame: coupon · number: what it changed') : L('12 відвідувачів, 3 купони', '12 visitors, 3 coupons'), W / 2, H - 2);
+  }
+  const sg = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v);
+  function text() {
+    msg.textContent = last < 0
+      ? L('Дайте 3 купони тим, хто найімовірніше купить, або навмання, і подивіться, скільки покупок вони додали.', 'Give 3 coupons to the likeliest buyers, or at random, and see how many purchases they added.')
+      : L('Додаткових покупок разом. Найімовірнішим покупцям: ' + sg(tally[0][0]) + ' (днів: ' + tally[0][1] + '). Навмання: ' + sg(tally[1][0]) + ' (днів: ' + tally[1][1] + ').',
+          'Extra purchases in total. To the likeliest buyers: ' + sg(tally[0][0]) + ' (days: ' + tally[0][1] + '). At random: ' + sg(tally[1][0]) + ' (days: ' + tally[1][1] + ').');
+    btns[0].textContent = L('Найімовірнішим покупцям', 'To the likeliest buyers');
+    btns[1].textContent = L('Навмання', 'At random');
+  }
+  btns[0].addEventListener('click', () => { give(0); draw(); text(); });
+  btns[1].addEventListener('click', () => { give(1); draw(); text(); });
+  document.addEventListener('langchange', () => { draw(); text(); });
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
+  draw(); text();
+})();

@@ -1,0 +1,43 @@
+
+(() => {
+  const root = document.getElementById('tz-ab-test-peeking');
+  const L = (uk, e) => document.documentElement.dataset.lang === 'en' ? e : uk;
+  const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), b = root.querySelector('.tz-btn');
+  const DAYS = 30, N = 1000, P = .05;
+  let path = null, tests = 0, flags = 0;
+  // normal approximation of 1,000 visitors a day at 5% per page
+  const rn = () => { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); };
+  const day = () => Math.max(0, Math.round(N * P + Math.sqrt(N * P * (1 - P)) * rn()));
+  const Phi = x => { const t = 1 / (1 + .3275911 * Math.abs(x) / Math.SQRT2), y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - .284496736) * t + .254829592) * t * Math.exp(-x * x / 2); return x >= 0 ? (1 + y) / 2 : (1 - y) / 2; };
+  function run() {
+    let a = 0, c = 0; path = [];
+    for (let d = 1; d <= DAYS; d++) { a += day(); c += day(); const n = d * N, q = (a + c) / (2 * n), z = q > 0 ? (c - a) / n / Math.sqrt(q * (1 - q) * 2 / n) : 0; path.push(2 * Phi(Math.abs(z)) - 1); }
+    tests++; if (path.some(v => v > .95)) flags++;
+  }
+  const Y = (v, H) => { const s = Math.min(2.5, -Math.log10(Math.max(1e-9, 1 - v))); return 10 + (1 - s / 2.5) * (H - 22); };
+  function draw() {
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight; if (!W) return;
+    cv.width = W * dpr; cv.height = H * dpr;
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const css = getComputedStyle(document.documentElement), ink = css.getPropertyValue('--ink').trim() || '#151515', sig = css.getPropertyValue('--signal').trim() || '#D9318F';
+    const X = d => 30 + (d - 1) / (DAYS - 1) * (W - 44);
+    c.strokeStyle = ink; c.setLineDash([5, 4]); c.lineWidth = 1.2; c.beginPath(); c.moveTo(30, Y(.95, H)); c.lineTo(W - 14, Y(.95, H)); c.stroke(); c.setLineDash([]);
+    c.fillStyle = ink; c.font = '600 10px system-ui, sans-serif'; c.textAlign = 'right'; c.textBaseline = 'middle'; c.fillText('95%', 26, Y(.95, H));
+    if (!path) return;
+    c.strokeStyle = ink; c.lineWidth = 2; c.beginPath();
+    path.forEach((v, i) => i ? c.lineTo(X(i + 1), Y(v, H)) : c.moveTo(X(1), Y(v, H))); c.stroke();
+    const k = path.findIndex(v => v > .95);
+    if (k >= 0) { c.fillStyle = sig; c.beginPath(); c.arc(X(k + 1), Y(path[k], H), 5, 0, 2 * Math.PI); c.fill(); }
+  }
+  function text() {
+    if (!path) { msg.textContent = L('Запустіть A/A-тест: дві однакові сторінки, 30 вечорів. Лінія показує «впевненість» з дашборда щовечора.', 'Run an A/A test: two identical pages, 30 evenings. The line shows the dashboard\'s "confidence" each evening.'); b.textContent = L('Запустити тест', 'Run a test'); return; }
+    const k = path.findIndex(v => v > .95);
+    msg.textContent = (k >= 0 ? L('На ' + (k + 1) + '-й вечір дашборд показав 95%: «переможець»!', 'On evening ' + (k + 1) + ' the dashboard showed 95%: a "winner"!') : L('За 30 вечорів жодного «95%».', 'Not a single "95%" in 30 evenings.')) +
+      ' ' + L('Тестів з «переможцем»: ' + flags + ' з ' + tests + '.', 'Tests with a "winner": ' + flags + ' of ' + tests + '.');
+    b.textContent = L('Ще один тест', 'Another test');
+  }
+  b.addEventListener('click', () => { run(); draw(); text(); });
+  document.addEventListener('langchange', () => { draw(); text(); });
+  window.addEventListener('resize', draw);
+  draw(); text();
+})();
