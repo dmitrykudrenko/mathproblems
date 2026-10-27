@@ -1,0 +1,1535 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/hat-check/", "en": "/hat-check/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "hat-check";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>The Hat-Check Problem: Nobody Gets Their Own Hat 1/e ≈ 37%</title>
+<meta name="description" content="A cloakroom attendant hands back hats at random. The chance nobody gets their own is ≈ 36.8% for 10 guests and for 100. A game, a simulation, Montmort, Euler.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/hat-check/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/hat-check/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/hat-check/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/hat-check/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="Hats in the cloakroom">
+<meta property="og:description" content="A cloakroom attendant hands the guests&#x27; hats back at random. What is the chance that nobody gets their own? And how does it change with 100 guests instead of 10?">
+<meta property="og:url" content="https://mathparadoxes.com/hat-check/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/hat-check/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A row of guests and a pile of hats in a cloakroom. What is the chance that nobody gets their own hat?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Hats in the cloakroom">
+<meta name="twitter:description" content="A cloakroom attendant hands the guests&#x27; hats back at random. What is the chance that nobody gets their own? And how does it change with 100 guests instead of 10?">
+<meta name="twitter:image" content="https://mathparadoxes.com/hat-check/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/hat-check/en/#page", "url": "https://mathparadoxes.com/hat-check/en/", "name": "The Hat-Check Problem: Nobody Gets Their Own Hat 1/e ≈ 37%", "description": "A cloakroom attendant hands back hats at random. The chance nobody gets their own is ≈ 36.8% for 10 guests and for 100. A game, a simulation, Montmort, Euler.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "advanced", "about": {"@type": "Thing", "name": "Derangement", "sameAs": "https://en.wikipedia.org/wiki/Derangement"}, "image": "https://mathparadoxes.com/hat-check/og-en.png", "datePublished": "2026-10-27", "dateModified": "2026-10-27", "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "translationOfWork": {"@id": "https://mathparadoxes.com/hat-check/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "Hats in the cloakroom", "item": "https://mathparadoxes.com/hat-check/en/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/hat-check/en/#faq", "inLanguage": "en", "mainEntity": [{"@type": "Question", "name": "What is the chance that nobody gets their own hat?", "acceptedAnswer": {"@type": "Answer", "text": "About 36.8%, that is 1/e. For 2 guests it is 1/2, for 3 it is 1/3, for 4 it is 3/8, for 5 it is 11/30, and from 7 guests on the percentage to two decimal places no longer changes: 36.79%."}}, {"@type": "Question", "name": "Why does the chance barely depend on the number of guests?", "acceptedAnswer": {"@type": "Answer", "text": "Each guest gets his own hat with chance 1/n, and there are n guests, so on average exactly one guest gets his own hat for any n. The exact formula is 1 − 1 + 1/2! − 1/3! + … ± 1/n!, and the terms 1/k! shrink so fast that each new guest changes almost nothing."}}, {"@type": "Question", "name": "How many guests get their own hat on average?", "acceptedAnswer": {"@type": "Answer", "text": "Exactly one, for any number of guests. Each of the n guests gets his own with chance 1/n, and averages add up even for dependent events: n · 1/n = 1. For large n the number of such guests follows almost exactly a Poisson distribution with mean 1."}}, {"@type": "Question", "name": "How often does a Secret Santa draw have to be redone?", "acceptedAnswer": {"@type": "Answer", "text": "If you redraw whenever someone draws themselves, a valid draw comes up in 36.8% of tries, and on average it takes e ≈ 2.72 tries. With 10 people, about 40% of the time you will need three tries or more."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the fly-between-trains page. A row of guests under a hat rack, each hat in its owner's
+   colour, is this problem's signature object. */
+:root {
+  --tint: #EDE4D8;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal canvas { height: 300px; border-radius: 14px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 2.6em; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--day); }
+.ctl output { font-family: var(--f-mono); font-weight: 600; color: var(--ink); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.presets button:disabled { opacity: .45; cursor: default; }
+.opts { display: grid; gap: 8px; }
+.opts button { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 11px 14px; cursor: pointer; font-size: .93rem; text-align: left; line-height: 1.35; }
+.opts button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--hit); }
+.msg .bad, .verdict .bad { color: var(--loss); font-weight: 600; }
+.msg .good, .verdict .good { color: var(--win); font-weight: 600; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 120px 1fr 64px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.gbar { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; font-family: var(--f-mono); font-size: .84rem; color: var(--muted); }
+.gbar b { color: var(--ink); }
+.setline { font-family: var(--f-mono); font-size: .92rem; background: var(--paper); border-radius: 10px; padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.setline b { font-weight: 600; }
+.bets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.bets button { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 10px; cursor: pointer; display: grid; gap: 2px; text-align: left; min-width: 0; }
+.bets button b { font-size: .9rem; font-weight: 600; line-height: 1.25; }
+.bets button span { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.bets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.bets button[aria-pressed="true"] span { color: var(--day-ink); }
+.bets button:disabled { cursor: default; }
+.verdict { border-radius: 12px; padding: 12px 14px; background: var(--paper); display: grid; gap: 8px; }
+.verdict b { font-weight: 600; }
+.locked { display: grid; gap: 10px; background: var(--hit-soft); border-color: transparent; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; min-width: 0; }
+.vs b { font-family: var(--f-display); font-size: 1.5rem; }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .84rem; color: var(--muted); }
+.formula { font-family: var(--f-mono); font-size: .92rem; background: var(--paper); border-radius: 10px; padding: 14px 16px; overflow-x: auto; line-height: 1.9; white-space: nowrap; }
+.formula em { font-style: normal; color: var(--hit); font-weight: 600; }
+.perms { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.perm { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: grid; gap: 6px; }
+.perm.none { border-color: var(--ink); border-width: 2px; }
+.perm .hs { display: flex; gap: 6px; }
+.perm .h { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; color: #fff; background: var(--c); }
+.perm .h.own { outline: 2px solid var(--ink); outline-offset: 2px; }
+.perm .lab { font-family: var(--f-mono); font-size: .74rem; color: var(--muted); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.layer { font-family: var(--f-display); font-weight: 800; font-size: 1.2rem; margin-top: 18px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.digits { font-family: var(--f-mono); font-size: 1.25rem; font-weight: 600; letter-spacing: .02em; overflow-x: auto; white-space: nowrap; }
+.digits .ch { color: var(--hit); }
+.digits .old { color: var(--muted); font-weight: 400; font-size: 1rem; }
+.tbl-wrap { overflow-x: auto; }
+table.t { border-collapse: collapse; width: 100%; font-size: .9rem; }
+.t th, .t td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.t th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+.t td.num, .t th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+.t tr.hl td { font-weight: 600; }
+.t .good { color: var(--win); }
+.t .bad { color: var(--loss); }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 92px 1fr 56px; }
+  .vs { grid-template-columns: 1fr; }
+  .bets { grid-template-columns: 1fr; }
+  .t th, .t td { padding: 8px 5px; }
+  .hero-cal canvas { height: 250px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=d9a074c5">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/en/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+  <nav class="mp-nav" aria-label="Sections" data-t="{&quot;cont&quot;: &quot;Continue&quot;, &quot;course&quot;: &quot;Continue the course&quot;}" data-slug="hat-check" data-me="{&quot;s&quot;: &quot;hat-check&quot;, &quot;n&quot;: {&quot;uk&quot;: &quot;Капелюхи в гардеробі&quot;, &quot;en&quot;: &quot;Hats in the cloakroom&quot;}, &quot;u&quot;: {&quot;uk&quot;: &quot;https://mathparadoxes.com/hat-check/&quot;, &quot;en&quot;: &quot;https://mathparadoxes.com/hat-check/en/&quot;}}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Menu"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Continue: <b></b></a><a href="https://mathparadoxes.com/en/#all" aria-current="page">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/">Glossary</a></div></nav>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/hat-check/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/hat-check/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <div class="mp-meta"><span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i></span>Advanced</button><span class="mp-level-hint" hidden>Expected value, variance, correlation, logarithms, series<a href="https://mathparadoxes.com/en/?l=3#all">All puzzles of this level →</a></span></span></div>
+    
+    <h1 class="en"><span class="kw">The hat-check problem</span> The attendant has mixed up all the tickets. <span class="q sp-before">What is the chance that nobody gets their own hat?</span><span class="q sp-after">About 37%, for 10 guests and for a million.</span></h1>
+    
+    
+    <p class="lead en sp-before">Guests have left their hats in a cloakroom and received numbered tickets. The attendant has dropped all the tickets, shuffled them and now hands the hats back completely at random: every guest gets one hat, but which one is down to chance. What is the probability that not a single guest goes home in their own hat? And is it different for 10 guests than for 100?</p>
+    <p class="lead en sp-after">Intuition says that as the number of guests grows, the chance should either fall to zero or climb to 100%. In fact it freezes almost at once: 50% for 2 guests, 33.3% for 3, 37.5% for 4, and from 7 guests on it is 36.79%, the same for 100 guests. This number is 1/e. The reason is that on average exactly one guest gets their own hat, however many people are in the cloakroom.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="en">36.79%</b><span><span class="en">nobody gets their own</span></span></div>
+      <div class="odd"><b>1</b><span><span class="en">guest with their own, on average</span></span></div>
+      <div class="odd"><b class="en">63.21%</b><span><span class="en">someone gets their own</span></span></div>
+    </div>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">The puzzle</span></span>
+    <h2><span class="en">A cloakroom, tickets and hats at random</span></h2>
+    
+    <p class="lead en">The puzzle is more than three hundred years old. Montmort, Nicolaus Bernoulli and Euler worked on it, and today it lives on in letters stuffed into the wrong envelopes and in Secret Santa, where nobody may draw themselves. We tell it through a cloakroom.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="en">The cloakroom</span></h3>
+        
+        <p class="en">n guests come to a party, each with their own hat. Each one checks the hat in and gets a ticket with its number.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="en">The tickets get mixed up</span></h3>
+        
+        <p class="en">The attendant has dropped the tickets and no longer knows whose hat is whose. At the end of the evening he hands the hats out completely at random: each guest gets exactly one hat, all hats are handed out, and every way of matching hats to guests is equally likely.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="en">A match</span></h3>
+        
+        <p class="en">If a guest gets exactly their own hat, that is a match. There can be any number of matches, from zero to n.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="en">The question</span></h3>
+        
+        <p class="en">What is the probability that there are no matches at all, that is, nobody gets their own hat? And how does it change with 100 guests instead of 10?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="en">Intuition says</span></span>
+        <p class="q"><span class="en">"A hundred guests can't all miss" or "out of a hundred, surely someone gets lucky"</span></p>
+        
+        <p class="en">Both sound convincing, and both are wrong. The chance that nobody gets their own is the same for 100 guests as for 10: 36.79%. Each guest is less likely to get lucky, but there are more guests, and on average exactly one gets their own hat.</p>
+      </div>
+      <div class="card">
+        <h3><span class="en">Assumptions</span></h3>
+        
+        <ul class="rules en">
+          <li>The attendant remembers nothing: every arrangement of the hats is equally likely.</li>
+          <li>Each guest gets exactly one hat, and each hat goes to exactly one guest.</li>
+          <li>The hats are all different, so "their own" means exactly the one the guest came with.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="en">What is the chance that nobody gets their own hat?</span></h2>
+    
+    <p class="lead en">Compare two cloakrooms: one with 10 guests and one with 100. Lock in your answer before reading on.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <span class="note"><span class="en">The chance that nobody gets their own hat…</span></span>
+      <div class="opts" id="g-opts"></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Hints</span>
+    <p class="mp-hints-intro">Hard to decide? Open the hints one at a time: the easy one first, then stronger ones.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Start small. For two guests and for three, list every way to hand out the hats and count how many leave nobody with their own.</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>Look at a single guest: how likely is he to get exactly his own hat? And how many such guests are there?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>More guests, but a smaller chance for each one. How do the two effects combine in the average number of guests who get their own hat?</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Show hint 1 of 3 · easy&quot;, &quot;Show hint 2 of 3 · medium&quot;, &quot;Show hint 3 of 3 · strong&quot;]">Show hint 1 of 3 · easy</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "hat-check";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "hat-check", RULE = {"right": ["e"]}, MIN = 20, T = {"kicker": "How others answer", "few": "Too few answers for stats yet: {n}. Yours is one of them.", "few_seen": "Too few answers for stats yet: {n}.", "all": "Answers so far: {n}. {p} of them are right.", "yes": "You are among those who got it.", "no": "Don't worry: intuition fails most people here.", "bar": "right", "note": "Only the first answer from each browser counts, given before it saw the solution. Anonymous."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    // "crowd" pages have no right answer: they get the raw counts and draw their own block
+    if (RULE.crowd) { document.dispatchEvent(new CustomEvent("mp-crowd", { detail: { k: data.k || {}, mine: mine } })); return; }
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: bets in the cloakroom -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 2 · Game</span></span>
+    <h2><span class="en">Bets in the cloakroom: you against Pete</span></h2>
+    
+    <p class="lead en">Eight parties, each with a different number of guests. Before each hand-out bet 1 to 3 chips on how many guests get their own hat: nobody (pays ×2.7), exactly one (×2.7) or two or more (×3.8). Pete, the old cloakroom attendant, bets on the same hand-outs by gut feeling: "in a small cloakroom someone gets lucky, in a big one nobody does". You each start with 20 chips. Who ends up with more?</p>
+  </div>
+  <div class="card locked sp-before">
+    <h3><span class="en">The game opens after your answer in round 1</span></h3>
+    
+    <p class="en">After a few hand-outs the answer starts to show, so make your own guess first.</p>
+  </div>
+  <div class="room sp-after">
+    <div class="card stage">
+      <div class="gbar"><span><span class="en">Party</span> <b id="g-round">–</b></span><span><span class="en">You</span> <b id="g-me">20</b></span><span><span class="en">Pete</span> <b id="g-pete">20</b></span></div>
+      <div class="setline" id="g-set"></div>
+      <div class="bets" id="g-bets"></div>
+      <div class="ctl"><span><span class="en">Stake, chips</span></span><div class="presets" id="g-stake"></div></div>
+      <canvas id="g-cv" style="height:190px"></canvas>
+      <p class="msg" id="g-msg" aria-live="polite"></p>
+      <div class="actions"><button class="btn pri" id="g-go" type="button"></button></div>
+    </div>
+    <div class="card" style="display:grid;gap:14px;align-content:start">
+      <h3><span class="en">Your parties</span></h3>
+      <div class="tbl-wrap"><table class="t" id="g-tbl"></table></div>
+      <div class="verdict" id="g-verdict" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: exact vs simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 3 · Exact and simulated</span></span>
+    <h2><span class="en">From 1 to 20 guests: simulation against the exact number</span></h2>
+    
+    <p class="lead en">For every number of guests from 1 to 20 the page hands out the hats at random many times (a fair shuffle, like shuffling a deck) and counts the share of hand-outs where nobody got their own. Dots are the simulation, the line is the exact probability from the formula in round 4. Separately, the page counts how many guests get their own hat on average.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <div class="ctl"><span><span class="en">Hand-outs per number of guests</span></span><div class="presets" id="s-pre"></div></div>
+      <button class="btn pri" id="s-run" type="button"><span class="en">Run again</span></button>
+      <span class="note" id="s-prog"></span>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="s-cv" style="height:300px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--muted)"><b class="en">exact probability</b></span>
+          <span style="--c:var(--ink)"><b class="en">simulation</b></span>
+          <span style="--c:var(--hit)"><b class="en">1/e ≈ 36.79%</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile" style="--c:var(--hit)"><div class="k"><span class="en">10 guests: nobody got their own</span></div><div class="v mono" id="t-10">–</div><div class="s" id="t-10s"></div></div>
+        <div class="tile"><div class="k"><span class="en">20 guests: nobody got their own</span></div><div class="v mono" id="t-20">–</div><div class="s" id="t-20s"></div></div>
+        <div class="tile" style="--c:var(--day)"><div class="k"><span class="en">Guests with their own hat on average, all hand-outs</span></div><div class="v mono" id="t-m">–</div><div class="s" id="t-ms"></div></div>
+        <div class="tile"><div class="k"><span class="en">Largest gap between simulation and exact value</span></div><div class="v mono" id="t-d">–</div><div class="s" id="t-ds"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 4 · Why</span></span>
+    <h2><span class="en">Why the chance freezes near 37%</span></h2>
+    
+    <p class="lead en">First the simple picture: why the chance heads neither to zero nor to one. Then the exact count and where the number e comes from.</p>
+  </div>
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">In plain words</span><span class="mp-layer-desc">pictures, analogies, small numbers</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“In plain words” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">One lucky guest on average</span></span>
+      <h3><span class="en">Each guest has a 1/n chance, and there are n guests</span></h3>
+      <div class="vs">
+        <div><span><span class="en">One guest's chance of getting their own</span></span><b class="mono">1/n</b><span><span class="en">for 100 guests, 1%</span></span></div>
+        <div><span><span class="en">Guests</span></span><b class="mono">n</b><span><span class="en">for 100 guests, 100</span></span></div>
+        <div class="bb"><span><span class="en">Matches on average</span></span><b class="mono">n · 1/n = 1</b><span><span class="en">for any n</span></span></div>
+      </div>
+      
+      
+      <p class="en">Take one guest. The attendant gives them one hat out of n, so they get their own with chance 1/n. The more guests, the smaller each one's chance, but the more people who might get lucky, and the two effects balance exactly: on <a href="https://mathparadoxes.com/glossary/median-vs-mean/en/" class="mp-term" data-term="mean" aria-expanded="false">average</a> exactly one guest gets their own hat, whether the cloakroom holds 10 people or a million. That is why the chance of "nobody" neither sinks to zero nor climbs to 100%: the picture for big cloakrooms is the same as for small ones.</p>
+      <p class="en">This card does not prove that the answer is exactly 36.8%; it only explains why it does not depend on n. A rough estimate goes like this: each guest misses with chance 1 − 1/n, and if the guests missed <a href="https://mathparadoxes.com/glossary/independence/en/" class="mp-term" data-term="independence" aria-expanded="false">independently</a>, they would all miss together with chance (1 − 1/n)ⁿ. For 10 guests that is 34.9%, for 100 it is 36.6%, and as n grows this number also tends to 1/e. But the guests are not independent (if your hat is already with someone, it cannot go to your neighbour), so the exact answer is slightly different: 36.79%. Where it comes from is in the next layers.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">Small cloakrooms</span></span>
+      <h3><span class="en">Three guests: six hand-outs, nobody matched in two</span></h3>
+      <div class="perms" id="e-perms"></div>
+      
+      <p class="en">A square is a guest; the colour and number on it show whose hat they got. Guests who got their own are outlined. With two guests there are only two hand-outs: each gets their own, or they swap, so the chance of "nobody" is 1/2. With three guests there are six hand-outs, and nobody matched in just two (framed): 1/3. With four, 9 out of 24 = 3/8 = 37.5%, with five, 44 out of 120 = 36.7%. The chance goes a little up, a little down, and the swings die out fast.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Rigorous</span><span class="mp-layer-desc">tables, charts, formulas</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Rigorous” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">Inclusion–exclusion</span></span>
+      <h3><span class="en">Throw out every hand-out where someone matched, and nothing extra</span></h3>
+      
+      <p class="en">There are n! hand-outs in all (n <a href="https://mathparadoxes.com/glossary/combinatorics/en/" class="mp-term" data-term="combinatorics" aria-expanded="false">factorial</a>: n · (n − 1) · … · 1). Throw out those where guest 1 got their own: the rest of the hats can go out in (n − 1)! ways. Do this for each of the n guests, n · (n − 1)! = n! in total. But hand-outs where two guests matched were thrown out twice, so we put them back: there are n(n − 1)/2 pairs of guests, (n − 2)! hand-outs for each, n!/2! in total. Now hand-outs with three matches are miscounted, so subtract n!/3!, and so on up to n. Divide by n!, and you get the probability that nobody matched:</p>
+      <p class="formula">P(n) = 1 − 1 + 1/2! − 1/3! + 1/4! − … ± 1/n! &nbsp;→&nbsp; <em><span class="en">1/e ≈ 0.367879</span></em></p>
+      <div class="tbl-wrap"><table class="t" id="w-ie"></table></div>
+      
+      <p class="en">This is exactly the start of the well-known series for 1/e. Each new guest adds one term ±1/n!, and factorials grow insanely fast: the 11th guest changes the chance by only 1/11! ≈ 0.000000025. That is why the answer barely depends on n: after a few guests the terms no longer matter.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Counting without the formula</span></span>
+      <h3><span class="en">D<sub>n</sub> = (n − 1) · (D<sub>n−1</sub> + D<sub>n−2</sub>)</span></h3>
+      
+      <p class="en">Let D<sub>n</sub> be the number of hand-outs to n guests where nobody matches. Guest 1 gets the hat of some guest j: n − 1 choices. Then there are two cases. Either guest j got guest 1's hat, the two simply swapped, and the other n − 2 guests must all miss: D<sub>n−2</sub> ways. Or guest j got something else: then treat guest 1's hat as the "wrong own hat" for j, and n − 1 guests must all miss: D<sub>n−1</sub> ways.</p>
+      <div class="tbl-wrap"><table class="t" id="w-rec"></table></div>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">The average is exactly 1</span></span>
+      <h3><span class="en">Averages add up even for dependent events</span></h3>
+      
+      <p class="en">The number of matches is a sum of n "light bulbs": guest i's bulb is on if they got their own hat. Each is on with chance 1/n. The guests are dependent, but the <a href="https://mathparadoxes.com/glossary/expected-value/en/" class="mp-term" data-term="expected-value" aria-expanded="false">expected value</a> of a sum is the sum of the expected values, always, with no conditions. So the average number of matches is n · 1/n = 1 exactly, for any n ≥ 1. The simulation in round 3 confirms it.</p>
+      
+      <p class="en">What is more, for large n the number of matches follows almost exactly a <a href="https://mathparadoxes.com/glossary/poisson-process/en/" class="mp-term" data-term="poisson-process" aria-expanded="false">Poisson distribution</a> with mean 1: exactly k matches happen with a chance close to e<sup>−1</sup>/k!. Zero and one match are equally likely, 36.8% each, two is 18.4%, three is 6.1%. You can see what it looks like in round 5.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">For formula lovers</span></span>
+      <h3><span class="en">Derangements, their share and the number of matches</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">A permutation with no matches at all is called a derangement. Inclusion–exclusion gives their number.</span></p>
+          <math display="block"><msub><mi>D</mi><mi>n</mi></msub><mo>=</mo><mi>n</mi><mo>!</mo><munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>0</mn></mrow><mi>n</mi></munderover><mfrac><msup><mrow><mo>(</mo><mo>−</mo><mn>1</mn><mo>)</mo></mrow><mi>k</mi></msup><mrow><mi>k</mi><mo>!</mo></mrow></mfrac><mo>,</mo><mspace width="1em"></mspace><mfrac><msub><mi>D</mi><mi>n</mi></msub><mrow><mi>n</mi><mo>!</mo></mrow></mfrac><mo>→</mo><mfrac class="hl"><mn>1</mn><mi>e</mi></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">The error after n guests is smaller than the first dropped term, so for n ≥ 1 the number of derangements is n!/e rounded to the nearest integer.</span></p>
+          <math display="block"><mrow><mo>|</mo><mfrac><msub><mi>D</mi><mi>n</mi></msub><mrow><mi>n</mi><mo>!</mo></mrow></mfrac><mo>−</mo><mfrac><mn>1</mn><mi>e</mi></mfrac><mo>|</mo></mrow><mo>&lt;</mo><mfrac><mn>1</mn><mrow><mo>(</mo><mi>n</mi><mo>+</mo><mn>1</mn><mo>)</mo><mo>!</mo></mrow></mfrac><mo>,</mo><mspace width="1em"></mspace><msub><mi>D</mi><mi>n</mi></msub><mo>=</mo><mrow><mo>⌊</mo><mfrac><mrow><mi>n</mi><mo>!</mo></mrow><mi>e</mi></mfrac><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>⌋</mo></mrow></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Exactly k matches: choose who matched, and the other n − k must all miss. The mean and the <a href="https://mathparadoxes.com/glossary/variance/en/" class="mp-term" data-term="variance" aria-expanded="false">variance</a> are both 1 for n ≥ 2.</span></p>
+          <math display="block"><mi>P</mi><mo>(</mo><mi>X</mi><mo>=</mo><mi>k</mi><mo>)</mo><mo>=</mo><mfrac><mrow><mrow><mo>(</mo><mfrac linethickness="0"><mi>n</mi><mi>k</mi></mfrac><mo>)</mo></mrow><msub><mi>D</mi><mrow><mi>n</mi><mo>−</mo><mi>k</mi></mrow></msub></mrow><mrow><mi>n</mi><mo>!</mo></mrow></mfrac><mo>=</mo><mfrac><mn>1</mn><mrow><mi>k</mi><mo>!</mo></mrow></mfrac><mo>·</mo><mfrac><msub><mi>D</mi><mrow><mi>n</mi><mo>−</mo><mi>k</mi></mrow></msub><mrow><mo>(</mo><mi>n</mi><mo>−</mo><mi>k</mi><mo>)</mo><mo>!</mo></mrow></mfrac><mo>→</mo><mfrac><msup><mi>e</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><mrow><mi>k</mi><mo>!</mo></mrow></mfrac></math>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Deeper</span><span class="mp-layer-desc">generalisations, theory, history</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Deeper” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">History · 1708–1753</span></span>
+      <h3><span class="en">The game of matches: Montmort, Bernoulli, Euler</span></h3>
+      
+      
+      <p class="en">The first to study the problem was Pierre Rémond de Montmort, in "Essay d'analyse sur les jeux de hazard" (1708), one of the first books on probability. He gave the solution in the second edition of 1713; Nicolaus Bernoulli solved it at about the same time. Since then it has been called the problem of matches (problème des rencontres).</p>
+      <p class="en">Leonhard Euler, unaware of Montmort's work, took up the same problem in "Calcul de la probabilité dans le jeu de rencontre" (Memoirs of the Berlin Academy, 1753). Two players draw a card at the same time from their own decks; if they ever draw the same card, the first one wins, otherwise the second. Euler tabulated 1 to 15 cards, noticed that from 12 cards on the first nine decimals no longer change, and recognised 1/e in the series. In his words, the players' chances stand roughly as 12 to 7, and for an ordinary deck of 52 cards this is already very exact.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">The subfactorial</span></span>
+      <h3><span class="en">!n — the factorial turned around</span></h3>
+      
+      
+      <p class="en">The number of derangements D<sub>n</sub> is often written !n and called the subfactorial, a name coined by William Allen Whitworth. The numbers grow almost like the factorial: !4 = 9, !5 = 44, !10 = 1,334,961, and each one equals n!/e rounded to the nearest integer. The chain D<sub>n</sub> = n · D<sub>n−1</sub> + (−1)<sup>n</sup> produces them even faster than the recursion on the two previous values.</p>
+      <p class="en">Euler noticed one more detail: for an even number of cards the chance of "no match" is slightly above 1/e, for an odd number slightly below. You can see it in round 3 too: the exact line swings around 1/e, and the swings die out fast.</p>
+    </div>
+
+  </div>
+  </div>
+
+<script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "hat-check" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 5 · Scaling up</span></span>
+    <h2><span class="en">How many matches, why n does not matter, and how often to redraw Secret Santa</span></h2>
+    
+    <p class="lead en">Mathematics: not just "nobody" but any number of matches, and how it turns into a Poisson distribution. Logic: why a new guest changes almost nothing. Practice: a Secret Santa draw that has to be repeated.</p>
+  </div>
+  <div class="esc">
+    <p class="layer"><span class="en">Mathematics</span></p>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">How many guests get their own hat</span></h3>
+        <canvas id="x-cv" style="height:220px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--day)"><b class="en">exact for n guests</b></span>
+          <span style="--c:var(--hit)"><b class="en">Poisson(1): e⁻¹/k!</b></span>
+        </div>
+        <div class="controls" style="margin:0">
+          <label class="ctl" for="x-n"><span><span class="en">Guests</span>: <output id="x-nv">4</output></span><input type="range" id="x-n" min="1" max="30" step="1" value="4"></label>
+        </div>
+        <p class="note" id="x-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">From derangements to Poisson</span></span>
+        <h3><span class="en">Exactly k matches</span></h3>
+        
+        
+        <p class="en">For exactly k matches, choose which guests matched, and the other n − k must all miss. The chance comes out as (1/k!) · D<sub>n−k</sub>/(n − k)!, and for large n the second factor is the same 1/e. So in big cloakrooms exactly k matches happen with chance e⁻¹/k!: that is the Poisson distribution with mean 1. It describes rare independent events: calls to a call centre per minute, atoms decaying, letters with typos.</p>
+        <p class="en">Curiously, exactly one match for n guests has the same chance as "nobody" for n − 1 guests. That is why zero and one match are level from 6–7 guests on. In small cloakrooms the distribution breaks: with two guests exactly one match is impossible, because once one gets their own, the other is left with their own too. Look at n = 2, 3, 4 on the chart.</p>
+      </div>
+    </div>
+
+    <p class="layer"><span class="en">Logic</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">What one more guest changes</span></h3>
+        <label class="ctl" for="d-n"><span><span class="en">Guests</span>: <output id="d-nv">6</output></span><input type="range" id="d-n" min="2" max="15" step="1" value="6"></label>
+        <div class="digits" id="d-p"></div>
+        <p class="note" id="d-txt"></p>
+        <div class="tbl-wrap"><table class="t" id="d-tbl"></table></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">Two effects that cancel</span></span>
+        <h3><span class="en">Why the answer barely depends on n</span></h3>
+        
+        
+        <p class="en">Intuition sees only one effect: either "lots of guests, someone will get lucky" or "each has a 1% chance, nobody will". In fact both act, and they cancel: the average number of matches is always 1. All that depends on n are tiny corrections ±1/n!. After 10 guests a new guest can only touch a term below one in a million.</p>
+        <p class="en">This move pays off far beyond the cloakroom. When one thing grows and another shrinks in proportion, look at the product: here n · 1/n = 1. You will meet it in rare events, insurance, hunting bugs in code: many opportunities, each unlikely, a few events on average, and their count follows the same Poisson.</p>
+      </div>
+    </div>
+
+    <p class="layer"><span class="en">Practice</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">The Secret Santa draw</span></h3>
+        <canvas id="p-cv" style="height:200px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--day)"><b class="en">simulation</b></span>
+          <span style="--c:var(--hit)"><b class="en">exact</b></span>
+        </div>
+        <div class="controls" style="margin:0">
+          <label class="ctl" for="p-n"><span><span class="en">People</span>: <output id="p-nv">10</output></span><input type="range" id="p-n" min="3" max="30" step="1" value="10"></label>
+          <button class="btn pri" id="p-run" type="button"><span class="en">Hold 1,000 draws</span></button>
+        </div>
+        <div class="result-row">
+          <div><span class="k"><span class="en">Tries on average</span></span><b class="big hit mono" id="p-a" style="font-size:2.2rem">–</b></div>
+          <div><span class="k"><span class="en">Three tries or more</span></span><b class="big mono" id="p-b" style="font-size:2.2rem">–</b></div>
+        </div>
+        <p class="note" id="p-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">Draw again</span></span>
+        <h3><span class="en">Why the slips have to be drawn several times</span></h3>
+        
+        
+        <p class="en">In Secret Santa everyone draws a slip from a hat with the name of the person they give a present to. If someone draws themselves, the simplest fix is to redraw everything. A good draw is a derangement, so it succeeds only 36.8% of the time, and on average it takes 1/(1/e) = e ≈ 2.72 tries. With 10 people the first try works 36.8% of the time, three tries or more are needed 40% of the time, four or more 25%.</p>
+        <p class="en">You can skip the redraws: put everyone in a random circle, and each gives to their neighbour on the right. Nobody gives to themselves, but this only produces hand-outs that form one big circle: for 5 people that is 24 of the 44 possible derangements, and two people never give presents to each other. If you want every derangement to be equally likely, redraw honestly.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1708</span>
+        <h3><span class="en">The problem of matches</span></h3>
+        
+        <p class="en">Pierre Rémond de Montmort took up the problem in "Essay d'analyse sur les jeux de hazard" in 1708 and solved it in the second edition of 1713. Nicolaus Bernoulli solved it at about the same time.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">12 : 7</span>
+        <h3><span class="en">The odds according to Euler</span></h3>
+        
+        <p class="en">Euler summed up the game of matches in 1753 like this: the chance of a match stands to the chance of none roughly as 12 to 7, more precisely as 1720 to 1001. Out of 19 games, the first player wins about 12.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">12</span>
+        <h3><span class="en">Cards enough for nine decimals</span></h3>
+        
+        <p class="en">In Euler's table, from 12 cards on the chance of "no match" no longer changes in the first nine decimals: 0.367879442. Bigger decks add nothing.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1</span>
+        <h3><span class="en">Always one</span></h3>
+        
+        <p class="en">Whether the cloakroom holds 3 guests or 3 million, on average exactly one gets their own hat. It is an exact number, not an approximation, and it does not need the guests to be independent.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2,72</span>
+        <h3><span class="en">Secret Santa tries</span></h3>
+        
+        <p class="en">If you redraw until nobody draws themselves, it takes e ≈ 2.72 draws on average. For 10 people the exact number is 3,628,800 / 1,334,961 ≈ 2.71828.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">!n</span>
+        <h3><span class="en">The subfactorial</span></h3>
+        
+        <p class="en">The number of derangements is written !n and called the subfactorial, a name coined by William Allen Whitworth. !10 = 1,334,961, and for any n ≥ 1 it is n!/e rounded to the nearest integer.</p>
+      </article>
+  </div>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">More puzzles</span>
+    <h2>Other paradoxes</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/monty-hall/en/"><h3>The Monty Hall problem</h3><p>You&#x27;re on a game show and pick one of three doors. The host, who knows where the car is, opens another door to reveal a goat and offers a switch. Should you take it?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/hundred-prisoners/en/"><h3>The 100 prisoners problem</h3><p>Each of 100 prisoners may open 50 of 100 boxes to find their number. All go free only if every one succeeds. What are the odds with the best strategy?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/penney-game/en/"><h3>Penney&#x27;s game</h3><p>You pick HHH, your opponent picks THH. The coin is flipped until one of the patterns comes up in a row. What are your opponent&#x27;s odds?</p></a>
+  </div>
+  <p class="mp-related-all"><a href="https://mathparadoxes.com/en/">All puzzles →</a> <a href="https://mathparadoxes.com/glossary/en/">Glossary →</a></p>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Discussion</span>
+    <h2>What do you think?</h2>
+    <p>Share your own explanation, an objection or a variant of the puzzle. You need a GitHub account to comment.</p>
+    <div class="mp-lvote"><p>Is “Advanced” the right level for this puzzle?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">No, harder</button><button type="button" data-vote="right">Yes</button><button type="button" data-vote="easier">No, easier</button></div><p class="mp-lvote-thanks">Thank you! This helps set the levels right.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "hat-check" + "-lvl", LEVEL = 3, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="hat-check" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="en" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Newsletter</span>
+    <h2>New puzzles, explanations and discussions</h2>
+    <p>I keep adding new puzzles, new ways to explain them and write-ups of the discussions they start. Leave your email and I'll write when something new is out. No spam, one-click unsubscribe.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">The sign-up form will appear here soon.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const STATIC = document.documentElement.hasAttribute('data-static');
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const solved = () => !window.mpSolved || mpSolved();
+const TAU = Math.PI * 2;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+// a number with at most d decimals, trailing zeros dropped, thousands grouped
+const num = (x, d = 2) => {
+  const s = (Math.round(x * 10 ** d) / 10 ** d).toLocaleString('en-US', { maximumFractionDigits: d });
+  return lang === 'en' ? s : s.replace(/,/g, ' ').replace('.', ',');
+};
+// fixed decimals
+const fix = (x, d) => { const s = x.toFixed(d); return lang === 'en' ? s : s.replace('.', ','); };
+const pct = (x, d = 1) => fix(100 * x, d) + '%';
+const big = s => lang === 'en' ? String(s).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : String(s).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const plural = (k, one, few, many) => {
+  const a = k % 10, b = k % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+const guestW = n => L(plural(n, 'гість', 'гості', 'гостей'), n === 1 ? 'guest' : 'guests');
+// after «для»: genitive
+const guestG = n => L(n % 10 === 1 && n % 100 !== 11 ? 'гостя' : 'гостей', n === 1 ? 'guest' : 'guests');
+
+/* ---------- maths ---------- */
+const INV_E = Math.exp(-1);
+const FACT = [1]; for (let k = 1; k <= 170; k++) FACT[k] = FACT[k - 1] * k;
+// probability that nobody matches among n guests: the alternating series up to 1/n!
+const pNone = n => { let s = 0; for (let k = 0; k <= n; k++) s += (k % 2 ? -1 : 1) / FACT[k]; return s; };
+// exactly k matches among n guests: (1/k!) * pNone(n - k)
+const pK = (n, k) => k > n ? 0 : pNone(n - k) / FACT[k];
+// exact derangement counts
+const DN = [1n, 0n]; for (let n = 2; n <= 100; n++) DN.push(BigInt(n - 1) * (DN[n - 1] + DN[n - 2]));
+const FN = [1n]; for (let n = 1; n <= 100; n++) FN.push(FN[n - 1] * BigInt(n));
+const gcd = (a, b) => { while (b) [a, b] = [b, a % b]; return a; };
+const frac = n => { if (n === 1) return '0'; const g = gcd(DN[n], FN[n]); return big(DN[n] / g) + '/' + big(FN[n] / g); };
+// a fair random hand-out: p[i] = whose hat guest i gets (Fisher–Yates)
+function deal(n) { const p = []; for (let i = 0; i < n; i++) p.push(i); for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = p[i]; p[i] = p[j]; p[j] = t; } return p; }
+const matches = p => { let m = 0; for (let i = 0; i < p.length; i++) if (p[i] === i) m++; return m; };
+
+/* ---------- drawing helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+// guests' colours: each hat has its owner's colour
+const GC = ['#2A3DD1', '#157F51', '#C98A00', '#7A4BC2', '#1E8FA6', '#BF3E28', '#5A6275', '#8C6A2E'];
+const gcol = i => GC[i % GC.length];
+// a bowler hat centred at x, brim at y, width s
+function drawHat(ctx, x, y, s, col) {
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.ellipse(x, y, s * .62, s * .13, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x, y - s * .05, s * .38, s * .46, 0, Math.PI, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fillRect(x - s * .38, y - s * .16, s * .76, s * .09);
+}
+function drawGuest(ctx, x, y, s, col, label) {
+  // y is the top of the head
+  ctx.fillStyle = tok('--surface'); ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(x, y + s * .3, s * .3, 0, TAU); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = col; rr(ctx, x - s * .42, y + s * .66, s * .84, s * .9, s * .2); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = '600 ' + Math.round(s * .36) + 'px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(label, x, y + s * 1.1);
+}
+
+/* ---------- hero: the hat rack and the guests ---------- */
+const HN = 6, CYCLE = 4.6, LIFT = 0.7, MOVE = 1.3;
+const hero = { t0: performance.now(), raf: 0, visible: true, p: deal(HN), k: -1, draws: 0, none: 0, sum: 0 };
+let heroCapText = '';
+const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+function heroDraw(now) {
+  const st = setupCanvas($('#hero-cv')); if (!st) return;
+  const { ctx, W, H } = st, ok = solved();
+  const el = reduce() ? CYCLE - 0.01 : ((now || performance.now()) - hero.t0) / 1000;
+  const k = Math.floor(el / CYCLE), t = el - k * CYCLE;
+  if (!reduce() && k !== hero.k) {
+    if (hero.k >= 0) hero.p = deal(HN);
+    hero.k = k;
+  }
+  ctx.fillStyle = tok('--tint') || '#EDE4D8'; rr(ctx, 0, 0, W, H, 14); ctx.fill();
+  const pad = 18, cw = (W - 2 * pad) / HN, s = Math.min(46, cw * .8);
+  const rackY = 40, headY = H - s * 1.75 - 30;
+  // the rack
+  ctx.strokeStyle = tok('--muted'); ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(pad - 4, rackY - s * .5); ctx.lineTo(W - pad + 4, rackY - s * .5); ctx.stroke();
+  for (let i = 0; i < HN; i++) { const x = pad + cw * (i + .5); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, rackY - s * .5); ctx.lineTo(x, rackY - s * .3); ctx.stroke(); }
+  const p = hero.p, done = t >= LIFT + MOVE;
+  for (let i = 0; i < HN; i++) {
+    const gx = pad + cw * (i + .5);
+    drawGuest(ctx, gx, headY, s, gcol(i), String(i + 1));
+    if (done && ok && p[i] === i) {
+      ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(gx, headY + s * .3, s * .5, 0, TAU); ctx.stroke();
+    }
+  }
+  // hat of owner j travels from rack slot j to guest i where p[i] = j
+  for (let i = 0; i < HN; i++) {
+    const j = p[i], x0 = pad + cw * (j + .5), x1 = pad + cw * (i + .5), y0 = rackY + s * .1, y1 = headY + s * .08;
+    let x = x0, y = y0;
+    if (t > LIFT) { const u = ease(Math.min(1, (t - LIFT) / MOVE)); x = x0 + (x1 - x0) * u; y = y0 + (y1 - y0) * u - Math.sin(Math.PI * u) * 18 * (x1 !== x0 ? 1 : 0); }
+    else y = y0 - Math.sin(Math.PI * t / LIFT) * 6;
+    drawHat(ctx, x, y, s * .8, gcol(j));
+  }
+  // tally once per cycle, only after the visitor has answered
+  if (done && hero.lastK !== hero.k) {
+    hero.lastK = hero.k;
+    if (ok) { hero.draws++; const m = matches(p); hero.sum += m; if (!m) hero.none++; }
+  }
+  let cap;
+  if (!ok) cap = L('Шість гостей, шість капелюхів. Гардеробник роздає їх навмання. Скільки гостей отримають свій?', 'Six guests, six hats. The attendant hands them out at random. How many guests get their own?');
+  else if (!hero.draws) cap = L('Обведено гостей, які отримали свій капелюх. Рахуємо роздачі…', 'Guests who got their own hat are circled. Counting hand-outs…');
+  else cap = L('Роздач: ' + hero.draws + '. Ніхто не отримав свій: ' + hero.none + ' (' + pct(hero.none / hero.draws, 0) + '). Точно: 53/144 ≈ 36,8%.', 'Hand-outs: ' + hero.draws + '. Nobody got their own: ' + hero.none + ' (' + pct(hero.none / hero.draws, 0) + '). Exactly: 53/144 ≈ 36.8%.');
+  if (cap !== heroCapText) { heroCapText = cap; $('#hero-cap').textContent = cap; }
+}
+function heroLoop(now) { heroDraw(now); if (!reduce() && hero.visible) hero.raf = requestAnimationFrame(heroLoop); else hero.raf = 0; }
+function heroStart() {
+  if (hero.raf) cancelAnimationFrame(hero.raf);
+  hero.raf = 0;
+  if (reduce()) { heroDraw(); return; }
+  hero.raf = requestAnimationFrame(heroLoop);
+}
+if ('IntersectionObserver' in window) new IntersectionObserver(es => {
+  hero.visible = es[0].isIntersecting;
+  if (hero.visible && !hero.raf && !reduce()) hero.raf = requestAnimationFrame(heroLoop);
+}).observe($('#hero-cv'));
+
+/* ---------- round 1: guess ---------- */
+const G_OPTS = [
+  ['zero', 'Для 100 гостей майже 0%, для 10 — помітно більше', 'Almost 0% for 100 guests, noticeably more for 10'],
+  ['e', 'Близько 37%, і для 10, і для 100 майже однаково', 'About 37%, almost the same for 10 and for 100'],
+  ['half', 'Близько 50% для будь-якої кількості гостей', 'About 50% for any number of guests'],
+  ['one', 'Для 100 гостей майже 100%, для 10 — менше', 'Almost 100% for 100 guests, less for 10']
+];
+let gPick = null;
+function optsText() {
+  $('#g-opts').innerHTML = G_OPTS.map(o => '<button type="button" data-k="' + o[0] + '" aria-pressed="' + (o[0] === gPick) + '">' + L(o[1], o[2]) + '</button>').join('');
+}
+function guessText() {
+  if (gPick === null) return;
+  const verdict = {
+    zero: L('Так здається: що більше гостей, то важче всім промахнутися. Але й кожен вгадує рідше: для 100 гостей лише з шансом 1%. Ці ефекти врівноважуються, і шанс «ніхто» не падає до нуля, а застигає біля 36,8%.', 'That is how it feels: the more guests, the harder for all of them to miss. But each one also hits less often: with 100 guests only with a 1% chance. The effects balance, and the chance of "nobody" does not fall to zero but freezes near 36.8%.'),
+    e: L('Так. Для 10 гостей шанс 36,79%, для 100 так само, аж до сьомого знаку після коми. Це число 1/e.', 'Yes. For 10 guests the chance is 36.79%, and for 100 the same, right down to the seventh decimal. This number is 1/e.'),
+    half: L('50% буває лише для двох гостей: або кожен отримав свій, або вони помінялися. Уже для трьох шанс 1/3, а далі він застигає біля 36,8%.', '50% only happens with two guests: either each gets their own, or they swap. With three it is already 1/3, and after that it freezes near 36.8%.'),
+    one: L('Так здається: у кожного з 100 гостей лише 1% вгадати. Але гостей сто, і в середньому свій капелюх отримує рівно один. Шанс «ніхто» не росте до 100%, а застигає біля 36,8%.', 'That is how it feels: each of 100 guests has only a 1% chance. But there are a hundred of them, and on average exactly one gets their own hat. The chance of "nobody" does not climb to 100% but freezes near 36.8%.')
+  }[gPick];
+  const rows = [2, 3, 4, 5, 10, 100].map(n => [n + ' ' + guestW(n), pNone(n), n <= 5 ? frac(n) : pct(pNone(n), 2)]);
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Ніхто не отримає свій', 'Nobody gets their own') + '</span><p class="big hit">≈ ' + pct(INV_E, 1) + '</p>' +
+    '<p>' + verdict + '</p><div class="compare">' + rows.map((r, i) => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:var(' + (i >= 4 ? '--hit' : '--day') + ');width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + r[2] + '</span></div>').join('') + '</div>' +
+    '<p class="note">' + L('Шкала від 0 до 100%. Чому так, у раунді 4. Перевірте на ставках у раунді 2.', 'The scale runs from 0 to 100%. Why, in round 4. Test it with bets in round 2.') + '</p>';
+}
+$('#g-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gPick = b.dataset.k; optsText(); guessText(); window.mpSolve && mpSolve(gPick); });
+
+/* ---------- round 2: bets in the cloakroom ---------- */
+const PARTIES = 8, START = 20;
+const ODDS = { none: 2.7, one: 2.7, many: 3.8 };
+const outcome = m => m === 0 ? 'none' : m === 1 ? 'one' : 'many';
+const betP = (n, b) => b === 'none' ? pNone(n) : b === 'one' ? pK(n, 1) : 1 - pNone(n) - pK(n, 1);
+const BETN = b => ({ none: L('Ніхто', 'Nobody'), one: L('Рівно один', 'Exactly one'), many: L('Двоє й більше', 'Two or more') })[b];
+// Pete's gut feeling: small cloakroom, someone hits; big cloakroom, nobody does
+const peteBet = n => n < 10 ? { b: 'one', s: 2 } : { b: 'none', s: 3 };
+const gm = { k: 0, list: [], me: START, pete: START, pick: null, stake: 1, p: null, rows: [], busy: false, timer: 0 };
+function partyList() {
+  const small = [2, 3, 4], bigs = [5, 6, 8, 10, 12, 15, 20, 30, 50, 100];
+  for (let i = bigs.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [bigs[i], bigs[j]] = [bigs[j], bigs[i]]; }
+  const all = small.concat(bigs.slice(0, PARTIES - small.length));
+  for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [all[i], all[j]] = [all[j], all[i]]; }
+  return all;
+}
+function gReset() { gm.k = 0; gm.list = partyList(); gm.me = START; gm.pete = START; gm.rows = []; gm.pick = null; gm.p = null; }
+const net = (b, s, out) => b === out ? s * (ODDS[b] - 1) : -s;
+const sgn = x => (x > 0 ? '+' : x < 0 ? '−' : '') + num(Math.abs(x), 1);
+function gText() {
+  const n = gm.list[gm.k], over = gm.k >= PARTIES;
+  $('#g-round').textContent = over ? PARTIES + '/' + PARTIES : (gm.k + 1) + '/' + PARTIES;
+  $('#g-me').textContent = num(gm.me, 1); $('#g-pete').textContent = num(gm.pete, 1);
+  const pb = over ? null : peteBet(n);
+  $('#g-set').innerHTML = over ? '<span>' + L('Усі вісім вечірок зіграно.', 'All eight parties played.') + '</span>' :
+    '<span>' + L('Гостей', 'Guests') + ': <b>' + n + '</b></span><span>' + L('Петрович ставить', 'Pete bets') + ': <b>' + BETN(pb.b) + ' × ' + pb.s + '</b></span>';
+  const locked = gm.p !== null || over;
+  $('#g-bets').innerHTML = ['none', 'one', 'many'].map(b => '<button type="button" data-b="' + b + '" aria-pressed="' + (b === gm.pick) + '"' + (locked ? ' disabled' : '') + '><b>' + BETN(b) + '</b><span>×' + num(ODDS[b], 1) + '</span></button>').join('');
+  $('#g-stake').innerHTML = [1, 2, 3].map(s => '<button type="button" data-s="' + s + '" aria-pressed="' + (s === gm.stake) + '"' + (locked ? ' disabled' : '') + '>' + s + '</button>').join('');
+  const go = $('#g-go');
+  if (over) { go.textContent = L('Зіграти ще вісім вечірок', 'Play eight more parties'); go.disabled = false; }
+  else if (gm.p === null) { go.textContent = gm.busy ? L('Роздає…', 'Handing out…') : L('Роздати капелюхи', 'Hand out the hats'); go.disabled = gm.pick === null || gm.busy; }
+  else { go.textContent = gm.k + 1 >= PARTIES ? L('Підсумок', 'Final score') : L('Наступна вечірка', 'Next party'); go.disabled = false; }
+  if (gm.p === null && !over && !gm.busy) $('#g-msg').innerHTML = gm.pick === null ? L('На що ставите? Оберіть ставку й кількість фішок.', 'What do you bet on? Pick a bet and a number of chips.') : L('Ставка: ' + BETN(gm.pick) + ' × ' + gm.stake + '. Натисніть «Роздати капелюхи».', 'Bet: ' + BETN(gm.pick) + ' × ' + gm.stake + '. Press "Hand out the hats".');
+  else if (gm.p !== null) {
+    const r = gm.rows[gm.rows.length - 1], m = r.m;
+    const ps = ['none', 'one', 'many'].map(b => BETN(b).toLowerCase() + ' ' + pct(betP(r.n, b), 1)).join(', ');
+    $('#g-msg').innerHTML = L('Свій капелюх отримали: <b>' + m + '</b>. Ви: <span class="' + (r.me > 0 ? 'good' : 'bad') + '">' + sgn(r.me) + '</span>, Петрович: <span class="' + (r.pe > 0 ? 'good' : 'bad') + '">' + sgn(r.pe) + '</span>. Шанси для ' + r.n + ' ' + guestG(r.n) + ' були: ' + ps + '.',
+      'Got their own hat: <b>' + m + '</b>. You: <span class="' + (r.me > 0 ? 'good' : 'bad') + '">' + sgn(r.me) + '</span>, Pete: <span class="' + (r.pe > 0 ? 'good' : 'bad') + '">' + sgn(r.pe) + '</span>. The chances for ' + r.n + ' ' + guestG(r.n) + ' were: ' + ps + '.');
+  }
+  gTable(); gVerdict();
+}
+function gTable() {
+  if (!gm.rows.length) { $('#g-tbl').innerHTML = '<tbody><tr><td class="note">' + L('Тут з\'являться ваші вечірки.', 'Your parties will appear here.') + '</td></tr></tbody>'; return; }
+  $('#g-tbl').innerHTML = '<thead><tr><th class="num">' + L('Гостей', 'Guests') + '</th><th class="num">' + L('Збігів', 'Matches') + '</th><th>' + L('Ви', 'You') + '</th><th class="num"></th><th class="num">' + L('Петрович', 'Pete') + '</th></tr></thead><tbody>' +
+    gm.rows.map(r => '<tr><td class="num">' + r.n + '</td><td class="num">' + r.m + '</td><td>' + BETN(r.b) + ' × ' + r.s + '</td><td class="num ' + (r.me > 0 ? 'good' : 'bad') + '">' + sgn(r.me) + '</td><td class="num ' + (r.pe > 0 ? 'good' : 'bad') + '">' + sgn(r.pe) + '</td></tr>').join('') + '</tbody>';
+}
+function gVerdict() {
+  const v = $('#g-verdict');
+  if (gm.k < PARTIES) {
+    v.innerHTML = '<p class="note">' + L('Петрович грає на ті самі роздачі, тож різниця між вами — лише у виборі ставок.', 'Pete plays the same hand-outs, so the only difference between you is the choice of bets.') + '</p>';
+    return;
+  }
+  const d = gm.me - gm.pete;
+  const head = d > 0 ? L('<span class="good">Ви обіграли Петровича на ' + num(d, 1) + ' фішки.</span>', '<span class="good">You beat Pete by ' + num(d, 1) + ' chips.</span>') :
+    d < 0 ? L('<span class="bad">Петрович попереду на ' + num(-d, 1) + ' фішки.</span>', '<span class="bad">Pete is ahead by ' + num(-d, 1) + ' chips.</span>') : L('Нічия.', 'A draw.');
+  v.innerHTML = '<p><b>' + head + '</b></p><p class="note">' + L('Для великих гардеробів ставки майже рівноцінні: «ніхто» і «рівно один» по 36,8%, «двоє й більше» 26,4%, тож усе вирішує везіння. Перевага ховається в малих: для 2 гостей «рівно один» не буває ніколи, а «двоє й більше» — це 50%; для 3 гостей «рівно один» — 50%; для 4 «двоє й більше» — 29%. Петрович у малих гардеробах ставить на «рівно один» і для двох гостей програє завжди.',
+    'In big cloakrooms the bets are nearly equal: "nobody" and "exactly one" 36.8% each, "two or more" 26.4%, so luck decides. The edge hides in the small ones: with 2 guests "exactly one" never happens, while "two or more" is 50%; with 3 guests "exactly one" is 50%; with 4, "two or more" is 29%. In small cloakrooms Pete bets on "exactly one" and with two guests always loses.') + '</p>';
+}
+function gDraw() {
+  const st = setupCanvas($('#g-cv')); if (!st) return;
+  const { ctx, W, H } = st, over = gm.k >= PARTIES;
+  const n = over ? (gm.rows.length ? gm.rows[gm.rows.length - 1].n : 2) : gm.list[gm.k], p = over && gm.rows.length ? gm.rows[gm.rows.length - 1].p : gm.p;
+  const cols = n <= 10 ? n : Math.min(n, Math.max(6, Math.ceil(Math.sqrt(n * W / H)))), rows = Math.ceil(n / cols);
+  const gap = n > 30 ? 3 : 6, cw = (W - gap * (cols - 1)) / cols, ch = Math.min(n <= 10 ? 90 : 60, (H - gap * (rows - 1)) / rows), tw = Math.min(cw, n <= 10 ? 74 : 60);
+  const offX = (W - (tw * cols + gap * (cols - 1))) / 2, offY = (H - (ch * rows + gap * (rows - 1))) / 2;
+  for (let i = 0; i < n; i++) {
+    const c = i % cols, r = Math.floor(i / cols), x = offX + c * (tw + gap), y = offY + r * (ch + gap);
+    const own = p && p[i] === i;
+    rr(ctx, x, y, tw, ch, Math.min(8, tw * .2));
+    ctx.fillStyle = own ? tok('--ink') : tok('--paper'); ctx.fill();
+    ctx.strokeStyle = tok('--line'); ctx.lineWidth = 1; ctx.stroke();
+    if (n <= 12) {
+      if (p) drawHat(ctx, x + tw / 2, y + ch * .48, Math.min(tw, ch) * .62, gcol(p[i]));
+      else { ctx.fillStyle = tok('--muted'); ctx.font = '600 ' + Math.round(ch * .3) + 'px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', x + tw / 2, y + ch * .4); }
+      ctx.fillStyle = own ? tok('--paper') : tok('--ink'); ctx.font = '600 ' + Math.round(Math.min(13, ch * .18)) + 'px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      ctx.fillText(p ? (i + 1) + '←' + (p[i] + 1) : String(i + 1), x + tw / 2, y + ch - 6);
+    } else if (tw > 16) {
+      ctx.fillStyle = own ? tok('--paper') : tok('--muted'); ctx.font = Math.round(Math.min(11, tw * .4)) + 'px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(p ? String(p[i] + 1) : '?', x + tw / 2, y + ch / 2);
+    }
+  }
+}
+$('#g-bets').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; gm.pick = b.dataset.b; gText(); });
+$('#g-stake').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; gm.stake = +b.dataset.s; gText(); });
+$('#g-go').addEventListener('click', () => {
+  if (gm.k >= PARTIES) { gReset(); gText(); gDraw(); return; }
+  if (gm.p !== null) { gm.k++; gm.p = null; if (gm.k < PARTIES) gm.pick = null; gText(); gDraw(); return; }
+  if (gm.pick === null || gm.busy) return;
+  gm.busy = true; gText();
+  clearTimeout(gm.timer);
+  gm.timer = setTimeout(() => {
+    const n = gm.list[gm.k], p = deal(n), m = matches(p), out = outcome(m), pb = peteBet(n);
+    const me = net(gm.pick, gm.stake, out), pe = net(pb.b, pb.s, out);
+    gm.me += me; gm.pete += pe; gm.p = p; gm.busy = false;
+    gm.rows.push({ n, m, b: gm.pick, s: gm.stake, me, pe, p });
+    if (gm.k + 1 >= PARTIES) { /* the last party: the button shows the final score */ }
+    gText(); gDraw();
+  }, reduce() ? 0 : 450);
+});
+
+/* ---------- round 3: simulation over n = 1..20 ---------- */
+const NMAX = 20;
+const sim = { T: 10000, res: [], run: 0, n: 0 };
+function simRun() {
+  const id = ++sim.run; sim.res = []; sim.n = 1;
+  const step = () => {
+    if (id !== sim.run) return;
+    const n = sim.n, T = sim.T;
+    let none = 0, sum = 0;
+    const a = new Array(n);
+    for (let t = 0; t < T; t++) {
+      for (let i = 0; i < n; i++) a[i] = i;
+      let m = 0;
+      for (let i = n - 1; i >= 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const x = a[j]; a[j] = a[i]; a[i] = x; if (x === i) m++; }
+      sum += m; if (!m) none++;
+    }
+    sim.res[n] = { T, none, sum };
+    sim.n++;
+    simText(); simDraw();
+    if (sim.n <= NMAX) setTimeout(step, 0);
+  };
+  setTimeout(step, 0);
+}
+function simText() {
+  $('#s-pre').innerHTML = [1000, 10000, 100000].map(T => '<button type="button" data-t="' + T + '" aria-pressed="' + (T === sim.T) + '">' + big(T) + '</button>').join('');
+  const done = sim.res.filter(Boolean).length;
+  $('#s-prog').textContent = done < NMAX ? L('Рахуємо: ' + done + ' з ' + NMAX + '…', 'Counting: ' + done + ' of ' + NMAX + '…') : L('Готово: ' + big(NMAX * sim.T) + ' роздач.', 'Done: ' + big(NMAX * sim.T) + ' hand-outs.');
+  for (const n of [10, 20]) {
+    const r = sim.res[n];
+    $('#t-' + n).textContent = r ? pct(r.none / r.T, 2) : '–';
+    $('#t-' + n + 's').textContent = L('точно ', 'exact ') + pct(pNone(n), 4) + (r ? L(' · роздач ', ' · hand-outs ') + big(r.T) : '');
+  }
+  let S = 0, C = 0, dev = 0, devN = 0;
+  for (let n = 1; n <= NMAX; n++) { const r = sim.res[n]; if (!r) continue; S += r.sum; C += r.T; const d = Math.abs(r.none / r.T - pNone(n)); if (d > dev) { dev = d; devN = n; } }
+  $('#t-m').textContent = C ? fix(S / C, 3) : '–';
+  $('#t-ms').textContent = L('точно 1 для кожного n', 'exactly 1 for every n');
+  $('#t-d').textContent = C ? fix(100 * dev, 2) + L(' п. п.', ' pp') : '–';
+  const sd = Math.sqrt(INV_E * (1 - INV_E) / sim.T);
+  $('#t-ds').textContent = (devN ? L('при n = ' + devN + '. ', 'at n = ' + devN + '. ') : '') + L('Типовий розкид для ', 'Typical noise for ') + big(sim.T) + L(' роздач: ±', ' hand-outs: ±') + fix(100 * sd, 2) + L(' п. п.', ' pp');
+}
+function simDraw() {
+  const st = setupCanvas($('#s-cv')); if (!st) return;
+  const { ctx, W, H } = st;
+  const padL = 40, padR = 12, padT = 12, padB = 26, Y = .6;
+  const sx = n => padL + (W - padL - padR) * (n - 1) / (NMAX - 1), sy = v => padT + (H - padT - padB) * (1 - v / Y);
+  ctx.strokeStyle = tok('--line'); ctx.lineWidth = 1; ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (const v of [0, .1, .2, .3, .4, .5, .6]) { ctx.beginPath(); ctx.moveTo(padL, sy(v)); ctx.lineTo(W - padR, sy(v)); ctx.stroke(); ctx.fillText(Math.round(v * 100) + '%', padL - 6, sy(v)); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let n = 1; n <= NMAX; n++) if (n === 1 || n % (W < 420 ? 4 : 2) === 0) ctx.fillText(String(n), sx(n), H - padB + 6);
+  // 1/e
+  ctx.strokeStyle = tok('--hit'); ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(padL, sy(INV_E)); ctx.lineTo(W - padR, sy(INV_E)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = tok('--hit'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('1/e', W - padR, sy(INV_E) - 12);
+  // exact
+  ctx.strokeStyle = tok('--muted'); ctx.lineWidth = 2; ctx.beginPath();
+  for (let n = 1; n <= NMAX; n++) { const x = sx(n), y = sy(pNone(n)); n === 1 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+  ctx.stroke();
+  ctx.fillStyle = tok('--muted'); for (let n = 1; n <= NMAX; n++) { ctx.beginPath(); ctx.arc(sx(n), sy(pNone(n)), 2.5, 0, TAU); ctx.fill(); }
+  // simulated
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 1.6;
+  for (let n = 1; n <= NMAX; n++) { const r = sim.res[n]; if (!r) continue; ctx.beginPath(); ctx.arc(sx(n), sy(r.none / r.T), 5, 0, TAU); ctx.stroke(); }
+}
+$('#s-pre').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; sim.T = +b.dataset.t; simRun(); simText(); });
+$('#s-run').addEventListener('click', simRun);
+
+/* ---------- round 4: the six hand-outs of three hats, and the tables ---------- */
+function ePerms() {
+  const P = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [2, 1, 0], [1, 2, 0], [2, 0, 1]];
+  $('#e-perms').innerHTML = P.map(p => {
+    const m = matches(p);
+    return '<div class="perm' + (m ? '' : ' none') + '"><div class="hs">' + p.map((h, i) => '<span class="h' + (h === i ? ' own' : '') + '" style="--c:' + gcol(h) + '">' + (h + 1) + '</span>').join('') + '</div><span class="lab">' +
+      (m ? L('свій у ' + m, m + (m === 1 ? ' match' : ' matches')) : L('ніхто', 'nobody')) + '</span></div>';
+  }).join('');
+}
+function wIE() {
+  let s = 0, rows = '';
+  for (let k = 0; k <= 10; k++) {
+    s += (k % 2 ? -1 : 1) / FACT[k];
+    rows += '<tr' + (k === 10 ? ' class="hl"' : '') + '><td class="num">' + k + '</td><td class="num">' + (k % 2 ? '− ' : '+ ') + '1/' + big(FACT[k]) + '</td><td class="num">' + fix(s, 7) + '</td><td class="num">' + (k ? fix(s - INV_E, 7).replace('-', '−') : '') + '</td></tr>';
+  }
+  $('#w-ie').innerHTML = '<thead><tr><th class="num">k</th><th class="num">' + L('доданок', 'term') + '</th><th class="num">' + L('сума', 'sum') + '</th><th class="num">' + L('мінус 1/e', 'minus 1/e') + '</th></tr></thead><tbody>' + rows + '</tbody>';
+}
+function wRec() {
+  let rows = '';
+  for (let n = 1; n <= 10; n++) rows += '<tr><td class="num">' + n + '</td><td class="num">' + big(DN[n]) + '</td><td class="num">' + big(FN[n]) + '</td><td class="num">' + (n <= 5 ? frac(n) + ' = ' : '') + pct(pNone(n), 2) + '</td></tr>';
+  $('#w-rec').innerHTML = '<thead><tr><th class="num">n</th><th class="num">D<sub>n</sub></th><th class="num">n!</th><th class="num">' + L('частка', 'share') + '</th></tr></thead><tbody>' + rows + '</tbody>';
+}
+
+/* ---------- round 5: number of matches vs Poisson ---------- */
+function xText() {
+  const n = +$('#x-n').value; $('#x-nv').textContent = n;
+  const p0 = pK(n, 0), p1 = pK(n, 1), p2 = pK(n, 2);
+  $('#x-txt').textContent = L('Для ' + n + ' ' + guestG(n) + ': жодного збігу ' + pct(p0, 1) + ', рівно один ' + pct(p1, 1) + ', рівно два ' + pct(p2, 1) + '. Пуассон: 36,8%, 36,8%, 18,4%.',
+    'For ' + n + ' ' + guestG(n) + ': no match ' + pct(p0, 1) + ', exactly one ' + pct(p1, 1) + ', exactly two ' + pct(p2, 1) + '. Poisson: 36.8%, 36.8%, 18.4%.');
+  xDraw(n);
+}
+function xDraw(n) {
+  const st = setupCanvas($('#x-cv')); if (!st) return;
+  const { ctx, W, H } = st, K = 6, padB = 22, padT = 18, Y = .7;
+  const bw = W / (K + 1), sy = v => padT + (H - padT - padB) * (1 - v / Y);
+  for (let k = 0; k <= K; k++) {
+    const v = pK(n, k), x = k * bw + bw * .18, w = bw * .64;
+    ctx.fillStyle = tok('--day'); ctx.fillRect(x, sy(v), w, sy(0) - sy(v));
+    const pv = INV_E / FACT[k];
+    ctx.strokeStyle = tok('--hit'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x - 3, sy(pv)); ctx.lineTo(x + w + 3, sy(pv)); ctx.stroke();
+    ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(String(k), x + w / 2, H - padB + 5);
+    if (v >= .005) { ctx.fillStyle = tok('--ink'); ctx.textBaseline = 'bottom'; ctx.fillText(fix(100 * v, 0) + '%', x + w / 2, Math.min(sy(v), sy(pv)) - 3); }
+  }
+  ctx.strokeStyle = tok('--line'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, sy(0)); ctx.lineTo(W, sy(0)); ctx.stroke();
+}
+$('#x-n').addEventListener('input', xText);
+
+/* ---------- round 5: what one more guest changes ---------- */
+function dText() {
+  const n = +$('#d-n').value; $('#d-nv').textContent = n;
+  const a = pNone(n - 1), b = pNone(n), sa = a.toFixed(9), sb = b.toFixed(9);
+  let i = 0; while (i < sb.length && sa[i] === sb[i]) i++;
+  const show = s => lang === 'en' ? s : s.replace('.', ',');
+  $('#d-p').innerHTML = '<span class="old">' + (n - 1) + ': ' + show(sa) + '</span><br>' + n + ': ' + show(sb.slice(0, i)) + '<span class="ch">' + show(sb.slice(i)) + '</span>';
+  const pos = Math.max(1, i - 1);
+  $('#d-txt').textContent = L('Гість номер ' + n + ' змінює шанс на ' + (n % 2 ? '−' : '+') + '1/' + n + '! = ' + (n % 2 ? '−' : '+') + fix(1 / FACT[n], Math.min(12, n + 2)) + ', тобто лише починаючи з ' + pos + '-го знаку після коми.',
+    'Guest number ' + n + ' changes the chance by ' + (n % 2 ? '−' : '+') + '1/' + n + '! = ' + (n % 2 ? '−' : '+') + fix(1 / FACT[n], Math.min(12, n + 2)) + ', that is, only from decimal place ' + pos + ' on.');
+  let rows = '';
+  for (const k of [5, 7, 10, 12, 15]) rows += '<tr' + (k === n ? ' class="hl"' : '') + '><td class="num">' + k + '</td><td class="num">' + pct(pNone(k), 6) + '</td><td class="num">± 1/' + k + '!</td></tr>';
+  $('#d-tbl').innerHTML = '<thead><tr><th class="num">' + L('гостей', 'guests') + '</th><th class="num">' + L('ніхто не вгадав', 'nobody matched') + '</th><th class="num">' + L('поправка останнього гостя', 'last guest\'s correction') + '</th></tr></thead><tbody>' + rows + '</tbody>';
+}
+$('#d-n').addEventListener('input', dText);
+
+/* ---------- round 5: Secret Santa redraws ---------- */
+const santa = { n: 10, hist: null, avg: 0, ge3: 0, N: 0 };
+function pRun() {
+  const n = santa.n, N = 1000, hist = new Array(9).fill(0);
+  let sum = 0, ge3 = 0;
+  for (let t = 0; t < N; t++) { let k = 1; while (matches(deal(n))) k++; sum += k; if (k >= 3) ge3++; hist[Math.min(8, k)]++; }
+  santa.hist = hist; santa.avg = sum / N; santa.ge3 = ge3 / N; santa.N = N;
+  pText();
+}
+function pText() {
+  const n = +$('#p-n').value; $('#p-nv').textContent = n;
+  if (n !== santa.n) { santa.n = n; santa.hist = null; }
+  const q = pNone(n), exAvg = 1 / q, ex3 = (1 - q) * (1 - q);
+  $('#p-a').textContent = santa.hist ? num(santa.avg, 2) : '–';
+  $('#p-b').textContent = santa.hist ? pct(santa.ge3, 0) : '–';
+  $('#p-txt').textContent = L('Точно для ' + n + ' учасників: вдалої спроби шанс ' + pct(q, 2) + ', спроб у середньому ' + num(exAvg, 4) + ', три й більше — ' + pct(ex3, 1) + '.' + (santa.hist ? ' Симуляція: ' + big(santa.N) + ' жеребкувань.' : ' Натисніть кнопку, щоб провести жеребкування.'),
+    'Exact for ' + n + ' people: a try succeeds with chance ' + pct(q, 2) + ', tries on average ' + num(exAvg, 4) + ', three or more ' + pct(ex3, 1) + '.' + (santa.hist ? ' Simulation: ' + big(santa.N) + ' draws.' : ' Press the button to hold the draws.'));
+  pDraw(q);
+}
+function pDraw(q) {
+  const st = setupCanvas($('#p-cv')); if (!st) return;
+  const { ctx, W, H } = st, K = 8, padB = 22, padT = 14, Y = .45;
+  const bw = W / K, sy = v => padT + (H - padT - padB) * (1 - Math.min(v, Y) / Y);
+  for (let k = 1; k <= K; k++) {
+    const ex = k < K ? Math.pow(1 - q, k - 1) * q : Math.pow(1 - q, K - 1), x = (k - 1) * bw + bw * .2, w = bw * .6;
+    if (santa.hist) { const v = santa.hist[k] / santa.N; ctx.fillStyle = tok('--day'); ctx.fillRect(x, sy(v), w, sy(0) - sy(v)); }
+    ctx.strokeStyle = tok('--hit'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x - 3, sy(ex)); ctx.lineTo(x + w + 3, sy(ex)); ctx.stroke();
+    ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(k === K ? K + '+' : String(k), x + w / 2, H - padB + 5);
+  }
+  ctx.strokeStyle = tok('--line'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, sy(0)); ctx.lineTo(W, sy(0)); ctx.stroke();
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText(L('спроба, на якій вдалося', 'try that worked'), W - 2, 0);
+}
+$('#p-n').addEventListener('input', pText);
+$('#p-run').addEventListener('click', pRun);
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Задача про капелюхи: ніхто не отримає свій з шансом 1/e', 'The Hat-Check Problem: Nobody Gets Their Own Hat 1/e of the Time');
+  $('#lang').querySelectorAll('a').forEach(el => el.setAttribute('aria-current', el.dataset.l === lang));
+  heroCapText = ''; heroDraw(); optsText(); guessText(); gText(); gDraw(); simText(); simDraw(); ePerms(); wIE(); wRec(); xText(); dText(); pText();
+}
+$('#lang').addEventListener('click', e => {
+  const el = e.target.closest('a'); if (!el || STATIC) return;
+  e.preventDefault();
+  if (el.dataset.l === lang) return;
+  lang = el.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang || lang; applyLang(); });
+document.addEventListener('solved', () => { heroCapText = ''; heroDraw(); gText(); gDraw(); });
+const redraw = () => { heroDraw(); gDraw(); simDraw(); xText(); pText(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state ---------- */
+gReset();
+applyLang();
+heroStart();
+simRun();
+})();
+</script>
+
+<script type="application/json" id="mp-terms">{"mean": {"name": "Mean (average)", "short": "The sum of all values divided by how many there are: what everyone would get if it were shared equally.", "hook": "Almost everyone has more legs than average: the average is a little under two.", "url": "https://mathparadoxes.com/glossary/median-vs-mean/en/", "link": "Try it in a simulation"}, "independence": {"name": "Independence", "short": "Events are independent if knowing about one doesn't change the chances of the other.", "hook": "After five heads in a row tails is no more likely: the coin remembers nothing.", "url": "https://mathparadoxes.com/glossary/independence/en/", "link": "Try it in a simulation"}, "combinatorics": {"name": "Combinatorics", "short": "Counting how many ways things can be ordered or chosen: permutations n!, combinations C(n, k).", "hook": "A well-shuffled deck is almost certainly in an order nobody has ever seen.", "url": "https://mathparadoxes.com/glossary/combinatorics/en/", "link": "Try it in a simulation"}, "expected-value": {"name": "Expected value", "short": "The average result you can expect if you repeat the same thing very many times.", "hook": "A die's expected value is 3.5, yet no face shows 3.5.", "url": "https://mathparadoxes.com/glossary/expected-value/en/", "link": "Try it in a simulation"}, "poisson-process": {"name": "Poisson process", "short": "A stream of independent random events at a constant average rate: calls, Geiger clicks, raindrops.", "hook": "In 1944 Londoners thought German flying bombs were aimed at certain districts; it was ordinary random clumping.", "url": "https://mathparadoxes.com/glossary/poisson-process/en/", "link": "Try it in a simulation"}, "variance": {"name": "Variance and standard deviation", "short": "A measure of spread: how far values typically stray from the mean. The standard deviation is its square root, in the same units.", "hook": "Two towns with the same average temperature: one stays near +15 all year, the other swings from −20 to +50.", "url": "https://mathparadoxes.com/glossary/variance/en/", "link": "Try it in a simulation"}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'en' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Sections"><a href="https://mathparadoxes.com/en/#all" aria-current="page">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/">Glossary</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+</body>
+</html>
