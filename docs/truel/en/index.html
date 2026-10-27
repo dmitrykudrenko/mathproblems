@@ -1,0 +1,1638 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/truel/", "en": "/truel/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "truel";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>The Truel: Why the Worst Shot Has the Best Chance to Survive</title>
+<meta name="description" content="Ann hits 1 shot in 3, Bob 2 in 3, Sam always. Ann survives most often, 39.7%, if she fires into the air. Play as Ann, simulate, see why it works.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/truel/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/truel/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/truel/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/truel/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="The truel">
+<meta property="og:description" content="Three shoot in turn: Ann hits 1 shot in 3, Bob 2 in 3, Sam always. Who has the best chance of being the last one standing?">
+<meta property="og:url" content="https://mathparadoxes.com/truel/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/truel/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Three shooters in a triangle with hit rates 1/3, 2/3 and 1 and a question mark in the middle. Who is most likely to survive?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The truel">
+<meta name="twitter:description" content="Three shoot in turn: Ann hits 1 shot in 3, Bob 2 in 3, Sam always. Who has the best chance of being the last one standing?">
+<meta name="twitter:image" content="https://mathparadoxes.com/truel/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/truel/en/#page", "url": "https://mathparadoxes.com/truel/en/", "name": "The Truel: Why the Worst Shot Has the Best Chance to Survive", "description": "Ann hits 1 shot in 3, Bob 2 in 3, Sam always. Ann survives most often, 39.7%, if she fires into the air. Play as Ann, simulate, see why it works.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "intermediate", "about": {"@type": "Thing", "name": "Truel", "sameAs": "https://en.wikipedia.org/wiki/Truel"}, "image": "https://mathparadoxes.com/truel/og-en.png", "datePublished": "2026-10-27", "dateModified": "2026-10-27", "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "translationOfWork": {"@id": "https://mathparadoxes.com/truel/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "The truel", "item": "https://mathparadoxes.com/truel/en/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/truel/en/#faq", "inLanguage": "en", "mainEntity": [{"@type": "Question", "name": "What is a truel?", "acceptedAnswer": {"@type": "Answer", "text": "It is a duel for three: the players shoot in turn until one is left. The economist Martin Shubik coined the word in 1954 in his paper \"Does the Fittest Necessarily Survive?\". The puzzle shows that the best shot does not necessarily have the best chance."}}, {"@type": "Question", "name": "Why does the worst shot have the best chance?", "acceptedAnswer": {"@type": "Answer", "text": "Bob and Sam are the most dangerous to each other, so they shoot at each other, and nobody aims at Ann. Ann fires her first shot into the air and waits. Whichever of them survives, the next shot is hers. She survives with probability 25/63 ≈ 39.7%, Bob 8/21 ≈ 38.1%, Sam 2/9 ≈ 22.2%."}}, {"@type": "Question", "name": "Why shouldn't Ann shoot at Sam?", "acceptedAnswer": {"@type": "Answer", "text": "If she hits Sam, she is left in a duel with Bob, and he shoots first. Then her chance is only 1/7. Overall a shot at Sam gives Ann 59/189 ≈ 31.2%, a shot at Bob 50/189 ≈ 26.5%, and a shot into the air 25/63 ≈ 39.7%."}}, {"@type": "Question", "name": "Does the weakest always survive more often?", "acceptedAnswer": {"@type": "Answer", "text": "No, it depends on the rules. If the order is drawn by lot, Sam becomes the favourite in our example with a chance of 4/9. If shooting into the air is not allowed, Bob is the favourite with 34/63."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the braess-paradox page. Three shooters in a triangle, each with a ring filled to their hit rate, is this problem's signature object. */
+:root {
+  --tint: #F0DCD4;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --grey: #A3A9BA;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--ink); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal canvas { height: 320px; border-radius: 14px; }
+.hero-cal .cap { font-size: .84rem; color: var(--muted); min-height: 2.6em; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .4; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 200px; max-width: 100%; accent-color: var(--day); }
+.ctl output { font-family: var(--f-mono); font-weight: 600; color: var(--ink); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--hit); }
+.good { color: var(--win); font-weight: 600; }
+.bad { color: var(--loss); font-weight: 600; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; cursor: pointer; font-size: .9rem; }
+.presets button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: #fff; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+.trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.trio > div { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 2px; text-align: center; }
+.trio b { font-family: var(--f-display); font-size: 1.3rem; }
+.trio span { font-size: .8rem; color: var(--muted); }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 110px 1fr 70px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+.crow .mono { text-align: right; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.stage { display: grid; gap: 14px; }
+.arena { display: block; width: 100%; max-width: 440px; height: auto; margin: 0 auto; }
+.arena text { font-family: var(--f-mono); }
+.stat { font-family: var(--f-mono); font-size: .84rem; color: var(--muted); }
+.verdict { border-radius: 12px; padding: 12px 14px; background: var(--paper); display: grid; gap: 8px; }
+.log { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: .86rem; color: var(--muted); max-height: 9.5em; overflow: hidden; }
+.log li:first-child { color: var(--ink); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips span { width: 30px; height: 30px; border-radius: 50%; border: 1.5px dashed var(--line); display: grid; place-items: center; font-family: var(--f-mono); font-weight: 700; font-size: .8rem; }
+.chips span.w0 { background: var(--ink); border: 0; color: #fff; }
+.chips span.w1, .chips span.w2 { background: var(--cell); border: 0; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tbl-wrap { overflow-x: auto; }
+table.t { border-collapse: collapse; width: 100%; font-size: .9rem; }
+.t th, .t td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.t th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+.t td.num, .t th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+.t th.num { white-space: normal; }
+.t tr.hl td { font-weight: 700; }
+.t td.hit { color: var(--hit); font-weight: 700; }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.4rem; }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .82rem; color: var(--muted); }
+.tree { display: grid; gap: 10px; }
+.branch { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.node { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: .86rem; background: var(--surface); }
+.node b { font-family: var(--f-mono); }
+.node.res { background: var(--paper); font-family: var(--f-mono); font-weight: 600; }
+.arrow { color: var(--muted); font-family: var(--f-mono); }
+.tree .total { font-family: var(--f-mono); font-weight: 700; font-size: 1.05rem; }
+.tree .total b { color: var(--hit); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.layer { font-family: var(--f-display); font-weight: 800; font-size: 1.2rem; margin-top: 18px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.map-wrap { position: relative; max-width: 360px; width: 100%; margin: 0 auto; }
+.map-wrap canvas { aspect-ratio: 1 / 1; height: auto; cursor: crosshair; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 76px 1fr 64px; }
+  .vs { grid-template-columns: 1fr; }
+  .t th, .t td { padding: 8px 5px; }
+  .hero-cal canvas { height: 260px; }
+  .trio b { font-size: 1.1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=d9a074c5">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/en/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+  <nav class="mp-nav" aria-label="Sections" data-t="{&quot;cont&quot;: &quot;Continue&quot;, &quot;course&quot;: &quot;Continue the course&quot;}" data-slug="truel" data-me="{&quot;s&quot;: &quot;truel&quot;, &quot;n&quot;: {&quot;uk&quot;: &quot;Труель&quot;, &quot;en&quot;: &quot;The truel&quot;}, &quot;u&quot;: {&quot;uk&quot;: &quot;https://mathparadoxes.com/truel/&quot;, &quot;en&quot;: &quot;https://mathparadoxes.com/truel/en/&quot;}}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Menu"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Continue: <b></b></a><a href="https://mathparadoxes.com/en/#all" aria-current="page">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/">Glossary</a></div></nav>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/truel/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/truel/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <div class="mp-meta"><span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span>School maths</button><span class="mp-level-hint" hidden>Fractions, percentages, basic probability, powers<a href="https://mathparadoxes.com/en/?l=2#all">All puzzles of this level →</a></span></span></div>
+    
+    <h1 class="en"><span class="kw">The truel</span> Three shooters take turns. <span class="q sp-before">Who is most likely to survive?</span><span class="q sp-after">The worst shot has the best chance.</span></h1>
+    
+    
+    <p class="lead en sp-before">Ann hits with one shot in three, Bob with two in three, and Sam never misses. They take turns, Ann, Bob, Sam and round again, until only one is left. Each picks their own target and may also fire into the air. Who has the best chance of being the last one standing?</p>
+    <p class="lead en sp-after">Ann, if she fires her first shot into the air. Bob and Sam fear each other most and shoot at each other. Whichever of them survives, the next shot is Ann's. Ann is the last one standing with probability 25/63 ≈ 39.7%, Bob 38.1%, and Sam the sharpshooter only 22.2%.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="en">39.7%</b><span><span class="en">Ann, hits 1 in 3</span></span></div>
+      <div class="odd"><b class="en">38.1%</b><span><span class="en">Bob, 2 in 3</span></span></div>
+      <div class="odd"><b class="en">22.2%</b><span><span class="en">Sam, always</span></span></div>
+    </div>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">The puzzle</span></span>
+    <h2><span class="en">Three shooters, one turn order, one survivor</span></h2>
+    
+    <p class="lead en">A duel for three is called a truel. Think paintball or water pistols: whoever is hit is out of the game. Here are the rules.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="en">The shooters</span></h3>
+        
+        <p class="en">Ann hits her target with probability 1/3, Bob 2/3, Sam 1, that is, always. Each knows how well the others shoot.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="en">The order</span></h3>
+        
+        <p class="en">They fire one shot each in turn: Ann, Bob, Sam, then Ann again and so on. Whoever is out skips their turns.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="en">A shot</span></h3>
+        
+        <p class="en">On their turn a shooter picks a target: anyone still in the game. Or they fire into the air, deliberately at nobody. That is allowed. A miss harms no one.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="en">The goal</span></h3>
+        
+        <p class="en">The game goes on until one is left. Each wants to be that last one and plays as well as they can. The others also play their best, and everyone knows it.</p></div></li>
+      <li><span class="n">5</span><div><h3><span class="en">The question</span></h3>
+        
+        <p class="en">Which of the three has the best chance of being the last one left?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card">
+        <span class="kicker"><span class="en">Hit rates</span></span>
+        <div class="trio">
+          <div><span><span class="en">Ann</span></span><b>1/3</b><span><span class="en">shoots first</span></span></div>
+          <div><span><span class="en">Bob</span></span><b>2/3</b><span><span class="en">second</span></span></div>
+          <div><span><span class="en">Sam</span></span><b>1</b><span><span class="en">third</span></span></div>
+        </div>
+      </div>
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="en">Intuition says</span></span>
+        <p class="q"><span class="en">"Sam, of course: he never misses"</span></p>
+        
+        <p class="en">That is exactly why he is the most dangerous, and Bob aims at him. Ann has the best chance: while Bob and Sam are busy with each other, nobody aims at her.</p>
+      </div>
+      <div class="card">
+        <h3><span class="en">Assumptions</span></h3>
+        
+        <ul class="rules en">
+          <li>There is no limit on ammunition.</li>
+          <li>The shooters make no deals and form no alliances.</li>
+          <li>A target can be chosen afresh on every turn, depending on who is still in.</li>
+          <li>A shot into the air changes nothing: it is simply a skipped turn.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="en">Who is most often the last one left?</span></h2>
+    
+    <p class="lead en">All three play as well as they can. Lock in your answer before reading on.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <span class="note"><span class="en">The best chance belongs to…</span></span>
+      <div class="presets" id="g-opts"></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Hints</span>
+    <p class="mp-hints-intro">Hard to decide? Open the hints one at a time: the easy one first, then stronger ones.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Look through Sam's eyes while Ann and Bob are both in. Which of them is it better for him to knock out: which one leaves him the easier duel?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>Now through Bob's eyes: what happens to him if Sam lives to take his turn? So whom does Bob shoot at?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>Finally through Ann's eyes: what happens if she hits Sam, or Bob? And if she hits nobody, who shoots first in the duel that is left?</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Show hint 1 of 3 · easy&quot;, &quot;Show hint 2 of 3 · medium&quot;, &quot;Show hint 3 of 3 · strong&quot;]">Show hint 1 of 3 · easy</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "truel";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "truel", RULE = {"right": ["ann"]}, MIN = 20, T = {"kicker": "How others answer", "few": "Too few answers for stats yet: {n}. Yours is one of them.", "few_seen": "Too few answers for stats yet: {n}.", "all": "Answers so far: {n}. {p} of them are right.", "yes": "You are among those who got it.", "no": "Don't worry: intuition fails most people here.", "bar": "right", "note": "Only the first answer from each browser counts, given before it saw the solution. Anonymous."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    // "crowd" pages have no right answer: they get the raw counts and draw their own block
+    if (RULE.crowd) { document.dispatchEvent(new CustomEvent("mp-crowd", { detail: { k: data.k || {}, mine: mine } })); return; }
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: play as Ann -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 2 · Game</span></span>
+    <h2><span class="en">You are Ann. Ten truels against Bob and Sam</span></h2>
+    
+    <p class="lead en">On each of your turns choose whom to shoot, or fire into the air. Bob and Sam play the best strategy for themselves, and hits are decided by chance at their hit rates. How many of ten truels can you win?</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div id="gm-arena"></div>
+      <p class="msg" id="gm-msg" aria-live="polite"></p>
+      <div class="actions" id="gm-acts">
+        <button class="btn pri" type="button" data-t="-1"><span class="en">Into the air</span></button>
+        <button class="btn" type="button" data-t="1"><span class="en">At Bob</span></button>
+        <button class="btn" type="button" data-t="2"><span class="en">At Sam</span></button>
+        <button class="btn ghost" type="button" id="gm-next"></button>
+      </div>
+      <ul class="log" id="gm-log"></ul>
+    </div>
+    <div class="card" style="display:grid;gap:14px;align-content:start">
+      <h3 id="gm-title"></h3>
+      <div class="chips" id="gm-chips"></div>
+      <div class="compare" id="gm-score"></div>
+      <p class="stat" id="gm-firsts"></p>
+      <div class="verdict" id="gm-verdict"></div>
+      <div class="actions"><button class="btn ghost" type="button" id="gm-reset"><span class="en">Restart the series</span></button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="en">100,000 truels for each first shot of Ann's</span></h2>
+    
+    <p class="lead en">Ann has three options for her first shot: into the air, at Bob or at Sam. For each one the computer plays 100,000 truels and counts who is left. Next to them are the exact probabilities from the formulas in round 4. Change the hit rates with the sliders: Bob and Sam pick their best targets afresh each time.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="s-a"><span><span class="en">Ann</span>: <output id="s-av"></output></span><input type="range" id="s-a" min="5" max="100" value="33"></label>
+      <label class="ctl" for="s-b"><span><span class="en">Bob</span>: <output id="s-bv"></output></span><input type="range" id="s-b" min="5" max="100" value="67"></label>
+      <label class="ctl" for="s-c"><span><span class="en">Sam</span>: <output id="s-cv"></output></span><input type="range" id="s-c" min="5" max="100" value="100"></label>
+      <div class="actions">
+        <button class="btn ghost" id="s-classic" type="button"><span class="en">1/3, 2/3, 1</span></button>
+        <button class="btn pri" id="s-run" type="button"><span class="en">Play them</span></button>
+      </div>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="s-cv" style="height:300px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--hit)"><b class="en">Ann</b></span>
+          <span style="--c:var(--ink)"><b class="en">Bob</b></span>
+          <span style="--c:var(--grey)"><b class="en">Sam</b></span>
+          <span style="--c:var(--muted)"><b class="en">tick: simulation</b></span>
+        </div>
+      </div>
+      <div style="display:grid;gap:12px;align-content:start">
+        <div class="tbl-wrap"><table class="t" id="s-tbl"></table></div>
+        <p class="note" id="s-txt"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 4 · Explanations</span></span>
+    <h2><span class="en">Why the best shot is the first to go</span></h2>
+    
+    <p class="lead en">In a truel your chances depend less on how well you shoot than on how dangerous you are to the others.</p>
+  </div>
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">In plain words</span><span class="mp-layer-desc">pictures, analogies, small numbers</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“In plain words” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">The strongest is the first target</span></span>
+      <h3><span class="en">Bob and Sam fear each other, not Ann</span></h3>
+      
+      <p class="en">Let's start with a simple, if incomplete, explanation. Look through Sam's eyes: if he knocks Ann out, he is left alone with Bob, and Bob shoots first. If he knocks Bob out, he is left with Ann, who hits only once in three. The second is far better, so Sam shoots at Bob.</p>
+      
+      <p class="en">Bob knows this. If Sam is still in the game when Sam's turn comes, Bob is out for sure. So Bob shoots at Sam. While both of them are in the game, nobody aims at Ann.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Hitting is bad</span></span>
+      <h3><span class="en">Why Ann should not hit anyone with her first shot</span></h3>
+      <div class="vs">
+        <div class="bb"><span><span class="en">Into the air</span></span><b class="mono"><span class="en">39.7%</span></b></div>
+        <div><span><span class="en">At Sam</span></span><b class="mono"><span class="en">31.2%</span></b></div>
+        <div><span><span class="en">At Bob</span></span><b class="mono"><span class="en">26.5%</span></b></div>
+      </div>
+      
+      <p class="en">If Ann hits Bob, Sam hits her on the next turn, and that's it. If she hits Sam, she is left with Bob, and he shoots first: two in three that Ann is out at once. But when Ann fires into the air, Bob and Sam settle it between themselves, and whoever survives, she gets the first shot at him.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Rigorous</span><span class="mp-layer-desc">tables, charts, formulas</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Rigorous” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">The game tree</span></span>
+      <h3><span class="en">Where 25/63 comes from: Ann's two roads to victory</span></h3>
+      <div class="tree">
+        <div class="branch">
+          <span class="node"><span class="en">Ann fires into the air</span></span><span class="arrow">→</span>
+          <span class="node"><span class="en">Bob hits Sam</span> <b>2/3</b></span><span class="arrow">→</span>
+          <span class="node"><span class="en">duel Ann vs Bob, Ann shoots first</span> <b>3/7</b></span><span class="arrow">→</span>
+          <span class="node res">2/3 × 3/7 = 2/7</span>
+        </div>
+        <div class="branch">
+          <span class="node"><span class="en">Ann fires into the air</span></span><span class="arrow">→</span>
+          <span class="node"><span class="en">Bob misses</span> <b>1/3</b></span><span class="arrow">→</span>
+          <span class="node"><span class="en">Sam knocks Bob out</span> <b>1</b></span><span class="arrow">→</span>
+          <span class="node"><span class="en">Ann gets one shot at Sam</span> <b>1/3</b></span><span class="arrow">→</span>
+          <span class="node res">1/3 × 1/3 = 1/9</span>
+        </div>
+        <p class="total"><span class="en">Total: 2/7 + 1/9 = 18/63 + 7/63 = <b>25/63 ≈ 39.7%</b></span></p>
+      </div>
+      
+      <p class="en">Where does 3/7 come from in Ann's duel with Bob when Ann shoots first? Take one round of two shots. Ann hits with probability 1/3, that is 3/9. Bob gets his shot if Ann missed, and hits: 2/3 × 2/3 = 4/9. The other 2/9 both miss, and the round repeats with the same odds. So decisive rounds go to Ann and Bob as 3 to 4, and Ann wins the duel in 3 cases out of 7.</p>
+      
+      <p class="en">Bob wins if he hits Sam and then wins the duel: 2/3 × 4/7 = 8/21 ≈ 38.1%. Sam wins only if Bob misses and then Ann misses: 1/3 × 2/3 = 2/9 ≈ 22.2%. Together 25/63 + 24/63 + 14/63 = 1.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Nash equilibrium</span></span>
+      <h3><span class="en">Nobody gains by changing target alone</span></h3>
+      <div class="tbl-wrap"><table class="t">
+        <thead><tr><th><span class="en">Who</span></th><th><span class="en">First shot</span></th><th class="num"><span class="en">Survival chance</span></th></tr></thead>
+        <tbody>
+          <tr class="hl"><td><span class="en">Ann</span></td><td><span class="en">into the air</span></td><td class="num hit">25/63</td></tr>
+          <tr><td></td><td><span class="en">at Sam</span></td><td class="num">59/189</td></tr>
+          <tr><td></td><td><span class="en">at Bob</span></td><td class="num">50/189</td></tr>
+          <tr class="hl"><td><span class="en">Bob</span></td><td><span class="en">at Sam</span></td><td class="num">8/21</td></tr>
+          <tr><td></td><td><span class="en">at Ann or into the air</span></td><td class="num">0</td></tr>
+          <tr class="hl"><td><span class="en">Sam</span></td><td><span class="en">at Bob</span></td><td class="num">2/9</td></tr>
+          <tr><td></td><td><span class="en">at Ann</span></td><td class="num">1/9</td></tr>
+          <tr><td></td><td><span class="en">into the air</span></td><td class="num">0</td></tr>
+        </tbody>
+      </table></div>
+      
+      <p class="en">Each row shows what happens if only this player changes their choice while the other two play as in the highlighted rows. No change helps, so the highlighted trio is a Nash equilibrium. We checked all 27 <a href="https://mathparadoxes.com/glossary/combinatorics/en/" class="mp-term" data-term="combinatorics" aria-expanded="false">combinations</a> of targets with exact fractions: there is no other equilibrium here.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">For formula lovers</span></span>
+      <h3><span class="en">A duel as an infinite sum</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">The first shooter hits with probability p, the second q. The first wins with the first shot, or after two misses with the third, or after four with the fifth…</span></p>
+          <math display="block"><msub><mi>P</mi><mn>1</mn></msub><mo>=</mo><mi>p</mi><mo>+</mo><mi>r</mi><mi>p</mi><mo>+</mo><msup><mi>r</mi><mn>2</mn></msup><mi>p</mi><mo>+</mo><mo>…</mo><mo>=</mo><mfrac><mi>p</mi><mrow><mn>1</mn><mo>−</mo><mi>r</mi></mrow></mfrac></math>
+          <math display="block"><mi>r</mi><mo>=</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false">)</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>q</mi><mo stretchy="false">)</mo></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Ann first against Bob, and Bob first against Ann:</span></p>
+          <math display="block"><mfrac><mrow><mn>1</mn><mo>/</mo><mn>3</mn></mrow><mrow><mn>1</mn><mo>−</mo><mn>2</mn><mo>/</mo><mn>9</mn></mrow></mfrac><mo>=</mo><mfrac><mn>3</mn><mn>7</mn></mfrac><mo>,</mo><mspace width="1em"></mspace><mfrac><mrow><mn>2</mn><mo>/</mo><mn>3</mn></mrow><mrow><mn>1</mn><mo>−</mo><mn>2</mn><mo>/</mo><mn>9</mn></mrow></mfrac><mo>=</mo><mfrac><mn>6</mn><mn>7</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Ann's three first shots:</span></p>
+          <math display="block"><msub><mi>P</mi><mtext class="en">air</mtext></msub><mo>=</mo><mfrac><mn>2</mn><mn>3</mn></mfrac><mo>·</mo><mfrac><mn>3</mn><mn>7</mn></mfrac><mo>+</mo><mfrac><mn>1</mn><mn>3</mn></mfrac><mo>·</mo><mfrac><mn>1</mn><mn>3</mn></mfrac><mo>=</mo><mfrac><mn class="hl">25</mn><mn class="hl">63</mn></mfrac></math>
+          <math display="block"><msub><mi>P</mi><mtext class="en">Sam</mtext></msub><mo>=</mo><mfrac><mn>1</mn><mn>3</mn></mfrac><mo>·</mo><mfrac><mn>1</mn><mn>7</mn></mfrac><mo>+</mo><mfrac><mn>2</mn><mn>3</mn></mfrac><mo>·</mo><mfrac><mn>25</mn><mn>63</mn></mfrac><mo>=</mo><mfrac><mn>59</mn><mn>189</mn></mfrac></math>
+          <math display="block"><msub><mi>P</mi><mtext class="en">Bob</mtext></msub><mo>=</mo><mfrac><mn>1</mn><mn>3</mn></mfrac><mo>·</mo><mn>0</mn><mo>+</mo><mfrac><mn>2</mn><mn>3</mn></mfrac><mo>·</mo><mfrac><mn>25</mn><mn>63</mn></mfrac><mo>=</mo><mfrac><mn>50</mn><mn>189</mn></mfrac></math>
+        </div>
+      </div>
+      
+      <p class="en">Here 1/7 is Ann's chance in a duel where Bob shoots first: 1 − 6/7. A miss at Sam or Bob leads to the same game as a shot into the air, so the second part of each sum is 2/3 · 25/63.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Deeper</span><span class="mp-layer-desc">generalisations, theory, history</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Deeper” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">Without the shot into the air</span></span>
+      <h3><span class="en">Banning the skip makes Bob the favourite</span></h3>
+      <div class="vs">
+        <div><span><span class="en">Ann</span></span><b class="mono"><span class="en">31.2%</span></b><span>59/189</span></div>
+        <div><span><span class="en">Bob</span></span><b class="mono"><span class="en">54.0%</span></b><span>34/63</span></div>
+        <div><span><span class="en">Sam</span></span><b class="mono"><span class="en">14.8%</span></b><span>4/27</span></div>
+      </div>
+      
+      <p class="en">If everyone must aim at someone, Ann shoots at Sam: the lesser evil. There is again just one equilibrium, but now when Ann hits she hands Bob the first shot in the duel. The weak player's whole advantage rested on the right to do nothing.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">If the order is drawn by lot</span></span>
+      <h3><span class="en">Then Sam is the favourite again</span></h3>
+      <div class="vs">
+        <div><span><span class="en">Ann</span></span><b class="mono"><span class="en">36.5%</span></b><span>23/63</span></div>
+        <div><span><span class="en">Bob</span></span><b class="mono"><span class="en">19.0%</span></b><span>4/21</span></div>
+        <div class="bb"><span><span class="en">Sam</span></span><b class="mono"><span class="en">44.4%</span></b><span>4/9</span></div>
+      </div>
+      
+      <p class="en">Our order favours Ann a lot: she shoots first and Sam last. If a lot decides the order, then in half the cases Sam shoots before Bob, knocks him out at once, and Ann is left with one shot in three. Averaging over the six possible orders gives Sam 4/9. So "the weakest survives" is not a law but a consequence of the rules.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">Theory</span></span>
+      <h3><span class="en">"Does the fittest necessarily survive?"</span></h3>
+      
+      <p class="en">That is what the economist Martin Shubik, one of the founders of game theory, called his 1954 paper. In it he also coined the word "truel". His question went beyond shooting: if everyone plays their best, must the strongest win? The truel answers "not necessarily" with the simplest possible example.</p>
+      
+      <p class="en">In 1975 the Canadian mathematician Marc Kilgour analysed the sequential truel, where the shots come in turn as in our puzzle, in his paper "The Sequential Truel". In 1997 he and Steven Brams summed up the known variants in the review "The Truel" in Mathematics Magazine. We checked our numbers <a href="https://mathparadoxes.com/glossary/independence/en/" class="mp-term" data-term="independence" aria-expanded="false">independently</a>: with exact fractions in Python and by simulation.</p>
+    </div>
+
+  </div>
+  </div>
+
+<script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "truel" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 5 · Scaling up</span></span>
+    <h2><span class="en">Any hit rates, more players, real rivals</span></h2>
+    
+    <p class="lead en">Mathematically we can see for which hit rates the first shooter keeps her edge. Logically it is a story about a leader everyone aims at. And in practice it is a question worth asking in any three-way contest: whom do my rivals fear most?</p>
+  </div>
+  <div class="esc">
+    <p class="layer"><span class="en">Mathematics</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">A map: who is the favourite for any hit rates</span></h3>
+        <label class="ctl" for="m-c"><span><span class="en">Sam's hit rate</span>: <output id="m-cv">100%</output></span><input type="range" id="m-c" min="40" max="100" value="100" style="width:100%"></label>
+        <div class="map-wrap"><canvas id="m-cv-map" aria-label="map"></canvas></div>
+        <div class="legend">
+          <span style="--c:var(--hit)"><b class="en">Ann is the favourite</b></span>
+          <span style="--c:var(--ink)"><b class="en">Bob</b></span>
+          <span style="--c:var(--grey)"><b class="en">Sam</b></span>
+        </div>
+        <p class="msg" id="m-msg" aria-live="polite"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">A map of equilibria</span></span>
+        <h3><span class="en">The first shooter often wins even when she shoots worst</span></h3>
+        
+        <p class="en">Across is Ann's hit rate, up is Bob's. At each point the page tries all 27 combinations of targets, finds the Nash equilibrium and colours the point by who has the best chance. The order is the same: Ann, Bob, Sam. Click the map to see the exact chances and moves.</p>
+        
+        <p class="en">Above the diagonal Ann shoots worse than Bob. The wider the pink zone there, the more often the weakest wins. Lower Sam's hit rate: he becomes less frightening for Bob, and the picture shifts.</p>
+      </div>
+    </div>
+
+    <p class="layer"><span class="en">Logic</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">Everyone against the leader: three to six players</span></h3>
+        <div class="presets" id="n-n"></div>
+        <div class="presets" id="n-w"></div>
+        <canvas id="n-cv" style="height:230px"></canvas>
+        <p class="note" id="n-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">A target on the leader</span></span>
+        <h3><span class="en">When everyone shoots the best, the best barely survives</span></h3>
+        
+        <p class="en">Here n players hit with probability 1/n, 2/n, …, 1. They shoot in turn from the weakest to the strongest by one simple rule: aim at the most accurate player still in the game. For n &gt; 3 this is not a proven equilibrium but a model of a coalition against the leader, computed exactly.</p>
+        
+        <p class="en">The logic is the same as in the truel: the strongest is dangerous to everyone, so everyone silently teams up against him without any deal. He shoots last and often does not live to his turn. The chances go to those nobody is looking at. In 2006 the physicists Pau Amengual and Raúl Toral also noted that the best shooter's chance falls as the number of players grows.</p>
+      </div>
+    </div>
+
+    <p class="layer"><span class="en">Practice</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">Work out your own truel</span></h3>
+        <div class="controls" style="margin:0">
+          <label class="ctl" for="p-a"><span><span class="en">Ann</span>: <output id="p-av"></output></span><input type="range" id="p-a" min="5" max="100" value="33"></label>
+          <label class="ctl" for="p-b"><span><span class="en">Bob</span>: <output id="p-bv"></output></span><input type="range" id="p-b" min="5" max="100" value="67"></label>
+          <label class="ctl" for="p-c"><span><span class="en">Sam</span>: <output id="p-cv"></output></span><input type="range" id="p-c" min="5" max="100" value="100"></label>
+        </div>
+        <div class="presets" id="p-ord"></div>
+        <div class="presets" id="p-pre"></div>
+        <div class="tbl-wrap"><table class="t" id="p-tbl"></table></div>
+        <p class="note" id="p-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">From the puzzle to real rivals</span></span>
+        <h3><span class="en">Whom do your rivals fear most?</span></h3>
+        
+        <p class="en">Test yourself on a classic. Martin Gardner gave his readers "the triangular duel": Smith always hits, Brown hits 80% of the time, Jones 50%, and the order is drawn by lot. Press "Gardner": Jones, the worst shot, survives with probability 47/90 ≈ 52.2%, Smith 3/10, Brown only 8/45.</p>
+        
+        <p class="en">In life nobody knocks anyone out with one shot, and the model gives not a forecast but a question. In an election with three candidates, two front-runners attacking each other may clear the way for the third. In a market with three firms, a price war between the two big ones may suit the smaller one. But whether it happens depends on the rules, as in the truel: who moves first, whether you may sit it out, whether the loser is really out.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1836</span>
+        <h3><span class="en">A duel in a novel</span></h3>
+        
+        <p class="en">Frederick Marryat's novel "Mr Midshipman Easy" has a three-way duel in which each man aims only at one set opponent. Choosing a target, as in our puzzle, is not allowed there.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1946</span>
+        <h3><span class="en">The first puzzle</span></h3>
+        
+        <p class="en">Truel researchers usually name Clark Kinnaird's Encyclopedia of Puzzles and Pastimes (1946) as the puzzle's first appearance. Later tellings often soften it: the players shoot not at each other but at each other's balloons.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1954</span>
+        <h3><span class="en">The word "truel"</span></h3>
+        
+        <p class="en">Martin Shubik built the word truel from three and duel in his paper "Does the Fittest Necessarily Survive?" in the collection Readings in Game Theory and Political Behavior.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">47/90</span>
+        <h3><span class="en">Gardner's triangular duel</span></h3>
+        
+        <p class="en">In Martin Gardner's version Smith always hits, Brown 80%, Jones 50%, and the order is drawn by lot. Jones, the worst shot, survives most often: 47/90. We recompute the number in the Practice section.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1966</span>
+        <h3><span class="en">A western's finale</span></h3>
+        
+        <p class="en">The final scene of Sergio Leone's "The Good, the Bad and the Ugly" is often called a truel: three men stand in a circle in a cemetery. But it is not our puzzle: there they draw at once, and the outcome was settled in advance, because Blondie had secretly unloaded Tuco's gun.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2006</span>
+        <h3><span class="en">Survival of the weakest</span></h3>
+        
+        <p class="en">Pau Amengual and Raúl Toral titled their review "Truels, or the survival of the weakest". They studied random and sequential truels, truel "leagues" and games played on networks.</p>
+      </article>
+  </div>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">More puzzles</span>
+    <h2>Other paradoxes</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/monty-hall/en/"><h3>The Monty Hall problem</h3><p>You&#x27;re on a game show and pick one of three doors. The host, who knows where the car is, opens another door to reveal a goat and offers a switch. Should you take it?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/penney-game/en/"><h3>Penney&#x27;s game</h3><p>You pick HHH, your opponent picks THH. The coin is flipped until one of the patterns comes up in a row. What are your opponent&#x27;s odds?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/persuadables/en/"><h3>Who gets the coupon?</h3><p>A perfect model finds the 250 likeliest buyers, and they get discount coupons. How many purchases does that add?</p></a>
+  </div>
+  <p class="mp-related-all"><a href="https://mathparadoxes.com/en/">All puzzles →</a> <a href="https://mathparadoxes.com/glossary/en/">Glossary →</a></p>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Discussion</span>
+    <h2>What do you think?</h2>
+    <p>Share your own explanation, an objection or a variant of the puzzle. You need a GitHub account to comment.</p>
+    <div class="mp-lvote"><p>Is “School maths” the right level for this puzzle?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">No, harder</button><button type="button" data-vote="right">Yes</button><button type="button" data-vote="easier">No, easier</button></div><p class="mp-lvote-thanks">Thank you! This helps set the levels right.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "truel" + "-lvl", LEVEL = 2, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="truel" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="en" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Newsletter</span>
+    <h2>New puzzles, explanations and discussions</h2>
+    <p>I keep adding new puzzles, new ways to explain them and write-ups of the discussions they start. Leave your email and I'll write when something new is out. No spam, one-click unsubscribe.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">The sign-up form will appear here soon.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const solved = () => !window.mpSolved || mpSolved();
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const TAU = Math.PI * 2;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const pct = (x, d = 1) => dec((100 * x).toFixed(d)) + '%';
+const NAME = i => L(['Аня', 'Борис', 'Сергій'][i], ['Ann', 'Bob', 'Sam'][i]);
+const INIT = i => L(['А', 'Б', 'С'][i], ['A', 'B', 'S'][i]);
+const AT = i => i < 0 ? L('у повітря', 'into the air') : L(['в Аню', 'у Бориса', 'у Сергія'][i], ['at Ann', 'at Bob', 'at Sam'][i]);
+const COL = i => tok(['--hit', '--ink', '--grey'][i]);
+const CLASSIC = [1 / 3, 2 / 3, 1];
+
+/* ---------- exact maths ---------- */
+// first shooter (hit rate p) beats the second (q): p + r p + r^2 p + ... with r = (1-p)(1-q)
+const duel = (p, q) => p / (1 - (1 - p) * (1 - q));
+// survival chances when all three are in: st[i] is i's target (-1 = into the air); once two are left they shoot each other.
+// One round of turns either ends in a hit (then a duel decides) or returns to the same state.
+function solve(acc, order, st) {
+  const res = [0, 0, 0];
+  let stay = 0;
+  (function rec(k, prob) {
+    if (k === 3) { stay += prob; return; }
+    const i = order[k], t = st[i];
+    if (t < 0) { rec(k + 1, prob); return; }
+    const hp = prob * acc[i];
+    let nxt = -1;
+    for (let d = 1; d <= 3; d++) { const j = order[(k + d) % 3]; if (j !== t && j !== i) { nxt = j; break; } }
+    const w = duel(acc[nxt], acc[i]);
+    res[nxt] += hp * w; res[i] += hp * (1 - w);
+    rec(k + 1, prob * (1 - acc[i]));
+  })(0, 1);
+  return stay > 1 - 1e-12 ? [0, 0, 0] : res.map(r => r / (1 - stay));
+}
+// each player's options: the more accurate rival, the other rival, the air (ties go to shooting)
+function options(acc, i) {
+  const r = [0, 1, 2].filter(j => j !== i).sort((a, b) => acc[b] - acc[a]);
+  return [r[0], r[1], -1];
+}
+// a pure stationary Nash equilibrium: nobody gains by changing their own target alone
+function equilibrium(acc, order = [0, 1, 2]) {
+  const O = [0, 1, 2].map(i => options(acc, i));
+  let fallback = null;
+  for (const a of O[0]) for (const b of O[1]) for (const c of O[2]) {
+    const st = [a, b, c], v = solve(acc, order, st);
+    let ok = true;
+    for (let i = 0; i < 3 && ok; i++) for (const alt of O[i]) {
+      if (alt === st[i]) continue;
+      const s2 = st.slice(); s2[i] = alt;
+      if (solve(acc, order, s2)[i] > v[i] + 1e-12) { ok = false; break; }
+    }
+    if (ok) return { st, v };
+    if (!fallback) fallback = { st, v };
+  }
+  return null;
+}
+const ORDERS = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
+function byLot(acc) {
+  const v = [0, 0, 0];
+  ORDERS.forEach(o => { const e = equilibrium(acc, o); if (e) e.v.forEach((x, i) => { v[i] += x / 6; }); });
+  return v;
+}
+// one truel played out with random hits; returns the survivor (or -1 if nobody ever shoots)
+function playOnce(acc, order, st) {
+  const alive = [true, true, true];
+  let n = 3, k = 0, guard = 0;
+  while (n > 1 && guard++ < 10000) {
+    const i = order[k++ % 3];
+    if (!alive[i]) continue;
+    const t = n === 3 ? st[i] : [0, 1, 2].find(j => j !== i && alive[j]);
+    if (t < 0) continue;
+    if (Math.random() < acc[i]) { alive[t] = false; n--; }
+  }
+  return n === 1 ? alive.indexOf(true) : -1;
+}
+
+/* ---------- drawing helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function arrow(ctx, x1, y1, x2, y2, col, w, dash) {
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash || []);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2 - 9 * Math.cos(a), y2 - 9 * Math.sin(a)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - 12 * Math.cos(a - .4), y2 - 12 * Math.sin(a - .4)); ctx.lineTo(x2 - 12 * Math.cos(a + .4), y2 - 12 * Math.sin(a + .4)); ctx.closePath(); ctx.fill();
+}
+// a shooter: white disc, a ring filled to the hit rate, an initial
+function shooter(ctx, x, y, r, p, label, ring, glow) {
+  const sur = tok('--surface') || '#fff';
+  if (glow) { ctx.fillStyle = tok('--cell') || '#ECECEC'; ctx.beginPath(); ctx.arc(x, y, r + 10, 0, TAU); ctx.fill(); }
+  ctx.fillStyle = sur; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  ctx.strokeStyle = tok('--line'); ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(x, y, r - 3, 0, TAU); ctx.stroke();
+  ctx.strokeStyle = ring; ctx.beginPath(); ctx.arc(x, y, r - 3, -Math.PI / 2, -Math.PI / 2 + TAU * p); ctx.stroke();
+  ctx.fillStyle = tok('--ink'); ctx.font = '800 ' + Math.round(r * .62) + 'px ' + tok('--f-display'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(label, x, y + 1);
+}
+
+/* ---------- hero: three shooters in a triangle ---------- */
+const hero = { t0: performance.now(), raf: 0, visible: true };
+let heroCapText = '';
+function heroDraw(now) {
+  const st = setupCanvas($('#hero-cv')); if (!st) return;
+  const { ctx, W, H } = st, ok = solved();
+  const ink = tok('--ink'), muted = tok('--muted'), hit = tok('--hit'), line = tok('--line');
+  ctx.fillStyle = tok('--surface') || '#fff'; rr(ctx, 0, 0, W, H, 14); ctx.fill();
+  const r = Math.max(24, Math.min(36, W / 13));
+  const P = [[W * .2, H * .66], [W * .5, H * .38], [W * .8, H * .66]];
+  const t = reduce() ? 0 : ((now || performance.now()) - hero.t0) / 1000;
+  if (!ok) {
+    ctx.strokeStyle = line; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
+    [[0, 1], [1, 2], [0, 2]].forEach(([a, b]) => { ctx.beginPath(); ctx.moveTo(P[a][0], P[a][1]); ctx.lineTo(P[b][0], P[b][1]); ctx.stroke(); });
+    ctx.setLineDash([]);
+    ctx.fillStyle = hit; ctx.font = '800 ' + Math.round(r * 1.1) + 'px ' + tok('--f-display'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText("?", W * .5, H * .58);
+  } else {
+    const off = r + 4, mid = (a, b, f) => [P[a][0] + (P[b][0] - P[a][0]) * f, P[a][1] + (P[b][1] - P[a][1]) * f];
+    const nb = Math.hypot(P[2][0] - P[1][0], P[2][1] - P[1][1]), fo = off / nb;
+    let [x1, y1] = mid(1, 2, fo), [x2, y2] = mid(1, 2, 1 - fo);
+    const nx = (P[2][1] - P[1][1]) / nb * 6, ny = -(P[2][0] - P[1][0]) / nb * 6;
+    arrow(ctx, x1 + nx, y1 + ny, x2 + nx, y2 + ny, ink, 2.5);
+    arrow(ctx, x2 - nx, y2 - ny, x1 - nx, y1 - ny, ink, 2.5);
+    arrow(ctx, P[0][0], P[0][1] - off, P[0][0], Math.max(18, P[0][1] - off - H * .3), hit, 2.5, [6, 5]);
+    ctx.fillStyle = hit; ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(L('у повітря', 'into the air'), P[0][0] + 10, Math.max(24, P[0][1] - off - H * .22));
+  }
+  const turn = Math.floor(t / 1.1) % 3;
+  [0, 1, 2].forEach(i => shooter(ctx, P[i][0], P[i][1], r, CLASSIC[i], INIT(i), ok && i === 0 ? hit : ink, !ok && !reduce() && i === turn));
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const v = [25 / 63, 8 / 21, 2 / 9], fr = ['1/3', '2/3', '1'];
+  // Bob sits on top, so his labels go above him, clear of the lines of fire
+  [0, 1, 2].forEach(i => {
+    const up = i === 1, y0 = up ? P[i][1] - r - (ok ? 44 : 24) : P[i][1] + r + 8;
+    ctx.fillStyle = ink; ctx.font = '600 12px ' + tok('--f-mono');
+    ctx.fillText(NAME(i) + ' · ' + fr[i], P[i][0], y0);
+    if (ok) { ctx.fillStyle = i === 0 ? hit : muted; ctx.font = '800 15px ' + tok('--f-display'); ctx.fillText(pct(v[i]), P[i][0], y0 + 18); }
+  });
+  const cap = ok ? L('Аня стріляє в повітря, Борис і Сергій одне в одного. Хто б із них не вцілів, Аня стріляє по ньому першою.', 'Ann fires into the air, Bob and Sam at each other. Whichever survives, Ann gets the first shot at him.')
+    : L('Кільце навколо стрільця заповнене на його влучність. Черга: Аня, Борис, Сергій, і знову. Хто лишиться останнім?', 'The ring around each shooter is filled to their hit rate. The order: Ann, Bob, Sam, and round again. Who will be the last one left?');
+  if (cap !== heroCapText) { heroCapText = cap; $('#hero-cap').textContent = cap; }
+}
+function heroLoop(now) { heroDraw(now); if (!reduce() && hero.visible && !solved()) hero.raf = requestAnimationFrame(heroLoop); else hero.raf = 0; }
+function heroStart() {
+  if (hero.raf) cancelAnimationFrame(hero.raf);
+  hero.raf = 0;
+  if (reduce() || solved()) { heroDraw(); return; }
+  hero.raf = requestAnimationFrame(heroLoop);
+}
+if ('IntersectionObserver' in window) new IntersectionObserver(es => {
+  hero.visible = es[0].isIntersecting;
+  if (hero.visible && !hero.raf && !reduce() && !solved()) hero.raf = requestAnimationFrame(heroLoop);
+}).observe($('#hero-cv'));
+
+/* ---------- round 1: guess ---------- */
+const G_OPTS = [['ann', 'Аня', 'Ann'], ['bob', 'Борис', 'Bob'], ['sam', 'Сергій', 'Sam'], ['equal', 'Приблизно порівну', 'About equal']];
+let gPick = null;
+function optsText() {
+  $('#g-opts').innerHTML = G_OPTS.map(o => '<button type="button" data-k="' + o[0] + '" aria-pressed="' + (o[0] === gPick) + '">' + L(o[1], o[2]) + '</button>').join('');
+}
+function guessText() {
+  if (gPick === null) return;
+  const verdict = {
+    ann: L('Так. Аня стріляє першою в повітря, Борис і Сергій стріляють одне в одного, а того, хто вцілів, Аня зустрічає першим пострілом. Найгірший стрілець має найкращі шанси.', 'Yes. Ann fires her first shot into the air, Bob and Sam shoot at each other, and Ann greets the survivor with the first shot. The worst shot has the best chance.'),
+    bob: L('Близько: Борис другий, 38,1%. Але Ані трохи краще, бо після дуелі Бориса з Сергієм перший постріл її.', 'Close: Bob is second at 38.1%. But Ann does slightly better, because after Bob and Sam fight, the first shot is hers.'),
+    sam: L('Так підказує інтуїція. Але саме тому, що Сергій не промахується, у нього стріляють першим. У Сергія найменші шанси: 22,2%.', 'That is what intuition says. But precisely because Sam never misses, he is shot at first. Sam has the worst chance: 22.2%.'),
+    equal: L('Не зовсім: Аня й Борис справді близькі, 39,7% і 38,1%, але Сергій відстає, 22,2%. Найкращі шанси в Ані.', 'Not quite: Ann and Bob are indeed close, 39.7% and 38.1%, but Sam lags behind at 22.2%. Ann has the best chance.')
+  }[gPick];
+  const v = [25 / 63, 8 / 21, 2 / 9], fr = ['25/63', '8/21', '2/9'];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Найбільше шансів', 'The best chance') + '</span><p class="big hit">' + L('Аня', 'Ann') + ' · ' + pct(v[0]) + '</p>' +
+    '<p>' + verdict + '</p><div class="compare">' + v.map((x, i) => '<div class="crow"><span>' + NAME(i) + '</span><div class="bar"><i style="--c:var(' + ['--hit', '--ink', '--grey'][i] + ');width:' + (100 * x / .5) + '%"></i></div><span class="mono">' + fr[i] + '</span></div>').join('') + '</div>' +
+    '<p class="note">' + L('Це за умови, що Аня першим пострілом стріляє в повітря. Чому так, у раунді 4. Спробуйте самі в раунді 2.', 'This assumes Ann fires her first shot into the air. Why, in round 4. Try it yourself in round 2.') + '</p>';
+}
+$('#g-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gPick = b.dataset.k; optsText(); guessText(); window.mpSolve && mpSolve(gPick); });
+
+/* ---------- round 2: you are Ann ---------- */
+const SERIES = 10;
+const gm = { k: 0, wins: [0, 0, 0], firsts: { '-1': 0, '1': 0, '2': 0 }, res: [] };
+let tr = null, gmTimer = 0;
+const gmDelay = () => reduce() ? 200 : 750;
+function trNew() {
+  clearTimeout(gmTimer);
+  tr = { alive: [true, true, true], n: 3, turn: 0, last: null, log: [], waiting: false, first: null, winner: -1 };
+  gmStep();
+}
+function gmStep() {
+  if (tr.n === 1) return;
+  const i = tr.turn % 3;
+  if (!tr.alive[i]) { tr.turn++; gmStep(); return; }
+  if (i === 0) { tr.waiting = true; gmDraw(); return; }
+  tr.waiting = false; gmDraw();
+  // the bots play the equilibrium: while three are in, Bob and Sam shoot at each other
+  const t = tr.n === 3 ? 3 - i : [0, 1, 2].find(j => j !== i && tr.alive[j]);
+  gmTimer = setTimeout(() => gmShoot(i, t), gmDelay());
+}
+function gmShoot(i, t) {
+  if (i === 0 && tr.first === null) { tr.first = t; gm.firsts[t]++; }
+  const hit = t >= 0 && Math.random() < CLASSIC[i];
+  tr.last = { i, t, hit };
+  tr.log.unshift([i, t, hit]);
+  if (hit) { tr.alive[t] = false; tr.n--; }
+  tr.turn++; tr.waiting = false;
+  if (tr.n === 1) {
+    tr.winner = tr.alive.indexOf(true);
+    gm.wins[tr.winner]++; gm.res.push(tr.winner); gm.k++;
+    gmDraw(); return;
+  }
+  gmDraw();
+  gmTimer = setTimeout(gmStep, gmDelay());
+}
+function shotText(e) {
+  const [i, t, hit] = e;
+  if (t < 0) return L(NAME(i) + ' стріляє в повітря.', NAME(i) + ' fires into the air.');
+  const acc = ['Аню', 'Бориса', 'Сергія'][t];
+  return hit ? L(NAME(i) + ' влучає в ' + acc + '. ' + NAME(t) + ' вибуває.', NAME(i) + ' hits ' + NAME(t) + '. ' + NAME(t) + ' is out.')
+    : L(NAME(i) + ' стріляє в ' + acc + ' і промахується.', NAME(i) + ' shoots at ' + NAME(t) + ' and misses.');
+}
+function arenaSVG() {
+  const P = [[78, 196], [200, 62], [322, 196]], ink = 'var(--ink)', fr = ['1/3', '2/3', '1'];
+  let h = '<svg class="arena" viewBox="0 0 400 262" role="img" aria-label="' + L('Троє стрільців', 'Three shooters') + '">';
+  const ls = tr.last;
+  if (ls) {
+    const [x, y] = P[ls.i];
+    if (ls.t < 0) h += '<line x1="' + x + '" y1="' + (y - 34) + '" x2="' + x + '" y2="' + (y - 92) + '" stroke="' + ink + '" stroke-width="2.5" stroke-dasharray="6 5" marker-end="url(#ah)"/>';
+    else {
+      const [x2, y2] = P[ls.t], d = Math.hypot(x2 - x, y2 - y), f = 34 / d;
+      h += '<line x1="' + (x + (x2 - x) * f) + '" y1="' + (y + (y2 - y) * f) + '" x2="' + (x2 - (x2 - x) * f) + '" y2="' + (y2 - (y2 - y) * f) + '" stroke="' + (ls.hit ? 'var(--loss)' : 'var(--muted)') + '" stroke-width="' + (ls.hit ? 3.5 : 2) + '"' + (ls.hit ? '' : ' stroke-dasharray="6 6"') + ' marker-end="url(#ah)"/>';
+    }
+  }
+  h += '<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--ink)"/></marker></defs>';
+  [0, 1, 2].forEach(i => {
+    const [x, y] = P[i], out = !tr.alive[i], cur = !out && tr.n > 1 && tr.turn % 3 === i;
+    const p = CLASSIC[i], a = -Math.PI / 2 + TAU * p, R = 27;
+    h += '<g opacity="' + (out ? .3 : 1) + '">';
+    if (cur) h += '<circle cx="' + x + '" cy="' + y + '" r="40" fill="var(--cell)"/>';
+    h += '<circle cx="' + x + '" cy="' + y + '" r="30" fill="var(--surface)"/><circle cx="' + x + '" cy="' + y + '" r="' + R + '" fill="none" stroke="var(--line)" stroke-width="6"/>';
+    h += p >= 1 ? '<circle cx="' + x + '" cy="' + y + '" r="' + R + '" fill="none" stroke="' + ink + '" stroke-width="6"/>'
+      : '<path d="M' + x + ' ' + (y - R) + ' A' + R + ' ' + R + ' 0 ' + (p > .5 ? 1 : 0) + ' 1 ' + (x + R * Math.cos(a)).toFixed(1) + ' ' + (y + R * Math.sin(a)).toFixed(1) + '" fill="none" stroke="' + ink + '" stroke-width="6"/>';
+    h += '<text x="' + x + '" y="' + (y + 7) + '" text-anchor="middle" font-size="20" font-weight="800" fill="' + ink + '">' + INIT(i) + '</text>';
+    h += '<text x="' + x + '" y="' + (y + 52) + '" text-anchor="middle" font-size="13" font-weight="600" fill="' + ink + '">' + NAME(i) + (i === 0 ? L(' (ви)', ' (you)') : '') + '</text>';
+    h += '<text x="' + x + '" y="' + (y + 68) + '" text-anchor="middle" font-size="12" fill="var(--muted)">' + fr[i] + '</text>';
+    if (out) h += '<path d="M' + (x - 18) + ' ' + (y - 18) + ' L' + (x + 18) + ' ' + (y + 18) + ' M' + (x + 18) + ' ' + (y - 18) + ' L' + (x - 18) + ' ' + (y + 18) + '" stroke="var(--loss)" stroke-width="4"/>';
+    h += '</g>';
+  });
+  return h + '</svg>';
+}
+function gmDraw() {
+  $('#gm-arena').innerHTML = arenaSVG();
+  const over = tr.n === 1, seriesDone = gm.k >= SERIES && over;
+  $('#gm-acts').querySelectorAll('[data-t]').forEach(b => {
+    const t = +b.dataset.t;
+    b.style.display = over || (t >= 0 && !tr.alive[t]) ? 'none' : '';
+    b.disabled = !tr.waiting;
+  });
+  const nx = $('#gm-next');
+  nx.style.display = over ? '' : 'none';
+  nx.textContent = seriesDone ? L('Нова серія', 'New series') : L('Наступна труель', 'Next truel');
+  let m;
+  if (over) m = tr.winner === 0 ? L('<b>Ви вижили!</b> Аня лишилася останньою.', '<b>You survived!</b> Ann is the last one standing.') : L(NAME(tr.winner) + ' лишається останнім. Цю труель ви програли.', NAME(tr.winner) + ' is the last one standing. You lost this truel.');
+  else if (tr.waiting) m = tr.n === 3 ? L('Ваш хід. Усі троє в грі: у кого стріляєте?', 'Your turn. All three are in: whom do you shoot?') : L('Ваш хід. Ви лишилися удвох: стріляйте!', 'Your turn. It is just the two of you: shoot!');
+  else m = L('Стріляє ' + NAME(tr.turn % 3) + '…', NAME(tr.turn % 3) + ' is shooting…');
+  $('#gm-msg').innerHTML = m;
+  $('#gm-log').innerHTML = tr.log.slice(0, 6).map(e => '<li>' + shotText(e) + '</li>').join('');
+  const no = Math.min(gm.k + (over ? 0 : 1), SERIES);
+  $('#gm-title').textContent = L('Труель ' + no + ' з ' + SERIES, 'Truel ' + no + ' of ' + SERIES);
+  $('#gm-chips').innerHTML = Array.from({ length: SERIES }, (_, j) => j < gm.res.length ? '<span class="w' + gm.res[j] + '">' + INIT(gm.res[j]) + '</span>' : '<span></span>').join('');
+  const played = Math.max(1, gm.k);
+  $('#gm-score').innerHTML = [0, 1, 2].map(i => '<div class="crow"><span>' + NAME(i) + (i === 0 ? L(' (ви)', ' (you)') : '') + '</span><div class="bar"><i style="--c:var(' + ['--hit', '--ink', '--grey'][i] + ');width:' + (100 * gm.wins[i] / played) + '%"></i></div><span class="mono">' + gm.wins[i] + '</span></div>').join('');
+  const f = gm.firsts, nf = f['-1'] + f['1'] + f['2'];
+  $('#gm-firsts').textContent = nf ? L('Ваш перший постріл: у повітря ' + f['-1'] + ', у Бориса ' + f['1'] + ', у Сергія ' + f['2'] + '.', 'Your first shot: into the air ' + f['-1'] + ', at Bob ' + f['1'] + ', at Sam ' + f['2'] + '.') : '';
+  let v = '';
+  if (seriesDone) {
+    v = '<p><b>' + L('Серію завершено: ви вижили в ' + gm.wins[0] + ' труелях із ' + SERIES + '.', 'Series over: you survived ' + gm.wins[0] + ' truels out of ' + SERIES + '.') + '</b></p>';
+    v += solved() ? '<p class="note">' + L('У середньому на 10 труелей: перший постріл у повітря дає 3,97 перемоги, у Сергія 3,12, у Бориса 2,65. За десять ігор випадок важить багато, тож порівнюйте з раундом 3, де їх 100 000.', 'On average per 10 truels: a first shot into the air gives 3.97 wins, at Sam 3.12, at Bob 2.65. Over ten games luck weighs a lot, so compare with round 3, which plays 100,000.') + '</p>'
+      : '<p class="note">' + L('Порівняйте свій результат з відповіддю в раунді 1.', 'Compare your result with the answer in round 1.') + '</p>';
+  } else v = '<p class="note">' + L('Борис влучає в 2 з 3 пострілів, Сергій завжди. Перемога в серії не гарантована жодною стратегією: важить, як часто ви виживаєте.', 'Bob hits 2 shots in 3, Sam always. No strategy guarantees a win: what counts is how often you survive.') + '</p>';
+  $('#gm-verdict').innerHTML = v;
+}
+$('#gm-acts').addEventListener('click', e => {
+  const b = e.target.closest('[data-t]');
+  if (!b || b.disabled || !tr.waiting) return;
+  gmShoot(0, +b.dataset.t);
+});
+$('#gm-next').addEventListener('click', () => {
+  if (gm.k >= SERIES) { gm.k = 0; gm.wins = [0, 0, 0]; gm.firsts = { '-1': 0, '1': 0, '2': 0 }; gm.res = []; }
+  trNew();
+});
+$('#gm-reset').addEventListener('click', () => { gm.k = 0; gm.wins = [0, 0, 0]; gm.firsts = { '-1': 0, '1': 0, '2': 0 }; gm.res = []; trNew(); });
+
+/* ---------- round 3: simulation ---------- */
+const SIM_N = 100000;
+let sAcc = CLASSIC.slice(), sRes = null;
+const accText = x => Math.abs(x - 1 / 3) < 1e-9 ? '1/3' : Math.abs(x - 2 / 3) < 1e-9 ? '2/3' : pct(x, 0);
+function sSync() {
+  ['a', 'b', 'c'].forEach((k, i) => { $('#s-' + k).value = Math.round(100 * sAcc[i]); $('#s-' + k + 'v').textContent = accText(sAcc[i]); });
+}
+function sRun() {
+  const eq = equilibrium(sAcc) || { st: [-1, 2, 1] };
+  const rows = [-1, 1, 2].map(o => {
+    const st = [o, eq.st[1], eq.st[2]], ex = solve(sAcc, [0, 1, 2], st), cnt = [0, 0, 0];
+    for (let k = 0; k < SIM_N; k++) { const w = playOnce(sAcc, [0, 1, 2], st); if (w >= 0) cnt[w]++; }
+    return { o, ex, sim: cnt.map(c => c / SIM_N) };
+  });
+  sRes = { rows, eq, acc: sAcc.slice() };
+  sDraw(); sText();
+}
+function sText() {
+  if (!sRes) {
+    $('#s-tbl').innerHTML = '';
+    $('#s-txt').textContent = L('Натисніть «Розіграти», щоб запустити симуляцію.', 'Press "Play them" to run the simulation.');
+    return;
+  }
+  const best = sRes.rows.reduce((m, r) => r.ex[0] > m.ex[0] + 1e-12 ? r : m);
+  $('#s-tbl').innerHTML = '<thead><tr><th>' + L('Перший постріл Ані', 'Ann\'s first shot') + '</th><th class="num">' + L('Точно', 'Exact') + '</th><th class="num">' + L('Симуляція', 'Simulated') + '</th></tr></thead><tbody>' +
+    sRes.rows.map(r => '<tr' + (r === best ? ' class="hl"' : '') + '><td>' + AT(r.o) + '</td><td class="num' + (r === best ? ' hit' : '') + '">' + pct(r.ex[0]) + '</td><td class="num">' + pct(r.sim[0]) + '</td></tr>').join('') + '</tbody>';
+  const se = Math.sqrt(.25 / SIM_N);
+  $('#s-txt').textContent = L('Борис стріляє ' + AT(sRes.eq.st[1]) + ', Сергій ' + AT(sRes.eq.st[2]) + ': це їхні найкращі відповіді за таких влучностей. Найкраще для Ані: ' + AT(best.o) + '. Симуляція зазвичай відхиляється від точного значення не більш ніж на ±' + pct(2 * se, 1) + ' (дві стандартні похибки).',
+    'Bob shoots ' + AT(sRes.eq.st[1]) + ', Sam ' + AT(sRes.eq.st[2]) + ': their best replies at these hit rates. Best for Ann: ' + AT(best.o) + '. The simulation usually stays within ±' + pct(2 * se, 1) + ' of the exact value (two standard errors).');
+}
+function sDraw() {
+  const st = setupCanvas($('#s-cv')); if (!st) return;
+  const { ctx, W, H } = st, l = 36, b = 44, t = 14, top = .7;
+  const y = v => t + (1 - v / top) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .2, .4, .6].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - 6, y(v)); ctx.stroke(); ctx.fillText(Math.round(100 * v) + '%', l - 6, y(v)); });
+  if (!sRes) return;
+  const gw = (W - l - 10) / 3, bw = Math.min(28, gw / 4.5);
+  sRes.rows.forEach((r, g) => {
+    const cx = l + gw * (g + .5);
+    [0, 1, 2].forEach(i => {
+      const x = cx + (i - 1) * (bw + 4) - bw / 2;
+      ctx.fillStyle = COL(i); ctx.fillRect(x, y(r.ex[i]), bw, y(0) - y(r.ex[i]));
+      ctx.strokeStyle = tok('--muted'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - 3, y(r.sim[i])); ctx.lineTo(x + bw + 3, y(r.sim[i])); ctx.stroke();
+    });
+    ctx.fillStyle = tok('--ink'); ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(L('Аня', 'Ann') + ' ' + AT(r.o), cx, H - b + 10);
+  });
+  ctx.font = '11px ' + tok('--f-mono');
+}
+['a', 'b', 'c'].forEach((k, i) => $('#s-' + k).addEventListener('input', e => { sAcc[i] = e.target.value / 100; $('#s-' + k + 'v').textContent = accText(sAcc[i]); }));
+['a', 'b', 'c'].forEach(k => $('#s-' + k).addEventListener('change', sRun));
+$('#s-classic').addEventListener('click', () => { sAcc = CLASSIC.slice(); sSync(); sRun(); });
+$('#s-run').addEventListener('click', sRun);
+
+/* ---------- round 5: the map ---------- */
+const MAP_G = 48;
+let mC = 1, mGrid = null, mPick = [1 / 3, 2 / 3];
+const mAt = k => (k + .5) / MAP_G;
+function mCompute() {
+  mGrid = [];
+  for (let j = 0; j < MAP_G; j++) for (let i = 0; i < MAP_G; i++) {
+    const e = equilibrium([mAt(i), mAt(j), mC]);
+    mGrid.push(e ? e.v.indexOf(Math.max(...e.v)) : -1);
+  }
+}
+function mDraw() {
+  const c = $('#m-cv-map'), st = setupCanvas(c); if (!st) return;
+  const { ctx, W, H } = st, pad = 38, S = Math.min(W, H) - pad - 8, x0 = pad, y0 = 4, cs = S / MAP_G;
+  for (let j = 0; j < MAP_G; j++) for (let i = 0; i < MAP_G; i++) {
+    const w = mGrid[j * MAP_G + i];
+    ctx.fillStyle = w < 0 ? tok('--paper') : COL(w);
+    ctx.globalAlpha = w === 1 ? .8 : 1;
+    ctx.fillRect(x0 + i * cs, y0 + (MAP_G - 1 - j) * cs, cs + .5, cs + .5);
+  }
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = tok('--surface') || '#fff'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x0, y0 + S); ctx.lineTo(x0 + S, y0); ctx.stroke(); ctx.setLineDash([]);
+  const px = x0 + mPick[0] * S, py = y0 + (1 - mPick[1]) * S;
+  ctx.fillStyle = tok('--surface') || '#fff'; ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(px, py, 6, 0, TAU); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = tok('--muted'); ctx.font = '11px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [0, .5, 1].forEach(v => { ctx.textAlign = v === 1 ? 'right' : 'center'; ctx.fillText(Math.round(100 * v) + '%', x0 + v * S, y0 + S + 4); });
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, 1].forEach(v => ctx.fillText(Math.round(100 * v) + '%', x0 - 3, y0 + (1 - v) * S + (v ? 6 : -6)));
+  ctx.save(); ctx.translate(x0 - 12, y0 + S / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText(L('Борис', 'Bob'), 0, 0); ctx.restore();
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillStyle = tok('--surface') || '#fff'; ctx.font = '600 11px ' + tok('--f-mono');
+  ctx.fillText(L('Аня →', 'Ann →'), x0 + S - 4, y0 + S - 4);
+  c._geo = { x0, y0, S };
+}
+function mText() {
+  $('#m-cv').textContent = pct(mC, 0);
+  const acc = [mPick[0], mPick[1], mC], e = equilibrium(acc);
+  // share of the region where Ann shoots worst of all and is still the favourite
+  let tot = 0, ann = 0;
+  for (let j = 0; j < MAP_G; j++) for (let i = 0; i < MAP_G; i++) if (mAt(i) < mAt(j) && mAt(i) < mC) { tot++; if (mGrid[j * MAP_G + i] === 0) ann++; }
+  const head = L('Аня ' + pct(acc[0], 0) + ', Борис ' + pct(acc[1], 0) + ', Сергій ' + pct(mC, 0) + '. ', 'Ann ' + pct(acc[0], 0) + ', Bob ' + pct(acc[1], 0) + ', Sam ' + pct(mC, 0) + '. ');
+  $('#m-msg').innerHTML = head + (e ? L('Шанси: Аня <b>' + pct(e.v[0]) + '</b>, Борис ' + pct(e.v[1]) + ', Сергій ' + pct(e.v[2]) + '. Перші постріли: Аня ' + AT(e.st[0]) + ', Борис ' + AT(e.st[1]) + ', Сергій ' + AT(e.st[2]) + '. ',
+    'Chances: Ann <b>' + pct(e.v[0]) + '</b>, Bob ' + pct(e.v[1]) + ', Sam ' + pct(e.v[2]) + '. First shots: Ann ' + AT(e.st[0]) + ', Bob ' + AT(e.st[1]) + ', Sam ' + AT(e.st[2]) + '. ') : '') +
+    (tot ? L('Там, де Аня стріляє найгірше з трьох, вона фаворит у ' + pct(ann / tot, 0) + ' карти.', 'Where Ann is the worst shot of the three, she is the favourite on ' + pct(ann / tot, 0) + ' of the map.') : '');
+}
+let mTimer = 0;
+$('#m-c').addEventListener('input', e => { mC = e.target.value / 100; $('#m-cv').textContent = pct(mC, 0); clearTimeout(mTimer); mTimer = setTimeout(() => { mCompute(); mDraw(); mText(); }, 60); });
+$('#m-cv-map').addEventListener('click', e => {
+  const c = e.currentTarget, g = c._geo; if (!g) return;
+  const r = c.getBoundingClientRect(), x = (e.clientX - r.left - g.x0) / g.S, y = 1 - (e.clientY - r.top - g.y0) / g.S;
+  if (x <= 0 || x >= 1 || y <= 0 || y >= 1) return;
+  mPick = [Math.max(.02, Math.round(x * 100) / 100), Math.max(.02, Math.round(y * 100) / 100)];
+  mDraw(); mText();
+});
+
+/* ---------- round 5: everyone against the leader ---------- */
+let nN = 4, nWait = true;
+// n players with hit rates 1/n..1, shooting weakest first; each aims at the most accurate rival still in,
+// with nWait the weakest one still in fires into the air while three or more remain. Exact values by recursion.
+function nWin(n, wait) {
+  const acc = Array.from({ length: n }, (_, k) => (k + 1) / n), memo = new Map();
+  function win(alive) {
+    const key = alive.join(',');
+    if (memo.has(key)) return memo.get(key);
+    let out;
+    if (alive.length === 1) { out = Array(n).fill(0); out[alive[0]] = 1; }
+    else {
+      const m = alive.length, hit = [], after = [];
+      const weakest = alive.reduce((w, j) => acc[j] < acc[w] ? j : w, alive[0]);
+      alive.forEach((i, k) => {
+        if (wait && m >= 3 && i === weakest) { hit.push(0); after.push(null); return; }
+        const t = alive.filter(j => j !== i).reduce((s, j) => acc[j] > acc[s] ? j : s);
+        const rest = [];
+        for (let d = 1; d <= m; d++) { const j = alive[(k + d) % m]; if (j !== t) rest.push(j); }
+        hit.push(acc[i]); after.push(win(rest));
+      });
+      let miss = 1; hit.forEach(p => { miss *= 1 - p; });
+      out = Array(n).fill(0);
+      let pre = 1;
+      for (let k = 0; k < m; k++) { if (hit[k]) for (let x = 0; x < n; x++) out[x] += pre * hit[k] * after[k][x]; pre *= 1 - hit[k]; }
+      out = out.map(x => x / (1 - miss));
+    }
+    memo.set(key, out);
+    return out;
+  }
+  return win([...Array(n).keys()]);
+}
+function nText() {
+  $('#n-n').innerHTML = [3, 4, 5, 6].map(k => '<button type="button" data-n="' + k + '" aria-pressed="' + (k === nN) + '">' + k + L(k > 4 ? ' гравців' : ' гравці', ' players') + '</button>').join('');
+  $('#n-w').innerHTML = [[true, L('Найслабший чекає', 'The weakest waits')], [false, L('Усі стріляють', 'Everyone shoots')]].map(([w, t]) => '<button type="button" data-w="' + w + '" aria-pressed="' + (w === nWait) + '">' + t + '</button>').join('');
+  const v = nWin(nN, nWait), best = v.indexOf(Math.max(...v));
+  $('#n-txt').textContent = L('Найвлучніший (100%) виживає з імовірністю ' + pct(v[nN - 1]) + '. Найбільше шансів у гравця з влучністю ' + pct((best + 1) / nN, 0) + ': ' + pct(v[best]) + '.',
+    'The most accurate player (100%) survives with probability ' + pct(v[nN - 1]) + '. The best chance belongs to the player who hits ' + pct((best + 1) / nN, 0) + ': ' + pct(v[best]) + '.');
+  nDraw(v, best);
+}
+function nDraw(v, best) {
+  const st = setupCanvas($('#n-cv')); if (!st) return;
+  const { ctx, W, H } = st, l = 34, b = 36, t = 18, top = .7;
+  const y = x => t + (1 - x / top) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .2, .4, .6].forEach(x => { ctx.beginPath(); ctx.moveTo(l, y(x)); ctx.lineTo(W - 6, y(x)); ctx.stroke(); ctx.fillText(Math.round(100 * x) + '%', l - 6, y(x)); });
+  const gw = (W - l - 10) / nN, bw = Math.min(46, gw * .6);
+  v.forEach((x, k) => {
+    const cx = l + gw * (k + .5);
+    ctx.fillStyle = k === best ? tok('--hit') : k === nN - 1 ? tok('--grey') : tok('--ink');
+    ctx.fillRect(cx - bw / 2, y(x), bw, y(0) - y(x));
+    ctx.fillStyle = tok('--ink'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.font = '600 11px ' + tok('--f-mono');
+    ctx.fillText(pct(x, 1), cx, y(x) - 3);
+    ctx.textBaseline = 'top'; ctx.fillStyle = tok('--muted'); ctx.font = '11px ' + tok('--f-mono');
+    ctx.fillText(Math.round(100 * (k + 1) / nN) + '%', cx, H - b + 8);
+  });
+}
+$('#n-n').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; nN = +b.dataset.n; nText(); });
+$('#n-w').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; nWait = b.dataset.w === 'true'; nText(); });
+
+/* ---------- round 5: your own truel ---------- */
+let pAcc = CLASSIC.slice(), pOrd = 'abc';
+function pText() {
+  ['a', 'b', 'c'].forEach((k, i) => { $('#p-' + k).value = Math.round(100 * pAcc[i]); $('#p-' + k + 'v').textContent = accText(pAcc[i]); });
+  const ords = [['abc', L('Аня → Борис → Сергій', 'Ann → Bob → Sam')], ['cba', L('Сергій → Борис → Аня', 'Sam → Bob → Ann')], ['lot', L('Черга жеребом', 'Order by lot')]];
+  $('#p-ord').innerHTML = ords.map(([k, t]) => '<button type="button" data-o="' + k + '" aria-pressed="' + (k === pOrd) + '">' + t + '</button>').join('');
+  $('#p-pre').innerHTML = '<button type="button" data-p="classic">' + L('Наша задача', 'Our puzzle') + '</button><button type="button" data-p="gardner">' + L('Ґарднер: 50%, 80%, 100%, жереб', 'Gardner: 50%, 80%, 100%, by lot') + '</button>';
+  let v, st = null;
+  if (pOrd === 'lot') v = byLot(pAcc);
+  else { const e = equilibrium(pAcc, pOrd === 'abc' ? [0, 1, 2] : [2, 1, 0]); v = e.v; st = e.st; }
+  const best = v.indexOf(Math.max(...v));
+  $('#p-tbl').innerHTML = '<thead><tr><th>' + L('Хто', 'Who') + '</th><th class="num">' + L('Влучність', 'Hit rate') + '</th><th>' + L('Перший постріл', 'First shot') + '</th><th class="num">' + L('Шанс', 'Chance') + '</th></tr></thead><tbody>' +
+    [0, 1, 2].map(i => '<tr' + (i === best ? ' class="hl"' : '') + '><td>' + NAME(i) + '</td><td class="num">' + accText(pAcc[i]) + '</td><td>' + (st ? AT(st[i]) : L('залежить від черги', 'depends on the order')) + '</td><td class="num">' + pct(v[i]) + '</td></tr>').join('') + '</tbody>';
+  const ties = new Set(pAcc.map(x => x.toFixed(4))).size < 3;
+  $('#p-txt').textContent = (ties ? L('Коли двоє стріляють однаково, рівноваг може бути кілька; таблиця показує одну з них. ', 'When two shoot equally well there can be several equilibria; the table shows one of them. ') : '') +
+    L('Фаворит: ' + NAME(best) + '. Шанси пораховано точно для рівноваги Неша, де ніхто не виграє, змінивши ціль сам.', 'Favourite: ' + NAME(best) + '. The chances are exact, for the Nash equilibrium in which nobody gains by changing target alone.');
+}
+['a', 'b', 'c'].forEach((k, i) => $('#p-' + k).addEventListener('input', e => { pAcc[i] = e.target.value / 100; pText(); }));
+$('#p-ord').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pOrd = b.dataset.o; pText(); });
+$('#p-pre').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.p === 'classic') { pAcc = CLASSIC.slice(); pOrd = 'abc'; } else { pAcc = [.5, .8, 1]; pOrd = 'lot'; }
+  pText();
+});
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Труель: чому найгірший стрілець має найбільше шансів', 'The Truel: Why the Worst Shot Has the Best Chance');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  heroCapText = ''; heroDraw(); optsText(); guessText(); gmDraw(); sSync(); sDraw(); sText(); mDraw(); mText(); nText(); pText();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang || lang; applyLang(); });
+document.addEventListener('solved', () => { heroStart(); gmDraw(); if (!sRes) sRun(); });
+const redraw = () => { heroDraw(); sDraw(); mDraw(); nText(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state ---------- */
+tr = { alive: [true, true, true], n: 3, turn: 0, last: null, log: [], waiting: true, first: null, winner: -1 };
+mCompute();
+if (solved()) sRun();
+applyLang();
+heroStart();
+})();
+</script>
+
+<script type="application/json" id="mp-terms">{"combinatorics": {"name": "Combinatorics", "short": "Counting how many ways things can be ordered or chosen: permutations n!, combinations C(n, k).", "hook": "A well-shuffled deck is almost certainly in an order nobody has ever seen.", "url": "https://mathparadoxes.com/glossary/combinatorics/en/", "link": "Try it in a simulation"}, "independence": {"name": "Independence", "short": "Events are independent if knowing about one doesn't change the chances of the other.", "hook": "After five heads in a row tails is no more likely: the coin remembers nothing.", "url": "https://mathparadoxes.com/glossary/independence/en/", "link": "Try it in a simulation"}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'en' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Sections"><a href="https://mathparadoxes.com/en/#all" aria-current="page">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/">Glossary</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+</body>
+</html>

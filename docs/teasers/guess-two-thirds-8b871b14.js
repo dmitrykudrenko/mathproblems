@@ -1,0 +1,49 @@
+
+(() => {
+  const root = document.getElementById('tz-guess-two-thirds');
+  if (!root) return;
+  const en = () => document.documentElement.dataset.lang === 'en';
+  const L = (uk, e) => en() ? e : uk;
+  const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), [b1, b2] = root.querySelectorAll('.tz-btn');
+  const col = (name, fb) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb;
+  const dec = v => { const s = v.toFixed(1); return en() ? s : s.replace('.', ','); };
+  // the chain of "the others think so too": step 0 is a random crowd with average 50, step k names 50·(2/3)^k.
+  // It only walks the reasoning the puzzle invites; which number wins against real people stays behind the reveal.
+  let step = 0;
+  const val = k => 50 * Math.pow(2 / 3, k);
+  function draw() {
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+    if (!W) return;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const ink = col('--ink', '#151515'), mut = col('--muted', '#5F5F5F'), f = col('--f', 'system-ui');
+    const x = v => 12 + v / 100 * (W - 24), base = H - 28;
+    ctx.strokeStyle = mut; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(12, base); ctx.lineTo(W - 12, base); ctx.stroke();
+    ctx.fillStyle = mut; ctx.font = '11px ' + f; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    [0, 50, 100].forEach(v => ctx.fillText(v, x(v), base + 6));
+    for (let k = 0; k <= step; k++) {
+      const v = val(k), last = k === step;
+      ctx.fillStyle = last ? ink : mut; ctx.globalAlpha = last ? 1 : .4;
+      ctx.beginPath(); ctx.arc(x(v), base - 16, last ? 7 : 5, 0, 7); ctx.fill();
+      if (k > 0) {
+        ctx.strokeStyle = mut; ctx.beginPath(); ctx.moveTo(x(val(k - 1)), base - 24); ctx.quadraticCurveTo((x(val(k - 1)) + x(v)) / 2, base - 24 - 30, x(v), base - 24); ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1; ctx.fillStyle = ink; ctx.font = '700 13px ' + f; ctx.textBaseline = 'bottom';
+    ctx.fillText(dec(val(step)), x(val(step)), base - 60);
+  }
+  function text() {
+    msg.textContent = step === 0
+      ? L('Крок 0: якщо всі називають навмання, середнє близько 50.', 'Step 0: if everyone picks at random, the average is about 50.')
+      : step === 1 ? L('Крок 1: тоді варто сказати 2/3 · 50 ≈ 33.', 'Step 1: then you should say 2/3 · 50 ≈ 33.')
+      : L('Крок ' + step + ': але інші теж так подумають. Тоді ' + dec(val(step)) + '.', 'Step ' + step + ': but the others will think so too. Then ' + dec(val(step)) + '.') + (step >= 6 ? L(' І так аж до 0. Чи всі думають так довго?', ' And so on down to 0. Does everyone think that far?') : '');
+    b1.textContent = L('Ще один крок', 'One more step');
+    b2.textContent = L('Спочатку', 'Start over');
+    b1.disabled = step >= 8;
+  }
+  b1.addEventListener('click', () => { if (step < 8) step++; draw(); text(); });
+  b2.addEventListener('click', () => { step = 0; draw(); text(); });
+  document.addEventListener('langchange', () => { draw(); text(); });
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
+  draw(); text();
+})();

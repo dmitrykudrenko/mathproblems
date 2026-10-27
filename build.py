@@ -591,7 +591,8 @@ def with_layers(body, lang, slug):
 # goes along (for the author's queries only; the page shows totals). "poll" in meta.json says which keys are
 # right: "right" lists [lo, hi] ranges for a number and exact strings for anything else, "each" gives a range per
 # part of an array guess (keys "a|b|c"), "round" names the section when it is not id="guess". A browser that saw
-# the answer before guessing never votes. Empty STATS_API turns the block off.
+# the answer before guessing never votes. Empty STATS_API turns the block off. "crowd": true is for a game with
+# no right answer (guess 2/3 of the average): the block stays empty and the page gets the counts as an "mp-crowd" event.
 STATS_API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/"
 POLL_MIN = 20  # fewer answers than this are not shown as a share
 POLL_TEXT = {
@@ -624,6 +625,8 @@ POLL_SCRIPT = """<script>
   }
   function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
   function show(data, mine) {
+    // "crowd" pages have no right answer: they get the raw counts and draw their own block
+    if (RULE.crowd) { document.dispatchEvent(new CustomEvent("mp-crowd", { detail: { k: data.k || {}, mine: mine } })); return; }
     var n = 0, ok = 0;
     Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
     if (!n) return;
@@ -665,7 +668,7 @@ def with_poll(body, lang, slug, poll):
     if not m:
         raise SystemExit(f"problems/{slug}/meta.json: \"poll\" has no section id=\"{poll.get('round', 'guess')}\"")
     i = body.index("</section>", m.end())
-    rule = {k: poll[k] for k in ("right", "each") if k in poll}
+    rule = {k: poll[k] for k in ("right", "each", "crowd") if k in poll}
     block = ('  <div class="mp-poll sp-after" aria-live="polite" hidden></div>\n' +
              POLL_SCRIPT % (json.dumps(STATS_API), json.dumps(slug), json.dumps(rule), POLL_MIN,
                             json.dumps(POLL_TEXT[lang], ensure_ascii=False)) + "\n")
