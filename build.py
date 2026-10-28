@@ -591,19 +591,15 @@ def with_layers(body, lang, slug):
 # goes along (for the author's queries only; the page shows totals). "poll" in meta.json says which keys are
 # right: "right" lists [lo, hi] ranges for a number and exact strings for anything else, "each" gives a range per
 # part of an array guess (keys "a|b|c"), "round" names the section when it is not id="guess". A browser that saw
-# the answer before guessing never votes. Empty STATS_API turns the block off. "crowd": true is for a game with
+# the answer before guessing never votes. Below POLL_MIN answers the block stays hidden. Empty STATS_API turns it off. "crowd": true is for a game with
 # no right answer (guess 2/3 of the average): the block stays empty and the page gets the counts as an "mp-crowd" event.
 STATS_API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/"
-POLL_MIN = 20  # fewer answers than this are not shown as a share
+POLL_MIN = 30  # until a problem has this many answers the block stays hidden (a handful of votes would mislead)
 POLL_TEXT = {
-    "uk": {"kicker": "Як відповідають інші", "few": "Відповідей поки замало для статистики: {n}. Ваша вже серед них.",
-           "few_seen": "Відповідей поки замало для статистики: {n}.",
-           "all": "Відповідей: {n}. Правильних серед них {p}.",
+    "uk": {"kicker": "Як відповідають інші", "all": "Відповідей: {n}. Правильних серед них {p}.",
            "yes": "Ви серед тих, хто впорався.", "no": "Не засмучуйтеся: інтуїція підводить більшість.",
            "bar": "правильно", "note": "Рахуємо лише першу відповідь з кожного браузера, до того як він побачив розв'язок. Анонімно."},
-    "en": {"kicker": "How others answer", "few": "Too few answers for stats yet: {n}. Yours is one of them.",
-           "few_seen": "Too few answers for stats yet: {n}.",
-           "all": "Answers so far: {n}. {p} of them are right.",
+    "en": {"kicker": "How others answer", "all": "Answers so far: {n}. {p} of them are right.",
            "yes": "You are among those who got it.", "no": "Don't worry: intuition fails most people here.",
            "bar": "right", "note": "Only the first answer from each browser counts, given before it saw the solution. Anonymous."},
 }
@@ -629,15 +625,11 @@ POLL_SCRIPT = """<script>
     if (RULE.crowd) { document.dispatchEvent(new CustomEvent("mp-crowd", { detail: { k: data.k || {}, mine: mine } })); return; }
     var n = 0, ok = 0;
     Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
-    if (!n) return;
-    var html = '<span class="kicker">' + T.kicker + '</span>';
-    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
-    else {
-      var p = Math.round(100 * ok / n);
-      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%%</b>") +
+    if (n < MIN) return;
+    var p = Math.round(100 * ok / n), html = '<span class="kicker">' + T.kicker + '</span>';
+    html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%%</b>") +
         (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
         '<div class="mp-poll-bar" role="img" aria-label="' + p + "%% " + T.bar + '"><i style="width:' + p + '%%"></i></div>';
-    }
     box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
     box.hidden = false;
   }
