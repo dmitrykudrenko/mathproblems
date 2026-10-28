@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "course-feature-impact": "#EFEDE6", "course-feature-impact--trust": "#EFEDE6", "lake-escape": "#D7ECEF", "winners-curse": "#F2E4D9", "small-numbers": "#E4E6EE", "multi-armed-bandit": "#F8E3EC", "will-rogers": "#E6F1EA", "persuadables": "#F4EEDC", "truel": "#F0DCD4", "guess-two-thirds": "#E7DDF0", "dollar-auction": "#DDEADF", "hotelling-beach": "#F6EAD3", "fly-between-trains": "#E6F3F7", "hilbert-hotel": "#DFE4F2", "parrondo-paradox": "#E9DCEC", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "course-feature-impact": "#EFEDE6", "course-feature-impact--trust": "#EFEDE6", "lake-escape": "#D7ECEF", "winners-curse": "#F2E4D9", "small-numbers": "#E4E6EE", "multi-armed-bandit": "#F8E3EC", "will-rogers": "#E6F1EA", "persuadables": "#F4EEDC", "truel": "#F0DCD4", "guess-two-thirds": "#E7DDF0", "dollar-auction": "#DDEADF", "hotelling-beach": "#F6EAD3", "fly-between-trains": "#E6F3F7", "hilbert-hotel": "#DFE4F2", "parrondo-paradox": "#E9DCEC", "axelrod-tournament": "#D6E6F7", "travelers-dilemma": "#E8D9CF", "prosecutors-fallacy": "#F3E8E4", "ant-rubber-rope": "#F5E9DF", "hat-check": "#EDE4D8", "broken-stick": "#F1E9DC", "elevator-paradox": "#F4E9E4", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -250,6 +250,34 @@ TEXT = {
     "parrondo-paradox": {
         "uk": (["ПАРАДОКС", "ПАРРОНДО"], "Дві програшні гри. А якщо навмання?"),
         "en": (["PARRONDO'S", "PARADOX"], "Two losing games. What if mixed?"),
+    },
+    "axelrod-tournament": {
+        "uk": (["ТУРНІР", "АКСЕЛЬРОДА"], "Дилема в'язня. Хто збере більше?"),
+        "en": (["AXELROD'S", "TOURNAMENT"], "Prisoner's dilemma. Who scores most?"),
+    },
+    "travelers-dilemma": {
+        "uk": (["ДИЛЕМА", "МАНДРІВНИКА"], "Ціна від $2 до $100. Що напишете?"),
+        "en": (["THE TRAVELER'S", "DILEMMA"], "From $2 to $100. What do you write?"),
+    },
+    "prosecutors-fallacy": {
+        "uk": (["ПОМИЛКА", "ПРОКУРОРА"], "Збіг 1 на 10 000. Він винний?"),
+        "en": (["THE PROSECUTOR'S", "FALLACY"], "A 1 in 10,000 match. Guilty?"),
+    },
+    "ant-rubber-rope": {
+        "uk": (["МУРАХА НА", "ГУМОВІЙ МОТУЗЦІ"], "+1 км щосекунди. Чи доповзе?"),
+        "en": (["THE ANT ON A", "RUBBER ROPE"], "+1 km every second. Will it get there?"),
+    },
+    "hat-check": {
+        "uk": (["КАПЕЛЮХИ", "В ГАРДЕРОБІ"], "Шанс, що ніхто не отримає свій?"),
+        "en": (["THE HAT-CHECK", "PROBLEM"], "Chance that nobody gets their own?"),
+    },
+    "broken-stick": {
+        "uk": (["ЗЛАМАНА", "ПАЛИЧКА"], "Два злами. Чи складеться трикутник?"),
+        "en": (["THE BROKEN", "STICK"], "Two breaks. Will it make a triangle?"),
+    },
+    "elevator-paradox": {
+        "uk": (["ПАРАДОКС", "ЛІФТА"], "Ви на 2-му. Ліфт їде вгору чи вниз?"),
+        "en": (["THE ELEVATOR", "PARADOX"], "Floor 2. Is the lift going up or down?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -930,6 +958,112 @@ def extra_visual(kind, x, y, lang="en"):
         for col, slope in (("#3E7CB1", .3), ("#B5651D", .26)):
             out.append(f'<line x1="{x + 40}" y1="{top + 20}" x2="{x + 230}" y2="{top + 20 + 200 * slope:.1f}" stroke="{col}" stroke-width="5" stroke-linecap="round"/>')
         out.append(f'<text x="{x + 350}" y="{top + 30}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">A+B ?</text>')
+    elif kind == "axelrod-tournament":
+        # the payoff table of the prisoner's dilemma (you : other) and a strip of moves; which strategy wins the tournament is the question
+        coop, defect = ("співпраця", "зрада") if lang == "uk" else ("cooperate", "defect")
+        out.append(f'<rect x="{x + 10}" y="{y + 10}" width="370" height="300" rx="16" fill="#fff"/>')
+        out += [f'<text x="{x + 177}" y="{y + 44}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="17" fill="{MUTED}">{coop}</text>',
+                f'<text x="{x + 301}" y="{y + 44}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="17" fill="{MUTED}">{defect}</text>']
+        for i, (cell, fill) in enumerate((("3 : 3", "#CFE8DA"), ("0 : 5", "#EDEFF5"), ("5 : 0", "#EDEFF5"), ("1 : 1", "#F4D2CB"))):
+            cx_, cy_ = x + 120 + (i % 2) * 124, y + 58 + (i // 2) * 72
+            out += [f'<rect x="{cx_}" y="{cy_}" width="114" height="62" rx="12" fill="{fill}"/>',
+                    f'<text x="{cx_ + 57}" y="{cy_ + 41}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="28" fill="{INK}">{cell}</text>']
+        for k, lab in enumerate((coop, defect)):
+            out.append(f'<text x="{x + 110}" y="{y + 95 + k * 72}" text-anchor="end" font-family="{FONT}" font-weight="700" font-size="17" fill="{MUTED}">{lab}</text>')
+        for r, pair in enumerate(((1, 1), (1, 0), (0, 0), (1, 1), (0, 1), (1, 1), (1, 1))):
+            for q, m in enumerate(pair):
+                out.append(f'<rect x="{x + 34 + r * 34}" y="{y + 222 + q * 34}" width="28" height="28" rx="6" fill="{"#CFE8DA" if m else "#F4D2CB"}"/>')
+        out.append(f'<text x="{x + 365}" y="{y + 268}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="48" fill="{SIGNAL}">?</text>')
+    elif kind == "travelers-dilemma":
+        # two broken vases above two price cards with question marks; the number to write is the question
+        for k in range(2):
+            cx_ = x + 95 + k * 190
+            out += [f'<path d="M{cx_ - 14},{y + 20} L{cx_ + 14},{y + 20} C{cx_ + 11},{y + 44} {cx_ + 48},{y + 66} {cx_ + 39},{y + 112} '
+                    f'C{cx_ + 33},{y + 140} {cx_ + 20},{y + 150} {cx_ + 17},{y + 150} L{cx_ - 17},{y + 150} '
+                    f'C{cx_ - 20},{y + 150} {cx_ - 33},{y + 140} {cx_ - 39},{y + 112} C{cx_ - 48},{y + 66} {cx_ - 11},{y + 44} {cx_ - 14},{y + 20} Z" '
+                    f'fill="#BBD3E6" stroke="#2C4A66" stroke-width="4"/>',
+                    f'<polyline points="{cx_ + 4},{y + 20} {cx_ - 7},{y + 50} {cx_ + 8},{y + 76} {cx_ - 4},{y + 104} {cx_ + 6},{y + 126}" fill="none" stroke="{INK}" stroke-width="3"/>',
+                    f'<rect x="{cx_ - 75}" y="{y + 180}" width="150" height="120" rx="16" fill="#fff"/>',
+                    f'<text x="{cx_}" y="{y + 216}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="18" fill="{MUTED}">{"2 … 100"}</text>',
+                    f'<text x="{cx_}" y="{y + 276}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="44" fill="{INK}">$?</text>']
+        out.append(f'<text x="{x + 190}" y="{y + 360}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="24" fill="{MUTED}">{"менша ціна ± $2" if lang == "uk" else "lower price ± $2"}</text>')
+    elif kind == "prosecutors-fallacy":
+        # a town of dots with one ringed person whose blood matched; how many others match is the answer, so only "?"
+        out.append(f'<rect x="{x + 10}" y="{y + 10}" width="380" height="300" rx="16" fill="#fff"/>')
+        for i in range(19):
+            for j in range(11):
+                out.append(f'<circle cx="{x + 34 + i * 18.5}" cy="{y + 34 + j * 18.5}" r="3" fill="#CFC6C2"/>')
+        px, py = x + 34 + 11 * 18.5, y + 34 + 5 * 18.5
+        out += [f'<circle cx="{px}" cy="{py}" r="7" fill="{INK}"/>', f'<circle cx="{px}" cy="{py}" r="16" fill="none" stroke="{INK}" stroke-width="4"/>']
+        out.append(f'<rect x="{x + 40}" y="{y + 250}" width="150" height="44" rx="10" fill="{INK}"/>')
+        out.append(f'<text x="{x + 115}" y="{y + 280}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="22" fill="#fff">{"1 : 10 000" if lang == "uk" else "1 : 10,000"}</text>')
+        out.append(f'<text x="{x + 365}" y="{y + 290}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="44" fill="{SIGNAL}">?</text>')
+    elif kind == "ant-rubber-rope":
+        # a rope tied to a post with km marks, an ant near the post and arrows pulling the far end; whether it arrives is the answer
+        out += [f'<rect x="{x + 10}" y="{y + 30}" width="370" height="280" rx="16" fill="#fff"/>',
+                f'<rect x="{x + 34}" y="{y + 120}" width="12" height="110" rx="3" fill="{MUTED}"/>',
+                f'<line x1="{x + 46}" y1="{y + 200}" x2="{x + 330}" y2="{y + 200}" stroke="#C2703D" stroke-width="10" stroke-linecap="round"/>']
+        for k in range(1, 5):
+            out.append(f'<line x1="{x + 46 + k * 57}" y1="{y + 192}" x2="{x + 46 + k * 57}" y2="{y + 208}" stroke="#fff" stroke-width="3"/>')
+        out += [f'<circle cx="{x + 330}" cy="{y + 200}" r="11" fill="#DB9500"/>',
+                f'<path d="M{x + 344},{y + 200} L{x + 372},{y + 200} M{x + 360},{y + 188} L{x + 374},{y + 200} L{x + 360},{y + 212}" fill="none" stroke="{INK}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>',
+                f'<text x="{x + 300}" y="{y + 252}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="22" fill="{MUTED}">{"+1 км/с" if lang == "uk" else "+1 km/s"}</text>',
+                f'<text x="{x + 92}" y="{y + 252}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="22" fill="{MUTED}">{"1 см/с" if lang == "uk" else "1 cm/s"}</text>']
+        ax, ay = x + 74, y + 188
+        out += [f'<ellipse cx="{ax - 14}" cy="{ay}" rx="11" ry="8" fill="{INK}"/>',
+                f'<ellipse cx="{ax}" cy="{ay}" rx="6" ry="5" fill="{INK}"/>',
+                f'<circle cx="{ax + 11}" cy="{ay - 2}" r="6" fill="{INK}"/>',
+                f'<path d="M{ax - 6},{ay + 2} L{ax - 10},{ay + 12} M{ax},{ay + 2} L{ax},{ay + 12} M{ax + 6},{ay + 2} L{ax + 10},{ay + 12} M{ax + 14},{ay - 6} L{ax + 20},{ay - 16}" stroke="{INK}" stroke-width="2.5" stroke-linecap="round"/>',
+                f'<text x="{x + 196}" y="{y + 140}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="56" fill="{SIGNAL}">?</text>']
+    elif kind == "hat-check":
+        # a hat rack above a row of guests, each hat in its owner's colour; who ends up with which hat is the question
+        cols = ("#2A3DD1", "#157F51", "#C98A00", "#7A4BC2", "#BF3E28")
+        out += [f'<rect x="{x + 10}" y="{y + 10}" width="370" height="320" rx="16" fill="#fff"/>',
+                f'<line x1="{x + 30}" y1="{y + 50}" x2="{x + 360}" y2="{y + 50}" stroke="{MUTED}" stroke-width="5" stroke-linecap="round"/>']
+        for i, col in enumerate((cols[2], cols[0], cols[4], cols[1], cols[3])):
+            hx = x + 60 + i * 68
+            out += [f'<line x1="{hx}" y1="{y + 50}" x2="{hx}" y2="{y + 64}" stroke="{MUTED}" stroke-width="3"/>',
+                    f'<ellipse cx="{hx}" cy="{y + 104}" rx="29" ry="6" fill="{col}"/>',
+                    f'<path d="M {hx - 18} {y + 102} A 18 22 0 0 1 {hx + 18} {y + 102} Z" fill="{col}"/>',
+                    f'<rect x="{hx - 18}" y="{y + 94}" width="36" height="5" fill="#000" fill-opacity=".28"/>']
+        for i, col in enumerate(cols):
+            gx = x + 60 + i * 68
+            out += [f'<circle cx="{gx}" cy="{y + 214}" r="17" fill="#fff" stroke="{INK}" stroke-width="3"/>',
+                    f'<rect x="{gx - 24}" y="{y + 238}" width="48" height="56" rx="12" fill="{col}"/>',
+                    f'<text x="{gx}" y="{y + 274}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="22" fill="#fff">{i + 1}</text>',
+                    f'<text x="{gx}" y="{y + 186}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="30" fill="{SIGNAL}">?</text>']
+    elif kind == "broken-stick":
+        # a wooden stick with two cracks and its three pieces laid out below; whether they close is the answer
+        out += [f'<rect x="{x + 10}" y="{y + 10}" width="360" height="320" rx="14" fill="#fff"/>']
+        cuts, x0, w = (0.27, 0.68), x + 40, 300
+        segs = [(0, cuts[0], "#C8955A"), (cuts[0], cuts[1], INK), (cuts[1], 1, "#8A8FA3")]
+        for a, b, col in segs:
+            l, r = (4 if a > 0 else 0), (4 if b < 1 else 0)
+            out.append(f'<rect x="{x0 + w * a + l:.1f}" y="{y + 60}" width="{w * (b - a) - l - r:.1f}" height="20" rx="8" fill="{col}"/>')
+        for c in cuts:
+            cx = x0 + w * c
+            out.append(f'<polyline points="{cx - 5},{y + 44} {cx + 4},{y + 70} {cx - 4},{y + 96}" fill="none" stroke="{SIGNAL}" stroke-width="3"/>')
+        for i, (a, b, col) in enumerate(segs):
+            out.append(f'<rect x="{x0}" y="{y + 140 + i * 40}" width="{w * (b - a):.1f}" height="16" rx="7" fill="{col}"/>')
+        out.append(f'<text x="{x + 350}" y="{y + 300}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="48" fill="{SIGNAL}">△ ?</text>')
+    elif kind == "elevator-paradox":
+        # a 15-floor building, one shaft with a car somewhere in the middle, "you" on floor 2; the direction is the answer, so only "?"
+        out.append(f'<rect x="{x + 60}" y="{y + 6}" width="270" height="330" rx="16" fill="#fff"/>')
+        top, bot = y + 26, y + 316
+        fy = lambda f: bot - (bot - top) * (f - 1) / 14
+        for f in range(1, 16):
+            out.append(f'<line x1="{x + 100}" y1="{fy(f):.1f}" x2="{x + 316}" y2="{fy(f):.1f}" stroke="#E2E2E2" stroke-width="2"/>')
+        for f in (1, 2, 15):
+            out.append(f'<text x="{x + 92}" y="{fy(f) + 6:.1f}" text-anchor="end" font-family="{FONT}" font-weight="700" font-size="17" fill="{MUTED}">{f}</text>')
+        out.append(f'<line x1="{x + 100}" y1="{fy(2):.1f}" x2="{x + 316}" y2="{fy(2):.1f}" stroke="{INK}" stroke-width="4"/>')
+        out.append(f'<rect x="{x + 130}" y="{top - 10}" width="60" height="{bot - top + 20}" fill="none" stroke="{MUTED}" stroke-width="2" stroke-dasharray="5 6"/>')
+        cy = fy(9)
+        out.append(f'<rect x="{x + 135}" y="{cy - 14:.1f}" width="50" height="28" rx="6" fill="{INK}"/>')
+        out.append(f'<text x="{x + 160}" y="{cy + 8:.1f}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="22" fill="#fff">?</text>')
+        px, py = x + 240, fy(2)
+        out += [f'<circle cx="{px}" cy="{py - 46:.1f}" r="10" fill="{INK}"/>',
+                f'<rect x="{px - 11}" y="{py - 34:.1f}" width="22" height="32" rx="7" fill="{INK}"/>',
+                f'<text x="{px + 22}" y="{py - 16:.1f}" font-family="{FONT}" font-weight="800" font-size="24" fill="{SIGNAL}">↑ ↓ ?</text>']
     return "".join(out)
 
 
@@ -966,7 +1100,7 @@ def svg(kind, lang):
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
                   "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin", "berkson-paradox",
                   "ab-test", "ab-test-peeking", "multiple-testing", "course-ab-testing", "course-ab-testing--check", "course-interview-puzzles", "course-interview-puzzles--trainer", "course-data-traps", "course-feature-impact", "course-feature-impact--trust", "lake-escape",
-                  "winners-curse", "small-numbers", "multi-armed-bandit", "will-rogers", "persuadables", "truel", "guess-two-thirds", "dollar-auction", "hotelling-beach", "fly-between-trains", "hilbert-hotel", "parrondo-paradox"):
+                  "winners-curse", "small-numbers", "multi-armed-bandit", "will-rogers", "persuadables", "truel", "guess-two-thirds", "dollar-auction", "hotelling-beach", "fly-between-trains", "hilbert-hotel", "parrondo-paradox", "axelrod-tournament", "travelers-dilemma", "prosecutors-fallacy", "ant-rubber-rope", "hat-check", "broken-stick", "elevator-paradox"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))

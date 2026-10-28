@@ -1,0 +1,1650 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/axelrod-tournament/", "en": "/axelrod-tournament/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "axelrod-tournament";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>Axelrod&#x27;s Tournament: Why Tit for Tat Beat Cleverer Strategies</title>
+<meta name="description" content="The prisoner&#x27;s dilemma, 200 rounds, every program against every other. Tit for Tat won without beating a single opponent. Bots, a tournament, evolution.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/axelrod-tournament/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/axelrod-tournament/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/axelrod-tournament/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/axelrod-tournament/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="Axelrod&#x27;s tournament">
+<meta property="og:description" content="Programs play the prisoner&#x27;s dilemma for 200 rounds, each against each. Who scores most: an eternal defector, a sneak, Tit for Tat or a coin toss?">
+<meta property="og:url" content="https://mathparadoxes.com/axelrod-tournament/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/axelrod-tournament/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The prisoner&#x27;s dilemma payoff table 3 : 3, 0 : 5, 5 : 0, 1 : 1 and a question mark. Which strategy scores most in a tournament?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Axelrod&#x27;s tournament">
+<meta name="twitter:description" content="Programs play the prisoner&#x27;s dilemma for 200 rounds, each against each. Who scores most: an eternal defector, a sneak, Tit for Tat or a coin toss?">
+<meta name="twitter:image" content="https://mathparadoxes.com/axelrod-tournament/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/axelrod-tournament/en/#page", "url": "https://mathparadoxes.com/axelrod-tournament/en/", "name": "Axelrod's Tournament: Why Tit for Tat Beat Cleverer Strategies", "description": "The prisoner's dilemma, 200 rounds, every program against every other. Tit for Tat won without beating a single opponent. Bots, a tournament, evolution.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "intermediate", "about": {"@type": "Thing", "name": "The Evolution of Cooperation", "sameAs": "https://en.wikipedia.org/wiki/The_Evolution_of_Cooperation"}, "image": "https://mathparadoxes.com/axelrod-tournament/og-en.png", "datePublished": "2026-10-27", "dateModified": "2026-10-27", "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "translationOfWork": {"@id": "https://mathparadoxes.com/axelrod-tournament/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "Axelrod's tournament", "item": "https://mathparadoxes.com/axelrod-tournament/en/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/axelrod-tournament/en/#faq", "inLanguage": "en", "mainEntity": [{"@type": "Question", "name": "What is the prisoner's dilemma?", "acceptedAnswer": {"@type": "Answer", "text": "A game for two in which each chooses at the same time to cooperate or defect. Mutual cooperation gives both 3 points, mutual defection 1 each, and a defector against a cooperator takes 5 and leaves 0. In a single round defecting pays whatever the other does, but when both defect, both are worse off than if they had cooperated."}}, {"@type": "Question", "name": "Why did Tit for Tat win Axelrod's tournament?", "acceptedAnswer": {"@type": "Answer", "text": "It never defects first, so with every nice strategy it cooperates for the whole match and gets 600 points over 200 rounds. It answers defection with defection, so defectors gain only a few points from it. And it forgives as soon as the other cooperates again. In the first tournament it averaged 504 points per match, although it never outscored its opponent in any match."}}, {"@type": "Question", "name": "Is Tit for Tat the best strategy?", "acceptedAnswer": {"@type": "Answer", "text": "No, there is no strategy best for every case: the result depends on who else plays. Among nothing but Doves it pays to always defect. And if moves sometimes flip by accident, two copies of Tit for Tat get stuck in mutual retaliation, and more generous strategies such as Generous Tit for Tat or Pavlov score more."}}, {"@type": "Question", "name": "Who took part in the tournaments?", "acceptedAnswer": {"@type": "Answer", "text": "Robert Axelrod's first tournament had 14 programs from scientists who studied the prisoner's dilemma, plus a random program; each pair played 200 rounds. The second had 62 programs plus the random one. Both were won by Tit for Tat, submitted by the mathematician Anatol Rapoport. Axelrod described the tournaments in the Journal of Conflict Resolution in 1980 and in the 1984 book The Evolution of Cooperation."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the truel page. The signature object is a strip of moves: two rows of cells, cooperate or defect, round after round.
+   Sources: Axelrod, "Effective Choice in the Prisoner's Dilemma", J. Conflict Resolution 24 (1980) 3–25 (14 entries + RANDOM, 200 moves, TFT mean 504);
+   Axelrod, "More Effective Choice in the Prisoner's Dilemma", J. Conflict Resolution 24 (1980) 379–403 (62 entrants, TFT again);
+   Axelrod & Hamilton, "The Evolution of Cooperation", Science 211 (1981) 1390–1396; Axelrod, The Evolution of Cooperation (Basic Books, 1984), ch. 4 on trench warfare after Ashworth (1980);
+   Nowak & Sigmund, "Tit for tat in heterogeneous populations", Nature 355 (1992) 250–253; Nowak & Sigmund, Nature 364 (1993) 56–58 (win-stay, lose-shift);
+   Press & Dyson, PNAS 109 (2012) 10409–10413; Rapoport, Seale & Colman, PLoS ONE (2015) e0134128; University of Southampton news, Oct 2004.
+   Every tournament number on the page is computed by the script below exactly (Markov chain over the strategies' states) and checked with Python fractions and by simulation. */
+:root {
+  --tint: #D6E6F7;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --coop: #CFE8DA;
+  --coop-ink: #1D6B47;
+  --def: #F4D2CB;
+  --def-ink: #A33A26;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --grey: #A3A9BA;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--ink); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal canvas { height: 320px; border-radius: 14px; }
+.hero-cal .cap { font-size: .84rem; color: var(--muted); min-height: 2.6em; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .4; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 200px; max-width: 100%; accent-color: var(--day); }
+.ctl output { font-family: var(--f-mono); font-weight: 600; color: var(--ink); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--hit); }
+.good { color: var(--win); font-weight: 600; }
+.bad { color: var(--loss); font-weight: 600; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; cursor: pointer; font-size: .9rem; }
+.presets button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: #fff; }
+.presets button:disabled { opacity: .4; cursor: default; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+/* the payoff table: rows are my move, columns the other's; each cell shows my points : theirs */
+.pay { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px; font-size: .86rem; margin-top: 10px; }
+.pay > span { display: grid; place-items: center; text-align: center; color: var(--muted); padding: 4px; }
+.pay > b { border-radius: 10px; padding: 12px 6px; text-align: center; font-family: var(--f-mono); font-size: 1.05rem; background: var(--paper); display: grid; gap: 2px; }
+.pay > b small { font-family: var(--f-body); font-weight: 500; font-size: .74rem; color: var(--muted); }
+.pay .cc { background: var(--coop); }
+.pay .dd { background: var(--def); }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.opts { display: grid; gap: 8px; }
+.opts button { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; cursor: pointer; display: grid; gap: 2px; }
+.opts button b { font-weight: 700; }
+.opts button span { font-size: .86rem; color: var(--muted); }
+.opts button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: #fff; }
+.opts button[aria-pressed="true"] span { color: #DDE1EC; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 8px; }
+.crow { display: grid; grid-template-columns: 130px 1fr 56px; gap: 10px; align-items: center; font-size: .86rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+.crow .mono { text-align: right; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.stage { display: grid; gap: 14px; }
+.strip { display: grid; gap: 4px; overflow-x: auto; padding-bottom: 4px; }
+.strip .row { display: flex; gap: 4px; align-items: center; }
+.strip .who { width: 84px; flex: none; font-size: .78rem; color: var(--muted); font-weight: 600; }
+.strip i { width: 26px; height: 26px; flex: none; border-radius: 6px; display: grid; place-items: center; font-style: normal; font-family: var(--f-mono); font-size: .72rem; font-weight: 700; border: 1.5px dashed var(--line); }
+.strip i.c { background: var(--coop); color: var(--coop-ink); border: 0; }
+.strip i.d { background: var(--def); color: var(--def-ink); border: 0; }
+.strip i.pts { border: 0; color: var(--muted); font-weight: 600; }
+.score { display: flex; gap: 18px; flex-wrap: wrap; align-items: baseline; font-family: var(--f-mono); }
+.score b { font-family: var(--f-display); font-size: 1.6rem; }
+.stat { font-family: var(--f-mono); font-size: .84rem; color: var(--muted); }
+.verdict { border-radius: 12px; padding: 12px 14px; background: var(--paper); display: grid; gap: 8px; }
+.names { display: flex; flex-wrap: wrap; gap: 6px; }
+.names button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.names button.ok { background: var(--coop); border-color: var(--coop-ink); }
+.names button.no { background: var(--def); border-color: var(--def-ink); }
+.hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: .86rem; }
+.hist li { display: grid; grid-template-columns: 1fr auto; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.build { display: grid; gap: 12px; }
+.build label { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; font-size: .9rem; }
+.build select { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); max-width: 100%; }
+.lock { border: 1.5px dashed var(--line); border-radius: 12px; padding: 14px; color: var(--muted); font-size: .9rem; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.chipset { display: flex; flex-wrap: wrap; gap: 6px; }
+.chipset button { border: 1.5px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px 5px 8px; cursor: pointer; font-size: .86rem; display: inline-flex; align-items: center; gap: 6px; }
+.chipset button::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.chipset button[aria-pressed="false"] { opacity: .45; border-style: dashed; }
+.tbl-wrap { overflow-x: auto; }
+table.t { border-collapse: collapse; width: 100%; font-size: .9rem; }
+.t th, .t td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.t th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+.t td.num, .t th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+.t th.num { white-space: normal; }
+.t tr.hl td { font-weight: 700; }
+.t td.hit { color: var(--hit); font-weight: 700; }
+table.mx { font-size: .8rem; }
+.mx th, .mx td { padding: 6px 5px; }
+.mx td.self { background: var(--paper); }
+.mx td.up { color: var(--win); }
+.mx td.dn { color: var(--loss); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.3rem; }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .82rem; color: var(--muted); }
+.four { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.four li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; font-size: .93rem; color: var(--muted); }
+.four li b { color: var(--ink); }
+.four .n { font-family: var(--f-display); font-weight: 800; color: var(--day); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.layer { font-family: var(--f-display); font-weight: 800; font-size: 1.2rem; margin-top: 18px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 96px 1fr 48px; font-size: .8rem; }
+  .vs { grid-template-columns: 1fr; }
+  .t th, .t td { padding: 8px 5px; }
+  .hero-cal canvas { height: 280px; }
+  .strip .row { gap: 2px; }
+  .strip .who { width: 38px; font-size: .7rem; }
+  .strip i { width: 18px; height: 18px; font-size: .6rem; border-radius: 5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=d9a074c5">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/en/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+  <nav class="mp-nav" aria-label="Sections" data-t="{&quot;cont&quot;: &quot;Continue&quot;, &quot;course&quot;: &quot;Continue the course&quot;}" data-slug="axelrod-tournament" data-me="{&quot;s&quot;: &quot;axelrod-tournament&quot;, &quot;n&quot;: {&quot;uk&quot;: &quot;Турнір Аксельрода&quot;, &quot;en&quot;: &quot;Axelrod&#x27;s tournament&quot;}, &quot;u&quot;: {&quot;uk&quot;: &quot;https://mathparadoxes.com/axelrod-tournament/&quot;, &quot;en&quot;: &quot;https://mathparadoxes.com/axelrod-tournament/en/&quot;}}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Menu"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Continue: <b></b></a><a href="https://mathparadoxes.com/en/#all" aria-current="page">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/">Glossary</a></div></nav>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/axelrod-tournament/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/axelrod-tournament/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <div class="mp-meta"><span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span>School maths</button><span class="mp-level-hint" hidden>Fractions, percentages, basic probability, powers<a href="https://mathparadoxes.com/en/?l=2#all">All puzzles of this level →</a></span></span></div>
+    
+    <h1 class="en"><span class="kw">Axelrod's tournament</span> Programs play the prisoner's dilemma. <span class="q sp-before">Which one scores most?</span><span class="q sp-after">The winner never won a single match.</span></h1>
+    
+    
+    <p class="lead en sp-before">Two players choose at the same time: cooperate or defect. If both cooperate, each gets 3 points. A defector against a cooperator takes 5, and the cooperator gets 0. If both defect, each gets 1. The political scientist Robert Axelrod ran a tournament: programs played this game for 200 rounds, each against each. Which strategy scored the most points?</p>
+    <p class="lead en sp-after">Tit for Tat, by the mathematician Anatol Rapoport: cooperate on the first move, then repeat the other player's last move. It never outscored its opponent in a single match, because it never defects first. But in total it collected the most: 504 points per match on average. Then it won the second tournament too, with 62 entrants.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b>504</b><span><span class="en">points per match on average</span></span></div>
+      <div class="odd"><b>0</b><span><span class="en">matches where it outscored the opponent</span></span></div>
+      <div class="odd"><b><span class="en">2 of 2</span></b><span><span class="en">tournaments won</span></span></div>
+    </div>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">The puzzle</span></span>
+    <h2><span class="en">The prisoner's dilemma, played two hundred times in a row</span></h2>
+    
+    <p class="lead en">Let's start with a single game, then repeat it many times.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="en">One round</span></h3>
+        
+        <p class="en">Two players choose one of two moves at the same time and independently: cooperate or defect. The table on the right gives the points. The name comes from a story about two suspects questioned separately: each is offered a shorter sentence for testifying against the other.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="en">Why it is a dilemma</span></h3>
+        
+        <p class="en">If the other player cooperates, you do better by defecting: 5 beats 3. If the other defects, defecting is still better: 1 beats 0. So in a single round defecting is better whatever the other does. But when both reason this way, each gets 1 when they could have had 3.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="en">A match</span></h3>
+        
+        <p class="en">The same two play 200 rounds in a row. Before each round both see how everyone moved so far. Points from all rounds add up. Two players who always cooperate get 600 points each; two who always defect get 200 each.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="en">The tournament</span></h3>
+        
+        <p class="en">The entrants are programs, each with its own strategy. Each plays a match against every other, and against a copy of itself. The winner is not whoever won the most matches but whoever scored the most points in total.</p></div></li>
+      <li><span class="n">5</span><div><h3><span class="en">The question</span></h3>
+        
+        <p class="en">Which strategy scores the most points in such a tournament?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card">
+        <span class="kicker"><span class="en">Points per round: you : other</span></span>
+        <div class="pay">
+          <span></span><span><span class="en">other cooperates</span></span><span><span class="en">other defects</span></span>
+          <span><span class="en">you cooperate</span></span><b class="cc">3 : 3<small><span class="en">reward</span></small></b><b>0 : 5<small><span class="en">you are suckered</span></small></b>
+          <span><span class="en">you defect</span></span><b>5 : 0<small><span class="en">temptation</span></small></b><b class="dd">1 : 1<small><span class="en">punishment</span></small></b>
+        </div>
+      </div>
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="en">Intuition says</span></span>
+        <p class="q"><span class="en">"A clever strategy that knows how to cheat will win"</span></p>
+        
+        <p class="en">There were clever programs in the tournament, and they lost. Tit for Tat won, the simplest of the programs entered: it never defects first, answers defection with defection and cooperation with cooperation.</p>
+      </div>
+      <div class="card">
+        <h3><span class="en">Assumptions</span></h3>
+        
+        <ul class="rules en">
+          <li>The programs cannot make deals: all they know about each other is the moves in this match.</li>
+          <li>Each program tries to score as many points as possible for itself, not to beat any particular opponent.</li>
+          <li>The points are the same in every match: 3, 0, 5 and 1, as in the table.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="en">Which strategy collects the most points?</span></h2>
+    
+    <p class="lead en">A round robin, every match 200 rounds, many different entrants. Lock in your answer before reading on.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <span class="note"><span class="en">The most points go to…</span></span>
+      <div class="opts" id="g-opts"></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Hints</span>
+    <p class="mp-hints-intro">Hard to decide? Open the hints one at a time: the easy one first, then stronger ones.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Work out what two players get in a 200-round match if they always cooperate, and what two get if they always defect. How big is the gap?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>A tournament counts your points, not whether you beat your opponent. Does winning a match matter if both of you scored little in it?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>Picture an opponent who answers a defection with a defection on the next move. What does defecting against it get you two rounds later? And what does defecting get you against someone who never strikes back?</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Show hint 1 of 3 · easy&quot;, &quot;Show hint 2 of 3 · medium&quot;, &quot;Show hint 3 of 3 · strong&quot;]">Show hint 1 of 3 · easy</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "axelrod-tournament";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "axelrod-tournament", RULE = {"right": ["tft"]}, MIN = 20, T = {"kicker": "How others answer", "few": "Too few answers for stats yet: {n}. Yours is one of them.", "few_seen": "Too few answers for stats yet: {n}.", "all": "Answers so far: {n}. {p} of them are right.", "yes": "You are among those who got it.", "no": "Don't worry: intuition fails most people here.", "bar": "right", "note": "Only the first answer from each browser counts, given before it saw the solution. Anonymous."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    // "crowd" pages have no right answer: they get the raw counts and draw their own block
+    if (RULE.crowd) { document.dispatchEvent(new CustomEvent("mp-crowd", { detail: { k: data.k || {}, mine: mine } })); return; }
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: play against the bots, then build your own -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 2 · Game</span></span>
+    <h2><span class="en">Five opponents, each with a strategy. Who is who?</span></h2>
+    
+    <p class="lead en">You play a match against a bot: each round you choose to cooperate or defect, and the bot moves at the same time. You don't know how many rounds the match has: 8 to 12. After the match, guess which strategy the bot had. The list of strategies is alongside.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <h3 id="gm-title"></h3>
+      <div class="strip" id="gm-strip"></div>
+      <div class="score" id="gm-score"></div>
+      <p class="msg" id="gm-msg" aria-live="polite"></p>
+      <div class="actions" id="gm-acts">
+        <button class="btn" type="button" data-m="1" style="background:var(--coop-ink);color:#fff"><span class="en">Cooperate</span></button>
+        <button class="btn" type="button" data-m="0" style="background:var(--def-ink);color:#fff"><span class="en">Defect</span></button>
+      </div>
+      <div class="names" id="gm-names"></div>
+      <div class="actions"><button class="btn ghost" type="button" id="gm-next"></button></div>
+    </div>
+    <div class="card" style="display:grid;gap:14px;align-content:start">
+      <h3><span class="en">The bots' strategies</span></h3>
+      <ul class="hist" id="gm-list"></ul>
+      <div class="verdict" id="gm-verdict"></div>
+      <div class="actions"><button class="btn ghost" type="button" id="gm-reset"><span class="en">Start over</span></button></div>
+    </div>
+  </div>
+  <div class="room" style="margin-top:20px">
+    <div class="card build">
+      <h3><span class="en">Build your own strategy and enter it in the tournament</span></h3>
+      <label><span><span class="en">First move</span></span><select id="b-first"></select></label>
+      <label><span><span class="en">If the other just cooperated</span></span><select id="b-c"></select></label>
+      <label><span><span class="en">If the other just defected</span></span><select id="b-d"></select></label>
+      <label><span><span class="en">After the other's first defection, defect for good</span></span><input type="checkbox" id="b-g"></label>
+      <div class="actions"><button class="btn pri" type="button" id="b-run"></button></div>
+      <p class="note" id="b-desc"></p>
+    </div>
+    <div class="card" style="display:grid;gap:12px;align-content:start" id="b-out"></div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="en">Your tournament: pick the entrants and the noise</span></h2>
+    
+    <p class="lead en">Each chosen strategy plays every other one and its own copy for 200 rounds. The bar is the exact average points per match: the page works out the probabilities of all moves round by round. The tick is the simulation: 50 tournaments played with random moves. Noise means each move is flipped by accident with that probability: meant to cooperate, defected instead, and vice versa.</p>
+  </div>
+  <div class="card">
+    <div class="controls" style="display:grid;gap:12px">
+      <div class="chipset" id="s-field"></div>
+      <div class="presets" id="s-noise"></div>
+      <div class="presets" id="s-pre"></div>
+      <div class="actions"><button class="btn pri" id="s-run" type="button"></button></div>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="s-cv" style="height:320px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--ink)"><b class="en">bar: exact</b></span>
+          <span style="--c:var(--muted)"><b class="en">tick: simulation</b></span>
+        </div>
+      </div>
+      <div style="display:grid;gap:12px;align-content:start">
+        <div class="tbl-wrap"><table class="t" id="s-tbl"></table></div>
+        <p class="note" id="s-txt"></p>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px;display:grid;gap:12px">
+    <h3><span class="en">Evolution: what if successful strategies multiply</span></h3>
+    
+    <p class="note en">The same entrants, but now they are shares of a population. Each generation a strategy's share grows in proportion to how many points it scores against the current mix. This is how Axelrod checked who survives once the losers gradually die out.</p>
+    <canvas id="e-cv" style="height:280px"></canvas>
+    <div class="legend" id="e-leg"></div>
+    <p class="note" id="e-txt"></p>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 4 · Explanations</span></span>
+    <h2><span class="en">How to win a tournament without winning a match</span></h2>
+    
+    <p class="lead en">A tournament counts your points, not your margin over the other player. So what pays is not beating the other but letting both of you score a lot.</p>
+  </div>
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">In plain words</span><span class="mp-layer-desc">pictures, analogies, small numbers</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“In plain words” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">Lose a little, earn a lot</span></span>
+      <h3><span class="en">The defector beats everyone and stays poor</span></h3>
+      
+      <p class="en">Let's start with a simple, if incomplete, explanation. The defector never loses a match: against Tit for Tat it takes 204 points to 199. But 204 is a pittance: two cooperators get 600 each. Tit for Tat loses a few points to every defector but earns the most with everyone willing to cooperate.</p>
+      <div class="vs">
+        <div><span><span class="en">Defector vs Tit for Tat</span></span><b class="mono">204 : 199</b></div>
+        <div><span><span class="en">Defector vs Defector</span></span><b class="mono">200 : 200</b></div>
+        <div class="bb"><span><span class="en">Tit for Tat vs Tit for Two Tats</span></span><b class="mono">600 : 600</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Four traits, after Axelrod</span></span>
+      <h3><span class="en">What the top-scoring strategies had in common</span></h3>
+      <ol class="four">
+        <li><span class="n">1</span><span class="en"><b>Nice.</b> Never defects first, so it cooperates with other nice strategies for all 200 rounds.</span></li>
+        <li><span class="n">2</span><span class="en"><b>Retaliating.</b> Answers defection with defection at once, so cheating it does not pay.</span></li>
+        <li><span class="n">3</span><span class="en"><b>Forgiving.</b> As soon as the other cooperates again, so does it: it holds no grudge.</span></li>
+        <li><span class="n">4</span><span class="en"><b>Clear.</b> Within a few rounds the other can see the rule and realise that cooperating with it pays.</span></li>
+      </ol>
+      
+      <p class="en">Clever programs in Axelrod's tournaments often failed on the third and fourth traits: their attempts to defect "just a little" set off long chains of mutual retaliation.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Rigorous</span><span class="mp-layer-desc">tables, charts, formulas</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Rigorous” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">The match table</span></span>
+      <h3><span class="en">Who takes how much in each match of our tournament</span></h3>
+      <div class="tbl-wrap"><table class="t mx" id="mx-tbl"></table></div>
+      
+      <p class="en">The row is a strategy, the column its opponent, and each cell holds the row's <a href="https://mathparadoxes.com/glossary/median-vs-mean/en/" class="mp-term" data-term="mean" aria-expanded="false">average</a> points per 200-round match. Green marks matches where the row scored more than its opponent, red where it scored less. Tit for Tat's row has no green cell at all: it beats nobody. But against half of its opponents it scores 599 or 600, and its worst cell is 199, while the Dove's is 0 and Tit for Two Tats' is 198.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">One round against many</span></span>
+      <h3><span class="en">Why defecting wins a round but loses the tournament</span></h3>
+      
+      <p class="en">In a single round defecting dominates: whatever the other does, it gives 2 points more (5 versus 3) or 1 more (1 versus 0). But in a repeated game your move changes the other's next moves. Defecting against Tit for Tat gives +2 now and costs you in the next round when it answers with a defection: you get 0 instead of 3 if you go back to cooperating, or 1 instead of 3 if you keep defecting.</p>
+      
+      <p class="en">That is why it matters who else is in the tournament. If many strategies around you retaliate, defecting only pays in the last round. If everyone around is a pushover, always defecting pays: in round 3 you can see this by switching on "Naive field".</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">For formula lovers</span></span>
+      <h3><span class="en">The shadow of the future</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Let the game go on after each round with probability w. You play against Tit for Tat. The expected points of three plans:</span></p>
+          <math display="block"><msub><mi>V</mi><mtext class="en">coop</mtext></msub><mo>=</mo><mn>3</mn><mo>+</mo><mn>3</mn><mi>w</mi><mo>+</mo><mn>3</mn><msup><mi>w</mi><mn>2</mn></msup><mo>+</mo><mo>…</mo><mo>=</mo><mfrac><mn>3</mn><mrow><mn>1</mn><mo>−</mo><mi>w</mi></mrow></mfrac></math>
+          <math display="block"><msub><mi>V</mi><mtext class="en">defect</mtext></msub><mo>=</mo><mn>5</mn><mo>+</mo><mfrac><mrow><mn>1</mn><mo>·</mo><mi>w</mi></mrow><mrow><mn>1</mn><mo>−</mo><mi>w</mi></mrow></mfrac><mo>,</mo><mspace width="1em"></mspace><msub><mi>V</mi><mtext class="en">alternate</mtext></msub><mo>=</mo><mfrac><mrow><mn>5</mn><mo>+</mo><mn>0</mn><mo>·</mo><mi>w</mi></mrow><mrow><mn>1</mn><mo>−</mo><msup><mi>w</mi><mn>2</mn></msup></mrow></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Cooperating is no worse than both other plans when</span></p>
+          <math display="block"><mi>w</mi><mo>≥</mo><mo>max</mo><mo stretchy="false">(</mo><mfrac><mrow><mi>T</mi><mo>−</mo><mi>R</mi></mrow><mrow><mi>T</mi><mo>−</mo><mi>P</mi></mrow></mfrac><mo>,</mo><mfrac><mrow><mi>T</mi><mo>−</mo><mi>R</mi></mrow><mrow><mi>R</mi><mo>−</mo><mi>S</mi></mrow></mfrac><mo stretchy="false">)</mo><mo>=</mo><mo>max</mo><mo stretchy="false">(</mo><mfrac><mn>2</mn><mn>4</mn></mfrac><mo>,</mo><mfrac><mn>2</mn><mn>3</mn></mfrac><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn class="hl">2</mn><mn class="hl">3</mn></mfrac></math>
+        </div>
+      </div>
+      
+      <p class="en">Here T = 5 (temptation), R = 3 (reward), P = 1 (punishment), S = 0 (sucker). Axelrod called this condition the shadow of the future: cooperation is stable when the next meeting is likely enough. If the last game is known in advance, the shadow is gone: defecting pays in the last round, then in the one before, and so on back to the first.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Deeper</span><span class="mp-layer-desc">generalisations, theory, history</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Deeper” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">History</span></span>
+      <h3><span class="en">Two tournaments and a book</span></h3>
+      
+      <p class="en">The game was devised by Merrill Flood and Melvin Dresher at the RAND Corporation in 1950, and the mathematician Albert Tucker added the story about prisoners. For the first tournament Axelrod gathered 14 programs from scientists who studied the game and added a fifteenth, random one. Tit for Tat averaged 504 points per match and came first, although by matches won it was last: it won none.</p>
+      
+      <p class="en">Before the second tournament the entrants already knew the results and the analysis. 62 programs came in, plus the random one, and the number of rounds was not announced in advance. Rapoport sent Tit for Tat again, and it won again. Axelrod described both tournaments in the Journal of Conflict Resolution in 1980, and in 1984 he published the book The Evolution of Cooperation.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Noise and generosity</span></span>
+      <h3><span class="en">One mistake, and two copies of Tit for Tat retaliate forever</span></h3>
+      
+      <p class="en">In Axelrod's tournaments moves were carried out without mistakes. If a move flips by accident even rarely, two copies of Tit for Tat punish each other in turn after one slip. In 1992 Martin Nowak and Karl Sigmund showed in Nature, in a model with a mixed population, that Tit for Tat helps cooperation emerge but is then displaced by a more generous strategy that sometimes cooperates even after the other defected. For the points 3, 0, 5, 1 that generosity is usually taken as 1 in 3. In 1993 the same authors described the strategy "win-stay, lose-shift", often called Pavlov: it also recovers quickly from mistakes.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">Honest caveats</span></span>
+      <h3><span class="en">Tit for Tat is not the best strategy in general</span></h3>
+      
+      <p class="en">There is no best strategy for the repeated prisoner's dilemma: everything depends on who else plays. Against nothing but Defectors it is better to defect, and against nothing but Doves too. In 2015 the psychologists Amnon Rapoport, Darryl Seale and Andrew Colman replayed Axelrod's first tournament under other rules and showed that Tit for Tat's win depends on the format, the criterion of success and the numbers in the payoff table. We checked this on our own field of 10 strategies without noise: of the 502 possible line-ups with Tit for Tat and at least three entrants, it is first or shares first in 244.</p>
+      
+      <p class="en">In 2012 the physicists William Press and Freeman Dyson found "zero-determinant strategies" in this game. Some of them are extortion: they force any opponent who adapts to them to hand over the larger share of the payoff. Tit for Tat is a special, fair case in this class: it splits the points evenly.</p>
+    </div>
+
+  </div>
+  </div>
+
+<script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "axelrod-tournament" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 5 · Scaling up</span></span>
+    <h2><span class="en">Mistakes, the shadow of the future and real partners</span></h2>
+    
+    <p class="lead en">Mathematically we'll see what even a rare mistake does to Tit for Tat. Logically, why a repeated game changes the choice at all. And in practice we'll check when it pays to cheat a partner you deal with every month.</p>
+  </div>
+  <div class="esc">
+    <p class="layer"><span class="en">Mathematics</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">What two copies of one strategy get per round when moves sometimes flip</span></h3>
+        <label class="ctl" for="n-e"><span><span class="en">Noise</span>: <output id="n-ev"></output></span><input type="range" id="n-e" min="0" max="100" value="10" style="width:100%"></label>
+        <canvas id="n-cv" style="height:240px"></canvas>
+        <div class="legend" id="n-leg"></div>
+        <p class="note"><span class="en">Lines: points per round in a very long game against the noise level; the dashed line is the slider's noise.</span></p>
+        <div class="tbl-wrap"><table class="t" id="n-tbl"></table></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">Noise</span></span>
+        <h3><span class="en">At any noise two copies of Tit for Tat get 2.25 instead of 3 in a long game</span></h3>
+        
+        <p class="en">Each copy repeats the other's last move. One accidental defection starts an echo: defection, reply, reply to the reply. The next mistake may bring back cooperation or lock in mutual defection. In a very long game all four pairs of moves occur equally often, so the average is (3 + 0 + 5 + 1) / 4 = 2.25 points per round, whatever the rate of mistakes. Rare mistakes only stretch out the road to that average.</p>
+        
+        <p class="en">Generous Tit for Tat and Pavlov escape the echo within a few rounds and, while mistakes are rare, stay near 3. The Grudger defects forever after the first mistake and slides almost to 1. The table computes this exactly: for 200 rounds and for a very long game.</p>
+      </div>
+    </div>
+
+    <p class="layer"><span class="en">Logic</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">The shadow of the future: when cooperating with Tit for Tat beats defecting</span></h3>
+        <label class="ctl" for="w-w"><span><span class="en">Chance of another round</span>: <output id="w-wv"></output></span><input type="range" id="w-w" min="0" max="95" value="50" style="width:100%"></label>
+        <div class="compare" id="w-bars"></div>
+        <p class="msg" id="w-msg" aria-live="polite"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">A repeated game</span></span>
+        <h3><span class="en">Today's defection is paid for with tomorrow's retaliation</span></h3>
+        
+        <p class="en">You play against Tit for Tat, and after each round the game goes on with probability w. Defecting for good pays while w is below 1/4. Between 1/4 and 2/3 it pays to alternate defection and cooperation: Tit for Tat always answers one move late, and you take 5 whenever it cooperates. From 2/3 up, cooperating all the time is best. The idea goes beyond this game: two people who are sure to meet again behave differently from strangers meeting once.</p>
+      </div>
+    </div>
+
+    <p class="layer"><span class="en">Practice</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">Does it pay to cheat a regular partner?</span></h3>
+        <div class="controls" style="margin:0">
+          <label class="ctl" for="p-r"><span><span class="en">Monthly profit from honest work</span>: <output id="p-rv"></output></span><input type="range" id="p-r" min="1" max="30" value="10"></label>
+          <label class="ctl" for="p-t"><span><span class="en">One-off gain from cheating</span>: <output id="p-tv"></output></span><input type="range" id="p-t" min="1" max="60" value="25"></label>
+          <label class="ctl" for="p-p"><span><span class="en">Monthly profit once trust is gone</span>: <output id="p-pv"></output></span><input type="range" id="p-p" min="0" max="30" value="2"></label>
+          <label class="ctl" for="p-w"><span><span class="en">Chance the partnership lasts another month</span>: <output id="p-wv"></output></span><input type="range" id="p-w" min="0" max="99" value="90"></label>
+        </div>
+        <div class="presets" id="p-pre"></div>
+        <div class="compare" id="p-bars"></div>
+        <p class="msg" id="p-msg" aria-live="polite"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">From the puzzle to partners</span></span>
+        <h3><span class="en">Cheating pays only when the future is short</span></h3>
+        
+        <p class="en">The model is simple: while you are honest, your partner is honest; after you cheat, they never trust you again. Check it on an example: 10 thousand a month honestly, 25 thousand once for cheating, 2 thousand a month after that, a 90% chance of another month. Honesty gives on average 10 / (1 − 0.9) = 100 thousand, cheating 25 + 0.9 · 2 / 0.1 = 43 thousand. Cheating would pay only if the chance of going on were below (25 − 10) / (25 − 2) ≈ 65%.</p>
+        
+        <p class="en">Axelrod's best-known example is the trenches of the First World War. Battalions faced the same enemies for months, and in many sectors a "live and let live" system arose: no shelling of kitchens and supply wagons, no firing at certain hours, but answering one shot with several. Axelrod drew on the study by the British sociologist Tony Ashworth. The system broke down when headquarters began ordering raids that could not be quietly faked: every raid was answered, and retaliation escalated.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1950</span>
+        <h3><span class="en">A game without prisoners</span></h3>
+        
+        <p class="en">Merrill Flood and Melvin Dresher at the RAND Corporation devised the game as a mathematical problem. Albert Tucker later invented the story of two suspects under questioning, and that story gave the game its name.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">14 + 1</span>
+        <h3><span class="en">The first tournament</span></h3>
+        
+        <p class="en">Axelrod invited programs from scientists who had already studied the prisoner's dilemma and added a random one to the 14 entries. Each pair played 200 rounds.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">0</span>
+        <h3><span class="en">Not a single match won</span></h3>
+        
+        <p class="en">By matches won, Tit for Tat came last in the first tournament. It cannot outscore its opponent: it only defects in reply.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">62</span>
+        <h3><span class="en">The second tournament</span></h3>
+        
+        <p class="en">Before the second tournament the entrants knew that Tit for Tat had won the first. Axelrod worked out that Tit for Two Tats, which retaliates only after two defections in a row, would have won the first tournament. It was entered in the second, but Tit for Tat came out ahead again.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">60</span>
+        <h3><span class="en">A conspiracy in Southampton</span></h3>
+        
+        <p class="en">In 2004, at a tournament for the 20th anniversary of Axelrod's book, a University of Southampton team entered 60 programs. They recognised each other by a coded sequence of opening moves, and the "slaves" cooperated while the "master" defected. Three of them took top places.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2012</span>
+        <h3><span class="en">Extortion strategies</span></h3>
+        
+        <p class="en">The physicist Freeman Dyson and the astrophysicist William Press showed that a player who remembers only the previous round can tie the opponent's points to its own by a linear rule and so extort the larger share.</p>
+      </article>
+  </div>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">More puzzles</span>
+    <h2>Other paradoxes</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/truel/en/"><h3>The truel</h3><p>Three shoot in turn: Ann hits 1 shot in 3, Bob 2 in 3, Sam always. Who has the best chance of being the last one standing?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/travelers-dilemma/en/"><h3>The traveler&#x27;s dilemma</h3><p>Two broken vases; each owner writes a price from $2 to $100. Both get the lower one, with a $2 bonus for writing it. What would you write?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/prosecutors-fallacy/en/"><h3>The prosecutor&#x27;s fallacy</h3><p>Blood at a burglary matches the defendant. Such a match occurs in one adult in 10,000, and the city has 500,000 adults. How likely is he to be innocent?</p></a>
+  </div>
+  <p class="mp-related-all"><a href="https://mathparadoxes.com/en/">All puzzles →</a> <a href="https://mathparadoxes.com/glossary/en/">Glossary →</a></p>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Discussion</span>
+    <h2>What do you think?</h2>
+    <p>Share your own explanation, an objection or a variant of the puzzle. You need a GitHub account to comment.</p>
+    <div class="mp-lvote"><p>Is “School maths” the right level for this puzzle?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">No, harder</button><button type="button" data-vote="right">Yes</button><button type="button" data-vote="easier">No, easier</button></div><p class="mp-lvote-thanks">Thank you! This helps set the levels right.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "axelrod-tournament" + "-lvl", LEVEL = 2, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="axelrod-tournament" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="en" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Newsletter</span>
+    <h2>New puzzles, explanations and discussions</h2>
+    <p>I keep adding new puzzles, new ways to explain them and write-ups of the discussions they start. Leave your email and I'll write when something new is out. No spam, one-click unsubscribe.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">The sign-up form will appear here soon.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const solved = () => !window.mpSolved || mpSolved();
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const fx = (x, d = 1) => dec(x.toFixed(d));
+const pct = (x, d = 1) => dec((100 * x).toFixed(d)) + '%';
+const MV = m => m ? L('С', 'C') : L('З', 'D');
+
+/* ---------- the game and the strategies ---------- */
+// payoff to me for my move a and theirs b, 1 = cooperate, 0 = defect
+const PT = 5, PR = 3, PP = 1, PS = 0;
+const PAY = (a, b) => a ? (b ? PR : PS) : (b ? PT : PP);
+// each strategy is a small machine: start state, chance to cooperate in a state, next state after (my move, their move)
+const ST = {
+  tft: { s0: 1, pc: s => s, nx: (s, m, o) => o },
+  alld: { s0: 0, pc: () => 0, nx: () => 0 },
+  allc: { s0: 0, pc: () => 1, nx: () => 0 },
+  grim: { s0: 1, pc: s => s, nx: (s, m, o) => s && o ? 1 : 0 },
+  rand: { s0: 0, pc: () => .5, nx: () => 0 },
+  joss: { s0: 1, pc: s => s ? .9 : 0, nx: (s, m, o) => o },
+  // C, D, C, C; if the other never struck back, defect for good, else play tit for tat.
+  // States: 0-3 opening moves (+4 once the other has defected), 8 = TFT after C, 9 = TFT after D, 10 = always D
+  prober: { s0: 0, pc: s => s >= 10 ? 0 : s >= 8 ? (s === 8 ? 1 : 0) : (s % 4 === 1 ? 0 : 1),
+    nx: (s, m, o) => { if (s >= 10) return 10; if (s >= 8) return o ? 8 : 9; const k = s % 4, f = s >= 4 || !o; return k < 3 ? k + 1 + (f ? 4 : 0) : f ? (o ? 8 : 9) : 10; } },
+  tf2t: { s0: 0, pc: s => s === 2 ? 0 : 1, nx: (s, m, o) => o ? 0 : Math.min(s + 1, 2) },
+  gtft: { s0: 1, pc: s => s ? 1 : 1 / 3, nx: (s, m, o) => o },
+  pavlov: { s0: 1, pc: s => s, nx: (s, m, o) => m === o ? 1 : 0 }
+};
+const KEYS = ['tft', 'tf2t', 'grim', 'prober', 'rand', 'allc', 'joss', 'alld', 'gtft', 'pavlov'];
+const D8 = KEYS.slice(0, 8);
+const NM = {
+  tft: ['«Око за око»', 'Tit for Tat', 'Першим ходом співпрацює, далі повторює попередній хід суперника.', 'Cooperates first, then repeats the other\'s last move.'],
+  tf2t: ['Терплячий', 'Tit for Two Tats', 'Зраджує лише після двох зрад суперника поспіль.', 'Defects only after two defections in a row by the other.'],
+  grim: ['Злопам\'ятний', 'Grudger', 'Співпрацює, доки суперник не зрадить хоч раз, потім зраджує до кінця.', 'Cooperates until the other defects once, then defects to the end.'],
+  prober: ['Тестер', 'Prober', 'Ходить: співпраця, зрада, співпраця, співпраця. Якщо суперник не відповів зрадою, далі зраджує завжди, інакше грає «Око за око».', 'Plays cooperate, defect, cooperate, cooperate. If the other never struck back, defects for good, otherwise plays Tit for Tat.'],
+  rand: ['Монетка', 'Random', 'Щоразу кидає монетку.', 'Tosses a coin every time.'],
+  allc: ['Добряк', 'Dove', 'Співпрацює завжди.', 'Always cooperates.'],
+  joss: ['Хитрун', 'Sneaky', 'Як «Око за око», але замість співпраці в 1 випадку з 10 нишком зраджує.', 'Like Tit for Tat, but in 1 case in 10 it defects instead of cooperating.'],
+  alld: ['Зрадник', 'Defector', 'Зраджує завжди.', 'Always defects.'],
+  gtft: ['Щедре «Око за око»', 'Generous TFT', 'Як «Око за око», але після зради суперника в 1 випадку з 3 все одно співпрацює.', 'Like Tit for Tat, but after the other defects it still cooperates in 1 case in 3.'],
+  pavlov: ['Павлов', 'Pavlov', 'Співпрацює, якщо минулого раунду ходи збіглися, інакше зраджує: виграв — повтори, програв — зміни.', 'Cooperates if both made the same move last round, otherwise defects: win-stay, lose-shift.'],
+  you: ['Ваша', 'Yours', '', '']
+};
+const NAME = k => L(NM[k][0], NM[k][1]);
+const DESC = k => L(NM[k][2], NM[k][3]);
+const PAL = { tf2t: '#2E9C6A', grim: '#2E6DB4', prober: '#6B4FA0', rand: '#9AA0AE', allc: '#8CC0E6', joss: '#D08C2E', gtft: '#69B89A', pavlov: '#B9972A', you: '#2A3DD1' };
+const COL = k => k === 'tft' ? tok('--hit') : k === 'alld' ? tok('--ink') : PAL[k];
+// a strategy the visitor builds: first move, reply to C, reply to D (1, 0 or 1/3), an optional grudge.
+// States: 0 = first move, 1 = after C, 2 = after D, 3 = holding a grudge
+function custom(first, onC, onD, grudge) {
+  return { s0: 0, pc: s => s === 0 ? first : s === 1 ? onC : s === 2 ? onD : 0,
+    nx: (s, m, o) => grudge && (s === 3 || !o) ? 3 : o ? 1 : 2 };
+}
+const strat = k => typeof k === 'string' ? ST[k] : k;
+// exact expected points of a and b over n rounds; each intended move flips with chance eps
+function match(ka, kb, n, eps) {
+  const A = strat(ka), B = strat(kb);
+  let dist = new Map([[A.s0 + '|' + B.s0, [A.s0, B.s0, 1]]]), ea = 0, eb = 0;
+  for (let r = 0; r < n; r++) {
+    const nd = new Map();
+    for (const [x, y, p] of dist.values()) {
+      let ca = A.pc(x), cb = B.pc(y);
+      ca = ca * (1 - eps) + (1 - ca) * eps; cb = cb * (1 - eps) + (1 - cb) * eps;
+      for (let ma = 1; ma >= 0; ma--) for (let mb = 1; mb >= 0; mb--) {
+        const q = p * (ma ? ca : 1 - ca) * (mb ? cb : 1 - cb);
+        if (!q) continue;
+        ea += q * PAY(ma, mb); eb += q * PAY(mb, ma);
+        const x2 = A.nx(x, ma, mb), y2 = B.nx(y, mb, ma), key = x2 + '|' + y2, e = nd.get(key);
+        if (e) e[2] += q; else nd.set(key, [x2, y2, q]);
+      }
+    }
+    dist = nd;
+  }
+  return [ea, eb];
+}
+// one match played out with random moves
+function playMatch(ka, kb, n, eps) {
+  const A = strat(ka), B = strat(kb);
+  let x = A.s0, y = B.s0, ea = 0, eb = 0;
+  for (let r = 0; r < n; r++) {
+    let ma = Math.random() < A.pc(x) ? 1 : 0, mb = Math.random() < B.pc(y) ? 1 : 0;
+    if (eps && Math.random() < eps) ma = 1 - ma;
+    if (eps && Math.random() < eps) mb = 1 - mb;
+    ea += PAY(ma, mb); eb += PAY(mb, ma);
+    x = A.nx(x, ma, mb); y = B.nx(y, mb, ma);
+  }
+  return [ea, eb];
+}
+// round robin: every pair once and everyone against its own twin; a strategy's score is its average points per match
+function matrix(field, n, eps) {
+  const M = field.map(() => field.map(() => 0));
+  field.forEach((a, i) => field.forEach((b, j) => { if (j >= i) { const [u, v] = match(a, b, n, eps); M[i][j] = u; M[j][i] = v; } }));
+  return M;
+}
+const avgRow = M => M.map(r => r.reduce((s, x) => s + x, 0) / r.length);
+function simTourney(field, n, eps, reps) {
+  const tot = field.map(() => 0);
+  for (let k = 0; k < reps; k++) field.forEach((a, i) => field.forEach((b, j) => {
+    if (j < i) return;
+    const [u, v] = playMatch(a, b, n, eps);
+    if (i === j) tot[i] += (u + v) / 2; else { tot[i] += u; tot[j] += v; }
+  }));
+  return tot.map(t => t / reps / field.length);
+}
+// population shares: each generation a strategy grows in proportion to its average score against the current mix
+function evolve(M, gens) {
+  let x = M.map(() => 1 / M.length);
+  const out = [x];
+  for (let g = 0; g < gens; g++) {
+    const f = M.map(r => r.reduce((s, v, j) => s + v * x[j], 0)), mean = f.reduce((s, v, i) => s + v * x[i], 0);
+    x = x.map((v, i) => v * f[i] / mean);
+    out.push(x);
+  }
+  return out;
+}
+// long-run average points per round of a strategy against its twin: run the joint chain until it settles, then average
+function longRun(k, eps) {
+  const A = strat(k);
+  let dist = new Map([[A.s0 + '|' + A.s0, [A.s0, A.s0, 1]]]), acc = 0, cnt = 0;
+  for (let r = 0; r < 6000; r++) {
+    const nd = new Map(); let e = 0;
+    for (const [x, y, p] of dist.values()) {
+      let ca = A.pc(x), cb = A.pc(y);
+      ca = ca * (1 - eps) + (1 - ca) * eps; cb = cb * (1 - eps) + (1 - cb) * eps;
+      for (let ma = 1; ma >= 0; ma--) for (let mb = 1; mb >= 0; mb--) {
+        const q = p * (ma ? ca : 1 - ca) * (mb ? cb : 1 - cb);
+        if (!q) continue;
+        e += q * PAY(ma, mb);
+        const x2 = A.nx(x, ma, mb), y2 = A.nx(y, mb, ma), key = x2 + '|' + y2, o = nd.get(key);
+        if (o) o[2] += q; else nd.set(key, [x2, y2, q]);
+      }
+    }
+    dist = nd;
+    if (r >= 4000) { acc += e; cnt++; }
+  }
+  return acc / cnt;
+}
+
+/* ---------- drawing helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+const barRow = (label, v, max, col, txt) => '<div class="crow"><span>' + label + '</span><div class="bar"><i style="--c:' + col + ';width:' + Math.max(0, Math.min(100, 100 * v / max)) + '%"></i></div><span class="mono">' + txt + '</span></div>';
+
+/* ---------- our tournament, computed once ---------- */
+const BASE_M = matrix(D8, 200, 0), BASE = avgRow(BASE_M);
+
+/* ---------- hero: two strips of moves before the answer, the leaderboard after ---------- */
+const hero = { t0: performance.now(), raf: 0, visible: true, moves: null };
+let heroCapText = '';
+function heroMoves() {
+  // a demo match between two hidden strategies: they only show how a match looks, not who wins the tournament
+  const A = ST.joss, B = ST.grim, out = [];
+  let x = A.s0, y = B.s0;
+  for (let r = 0; r < 24; r++) { const a = Math.random() < A.pc(x) ? 1 : 0, b = Math.random() < B.pc(y) ? 1 : 0; out.push([a, b]); x = A.nx(x, a, b); y = B.nx(y, b, a); }
+  return out;
+}
+function heroDraw(now) {
+  const st = setupCanvas($('#hero-cv')); if (!st) return;
+  const { ctx, W, H } = st, ok = solved();
+  const ink = tok('--ink'), muted = tok('--muted'), hit = tok('--hit');
+  ctx.fillStyle = tok('--surface') || '#fff'; rr(ctx, 0, 0, W, H, 14); ctx.fill();
+  if (!ok) {
+    // the payoff table on top, a match running underneath
+    const cw = Math.min(110, (W - 120) / 2), ch = 46, x0 = (W - 2 * cw - 8) / 2 + 30, y0 = 34;
+    const cells = [[3, 3], [0, 5], [5, 0], [1, 1]];
+    ctx.font = '600 11px ' + tok('--f-mono'); ctx.fillStyle = muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(L('співпраця', 'cooperate'), x0 + cw / 2, y0 - 6); ctx.fillText(L('зрада', 'defect'), x0 + cw * 1.5 + 8, y0 - 6);
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(L('співпраця', 'cooperate'), x0 - 8, y0 + ch / 2); ctx.fillText(L('зрада', 'defect'), x0 - 8, y0 + ch * 1.5 + 8);
+    const t = reduce() ? 0 : ((now || performance.now()) - hero.t0) / 1000, hot = reduce() ? -1 : Math.floor(t / 1.2) % 4;
+    cells.forEach(([a, b], i) => {
+      const cx = x0 + (i % 2) * (cw + 8), cy = y0 + Math.floor(i / 2) * (ch + 8);
+      ctx.fillStyle = i === 0 ? tok('--coop') : i === 3 ? tok('--def') : tok('--paper'); rr(ctx, cx, cy, cw, ch, 10); ctx.fill();
+      if (i === hot) { ctx.strokeStyle = ink; ctx.lineWidth = 2; rr(ctx, cx, cy, cw, ch, 10); ctx.stroke(); }
+      ctx.fillStyle = ink; ctx.font = '800 18px ' + tok('--f-display'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(a + ' : ' + b, cx + cw / 2, cy + ch / 2 + 1);
+    });
+    if (!hero.moves) hero.moves = heroMoves();
+    const shown = reduce() ? 24 : Math.min(24, Math.floor(t * 2.5) % 34), sz = Math.min(18, (W - 40) / 13 - 2), gy = H - (4 * sz + 10) - 16;
+    ctx.font = '600 11px ' + tok('--f-mono'); ctx.fillStyle = muted; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText(L('матч: хто як ходив раунд за раундом', 'a match: who moved how, round by round'), 20, gy - 6);
+    for (let r = 0; r < 24; r++) {
+      const cx = 20 + (r % 12) * (sz + 2), row = r >= 12 ? 1 : 0, cy = gy + row * (2 * sz + 8);
+      [0, 1].forEach(p => {
+        const y = cy + p * (sz + 2);
+        if (r < shown) { ctx.fillStyle = hero.moves[r][p] ? tok('--coop') : tok('--def'); rr(ctx, cx, y, sz, sz, 4); ctx.fill(); }
+        else { ctx.strokeStyle = tok('--line'); ctx.lineWidth = 1; rr(ctx, cx + .5, y + .5, sz - 1, sz - 1, 4); ctx.stroke(); }
+      });
+    }
+    ctx.fillStyle = hit; ctx.font = '800 34px ' + tok('--f-display'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText('?', W - 20, gy + sz + 4);
+  } else {
+    // our 8-strategy tournament: average points per match, Tit for Tat first
+    const order = D8.map((k, i) => [k, BASE[i]]).sort((a, b) => b[1] - a[1]);
+    const l = Math.min(150, W * .4), top = 18, rowH = (H - top - 16) / order.length, max = 600;
+    order.forEach(([k, v], i) => {
+      const y = top + i * rowH, bw = (W - l - 56) * v / max;
+      ctx.fillStyle = k === 'tft' ? hit : ink; ctx.font = (k === 'tft' ? '700 ' : '500 ') + '12px ' + tok('--f-body'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.fillText(NAME(k), l - 8, y + rowH / 2);
+      ctx.fillStyle = k === 'tft' ? hit : tok('--cell'); rr(ctx, l, y + rowH * .2, Math.max(4, bw), rowH * .6, 4); ctx.fill();
+      ctx.fillStyle = k === 'tft' ? hit : muted; ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'left';
+      ctx.fillText(Math.round(v), l + bw + 6, y + rowH / 2);
+    });
+  }
+  const cap = ok ? L('Наш турнір із восьми стратегій із раунду 3: середні очки за матч. «Око за око» перше, хоча не обігрує жодного суперника.', 'Our eight-strategy tournament from round 3: average points per match. Tit for Tat is first, although it beats no opponent.')
+    : L('Таблиця очок за раунд (ви : суперник) і матч двох програм: зелене — співпраця, червоне — зрада. Хто збере найбільше в турнірі?', 'Points per round (you : other) and a match between two programs: green is cooperate, red is defect. Who collects the most in a tournament?');
+  if (cap !== heroCapText) { heroCapText = cap; $('#hero-cap').textContent = cap; }
+}
+function heroLoop(now) { heroDraw(now); if (!reduce() && hero.visible && !solved()) hero.raf = requestAnimationFrame(heroLoop); else hero.raf = 0; }
+function heroStart() {
+  if (hero.raf) cancelAnimationFrame(hero.raf);
+  hero.raf = 0;
+  if (reduce() || solved()) { heroDraw(); return; }
+  hero.raf = requestAnimationFrame(heroLoop);
+}
+if ('IntersectionObserver' in window) new IntersectionObserver(es => {
+  hero.visible = es[0].isIntersecting;
+  if (hero.visible && !hero.raf && !reduce() && !solved()) hero.raf = requestAnimationFrame(heroLoop);
+}).observe($('#hero-cv'));
+
+/* ---------- round 1: guess ---------- */
+const G_OPTS = [
+  ['alld', 'Завжди зраджувати', 'Always defect', 'Зрада ніколи не дає менше, ніж співпраця, в одному раунді.', 'In a single round defecting never gives less than cooperating.'],
+  ['clever', 'Хитра стратегія', 'A clever strategy', 'Вивчає суперника і обдурює тих, хто терпить зраду.', 'Studies the opponent and cheats those who put up with it.'],
+  ['tft', '«Око за око»', 'Tit for Tat', 'Першим ходом співпрацює, далі повторює попередній хід суперника.', 'Cooperates first, then repeats the other\'s last move.'],
+  ['rand', 'Випадкова', 'Random', 'Щоразу кидає монетку: її не передбачиш.', 'Tosses a coin every time: nobody can predict it.']
+];
+let gPick = null;
+function optsText() {
+  $('#g-opts').innerHTML = G_OPTS.map(o => '<button type="button" data-k="' + o[0] + '" aria-pressed="' + (o[0] === gPick) + '"><b>' + L(o[1], o[2]) + '</b><span>' + L(o[3], o[4]) + '</span></button>').join('');
+}
+function guessText() {
+  if (gPick === null) return;
+  const sc = k => Math.round(BASE[D8.indexOf(k)]);
+  const verdict = {
+    alld: L('Зрадник не програє жодного матчу, але набирає мало: проти «Ока за око» лише 204 очки, тоді як двоє, що співпрацюють, отримують по 600. У нашому турнірі він останній, ' + sc('alld') + ' очки в середньому.', 'The Defector loses no match, but scores little: only 204 against Tit for Tat, while two cooperators get 600 each. In our tournament it comes last, ' + sc('alld') + ' points on average.'),
+    clever: L('Хитрі програми в турнірах Аксельрода були, і вони програли. Наш Тестер четвертий: він обдирає Добряка, але, зрадивши, сам провокує відплату в тих, хто мстить.', 'There were clever programs in Axelrod\'s tournaments, and they lost. Our Prober is fourth: it fleeces the Dove, but its defection provokes retaliation from those who strike back.'),
+    tft: L('Так. «Око за око» не зраджує першим, тож з усіма добрими стратегіями співпрацює весь матч, а зрадникам програє лише кілька очок. Воно перемогло в обох турнірах Аксельрода.', 'Yes. Tit for Tat never defects first, so it cooperates for the whole match with every nice strategy and loses only a few points to defectors. It won both of Axelrod\'s tournaments.'),
+    rand: L('Монетка посередині: її зради караються, а її співпрацю використовують. У нашому турнірі вона п\'ята з восьми.', 'The coin lands in the middle: its defections get punished and its cooperation gets exploited. In our tournament it is fifth of eight.')
+  }[gPick];
+  const order = D8.map((k, i) => [k, BASE[i]]).sort((a, b) => b[1] - a[1]);
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Найбільше очок', 'The most points') + '</span><p class="big hit">' + NAME('tft') + '</p>' +
+    '<p>' + verdict + '</p><div class="compare">' + order.map(([k, v]) => barRow(NAME(k), v, 600, k === 'tft' ? 'var(--hit)' : 'var(--grey)', Math.round(v))).join('') + '</div>' +
+    '<p class="note">' + L('Це наш турнір із восьми стратегій (раунд 3): середні очки за матч із 200 раундів, 600 дає співпраця всі 200 раундів. У першому турнірі Аксельрода «Око за око» набрало в середньому 504. Чому так і коли воно програє, у раундах 3 і 4.', 'This is our eight-strategy tournament (round 3): average points per 200-round match, where cooperating all 200 rounds gives 600. In Axelrod\'s first tournament Tit for Tat averaged 504. Why, and when it loses, in rounds 3 and 4.') + '</p>';
+}
+$('#g-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gPick = b.dataset.k; optsText(); guessText(); window.mpSolve && mpSolve(gPick); });
+
+/* ---------- round 2: five hidden bots ---------- */
+const POOL = D8.slice(), GAMES = 5;
+let gm = null;
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function gmNew() { gm = { bots: shuffle(POOL.slice()).slice(0, GAMES), k: 0, res: [] }; gmMatch(); }
+function gmMatch() { const k = gm.bots[gm.k]; gm.cur = { bot: k, len: 8 + Math.floor(Math.random() * 5), s: ST[k].s0, h: [], me: 0, it: 0, guess: null }; gmDraw(); }
+function gmMove(m) {
+  const c = gm.cur; if (!c || c.h.length >= c.len) return;
+  const B = ST[c.bot], b = Math.random() < B.pc(c.s) ? 1 : 0;
+  c.h.push([m, b]); c.me += PAY(m, b); c.it += PAY(b, m); c.s = B.nx(c.s, b, m);
+  gmDraw();
+}
+function gmGuess(k) {
+  const c = gm.cur; if (c.guess || c.h.length < c.len) return;
+  c.guess = k; gm.res.push({ bot: c.bot, guess: k, me: c.me, it: c.it, n: c.len });
+  gmDraw();
+}
+function gmDraw() {
+  const c = gm.cur, done = c.h.length >= c.len, all = gm.res.length >= GAMES;
+  $('#gm-title').textContent = L('Суперник ' + (gm.k + 1) + ' з ' + GAMES, 'Opponent ' + (gm.k + 1) + ' of ' + GAMES);
+  const cells = (p, lab) => '<div class="row"><span class="who">' + lab + '</span>' + Array.from({ length: 12 }, (_, r) => r < c.h.length ? '<i class="' + (c.h[r][p] ? 'c' : 'd') + '">' + MV(c.h[r][p]) + '</i>' : r < (done ? c.len : 12) ? '<i></i>' : '').join('') + '</div>';
+  const pts = '<div class="row"><span class="who">' + L('очки', 'points') + '</span>' + c.h.map(([a, b]) => '<i class="pts">' + PAY(a, b) + '</i>').join('') + '</div>';
+  $('#gm-strip').innerHTML = cells(0, L('Ви', 'You')) + cells(1, L('Бот', 'Bot')) + pts;
+  $('#gm-score').innerHTML = '<span>' + L('Ви', 'You') + ' <b>' + c.me + '</b></span><span>' + L('Бот', 'Bot') + ' <b>' + c.it + '</b></span><span class="stat">' + L('раунд ', 'round ') + Math.min(c.h.length + 1, c.len) + (done ? ' · ' + L('кінець матчу', 'match over') : '') + '</span>';
+  $('#gm-acts').style.display = done ? 'none' : '';
+  let m;
+  if (!done) m = c.h.length ? L('Ходіть далі. Матч може закінчитися будь-якого раунду, починаючи з восьмого.', 'Keep going. The match may end in any round from the eighth on.') : L('Перший раунд. Співпрацювати чи зрадити?', 'Round one. Cooperate or defect?');
+  else if (!c.guess) m = L('Матч закінчився після ' + c.len + ' раундів. Яка стратегія була в бота?', 'The match ended after ' + c.len + ' rounds. Which strategy did the bot have?');
+  else m = (c.guess === c.bot ? '<span class="good">' + L('Вгадали! ', 'Right! ') + '</span>' : '<span class="bad">' + L('Ні. ', 'No. ') + '</span>') + L('Це був ' + NAME(c.bot) + '. ', 'It was ' + NAME(c.bot) + '. ') + DESC(c.bot);
+  $('#gm-msg').innerHTML = m;
+  $('#gm-names').innerHTML = done ? POOL.map(k => '<button type="button" data-k="' + k + '"' + (c.guess ? ' class="' + (k === c.bot ? 'ok' : k === c.guess ? 'no' : '') + '" disabled' : '') + '>' + NAME(k) + '</button>').join('') : '';
+  const nx = $('#gm-next');
+  nx.style.display = c.guess ? '' : 'none';
+  nx.textContent = all ? L('Нова п\'ятірка суперників', 'Five new opponents') : L('Наступний суперник', 'Next opponent');
+  $('#gm-list').innerHTML = POOL.map(k => '<li><span><b>' + NAME(k) + '.</b> ' + DESC(k) + '</span></li>').join('');
+  const me = gm.res.reduce((s, r) => s + r.me, 0), it = gm.res.reduce((s, r) => s + r.it, 0), n = gm.res.reduce((s, r) => s + r.n, 0), ok = gm.res.filter(r => r.guess === r.bot).length;
+  let v = '';
+  if (gm.res.length) {
+    v = '<p><b>' + L('Зіграно матчів: ' + gm.res.length + ' з ' + GAMES + '. Ви набрали ' + me + ', боти ' + it + '.', 'Matches played: ' + gm.res.length + ' of ' + GAMES + '. You scored ' + me + ', the bots ' + it + '.') + '</b></p>';
+    v += '<p class="note">' + L('У середньому ' + fx(me / n, 2) + ' очка за раунд (3 — це співпраця весь час). Вгадано стратегій: ' + ok + ' з ' + gm.res.length + '.', 'On average ' + fx(me / n, 2) + ' points per round (3 means cooperating all the time). Strategies guessed: ' + ok + ' of ' + gm.res.length + '.') + '</p>';
+    if (all) v += '<p class="note">' + L('Порівняйте: ви обіграли ботів чи набрали багато очок? У турнірі рахують лише друге.', 'Compare: did you beat the bots, or score a lot? A tournament counts only the second.') + '</p>';
+  } else v = '<p class="note">' + L('Боти не знають, скільки раундів у матчі, і ви теж. Кожен бот грає за однією зі стратегій зі списку.', 'The bots don\'t know how many rounds the match has, and neither do you. Each bot plays one of the strategies on the list.') + '</p>';
+  $('#gm-verdict').innerHTML = v;
+}
+$('#gm-acts').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (b) gmMove(+b.dataset.m); });
+$('#gm-names').addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled) gmGuess(b.dataset.k); });
+$('#gm-next').addEventListener('click', () => { if (gm.res.length >= GAMES) gmNew(); else { gm.k++; gmMatch(); } });
+$('#gm-reset').addEventListener('click', gmNew);
+
+/* ---------- round 2: build your own ---------- */
+let bRes = null;
+function bOpts() {
+  const c = L('співпрацювати', 'cooperate'), d = L('зрадити', 'defect'), g = L('співпрацювати в 1 випадку з 3', 'cooperate 1 time in 3');
+  const set = (id, opts, val) => { const s = $(id), v = val != null ? val : s.value; s.innerHTML = opts.map(([k, t]) => '<option value="' + k + '">' + t + '</option>').join(''); s.value = v || opts[0][0]; };
+  set('#b-first', [['1', c], ['0', d]]); set('#b-c', [['1', c], ['0', d]]); set('#b-d', [['0', d], ['1', c], ['g', g]]);
+}
+function bStrat() {
+  const d = $('#b-d').value;
+  return custom(+$('#b-first').value, +$('#b-c').value, d === 'g' ? 1 / 3 : +d, $('#b-g').checked);
+}
+function bRun() {
+  if (!solved()) return;
+  const field = D8.concat([bStrat()]), M = matrix(field, 200, 0), sc = avgRow(M);
+  bRes = field.map((k, i) => [i === 8 ? 'you' : k, sc[i]]).sort((a, b) => b[1] - a[1]);
+  bText();
+}
+function bText() {
+  $('#b-run').textContent = L('Пустити в турнір', 'Enter the tournament');
+  $('#b-run').disabled = !solved();
+  $('#b-desc').textContent = L('Ваша стратегія зіграє з вісьмома стратегіями ботів і зі своєю копією, по 200 раундів, без шуму. Рахунок точний.', 'Your strategy plays the eight bot strategies and its own copy, 200 rounds each, without noise. The score is exact.');
+  const out = $('#b-out');
+  if (!solved()) { out.innerHTML = '<div class="lock">' + L('Турнір відкриється після вашої відповіді в раунді 1, щоб не підказати її заздалегідь.', 'The tournament opens after your answer in round 1, so as not to give it away early.') + '</div>'; return; }
+  if (!bRes) { out.innerHTML = '<p class="note">' + L('Оберіть правила і натисніть «Пустити в турнір». Спробуйте, наприклад, почати зі зради або пробачати зраду.', 'Choose the rules and press "Enter the tournament". Try, say, opening with a defection, or forgiving defections.') + '</p>'; return; }
+  const place = bRes.findIndex(r => r[0] === 'you') + 1, mine = bRes[place - 1][1], top = bRes[0][1];
+  out.innerHTML = '<span class="kicker">' + L('Підсумок турніру', 'Tournament result') + '</span><div class="compare">' +
+    bRes.map(([k, v]) => barRow(k === 'you' ? '<b>' + NAME(k) + '</b>' : NAME(k), v, 600, k === 'you' ? 'var(--day)' : k === 'tft' ? 'var(--hit)' : 'var(--grey)', Math.round(v))).join('') + '</div>' +
+    '<p class="msg">' + (Math.abs(mine - top) < 1e-6 ? L('Ваша стратегія ділить перше місце: ' + Math.round(mine) + ' очок у середньому.', 'Your strategy shares first place: ' + Math.round(mine) + ' points on average.')
+      : L('Ваша стратегія на ' + place + '-му місці з 9: ' + fx(mine) + ' очка в середньому, у першого ' + fx(top) + '.', 'Your strategy is number ' + place + ' of 9: ' + fx(mine) + ' points on average, the leader ' + fx(top) + '.')) + '</p>';
+}
+['#b-first', '#b-c', '#b-d', '#b-g'].forEach(id => $(id).addEventListener('change', () => { if (bRes) bRun(); }));
+$('#b-run').addEventListener('click', bRun);
+
+/* ---------- round 3: tournament and evolution ---------- */
+const SIM_N = 50, GENS = 100;
+let sField = D8.slice(), sEps = 0, sRes = null;
+const PRESETS = [
+  ['ours', 'Наш турнір', 'Our tournament', D8, 0],
+  ['naive', 'Наївне поле', 'Naive field', ['tft', 'allc', 'rand', 'alld'], 0],
+  ['noise', 'Усі 10, шум 1%', 'All 10, 1% noise', KEYS, .01]
+];
+function sControls() {
+  $('#s-field').innerHTML = KEYS.map(k => '<button type="button" data-k="' + k + '" style="--c:' + COL(k) + '" aria-pressed="' + sField.includes(k) + '">' + NAME(k) + '</button>').join('');
+  $('#s-noise').innerHTML = [0, .01, .05].map(e => '<button type="button" data-e="' + e + '" aria-pressed="' + (e === sEps) + '">' + L('Шум ', 'Noise ') + pct(e, 0) + '</button>').join('');
+  $('#s-pre').innerHTML = PRESETS.map(p => '<button type="button" data-p="' + p[0] + '">' + L(p[1], p[2]) + '</button>').join('');
+  $('#s-run').textContent = solved() ? L('Розіграти', 'Play it') : L('Спершу дайте відповідь у раунді 1', 'Answer round 1 first');
+  $('#s-run').disabled = !solved();
+}
+function sRun() {
+  if (!solved() || sField.length < 2) return;
+  const field = KEYS.filter(k => sField.includes(k)), M = matrix(field, 200, sEps);
+  sRes = { field, ex: avgRow(M), sim: simTourney(field, 200, sEps, SIM_N), ev: evolve(M, GENS), eps: sEps };
+  sDraw(); sText(); eDraw(); eText();
+}
+function sText() {
+  if (!sRes) {
+    $('#s-tbl').innerHTML = '';
+    $('#s-txt').textContent = solved() ? L('Натисніть «Розіграти».', 'Press "Play it".') : L('Симуляція відкриється після вашої відповіді в раунді 1.', 'The simulation opens after your answer in round 1.');
+    return;
+  }
+  const rows = sRes.field.map((k, i) => [k, sRes.ex[i], sRes.sim[i]]).sort((a, b) => b[1] - a[1]);
+  $('#s-tbl').innerHTML = '<thead><tr><th>#</th><th>' + L('Стратегія', 'Strategy') + '</th><th class="num">' + L('Точно', 'Exact') + '</th><th class="num">' + L('Симуляція', 'Simulated') + '</th></tr></thead><tbody>' +
+    rows.map((r, i) => '<tr' + (i === 0 ? ' class="hl"' : '') + '><td>' + (i + 1) + '</td><td>' + NAME(r[0]) + '</td><td class="num' + (r[0] === 'tft' && i === 0 ? ' hit' : '') + '">' + fx(r[1]) + '</td><td class="num">' + fx(r[2]) + '</td></tr>').join('') + '</tbody>';
+  const t = rows.findIndex(r => r[0] === 'tft');
+  const gap = rows.length > 1 ? rows[0][1] - rows[1][1] : 0;
+  $('#s-txt').textContent = L('Перше місце: ' + NAME(rows[0][0]) + '. ', 'First place: ' + NAME(rows[0][0]) + '. ') +
+    (t < 0 ? L('«Ока за око» в цьому турнірі немає. ', 'Tit for Tat is not in this tournament. ') : t === 0 ? '' : L('«Око за око» на ' + (t + 1) + '-му місці. ', 'Tit for Tat is number ' + (t + 1) + '. ')) +
+    (gap < 3 && rows.length > 1 ? L('Перші два місця розділяє менше 3 очок: симуляція з 50 турнірів може їх переставити. ', 'Less than 3 points separate the top two: a simulation of 50 tournaments may swap them. ') : '') +
+    L('Змініть склад чи шум, і переможець може змінитися: найкращої стратегії на всі випадки немає.', 'Change the line-up or the noise and the winner may change: there is no strategy best for every case.');
+}
+function sDraw() {
+  const st = setupCanvas($('#s-cv')); if (!st) return;
+  const { ctx, W, H } = st, l = Math.min(150, W * .38), t = 8, b = 22;
+  if (!sRes) return;
+  const rows = sRes.field.map((k, i) => [k, sRes.ex[i], sRes.sim[i]]).sort((a, b) => b[1] - a[1]);
+  const max = Math.max(600, ...rows.map(r => Math.max(r[1], r[2]))), x = v => l + (W - l - 40) * v / max, rowH = (H - t - b) / rows.length;
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [0, 200, 400, 600].filter(v => v <= max).forEach(v => { ctx.beginPath(); ctx.moveTo(x(v), t); ctx.lineTo(x(v), H - b); ctx.stroke(); ctx.fillText(v, x(v), H - b + 6); });
+  rows.forEach(([k, ex, sim], i) => {
+    const y = t + i * rowH, bh = Math.min(22, rowH * .62), yc = y + rowH / 2;
+    ctx.fillStyle = k === 'tft' ? tok('--hit') : tok('--ink'); ctx.font = (k === 'tft' ? '700 ' : '500 ') + '12px ' + tok('--f-body'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(NAME(k), l - 8, yc);
+    ctx.fillStyle = COL(k); rr(ctx, l, yc - bh / 2, Math.max(3, x(ex) - l), bh, 4); ctx.fill();
+    ctx.strokeStyle = tok('--muted'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x(sim), yc - bh / 2 - 3); ctx.lineTo(x(sim), yc + bh / 2 + 3); ctx.stroke();
+    ctx.fillStyle = tok('--muted'); ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'left';
+    ctx.fillText(Math.round(ex), Math.max(x(ex), x(sim)) + 6, yc);
+  });
+}
+function eDraw() {
+  const st = setupCanvas($('#e-cv')); if (!st) return;
+  const { ctx, W, H } = st, l = 36, b = 26, t = 10, r = 10;
+  const X = g => l + (W - l - r) * g / GENS, Y = v => t + (1 - v) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, .25, .5, .75, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(l, Y(v)); ctx.lineTo(W - r, Y(v)); ctx.stroke(); ctx.fillText(Math.round(100 * v) + '%', l - 5, Y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [0, 25, 50, 75, 100].forEach(g => ctx.fillText(g, X(g), H - b + 6));
+  if (!sRes) return;
+  sRes.field.forEach((k, i) => {
+    ctx.strokeStyle = COL(k); ctx.lineWidth = k === 'tft' ? 3 : 2; ctx.beginPath();
+    sRes.ev.forEach((x, g) => { g ? ctx.lineTo(X(g), Y(x[i])) : ctx.moveTo(X(g), Y(x[i])); }); ctx.stroke();
+  });
+}
+function eText() {
+  $('#e-leg').innerHTML = (sRes ? sRes.field : []).map(k => '<span style="--c:' + COL(k) + '"><b>' + NAME(k) + '</b></span>').join('');
+  if (!sRes) { $('#e-txt').textContent = ''; return; }
+  const last = sRes.ev[GENS], live = sRes.field.map((k, i) => [k, last[i]]).filter(r => r[1] >= .01).sort((a, b) => b[1] - a[1]);
+  const gone = sRes.field.filter((k, i) => last[i] < .01);
+  $('#e-txt').textContent = L('Через ' + GENS + ' поколінь: ', 'After ' + GENS + ' generations: ') + live.map(([k, v]) => NAME(k) + ' ' + pct(v, 0)).join(', ') + '. ' +
+    (gone.length ? L('Майже зникли (менше 1%): ', 'Nearly gone (under 1%): ') + gone.map(NAME).join(', ') + '. ' : '') +
+    L('По горизонталі покоління, по вертикалі частка населення.', 'Across: generations; up: share of the population.');
+}
+$('#s-field').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const k = b.dataset.k;
+  if (sField.includes(k)) { if (sField.length > 2) sField = sField.filter(x => x !== k); } else sField.push(k);
+  sControls(); sRun();
+});
+$('#s-noise').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; sEps = +b.dataset.e; sControls(); sRun(); });
+$('#s-pre').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const p = PRESETS.find(x => x[0] === b.dataset.p); sField = p[3].slice(); sEps = p[4]; sControls(); sRun(); });
+$('#s-run').addEventListener('click', sRun);
+
+/* ---------- round 4: the match table ---------- */
+function mxText() {
+  const ab = k => L({ tft: 'Око', tf2t: 'Терп.', grim: 'Злоп.', prober: 'Тест.', rand: 'Мон.', allc: 'Добр.', joss: 'Хитр.', alld: 'Зрад.' }[k], { tft: 'TFT', tf2t: 'TF2T', grim: 'Grud.', prober: 'Prob.', rand: 'Rand.', allc: 'Dove', joss: 'Snky', alld: 'Def.' }[k]);
+  $('#mx-tbl').innerHTML = '<thead><tr><th></th>' + D8.map(k => '<th class="num">' + ab(k) + '</th>').join('') + '<th class="num">' + L('Сер.', 'Avg') + '</th></tr></thead><tbody>' +
+    D8.map((a, i) => '<tr' + (a === 'tft' ? ' class="hl"' : '') + '><td>' + NAME(a) + '</td>' + D8.map((b, j) => {
+      const u = BASE_M[i][j], v = BASE_M[j][i], cls = i === j ? 'self' : u > v + .5 ? 'up' : u < v - .5 ? 'dn' : '';
+      return '<td class="num ' + cls + '">' + Math.round(u) + '</td>';
+    }).join('') + '<td class="num' + (a === 'tft' ? ' hit' : '') + '">' + Math.round(BASE[i]) + '</td></tr>').join('') + '</tbody>';
+}
+
+/* ---------- round 5: noise ---------- */
+const N_KEYS = ['tft', 'gtft', 'pavlov', 'grim'], N_GRID = Array.from({ length: 21 }, (_, i) => i / 200);
+let nEps = .01, nCurve = null;
+function nText() {
+  $('#n-ev').textContent = pct(nEps, 1);
+  if (!nCurve) nCurve = N_KEYS.map(k => N_GRID.map(e => longRun(k, e)));
+  $('#n-leg').innerHTML = N_KEYS.map(k => '<span style="--c:' + COL(k) + '"><b>' + NAME(k) + '</b></span>').join('');
+  $('#n-tbl').innerHTML = '<thead><tr><th>' + L('Дві копії', 'Two copies of') + '</th><th class="num">' + L('200 раундів', '200 rounds') + '</th><th class="num">' + L('Дуже довга гра', 'Very long game') + '</th></tr></thead><tbody>' +
+    N_KEYS.map(k => '<tr><td>' + NAME(k) + '</td><td class="num">' + fx(match(k, k, 200, nEps)[0] / 200, 2) + '</td><td class="num">' + fx(longRun(k, nEps), 2) + '</td></tr>').join('') + '</tbody>';
+  nDraw();
+}
+function nDraw() {
+  const st = setupCanvas($('#n-cv')); if (!st || !nCurve) return;
+  const { ctx, W, H } = st, l = 30, b = 26, t = 10, r = 10, X = e => l + (W - l - r) * e / .1, Y = v => t + (3.2 - v) / 2.4 * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [1, 2, 3].forEach(v => { ctx.beginPath(); ctx.moveTo(l, Y(v)); ctx.lineTo(W - r, Y(v)); ctx.stroke(); ctx.fillText(v, l - 6, Y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [0, .025, .05, .075, .1].forEach(e => ctx.fillText(pct(e, e === .025 || e === .075 ? 1 : 0), X(e), H - b + 6));
+  N_KEYS.forEach((k, i) => {
+    ctx.strokeStyle = COL(k); ctx.lineWidth = k === 'tft' ? 3 : 2; ctx.beginPath();
+    N_GRID.forEach((e, j) => { j ? ctx.lineTo(X(e), Y(nCurve[i][j])) : ctx.moveTo(X(e), Y(nCurve[i][j])); }); ctx.stroke();
+  });
+  ctx.strokeStyle = tok('--muted'); ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(nEps), t); ctx.lineTo(X(nEps), H - b); ctx.stroke(); ctx.setLineDash([]);
+}
+$('#n-e').addEventListener('input', e => { nEps = e.target.value / 1000; nText(); });
+
+/* ---------- round 5: the shadow of the future ---------- */
+let wW = .5;
+function wText() {
+  $('#w-wv').textContent = pct(wW, 0);
+  const v = [[L('Співпрацювати весь час', 'Cooperate all along'), PR / (1 - wW)], [L('Зрадити і зраджувати далі', 'Defect and keep defecting'), PT + PP * wW / (1 - wW)], [L('Чергувати зраду й співпрацю', 'Alternate defect and cooperate'), (PT + PS * wW) / (1 - wW * wW)]];
+  const best = v.reduce((m, x, i) => x[1] > v[m][1] + 1e-9 ? i : m, 0), max = Math.max(...v.map(x => x[1]));
+  $('#w-bars').innerHTML = v.map((x, i) => barRow(x[0], x[1], max, i === best ? 'var(--day)' : 'var(--grey)', fx(x[1]))).join('');
+  $('#w-msg').innerHTML = L('У середньому гра триває ' + fx(1 / (1 - wW)) + ' раунду. Найвигідніше: <b>' + v[best][0].toLowerCase() + '</b>. ', 'On average the game lasts ' + fx(1 / (1 - wW)) + ' rounds. Best plan: <b>' + v[best][0].toLowerCase() + '</b>. ') +
+    (wW < .25 ? L('Майбутнє коротке, зрада окупається.', 'The future is short, defection pays.') : wW < 2 / 3 ? L('Між 1/4 і 2/3 «Око за око» можна доїти, чергуючи ходи.', 'Between 1/4 and 2/3 Tit for Tat can be milked by alternating.') : L('Від 2/3 і вище співпраця найкраща.', 'From 2/3 up, cooperation is best.'));
+}
+$('#w-w').addEventListener('input', e => { wW = e.target.value / 100; wText(); });
+
+/* ---------- round 5: cheat a partner? ---------- */
+let pv = { r: 10, t: 25, p: 2, w: .9 };
+function pText() {
+  ['r', 't', 'p'].forEach(k => { $('#p-' + k).value = pv[k]; $('#p-' + k + 'v').textContent = pv[k]; });
+  $('#p-w').value = Math.round(100 * pv.w); $('#p-wv').textContent = pct(pv.w, 0);
+  $('#p-pre').innerHTML = '<button type="button" data-p="ex">' + L('Приклад: 10, 25, 2, 90%', 'Example: 10, 25, 2, 90%') + '</button>';
+  const honest = pv.r / (1 - pv.w), cheat = pv.t + pv.w * pv.p / (1 - pv.w), max = Math.max(honest, cheat, 1);
+  $('#p-bars').innerHTML = barRow(L('Чесно', 'Honest'), honest, max, honest >= cheat ? 'var(--day)' : 'var(--grey)', fx(honest)) + barRow(L('Обдурити', 'Cheat'), cheat, max, cheat > honest ? 'var(--day)' : 'var(--grey)', fx(cheat));
+  let m;
+  if (pv.t <= pv.r) m = L('Обман не дає разового виграшу більшого за чесний місяць, тож обманювати немає сенсу за будь-якого шансу.', 'Cheating gains no more than an honest month, so it never makes sense, whatever the chance.');
+  else if (pv.p >= pv.r) m = L('Після обману ви заробляєте не менше, ніж чесно: це вже не дилема, обман вигідний завжди.', 'After cheating you earn no less than honestly: this is no longer a dilemma, cheating always pays.');
+  else {
+    const thr = (pv.t - pv.r) / (pv.t - pv.p);
+    m = L('Чесність дає ' + fx(honest) + ', обман ' + fx(cheat) + '. Поріг: чесність вигідніша, коли шанс продовження не менше (Т − Р) / (Т − П) = ' + pct(thr, 0) + '.', 'Honesty gives ' + fx(honest) + ', cheating ' + fx(cheat) + '. Threshold: honesty pays when the chance of going on is at least (T − R) / (T − P) = ' + pct(thr, 0) + '.');
+    m = m.replace('(Т − Р) / (Т − П)', '(' + pv.t + ' − ' + pv.r + ') / (' + pv.t + ' − ' + pv.p + ')').replace('(T − R) / (T − P)', '(' + pv.t + ' − ' + pv.r + ') / (' + pv.t + ' − ' + pv.p + ')');
+  }
+  $('#p-msg').textContent = m;
+}
+['r', 't', 'p'].forEach(k => $('#p-' + k).addEventListener('input', e => { pv[k] = +e.target.value; pText(); }));
+$('#p-w').addEventListener('input', e => { pv.w = e.target.value / 100; pText(); });
+$('#p-pre').addEventListener('click', e => { if (!e.target.closest('button')) return; pv = { r: 10, t: 25, p: 2, w: .9 }; pText(); });
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Турнір Аксельрода: чому «Око за око» перемогло хитріші стратегії', 'Axelrod\'s Tournament: Why Tit for Tat Beat Cleverer Strategies');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  heroCapText = ''; heroDraw(); optsText(); guessText(); gmDraw(); bOpts(); bText(); sControls(); sDraw(); sText(); eDraw(); eText(); mxText(); nText(); wText(); pText();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang || lang; applyLang(); });
+document.addEventListener('solved', () => { heroStart(); bText(); sControls(); if (!sRes) sRun(); sText(); });
+const redraw = () => { heroDraw(); sDraw(); eDraw(); nDraw(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state ---------- */
+gm = { bots: shuffle(POOL.slice()).slice(0, GAMES), k: 0, res: [] };
+gm.cur = { bot: gm.bots[0], len: 8 + Math.floor(Math.random() * 5), s: ST[gm.bots[0]].s0, h: [], me: 0, it: 0, guess: null };
+$('#n-e').value = 10;
+if (solved()) sRun();
+applyLang();
+heroStart();
+})();
+</script>
+
+<script type="application/json" id="mp-terms">{"mean": {"name": "Mean (average)", "short": "The sum of all values divided by how many there are: what everyone would get if it were shared equally.", "hook": "Almost everyone has more legs than average: the average is a little under two.", "url": "https://mathparadoxes.com/glossary/median-vs-mean/en/", "link": "Try it in a simulation"}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'en' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Sections"><a href="https://mathparadoxes.com/en/#all" aria-current="page">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/">Glossary</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+</body>
+</html>

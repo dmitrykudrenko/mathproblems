@@ -1,0 +1,1644 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/elevator-paradox/", "en": "/elevator-paradox/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "elevator-paradox";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>The Elevator Paradox: Why the First Lift on Floor 2 Goes Down</title>
+<meta name="description" content="Gamow and Stern&#x27;s elevator paradox: on floor 2 of 15 the first lift is going down 13 times in 14. A betting game, a simulation and Knuth&#x27;s correction.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/elevator-paradox/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/elevator-paradox/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/elevator-paradox/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/elevator-paradox/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="The elevator paradox">
+<meta property="og:description" content="A lift runs non-stop between floors 1 and 15; you are on floor 2 and walk out to it at a random moment. Is the first lift more often going up, down, or both equally?">
+<meta property="og:url" content="https://mathparadoxes.com/elevator-paradox/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/elevator-paradox/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A 15-storey building, a lift in its shaft and a person on floor 2. Which way will the first lift to arrive be going: up or down?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The elevator paradox">
+<meta name="twitter:description" content="A lift runs non-stop between floors 1 and 15; you are on floor 2 and walk out to it at a random moment. Is the first lift more often going up, down, or both equally?">
+<meta name="twitter:image" content="https://mathparadoxes.com/elevator-paradox/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/elevator-paradox/en/#page", "url": "https://mathparadoxes.com/elevator-paradox/en/", "name": "The Elevator Paradox: Why the First Lift on Floor 2 Goes Down", "description": "Gamow and Stern's elevator paradox: on floor 2 of 15 the first lift is going down 13 times in 14. A betting game, a simulation and Knuth's correction.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "intermediate", "about": {"@type": "Thing", "name": "Elevator paradox", "sameAs": "https://en.wikipedia.org/wiki/Elevator_paradox"}, "image": "https://mathparadoxes.com/elevator-paradox/og-en.png", "datePublished": "2026-10-27", "dateModified": "2026-10-27", "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "translationOfWork": {"@id": "https://mathparadoxes.com/elevator-paradox/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "The elevator paradox", "item": "https://mathparadoxes.com/elevator-paradox/en/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/elevator-paradox/en/#faq", "inLanguage": "en", "mainEntity": [{"@type": "Question", "name": "What is the elevator paradox?", "acceptedAnswer": {"@type": "Answer", "text": "If you work on one of the lower floors and walk out to the lift at a random moment, the first lift to reach you is most often going down. On the upper floors it is the other way round, more often up. The physicists George Gamow and Marvin Stern described it in their book \"Puzzle-Math\" (1958)."}}, {"@type": "Question", "name": "Why is the first lift on floor 2 more often going down?", "acceptedAnswer": {"@type": "Answer", "text": "The lift runs evenly between floors 1 and 15, and 13 of the 14 gaps are above floor 2. So at a random moment the lift is somewhere above you with probability 13/14, and from there it can only reach you from above, going down. The chance is 13/14 ≈ 92.9%."}}, {"@type": "Question", "name": "How do you work out the chance for any floor?", "acceptedAnswer": {"@type": "Answer", "text": "For one lift with no stops in a building with N floors, on floor k the first lift is going down with chance (N − k)/(N − 1). For floor 2 of 15 that is 13/14, for the middle floor, 8, exactly 1/2, for floor 14 it is 1/14."}}, {"@type": "Question", "name": "What changes with several lifts?", "acceptedAnswer": {"@type": "Answer", "text": "Gamow and Stern thought nothing would. In 1969 Donald Knuth showed that with n independent lifts the chance is 1/2 + 1/2 · (1 − 2x)ⁿ, where x = (k − 1)/(N − 1), and it tends to 1/2 as n grows. For floor 2 of 15 and two lifts that is 85/98 ≈ 86.7%."}}, {"@type": "Question", "name": "Do I wait longer for a lift going my way?", "acceptedAnswer": {"@type": "Answer", "text": "No. The lift going up passes your floor once per trip, so on average you wait half a trip for it on any floor. You just more often see first a lift going the wrong way."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the fly-between-trains page. A tall building with one shaft, a car going up and down
+   and "you" on the second floor are this problem's signature objects; the trip drawn as a loop explains it. */
+:root {
+  --tint: #F4E9E4;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --sim: #3E7CB1;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--day); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal canvas { height: 380px; border-radius: 14px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 2.6em; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #1A1300; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 200px; max-width: 100%; accent-color: var(--day); }
+.ctl output { font-family: var(--f-mono); font-weight: 600; color: var(--ink); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+.big.day { color: var(--day); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+.msg { min-height: 3em; font-weight: 500; }
+.msg b { color: var(--hit); }
+.msg .bad, .verdict .bad { color: var(--loss); font-weight: 600; }
+.msg .good, .verdict .good { color: var(--win); font-weight: 600; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.opts { display: grid; gap: 10px; }
+.opts button { text-align: left; border: 1.5px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; cursor: pointer; font-weight: 600; display: grid; gap: 2px; }
+.opts button small { font-weight: 400; color: var(--muted); font-size: .84rem; }
+.opts button:hover { border-color: var(--ink); }
+.opts button[aria-pressed="true"] { border-color: var(--day); box-shadow: inset 0 0 0 1px var(--day); }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 150px 1fr 64px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.gbar { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; font-family: var(--f-mono); font-size: .84rem; color: var(--muted); }
+.gbar b { color: var(--ink); }
+.setline { font-family: var(--f-mono); font-size: .92rem; background: var(--paper); border-radius: 10px; padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.setline b { font-weight: 600; }
+.bets { display: grid; grid-template-columns: auto 1fr 1fr; gap: 8px; align-items: center; }
+.bets .lab { font-size: .82rem; color: var(--muted); line-height: 1.25; }
+.bets .lab b { display: block; color: var(--ink); font-weight: 600; font-size: .9rem; }
+.bets button { border: 1.5px solid var(--line); background: var(--surface); border-radius: 10px; padding: 10px 8px; cursor: pointer; font-weight: 600; }
+.bets button:hover:not(:disabled) { border-color: var(--ink); }
+.bets button:disabled { opacity: .45; cursor: default; }
+.bets button[aria-pressed="true"] { border-color: var(--day); box-shadow: inset 0 0 0 1px var(--day); opacity: 1; }
+.verdict { border-radius: 12px; padding: 12px 14px; background: var(--paper); display: grid; gap: 8px; }
+.verdict b { font-weight: 600; }
+.locked { display: grid; gap: 10px; background: var(--hit-soft); border-color: transparent; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.6rem; }
+.vs .bb b { color: var(--hit); }
+.vs span { font-size: .84rem; color: var(--muted); }
+.vs3 { grid-template-columns: repeat(3, 1fr); }
+.formula { font-family: var(--f-mono); font-size: .92rem; background: var(--paper); border-radius: 10px; padding: 14px 16px; overflow-x: auto; line-height: 1.9; white-space: nowrap; }
+.formula em { font-style: normal; color: var(--hit); font-weight: 600; }
+.strip { display: flex; height: 26px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.strip i { display: block; height: 100%; border-right: 1px solid var(--surface); background: var(--c); flex: 1; }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.layer { font-family: var(--f-display); font-weight: 800; font-size: 1.2rem; margin-top: 18px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.tbl-wrap { overflow-x: auto; }
+table.t { border-collapse: collapse; width: 100%; font-size: .9rem; }
+.t th, .t td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.t th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+.t td.num, .t th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+.t tr.hl td { font-weight: 600; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 104px 1fr 54px; }
+  .vs, .vs3 { grid-template-columns: 1fr; }
+  .t th, .t td { padding: 8px 5px; }
+  .hero-cal canvas { height: 320px; }
+  .bets { grid-template-columns: 1fr 1fr; }
+  .bets .lab { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=d9a074c5">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/en/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+  <nav class="mp-nav" aria-label="Sections" data-t="{&quot;cont&quot;: &quot;Continue&quot;, &quot;course&quot;: &quot;Continue the course&quot;}" data-slug="elevator-paradox" data-me="{&quot;s&quot;: &quot;elevator-paradox&quot;, &quot;n&quot;: {&quot;uk&quot;: &quot;Парадокс ліфта&quot;, &quot;en&quot;: &quot;The elevator paradox&quot;}, &quot;u&quot;: {&quot;uk&quot;: &quot;https://mathparadoxes.com/elevator-paradox/&quot;, &quot;en&quot;: &quot;https://mathparadoxes.com/elevator-paradox/en/&quot;}}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Menu"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Continue: <b></b></a><a href="https://mathparadoxes.com/en/#all" aria-current="page">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/">Glossary</a></div></nav>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/elevator-paradox/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/elevator-paradox/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <div class="mp-meta"><span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span>School maths</button><span class="mp-level-hint" hidden>Fractions, percentages, basic probability, powers<a href="https://mathparadoxes.com/en/?l=2#all">All puzzles of this level →</a></span></span></div>
+    
+    <h1 class="en"><span class="kw">The elevator paradox</span> Fifteen floors, one lift, and you are on the second. <span class="q sp-before">Will the first lift to arrive be going up or down?</span><span class="q sp-after">Down, 13 times out of 14.</span></h1>
+    
+    
+    <p class="lead en sp-before">All day long a lift runs between floors 1 and 15: it reaches the top, turns round, goes down, and so on without end, always at the same speed. Your office is on floor 2. You walk out to the lift whenever you like, without looking at the clock, and note which way the first lift to reach your floor is going. What will you see more often: up, down, or both equally?</p>
+    <p class="lead en sp-after">It seems the lift goes up as often as down, so it should be 50/50. But only one of the fourteen gaps between floors is below you. When you press the button the lift is almost always somewhere above you, and from there it can only reach you coming down. So the first lift is going down 13 times out of 14. With several lifts the bias weakens, but it does not vanish at once.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b>13/14</b><span><span class="en">first lift goes down</span></span></div>
+      <div class="odd"><b>85/98</b><span><span class="en">the same with two lifts</span></span></div>
+      <div class="odd"><b>50%</b><span><span class="en">on floor 8, the middle one</span></span></div>
+    </div>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">The puzzle</span></span>
+    <h2><span class="en">A building, a lift and your second floor</span></h2>
+    
+    <p class="lead en">This puzzle came from two physicists who worked in the same building on different floors and rode the same lift every day. First picture the building and your floor, then make a guess.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="en">The building</span></h3>
+        
+        <p class="en">Fifteen floors and one lift. It runs non-stop from floor 1 to floor 15 and back, always at the same speed, and turns round instantly at the end floors.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="en">You</span></h3>
+        
+        <p class="en">Your office is on floor 2. You walk out to the lift at random moments: when you finish an email, when you want a coffee. When you go out has nothing to do with where the lift is right now.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="en">What you note</span></h3>
+        
+        <p class="en">You stand by the doors and wait until the lift reaches your floor. You write down one thing: which way it was going when it came, up or down.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="en">The question</span></h3>
+        
+        <p class="en">After many days, which will your notes show more often: "up", "down", or both equally?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="en">Intuition says</span></span>
+        <p class="q"><span class="en">"The lift goes up and down equally, so it will be 50/50"</span></p>
+        
+        <p class="en">The lift really does spend exactly half its time going up. But from floor 2 you do not see its whole route, only the first arrival after you walk out. And 13/14 of the time the lift is above you, and from there it comes down.</p>
+      </div>
+      <div class="card">
+        <h3><span class="en">Assumptions</span></h3>
+        
+        <ul class="rules en">
+          <li>The lift does not stop at floors (or the stops are so short they can be ignored).</li>
+          <li>Its speed is steady, with no speeding up or braking.</li>
+          <li>You arrive at a random moment, without knowing where the lift is.</li>
+          <li>We count the lift's direction when it reaches your floor.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="en">Which way is the first lift going more often?</span></h2>
+    
+    <p class="lead en">15 floors, one lift with no stops, you are on floor 2 and arrive at a random moment. Pick your answer.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <span class="note"><span class="en">The first lift on floor 2 is more often going…</span></span>
+      <div class="opts" id="g-opts">
+        <button type="button" data-k="up" aria-pressed="false"><span class="en">Up</span><small><span class="en">the lift has to take you upstairs, after all</span></small></button>
+        <button type="button" data-k="same" aria-pressed="false"><span class="en">Equally, 50/50</span><small><span class="en">the lift goes up and down equally</span></small></button>
+        <button type="button" data-k="down" aria-pressed="false"><span class="en">Down</span><small><span class="en">you are on one of the lower floors, after all</span></small></button>
+      </div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Hints</span>
+    <p class="mp-hints-intro">Hard to decide? Open the hints one at a time: the easy one first, then stronger ones.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>You walk out to the lift at a random moment. Ask yourself: where is the lift most often at that moment, below your floor or above it?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>There are 14 gaps between floors 1 and 15. How many of them are below floor 2, and how many above?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>If the lift is above you right now, whichever way it is heading, how will it reach you? And if it is below?</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Show hint 1 of 3 · easy&quot;, &quot;Show hint 2 of 3 · medium&quot;, &quot;Show hint 3 of 3 · strong&quot;]">Show hint 1 of 3 · easy</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "elevator-paradox";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "elevator-paradox", RULE = {"right": ["down"]}, MIN = 20, T = {"kicker": "How others answer", "few": "Too few answers for stats yet: {n}. Yours is one of them.", "few_seen": "Too few answers for stats yet: {n}.", "all": "Answers so far: {n}. {p} of them are right.", "yes": "You are among those who got it.", "no": "Don't worry: intuition fails most people here.", "bar": "right", "note": "Only the first answer from each browser counts, given before it saw the solution. Anonymous."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    // "crowd" pages have no right answer: they get the raw counts and draw their own block
+    if (RULE.crowd) { document.dispatchEvent(new CustomEvent("mp-crowd", { detail: { k: data.k || {}, mine: mine } })); return; }
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (!n) return;
+    var html = '<span class="kicker">' + T.kicker + '</span>';
+    if (n < MIN) html += "<p>" + (mine ? T.few : T.few_seen).replace("{n}", fmt(n)) + "</p>";
+    else {
+      var p = Math.round(100 * ok / n);
+      html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    }
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: the lift lottery -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 2 · Game</span></span>
+    <h2><span class="en">Lift roulette: ten buildings, ten bets</span></h2>
+    
+    <p class="lead en">Each round brings a new building: a different number of floors, a different floor for you, one to six lifts running independently of each other. You cannot see where they are now. Guess which way the first lift to reach you will be going, and pick a stake. A careful bet: +1 point if you are right, 0 if not. A bold one: +2 or −3. Bold bets only pay when you are at least 75% sure. Alongside you plays a bot that knows the exact odds.</p>
+  </div>
+  <div class="card locked sp-before">
+    <h3><span class="en">The game opens after your answer in round 1</span></h3>
+    
+    <p class="en">It quickly shows how things really are, so make your own guess first.</p>
+  </div>
+  <div class="room sp-after">
+    <div class="card stage">
+      <div class="gbar"><span><span class="en">Round</span> <b id="g-round">–</b></span><span><span class="en">You</span> <b id="g-score">0</b></span><span><span class="en">Bot</span> <b id="g-bot">0</b></span></div>
+      <div class="setline" id="g-set"></div>
+      <canvas id="g-cv" style="height:300px"></canvas>
+      <div class="bets" id="g-bets">
+        <span class="lab"><b class="en">Careful</b><span class="en">+1 / 0</span></span>
+        <button type="button" data-d="up" data-b="safe">↑ <span class="en">up</span></button>
+        <button type="button" data-d="down" data-b="safe">↓ <span class="en">down</span></button>
+        <span class="lab"><b class="en">Bold</b><span class="en">+2 / −3</span></span>
+        <button type="button" data-d="up" data-b="bold">↑ <span class="en">up</span></button>
+        <button type="button" data-d="down" data-b="bold">↓ <span class="en">down</span></button>
+      </div>
+      <p class="msg" id="g-msg" aria-live="polite"></p>
+      <div class="actions"><button class="btn hit" id="g-next" type="button"></button></div>
+    </div>
+    <div class="card" style="display:grid;gap:14px;align-content:start">
+      <h3><span class="en">Your rounds</span></h3>
+      <div class="tbl-wrap"><table class="t" id="g-tbl"></table></div>
+      <div class="verdict" id="g-verdict" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="en">Any floor, any number of lifts</span></h2>
+    
+    <p class="lead en">The simulation "walks out to the lift" thousands of times on every floor: it puts each lift at a random point of its route, heading a random way, and checks which one reaches you first and which way it is going. The dots are the share of "down" in the simulation. The dashed line is the exact answer for one lift, the solid line the exact answer for the chosen number of lifts, if they run independently.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="s-n"><span><span class="en">Floors</span>: <output id="s-nv">15</output></span><input type="range" id="s-n" min="5" max="40" step="1" value="15"></label>
+      <label class="ctl" for="s-k"><span><span class="en">Your floor</span>: <output id="s-kv">2</output></span><input type="range" id="s-k" min="2" max="14" step="1" value="2"></label>
+      <label class="ctl" for="s-e"><span><span class="en">Lifts</span>: <output id="s-ev">1</output></span><input type="range" id="s-e" min="1" max="10" step="1" value="1"></label>
+      <button class="btn pri" id="s-run" type="button"><span class="en">Walk out 3,000 more times per floor</span></button>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="s-cv" style="height:320px"></canvas>
+        <div class="legend">
+          <span style="--c:var(--sim)"><b class="en">simulation</b></span>
+          <span style="--c:var(--day)"><b class="en">exact, chosen number of lifts</b></span>
+          <span style="--c:var(--muted)"><b class="en">exact, one lift (dashed)</b></span>
+          <span style="--c:var(--muted)"><b class="en">your floor (vertical)</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k"><span class="en">Simulation on your floor</span></div><div class="v mono" id="t-s">–</div><div class="s" id="t-ss"></div></div>
+        <div class="tile" style="--c:var(--day)"><div class="k"><span class="en">Exact for this number of lifts</span></div><div class="v mono" id="t-e">–</div><div class="s" id="t-es"></div></div>
+        <div class="tile" style="--c:var(--muted)"><div class="k"><span class="en">Exact for one lift</span></div><div class="v mono" id="t-1">–</div><div class="s" id="t-1s"></div></div>
+        <div class="tile"><div class="k"><span class="en">Largest gap between simulation and formula over all floors</span></div><div class="v mono" id="t-d">–</div><div class="s" id="t-ds"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 4 · Why</span></span>
+    <h2><span class="en">The lift is fair, but you are not looking from everywhere</span></h2>
+    
+    <p class="lead en">The lift spends exactly half its time going up, and it passes your floor up and down equally often: once each way. The bias is not in the lift but in the way you catch it.</p>
+  </div>
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">In plain words</span><span class="mp-layer-desc">pictures, analogies, small numbers</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“In plain words” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">Where the lift is when you press the button</span></span>
+      <h3><span class="en">One gap below you, thirteen above</span></h3>
+      <div class="strip" id="e-strip" aria-hidden="true"></div>
+      
+      <p class="en">There are 14 gaps between floors 1 and 15. Only one of them, between floors 1 and 2, is below you. The lift moves evenly, so at a random moment it is somewhere above you with probability 13/14. And from there it has only one way to reach you: from above, going down. Whichever way it is heading now, up or down, it will arrive at your floor going down. This card is about one lift. Why the bias weakens with several lifts is explained by the cards below.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">The route as a loop</span></span>
+      <h3><span class="en">The long arc leads down, the short one up</span></h3>
+      <canvas id="e-cv" style="height:240px"></canvas>
+      <label class="ctl" for="e-k"><span><span class="en">Your floor</span>: <output id="e-kv">2</output></span><input type="range" id="e-k" min="2" max="14" step="1" value="2"></label>
+      <p class="note" id="e-txt"></p>
+      
+      <p class="en">Unroll the lift's route into a loop: the left side is the way up, the right side the way down. Your floor appears on the loop twice: the lift passes it once going up and once going down. If the lift is on the long arc when you walk out, it reaches the "down" point first; if on the short arc, the "up" point. The chance is simply the length of the arc.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">Upstairs it is the other way round</span></span>
+      <h3><span class="en">Your floor decides what you see</span></h3>
+      <div class="vs vs3">
+        <div class="bb"><span><span class="en">Floor 2</span></span><b class="mono">13/14</b><span><span class="en">first lift going down</span></span></div>
+        <div><span><span class="en">Floor 8, the middle</span></span><b class="mono">1/2</b><span><span class="en">equally</span></span></div>
+        <div><span><span class="en">Floor 14</span></span><b class="mono">13/14</b><span><span class="en">first lift going up</span></span></div>
+      </div>
+      
+      <p class="en">A neighbour on floor 14 of the same building sees the opposite: the first lift is nearly always going up, because there is only one gap above them. Both are right, and both are watching the same lift. That is how this puzzle began: two physicists on different floors comparing which of them was the "unlucky" one.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Rigorous</span><span class="mp-layer-desc">tables, charts, formulas</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Rigorous” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">One lift</span></span>
+      <h3><span class="en">The share of time above you</span></h3>
+      <p class="formula">P(<span class="en">down</span>) = (N − k) / (N − 1)</p>
+      
+      <p class="en">N is the number of floors, k your floor. A full round trip up and down takes 2(N − 1) gaps. For 2(N − k) of them the lift is above you (on the way up and on the way down), and from any such point it reaches you going down. For the other 2(k − 1) it is below you and comes up. Divide: (N − k)/(N − 1). For floor 2 of 15: 13/14 ≈ 92.9%. For Gamow's floor in the 1958 puzzle, floor 2 of 7: 5/6.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Several lifts</span></span>
+      <h3><span class="en">A window where up and down are equal</span></h3>
+      <p class="formula">P(<span class="en">down</span>) = 1/2 + 1/2 · (1 − 2x)<sup>n</sup>, x = (k − 1)/(N − 1)</p>
+      
+      <p class="en">A lift that is below you now reaches you going up within 2(k − 1) gaps: for floor 2, within 2. Look at the first 2 gaps of time after you walk out. During that time each lift arrives going up with the same chance as going down, so if someone arrives in this window, up and down are equally likely. If nobody does (chance (1 − 2x)ⁿ, for floor 2 of 15 that is (6/7)ⁿ), all the lifts are above you and the first one is surely going down. Together: 1/2 · (1 − (6/7)ⁿ) + (6/7)ⁿ. For two lifts 85/98 ≈ 86.7%, for three ≈ 81.5%.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">A table for 15 floors</span></span>
+      <h3><span class="en">The chance the first lift is going down</span></h3>
+      <div class="tbl-wrap"><table class="t" id="w-tbl"></table></div>
+      
+      <p class="en">Below the middle the first lift is more often going down, above it going up, and on floor 8 it is exactly 50% for any number of lifts. The more lifts, the closer every row gets to 50%, but on floor 2 even with four lifts "down" comes up three times out of four.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="en">For formula lovers</span></span>
+      <h3><span class="en">The general answer for any floor</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">Your height as a share of the building: 0 is the bottom floor, 1 the top. On floor 2 of 15, x = 1/14.</span></p>
+          <math display="block"><mi>x</mi><mo>=</mo><mfrac><mrow><mi>k</mi><mo>−</mo><mn>1</mn></mrow><mrow><mi>N</mi><mo>−</mo><mn>1</mn></mrow></mfrac><mo>,</mo><mspace width="1em"></mspace><msub><mi>P</mi><mn>1</mn></msub><mo>=</mo><mn>1</mn><mo>−</mo><mi>x</mi><mo>=</mo><mfrac><mn>13</mn><mn>14</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">n <a href="https://mathparadoxes.com/glossary/independence/en/" class="mp-term" data-term="independence" aria-expanded="false">independent</a> lifts, each at a random point of its trip. The absolute value is there for floors above the middle: there (1 − 2x) is negative and the answer drops below 1/2.</span></p>
+          <math display="block"><msub><mi>P</mi><mi>n</mi></msub><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mn>2</mn><mi>x</mi><mo stretchy="false">)</mo><msup><mrow><mo>|</mo><mn>1</mn><mo>−</mo><mn>2</mn><mi>x</mi><mo>|</mo></mrow><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msup></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="en">For floor 2 of 15 and two lifts:</span></p>
+          <math display="block"><msub><mi>P</mi><mn>2</mn></msub><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>·</mo><msup><mrow><mo stretchy="false">(</mo><mfrac><mn>6</mn><mn>7</mn></mfrac><mo stretchy="false">)</mo></mrow><mn>2</mn></msup><mo>=</mo><mn class="hl">85/98</mn><mo>≈</mo><mn>0,867</mn></math>
+        </div>
+      </div>
+      
+      <p class="en">The page checked the formula in round 3 on every floor and for 1–10 lifts. As n grows, (1 − 2x)ⁿ tends to zero and the answer to 1/2. But slowly: on floor 2 of 15 it takes 15 lifts to get below 55%.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Deeper</span><span class="mp-layer-desc">generalisations, theory, history</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Deeper” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="en">History · Gamow, Stern and Knuth</span></span>
+      <h3><span class="en">"Will, of course, remain the same". No</span></h3>
+      
+      
+      <p class="en">The physicists George Gamow and Marvin Stern described this puzzle in their book "Puzzle-Math" (1958). In their story Gamow worked on floor 2 and Stern on floor 6 of a seven-storey building. Gamow complained that the first lift was usually going down, Stern that it was usually going up. The book's explanation is the same as ours: for floor 2, 5 of the 6 gaps are above, so 5/6.</p>
+      <p class="en">For several lifts the authors wrote that the situation "will, of course, remain the same". In 1969 Donald Knuth showed in "The Gamow-Stern Elevator Problem" (Journal of Recreational Mathematics, vol. 2, pp. 131–137) that this is not so: the more independent lifts, the closer the chance gets to 1/2. For two lifts on Gamow's floor it comes to 13/18, not 5/6.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="en">Real lifts</span></span>
+      <h3><span class="en">Stops, parking downstairs, a clever dispatcher</span></h3>
+      
+      
+      <p class="en">Our model is deliberately simple. Real lifts stop, sit idle, and often return to the ground floor, because most people board there. In the evening everyone goes down, in the morning up. On the lower floors some people take the stairs, and a full car may pass your call. And several lifts in a building are run by one controller that deliberately spreads them along the shaft, so they are not independent as in Knuth's formula.</p>
+      <p class="en">So the exact numbers for your office will differ. But the cause of the bias is geometric and does not go away: if the lift spends most of its time above you, it more often comes from above. Near the bottom floor you see "down" more often, near the top "up".</p>
+    </div>
+
+  </div>
+  </div>
+
+<script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "elevator-paradox" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Round 5 · Scaling up</span></span>
+    <h2><span class="en">More lifts, a different vantage point, your morning at the office</span></h2>
+    
+    <p class="lead en">Mathematically: how fast the bias fades when there are many lifts. Logically: the same trap as in the bus paradox and the friendship paradox — what you see depends on where you look from. Practically: why the lift is "always going the wrong way", yet you do not wait any longer than anyone else.</p>
+  </div>
+  <div class="esc">
+    <p class="layer"><span class="en">Mathematics</span></p>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">How many lifts until it is 50/50</span></h3>
+        <canvas id="m-cv" style="height:220px"></canvas>
+        <div class="controls" style="margin:0">
+          <label class="ctl" for="m-k"><span><span class="en">Your floor of 15</span>: <output id="m-kv">2</output></span><input type="range" id="m-k" min="2" max="14" step="1" value="2"></label>
+        </div>
+        <div class="result-row">
+          <div><span class="k"><span class="en">One lift</span></span><b class="big mono" id="m-1" style="font-size:2rem">–</b></div>
+          <div><span class="k"><span class="en">Lifts until the bias is under 5 points</span></span><b class="big hit mono" id="m-n" style="font-size:2rem">–</b></div>
+        </div>
+        <p class="note" id="m-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">n lifts, any floor</span></span>
+        <h3><span class="en">The bias melts like a power</span></h3>
+        
+        <p class="en">The departure from 50% equals 1/2 · |1 − 2x|ⁿ: every lift you add multiplies it by |1 − 2x|. Near the middle of the building this factor is small, and two or three lifts already give nearly 50/50. Near the edge it is close to 1: on floor 2 of 15 it is 6/7, so the bias melts slowly, and it takes 15 lifts to get below 55%. On the end floors the question loses its meaning: at floor 1 the lift always arrives from above and leaves going up.</p>
+        
+        <p class="en">This formula is for independent lifts. If the lifts run at even intervals, like buses on a timetable, the answer is different again and depends on the interval. For example, four evenly spaced lifts on floor 2 give "down" 5 times out of 7 (71.4%), while four independent ones give 77%.</p>
+      </div>
+    </div>
+
+    <p class="layer"><span class="en">Logic</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">The lift's diary and yours</span></h3>
+        <canvas id="l-cv" style="height:220px"></canvas>
+        <div class="controls" style="margin:0">
+          <label class="ctl" for="l-k"><span><span class="en">Your floor of 15</span>: <output id="l-kv">2</output></span><input type="range" id="l-k" min="2" max="14" step="1" value="2"></label>
+          <div class="actions"><button class="btn ghost" id="l-add" type="button"><span class="en">Walk out 20 times</span></button><button class="btn ghost" id="l-clr" type="button"><span class="en">Clear</span></button></div>
+        </div>
+        <p class="msg" id="l-msg" aria-live="polite"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">Where you stand decides what you see</span></span>
+        <h3><span class="en">A fair sample, an unfair spot</span></h3>
+        
+        <p class="en">The chart is the lift's height over time: a saw from floor 1 to 15 and back. The horizontal line is your floor. The lift crosses it up and down equally often, so the lift's diary says "50/50". But you only note the first crossing after a random moment. And random moments land more often in the long stretch between passing up and passing down.</p>
+        
+        <p class="en">It is the same trap as in the <a href="../../inspection-paradox/en/">bus paradox</a>: arriving at random, you more often land in long gaps between buses. And the same as in the <a href="../../friendship-paradox/en/">friendship paradox</a>: looking at people through friends, you more often meet those who have many friends. Each time the sample is honest, but the spot you look from decides what gets into it.</p>
+      </div>
+    </div>
+
+    <p class="layer"><span class="en">Practice</span></p>
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="en">"Wrong way again". But how long do you wait?</span></h3>
+        <div class="controls" style="margin:0">
+          <label class="ctl" for="p-k"><span><span class="en">Your floor of 15</span>: <output id="p-kv">2</output></span><input type="range" id="p-k" min="2" max="14" step="1" value="2"></label>
+          <label class="ctl" for="p-e"><span><span class="en">Lifts</span>: <output id="p-ev">1</output></span><input type="range" id="p-e" min="1" max="4" step="1" value="1"></label>
+        </div>
+        <canvas id="p-cv" style="height:170px"></canvas>
+        <div class="legend" style="margin-top:0">
+          <span style="--c:var(--hit)"><b class="en">bars: first lift going down (0–100%)</b></span>
+          <span style="--c:var(--day)"><b class="en">dots: wait for a lift going up (0–40 s), dashed: exact</b></span>
+        </div>
+        <div class="result-row">
+          <div><span class="k"><span class="en">First lift going down</span></span><b class="big mono" id="p-d" style="font-size:2rem">–</b></div>
+          <div><span class="k"><span class="en">Wait for a lift going up, on average</span></span><b class="big hit mono" id="p-w" style="font-size:2rem">–</b></div>
+        </div>
+        <p class="note" id="p-txt"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="en">The lift your way is not late</span></span>
+        <h3><span class="en">You see the "wrong" lift, but you do not wait longer</span></h3>
+        
+        <p class="en">Say the lift passes a floor every 2 seconds. A round trip of a 15-storey building is 28 gaps, 56 seconds. The lift going up passes your floor exactly once per trip, so arriving at random you wait for it half a trip on average: 28 seconds. On any floor. With n independent lifts it is 56/(n + 1) seconds, again on any floor. The feeling "it is always going the wrong way" on floor 2 is true about the first lift but not about the wait: you just more often see first a lift you do not need.</p>
+        
+        <p class="en">The same goes for a route with one shuttle bus, say between a terminal and a car park, 10 minutes each way. At a stop one minute from the car park, the first bus you see is heading to the car park 9 times out of 10. Your bus, away from the car park, comes after 10 minutes on average, just as at any other stop. On a metro line with many trains on a timetable there is hardly any bias, as with many lifts: there trains in both directions come equally often.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1958</span>
+        <h3><span class="en">A book by two physicists</span></h3>
+        
+        <p class="en">The puzzle appeared in George Gamow and Marvin Stern's book "Puzzle-Math" (Viking Press, 1958). Gamow is also known as the author of popular physics books, among them "One Two Three… Infinity".</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">5/6</span>
+        <h3><span class="en">Gamow's floor</span></h3>
+        
+        <p class="en">In their story Gamow sat on floor 2 of a seven-storey building and Stern on floor 6. With one lift, the first arrival at Gamow's floor is going down 5 times out of 6, and at Stern's going up with the same chance.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1969</span>
+        <h3><span class="en">Knuth corrects the physicists</span></h3>
+        
+        <p class="en">Donald Knuth, author of "The Art of Computer Programming", published "The Gamow-Stern Elevator Problem" in the Journal of Recreational Mathematics (vol. 2, 1969). It was reprinted in his collection "Selected Papers on Fun and Games" (2011).</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">13/18</span>
+        <h3><span class="en">Two lifts in Gamow's building</span></h3>
+        
+        <p class="en">With two independent lifts the first lift at Gamow's floor is going down with chance 13/18 ≈ 72%, not 5/6 ≈ 83% as the book's authors believed. The page works this out with the same formula as in round 4.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">15</span>
+        <h3><span class="en">Lifts to near 50/50</span></h3>
+        
+        <p class="en">On floor 2 of a 15-storey building, 14 independent lifts still give "down" 55.8% of the time. Only with the 15th lift does the chance drop below 55%, to 54.95%.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1986</span>
+        <h3><span class="en">Lifts in Martin Gardner</span></h3>
+        
+        <p class="en">Martin Gardner devoted a whole chapter, "Elevators", to lifts in "Knotted Doughnuts and Other Mathematical Entertainments" (1986), and went through the surprises the puzzle brings when there are several lifts.</p>
+      </article>
+  </div>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">More puzzles</span>
+    <h2>Other paradoxes</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/monty-hall/en/"><h3>The Monty Hall problem</h3><p>You&#x27;re on a game show and pick one of three doors. The host, who knows where the car is, opens another door to reveal a goat and offers a switch. Should you take it?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/birthday/en/"><h3>The birthday paradox</h3><p>How many people must be in a room before two of them probably share a birthday?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/false-positive/en/"><h3>The false positive paradox</h3><p>1% of people have a disease. The test is 99% accurate, and you test positive. What is the chance you&#x27;re really ill?</p></a>
+  </div>
+  <p class="mp-related-all"><a href="https://mathparadoxes.com/en/">All puzzles →</a> <a href="https://mathparadoxes.com/glossary/en/">Glossary →</a></p>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Discussion</span>
+    <h2>What do you think?</h2>
+    <p>Share your own explanation, an objection or a variant of the puzzle. You need a GitHub account to comment.</p>
+    <div class="mp-lvote"><p>Is “School maths” the right level for this puzzle?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">No, harder</button><button type="button" data-vote="right">Yes</button><button type="button" data-vote="easier">No, easier</button></div><p class="mp-lvote-thanks">Thank you! This helps set the levels right.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "elevator-paradox" + "-lvl", LEVEL = 2, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="elevator-paradox" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="en" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Newsletter</span>
+    <h2>New puzzles, explanations and discussions</h2>
+    <p>I keep adding new puzzles, new ways to explain them and write-ups of the discussions they start. Leave your email and I'll write when something new is out. No spam, one-click unsubscribe.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">The sign-up form will appear here soon.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const STATIC = document.documentElement.hasAttribute('data-static');
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const solved = () => !window.mpSolved || mpSolved();
+const TAU = Math.PI * 2;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+// a number with at most d decimals, trailing zeros dropped, thousands grouped
+const num = (x, d = 2) => {
+  const s = (Math.round(x * 10 ** d) / 10 ** d).toLocaleString('en-US', { maximumFractionDigits: d });
+  return lang === 'en' ? s : s.replace(/,/g, ' ').replace('.', ',');
+};
+const pct = (p, d = 1) => num(100 * p, d) + '%';
+const gcd = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; };
+const frac = (a, b) => { const g = gcd(a, b) || 1; return b / g === 1 ? String(a / g) : (a / g) + '/' + (b / g); };
+const plural = (k, one, few, many) => {
+  const a = k % 10, b = k % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+const liftW = n => L(plural(n, 'ліфт', 'ліфти', 'ліфтів'), n === 1 ? 'lift' : 'lifts');
+const timesW = n => plural(n, 'раз', 'рази', 'разів');
+
+/* ---------- maths ---------- */
+// The building has floors 1..N; a lift moves one gap between floors per time unit, so a round trip takes C = 2(N - 1).
+// A lift is described by its phase on that loop: 0..N-1 is the way up, N-1..C the way down.
+// Your floor k sits on the loop twice: at h = k - 1 (passing up) and at C - h (passing down).
+const cyc = N => 2 * (N - 1);
+const heightAt = (ph, N) => { const C = cyc(N), p = ((ph % C) + C) % C; return p <= N - 1 ? p : C - p; };
+const goingUp = (ph, N) => { const C = cyc(N), p = ((ph % C) + C) % C; return p < N - 1; };
+// time until this lift reaches floor k and which way it is going then
+function arrival(ph, N, k) {
+  const C = cyc(N), h = k - 1;
+  const dA = (((h - ph) % C) + C) % C, dB = (((C - h - ph) % C) + C) % C;
+  return dA < dB ? { t: dA, up: true } : { t: dB, up: false };
+}
+// one walk-out: n lifts at random independent phases; the first to reach floor k
+function walkOut(N, k, n) {
+  const C = cyc(N); let best = null, bi = 0; const ph = [];
+  for (let i = 0; i < n; i++) {
+    ph.push(Math.random() * C);
+    const a = arrival(ph[i], N, k);
+    if (!best || a.t < best.t) { best = a; bi = i; }
+  }
+  return { ph, t: best.t, up: best.up, who: bi };
+}
+// exact chance that the first lift is going down (Knuth's formula for n independent lifts)
+function pDown(N, k, n) {
+  const q = 1 - 2 * (k - 1) / (N - 1);
+  return 0.5 + 0.5 * q * Math.pow(Math.abs(q), n - 1);
+}
+
+/* ---------- drawing helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function arrow(ctx, x, y, up, s, col) {
+  ctx.fillStyle = col; ctx.beginPath();
+  if (up) { ctx.moveTo(x, y - s); ctx.lineTo(x + s * .8, y + s * .5); ctx.lineTo(x - s * .8, y + s * .5); }
+  else { ctx.moveTo(x, y + s); ctx.lineTo(x + s * .8, y - s * .5); ctx.lineTo(x - s * .8, y - s * .5); }
+  ctx.closePath(); ctx.fill();
+}
+function person(ctx, x, y, s, col) {
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(x, y - s * 1.55, s * .32, 0, TAU); ctx.fill();
+  rr(ctx, x - s * .34, y - s * 1.15, s * .68, s * 1.15, s * .25); ctx.fill();
+}
+/* A building: floors 1..N, n shafts. o = { phases (or null to hide cars), mark (index of the car to highlight),
+   shadeAbove (true: tint the part of the shafts above your floor) }. Returns the floor-to-y mapping. */
+function drawBuilding(ctx, box, N, k, n, o) {
+  const { x, y, w, h } = box;
+  const top = y + 10, bot = y + h - 10, fy = f => bot - (bot - top) * (f - 1) / (N - 1);
+  const labW = 26, youW = 40, sw = Math.min(46, (w - labW - youW - 8) / n - 6), gap = 6;
+  const sx0 = x + labW + 4;
+  // walls
+  ctx.fillStyle = tok('--surface'); rr(ctx, x, y, w, h, 10); ctx.fill();
+  if (o.shadeAbove) {
+    ctx.fillStyle = tok('--hit-soft');
+    ctx.fillRect(sx0 - 2, top - 6, n * (sw + gap) - gap + 4, fy(k) - top + 6);
+  }
+  // floors
+  ctx.strokeStyle = tok('--line'); ctx.lineWidth = 1; ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ctx.font = (N > 20 ? '9px ' : '10px ') + tok('--f-mono');
+  const step = N > 26 ? 5 : N > 16 ? 2 : 1;
+  for (let f = 1; f <= N; f++) {
+    ctx.beginPath(); ctx.moveTo(x + labW, fy(f)); ctx.lineTo(x + w - 6, fy(f)); ctx.stroke();
+    if (f === 1 || f === N || f === k || f % step === 0) { ctx.fillStyle = f === k ? tok('--ink') : tok('--muted'); ctx.fillText(String(f), x + labW - 4, fy(f)); }
+  }
+  // your floor
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x + labW, fy(k)); ctx.lineTo(x + w - 6, fy(k)); ctx.stroke();
+  const px = sx0 + n * (sw + gap) + 14;
+  person(ctx, px, fy(k), Math.max(9, Math.min(14, (bot - top) / (N - 1) * .9 + 4)), tok('--ink'));
+  ctx.fillStyle = tok('--ink'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.font = '600 11px ' + tok('--f-mono');
+  if (px + 34 < x + w) ctx.fillText(L('ви', 'you'), px + 10, fy(k) - 2);
+  // shafts and cars
+  const carH = Math.max(8, Math.min(26, (bot - top) / (N - 1) * .9));
+  for (let i = 0; i < n; i++) {
+    const cx = sx0 + i * (sw + gap);
+    ctx.strokeStyle = tok('--muted'); ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+    ctx.strokeRect(cx, top - 6, sw, bot - top + 12); ctx.setLineDash([]);
+    if (!o.phases) {
+      ctx.fillStyle = tok('--paper'); ctx.fillRect(cx + 1, top - 5, sw - 2, bot - top + 10);
+      ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '800 16px ' + tok('--f-display');
+      ctx.fillText('?', cx + sw / 2, (top + bot) / 2);
+      continue;
+    }
+    const ph = o.phases[i], yy = fy(1 + heightAt(ph, N)), up = goingUp(ph, N);
+    const hl = o.mark === i;
+    ctx.fillStyle = hl ? tok('--ink') : tok('--day');
+    rr(ctx, cx + 2, yy - carH / 2, sw - 4, carH, 4); ctx.fill();
+    if (hl) { ctx.strokeStyle = tok('--sim') || '#3E7CB1'; ctx.lineWidth = 3; rr(ctx, cx - 1, yy - carH / 2 - 3, sw + 2, carH + 6, 6); ctx.stroke(); }
+    arrow(ctx, cx + sw / 2, yy, up, Math.min(6, carH * .32), hl ? tok('--paper') : tok('--day-ink'));
+  }
+  return fy;
+}
+
+/* ---------- hero: the building and the lift ---------- */
+const HN = 15, HK = 2, HSPEED = 0.35; // seconds per floor gap
+const hero = { t0: performance.now(), raf: 0, visible: true };
+let heroCapText = '';
+function heroDraw(now) {
+  const st = setupCanvas($('#hero-cv')); if (!st) return;
+  const { ctx, W, H } = st, ok = solved();
+  ctx.fillStyle = tok('--tint') || '#F4E9E4'; rr(ctx, 0, 0, W, H, 14); ctx.fill();
+  const el = reduce() ? 9.3 * HSPEED : ((now || performance.now()) - hero.t0) / 1000;
+  const ph = (el / HSPEED + 3) % cyc(HN);
+  const bw = Math.min(W - 32, 250), box = { x: (W - bw) / 2, y: 14, w: bw, h: H - 28 };
+  const fy = drawBuilding(ctx, box, HN, HK, 1, { phases: [ph], mark: -1, shadeAbove: ok });
+  if (ok) {
+    // brackets: time above you vs below you
+    const bx = box.x + box.w - 10;
+    ctx.strokeStyle = tok('--hit'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx - 6, fy(HN)); ctx.lineTo(bx, fy(HN)); ctx.lineTo(bx, fy(HK) - 3); ctx.lineTo(bx - 6, fy(HK) - 3); ctx.stroke();
+    ctx.save(); ctx.translate(bx - 10, (fy(HN) + fy(HK)) / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = tok('--ink'); ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(L('над вами 13/14 часу', 'above you 13/14 of the time'), 0, 0); ctx.restore();
+  }
+  let cap;
+  if (!ok) cap = L('Ліфт без кінця їздить між 1-м і 15-м поверхами. Ви на 2-му. Куди їхатиме перший ліфт, що доїде до вас?', 'The lift runs endlessly between floors 1 and 15. You are on floor 2. Which way will the first lift to reach you be going?');
+  else cap = L('Над 2-м поверхом 13 прольотів із 14. Звідти ліфт може доїхати до вас лише згори, униз.', '13 of the 14 gaps are above floor 2. From there the lift can only reach you from above, going down.');
+  if (cap !== heroCapText) { heroCapText = cap; $('#hero-cap').textContent = cap; }
+}
+function heroLoop(now) { heroDraw(now); if (!reduce() && hero.visible) hero.raf = requestAnimationFrame(heroLoop); else hero.raf = 0; }
+function heroStart() {
+  if (hero.raf) cancelAnimationFrame(hero.raf);
+  hero.raf = 0;
+  if (reduce()) { heroDraw(); return; }
+  hero.raf = requestAnimationFrame(heroLoop);
+}
+if ('IntersectionObserver' in window) new IntersectionObserver(es => {
+  hero.visible = es[0].isIntersecting;
+  if (hero.visible && !hero.raf && !reduce()) hero.raf = requestAnimationFrame(heroLoop);
+}).observe($('#hero-cv'));
+
+/* ---------- round 1: guess ---------- */
+let gPick = null;
+function guessText() {
+  $('#g-opts').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === gPick));
+  if (gPick === null) return;
+  const p1 = pDown(15, 2, 1), p2 = pDown(15, 2, 2);
+  let verdict;
+  if (gPick === 'down') verdict = L('Так. Ліфт 13/14 часу десь над вами, а звідти він може приїхати тільки згори. Тож перший ліфт їде вниз у 13 випадках із 14.', 'Yes. The lift is somewhere above you 13/14 of the time, and from there it can only arrive from above. So the first lift is going down 13 times out of 14.');
+  else if (gPick === 'same') verdict = L('Найпоширеніша відповідь, і вона правдива для самого ліфта: угору він їде рівно половину часу. Але ви бачите лише перший приїзд після свого виходу, а ліфт 13/14 часу над вами. Тож перший ліфт їде вниз у 13 випадках із 14.', 'The most common answer, and it is true of the lift itself: it goes up exactly half the time. But you only see the first arrival after you walk out, and the lift is above you 13/14 of the time. So the first lift is going down 13 times out of 14.');
+  else verdict = L('Навпаки. Під вами лише один проліт із 14, тож ліфт рідко буває нижче. Найчастіше він над вами і приїжджає вниз: у 13 випадках із 14.', 'The other way round. Only one of the 14 gaps is below you, so the lift is rarely lower than you. Most of the time it is above you and arrives going down: 13 times out of 14.');
+  const rows = [[L('Вниз, один ліфт', 'Down, one lift'), p1, pct(p1), 'var(--hit)'], [L('Вгору, один ліфт', 'Up, one lift'), 1 - p1, pct(1 - p1), 'var(--muted)'], [L('Вниз, два ліфти', 'Down, two lifts'), p2, pct(p2), 'var(--day)'], [L('Вниз, 8-й поверх', 'Down, floor 8'), 0.5, '50%', 'var(--muted)']];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">13/14 ≈ ' + pct(p1) + '</p>' +
+    '<p>' + verdict + '</p><div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[3] + ';width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + r[2] + '</span></div>').join('') + '</div>' +
+    '<p class="note">' + L('Із двома незалежними ліфтами перекіс слабшає: 85/98 ≈ ' + pct(p2) + '. На середньому, 8-му поверсі завжди 50 на 50.', 'With two independent lifts the bias weakens: 85/98 ≈ ' + pct(p2) + '. On the middle floor, 8, it is always 50/50.') + '</p>' +
+    '<p>' + L('У раунді 2 спробуйте вгадувати напрямок у різних будинках, із різною кількістю ліфтів, і ставити на нього очки.', 'In round 2 try guessing the direction in different buildings with different numbers of lifts, and bet points on it.') + '</p>';
+}
+$('#g-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gPick = b.dataset.k; guessText(); window.mpSolve && mpSolve(gPick); });
+
+/* ---------- round 2: lift roulette ---------- */
+const ROUNDS = 10;
+const BETS = { safe: [1, 0], bold: [2, -3] };
+const g = { k: 0, score: 0, bot: 0, cur: null, state: 'idle', hist: [], raf: 0, anim: null, bet: null };
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function newSetup() {
+  const N = pick([7, 9, 10, 12, 15, 18, 20, 25]);
+  const k = 2 + Math.floor(Math.random() * (N - 2));
+  const n = pick([1, 1, 2, 2, 3, 4, 6]);
+  return { N, k, n, p: pDown(N, k, n) };
+}
+// the bot knows the exact odds: it picks the likelier side and bets boldly only when that side is over 75%
+function botBet(p) { const down = p >= 0.5, pr = down ? p : 1 - p; return { down, bold: pr > 0.75 }; }
+const ev = (pr, bold) => bold ? 2 * pr - 3 * (1 - pr) : pr;
+function gStart() {
+  if (g.k >= ROUNDS) { g.k = 0; g.score = 0; g.bot = 0; g.hist = []; }
+  g.k++; g.cur = newSetup(); g.state = 'bet'; g.anim = null; g.bet = null;
+  $('#g-msg').innerHTML = L('Де ліфти зараз, не видно. Куди їхатиме перший, що доїде до вас, і яка ставка?', 'You cannot see where the lifts are now. Which way will the first one to reach you be going, and what is your stake?');
+  gText(); gDraw();
+}
+function gBet(down, bold) {
+  if (g.state !== 'bet') return;
+  const c = g.cur, w = walkOut(c.N, c.k, c.n);
+  g.bet = { down, bold }; g.state = 'anim';
+  const dur = reduce() ? 0 : Math.max(500, Math.min(2400, w.t * 90));
+  g.anim = { w, t0: performance.now(), dur };
+  gText();
+  const step = now => {
+    const a = g.anim; if (!a) return;
+    const f = a.dur ? Math.min(1, (now - a.t0) / a.dur) : 1;
+    gDraw(f);
+    if (f < 1) g.raf = requestAnimationFrame(step); else { g.raf = 0; gFinish(); }
+  };
+  if (dur) g.raf = requestAnimationFrame(step); else step(performance.now());
+}
+function gFinish() {
+  const c = g.cur, w = g.anim.w, b = g.bet, right = b.down === !w.up;
+  const pts = BETS[b.bold ? 'bold' : 'safe'][right ? 0 : 1];
+  const bb = botBet(c.p), botRight = bb.down === !w.up, botPts = BETS[bb.bold ? 'bold' : 'safe'][botRight ? 0 : 1];
+  g.score += pts; g.bot += botPts; g.state = 'done';
+  g.hist.push({ c, b, up: w.up, pts, botPts, bb });
+  const pr = b.down ? c.p : 1 - c.p;
+  const best = ev(pr, true) > ev(pr, false) ? L('сміливо', 'bold') : L('обережно', 'careful');
+  let m = (right ? '<span class="good">' + L('Вгадали', 'Right') : '<span class="bad">' + L('Не вгадали', 'Wrong')) + ': ' + (pts > 0 ? '+' : '') + pts + '.</span> ';
+  m += L('Перший приїхав ' + (w.up ? 'вгору' : 'вниз') + '. Точний шанс вашої сторони був <b>' + pct(pr) + '</b>; у середньому найвигідніше було ставити ' + best + '. Бот поставив ' + (bb.bold ? 'сміливо' : 'обережно') + ' на «' + (bb.down ? 'вниз' : 'вгору') + '»: ' + (botPts > 0 ? '+' : '') + botPts + '.',
+    'The first one came ' + (w.up ? 'up' : 'down') + '. The exact chance of your side was <b>' + pct(pr) + '</b>; on average the better stake was ' + best + '. The bot bet ' + (bb.bold ? 'boldly' : 'carefully') + ' on "' + (bb.down ? 'down' : 'up') + '": ' + (botPts > 0 ? '+' : '') + botPts + '.');
+  $('#g-msg').innerHTML = m;
+  gText();
+}
+function gText() {
+  $('#g-round').textContent = g.k ? g.k + ' / ' + ROUNDS : '–';
+  $('#g-score').textContent = g.score; $('#g-bot').textContent = g.bot;
+  const c = g.cur;
+  $('#g-set').innerHTML = c ? '<span>' + L('Поверхів', 'Floors') + ' <b>' + c.N + '</b></span><span>' + L('Ваш поверх', 'Your floor') + ' <b>' + c.k + '</b></span><span>' + L('Ліфтів', 'Lifts') + ' <b>' + c.n + '</b></span>'
+    : '<span>' + L('Натисніть «Почати», щоб отримати перший будинок.', 'Press "Start" to get the first building.') + '</span>';
+  $('#g-bets').querySelectorAll('button').forEach(b => {
+    b.disabled = g.state !== 'bet';
+    b.setAttribute('aria-pressed', !!(g.bet && g.state !== 'bet' && (b.dataset.d === 'down') === g.bet.down && (b.dataset.b === 'bold') === g.bet.bold));
+  });
+  const nx = $('#g-next');
+  nx.textContent = !c ? L('Почати', 'Start') : g.state === 'done' ? (g.k >= ROUNDS ? L('Зіграти знову', 'Play again') : L('Наступний будинок', 'Next building')) : L('Наступний будинок', 'Next building');
+  nx.disabled = g.state === 'bet' || g.state === 'anim';
+  const dir = up => up ? '↑' : '↓';
+  $('#g-tbl').innerHTML = '<thead><tr><th>#</th><th>' + L('Будинок', 'Building') + '</th><th class="num">' + L('P(вниз)', 'P(down)') + '</th><th class="num">' + L('Ставка', 'Bet') + '</th><th class="num">' + L('Приїхав', 'Came') + '</th><th class="num">' + L('Ви', 'You') + '</th><th class="num">' + L('Бот', 'Bot') + '</th></tr></thead><tbody>' +
+    (g.hist.length ? g.hist.map((h, i) => '<tr' + (h.pts > 0 ? ' class="hl"' : '') + '><td>' + (i + 1) + '</td><td class="mono" style="font-size:.78rem">' + h.c.k + '/' + h.c.N + ' · ' + h.c.n + '</td><td class="num">' + pct(h.c.p, 0) + '</td><td class="num">' + dir(!h.b.down) + (h.b.bold ? ' ×' : '') + '</td><td class="num">' + dir(h.up) + '</td><td class="num">' + h.pts + '</td><td class="num">' + h.botPts + '</td></tr>').join('')
+      : '<tr><td colspan="7" class="note">' + L('Поки порожньо.', 'Nothing yet.') + '</td></tr>') + '</tbody>';
+  let v;
+  if (g.hist.length) {
+    const downs = g.hist.filter(h => !h.up).length, low = g.hist.filter(h => h.c.k - 1 < (h.c.N - 1) / 2), lowDown = low.filter(h => !h.up).length;
+    v = '<b>' + L('Ви: ' + g.score + ', бот: ' + g.bot + '.', 'You: ' + g.score + ', bot: ' + g.bot + '.') + '</b>';
+    v += '<span class="note">' + L('Будинок у таблиці: ваш поверх / поверхів · ліфтів; × — смілива ставка. Перший ліфт їхав униз ' + downs + ' ' + timesW(downs) + ' із ' + g.hist.length + '; коли ви були нижче середини будинку — ' + lowDown + ' з ' + low.length + '.',
+      'Building in the table: your floor / floors · lifts; × marks a bold bet. The first lift was going down ' + downs + ' times out of ' + g.hist.length + '; when you were below the middle of the building, ' + lowDown + ' of ' + low.length + '.') + '</span>';
+    if (g.k >= ROUNDS && g.state === 'done') {
+      const botEV = g.hist.reduce((a, h) => { const pr = h.bb.down ? h.c.p : 1 - h.c.p; return a + ev(pr, h.bb.bold); }, 0);
+      v += '<span>' + L('Гру закінчено. ', 'Game over. ') + (g.score >= g.bot ? L('Ви не гірші за бота, який знає формулу. ', 'You are no worse than a bot that knows the formula. ') : L('Бот виграв: він ставить сміливо лише там, де шанс вищий за 75%, тобто низько або високо в будинку з одним-двома ліфтами. ', 'The bot won: it bets boldly only where the chance is over 75%, that is low or high in a building with one or two lifts. ')) +
+        L('Його очікуваний результат у цих будинках: ' + num(botEV, 1) + '.', 'Its expected score in these buildings: ' + num(botEV, 1) + '.') + '</span>';
+    }
+  } else v = '<span class="note">' + L('Підказка: дивіться, наскільки далеко ваш поверх від середини будинку і скільки ліфтів. Смілива ставка окупається, лише коли ви праві частіше ніж у 3 випадках із 4.', 'A hint: look at how far your floor is from the middle of the building and how many lifts there are. A bold bet pays only when you are right more than 3 times out of 4.') + '</span>';
+  $('#g-verdict').innerHTML = v;
+}
+function gDraw(f) {
+  const st = setupCanvas($('#g-cv')); if (!st) return;
+  const { ctx, W, H } = st, c = g.cur;
+  ctx.fillStyle = tok('--tint') || '#F4E9E4'; rr(ctx, 0, 0, W, H, 12); ctx.fill();
+  const bw = Math.min(W - 24, 320), box = { x: (W - bw) / 2, y: 8, w: bw, h: H - 16 };
+  if (!c) { drawBuilding(ctx, box, 10, 2, 2, { phases: null }); return; }
+  if (!g.anim) { drawBuilding(ctx, box, c.N, c.k, c.n, { phases: null }); return; }
+  const a = g.anim, tt = a.w.t * (f === undefined ? 1 : f);
+  const fy = drawBuilding(ctx, box, c.N, c.k, c.n, { phases: a.w.ph.map(p => p + tt), mark: (f === undefined || f >= 1) ? a.w.who : -1 });
+  if (f === undefined || f >= 1) {
+    ctx.fillStyle = tok('--ink'); ctx.font = '800 15px ' + tok('--f-display'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(a.w.up ? L('↑ вгору', '↑ up') : L('↓ вниз', '↓ down'), box.x + box.w - 8, fy(c.k) - 18);
+  }
+}
+$('#g-next').addEventListener('click', gStart);
+$('#g-bets').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gBet(b.dataset.d === 'down', b.dataset.b === 'bold'); });
+
+/* ---------- round 3: simulation ---------- */
+const PER = 3000;
+const sim = { N: 15, k: 2, n: 1, cnt: null };
+function simReset() { sim.cnt = []; for (let f = 0; f <= sim.N; f++) sim.cnt.push({ d: 0, t: 0 }); }
+function simRun() {
+  for (let f = 2; f <= sim.N - 1; f++) {
+    const c = sim.cnt[f];
+    for (let i = 0; i < PER; i++) { if (!walkOut(sim.N, f, sim.n).up) c.d++; c.t++; }
+  }
+}
+function simText() {
+  $('#s-nv').textContent = sim.N; $('#s-kv').textContent = sim.k; $('#s-ev').textContent = sim.n;
+  const c = sim.cnt[sim.k], ex = pDown(sim.N, sim.k, sim.n), e1 = pDown(sim.N, sim.k, 1);
+  $('#t-s').textContent = c.t ? pct(c.d / c.t) : '–';
+  $('#t-ss').textContent = L('вниз ' + num(c.d, 0) + ' ' + timesW(c.d) + ' із ' + num(c.t, 0), 'down ' + num(c.d, 0) + ' times of ' + num(c.t, 0));
+  $('#t-e').textContent = pct(ex, 2);
+  const x = frac(sim.k - 1, sim.N - 1), q = frac(sim.N + 1 - 2 * sim.k, sim.N - 1);
+  $('#t-es').textContent = 'x = ' + x + '; 1/2 + 1/2 · (' + q + ')' + (sim.n > 1 ? (sim.N + 1 - 2 * sim.k < 0 ? ' · |' + q + '|^' + (sim.n - 1) : '^' + sim.n) : '');
+  $('#t-1').textContent = frac(sim.N - sim.k, sim.N - 1) + ' ≈ ' + pct(e1);
+  $('#t-1s').textContent = '(N − k)/(N − 1) = (' + sim.N + ' − ' + sim.k + ')/(' + sim.N + ' − 1)';
+  let mx = 0, mf = 2;
+  for (let f = 2; f <= sim.N - 1; f++) { const cc = sim.cnt[f]; if (!cc.t) continue; const d = Math.abs(cc.d / cc.t - pDown(sim.N, f, sim.n)); if (d > mx) { mx = d; mf = f; } }
+  $('#t-d').textContent = num(100 * mx, 2) + L(' п. п.', ' pts');
+  const tot = sim.cnt[2].t;
+  $('#t-ds').textContent = L('на ' + mf + '-му поверсі; ' + num(tot, 0) + ' виходів на кожен поверх, випадковий розкид ≈ ±' + num(100 / Math.sqrt(tot), 1) + ' п. п.', 'on floor ' + mf + '; ' + num(tot, 0) + ' walk-outs per floor, random scatter ≈ ±' + num(100 / Math.sqrt(tot), 1) + ' pts');
+}
+function simDraw() {
+  const st = setupCanvas($('#s-cv')); if (!st) return;
+  const { ctx, W, H } = st, N = sim.N;
+  const padL = 40, padR = 10, padT = 12, padB = 28;
+  const x = f => padL + (W - padL - padR) * (f - 2) / Math.max(1, N - 3), y = p => padT + (H - padT - padB) * (1 - p);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (const p of [0, .25, .5, .75, 1]) { ctx.beginPath(); ctx.moveTo(padL, y(p)); ctx.lineTo(W - padR, y(p)); ctx.stroke(); ctx.fillText(Math.round(p * 100) + '%', padL - 6, y(p)); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const lstep = N > 24 ? 5 : N > 12 ? 2 : 1;
+  for (let f = 2; f <= N - 1; f++) if (f === 2 || f === N - 1 || f % lstep === 0) ctx.fillText(String(f), x(f), H - padB + 6);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(L('ваш поверх →', 'your floor →'), padL, H - 1);
+  // your floor
+  ctx.strokeStyle = tok('--muted'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x(sim.k), padT); ctx.lineTo(x(sim.k), H - padB); ctx.stroke();
+  // exact, one lift: a straight line from floor 2 to floor N-1
+  ctx.strokeStyle = tok('--muted'); ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5; ctx.beginPath();
+  for (let f = 2; f <= N - 1; f++) { const p = pDown(N, f, 1); f === 2 ? ctx.moveTo(x(f), y(p)) : ctx.lineTo(x(f), y(p)); } ctx.stroke(); ctx.setLineDash([]);
+  // exact, n lifts: drawn as a smooth curve over fractional floors
+  ctx.strokeStyle = tok('--day'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let i = 0; i <= 200; i++) { const f = 2 + (N - 3) * i / 200, p = pDown(N, f, sim.n); i ? ctx.lineTo(x(f), y(p)) : ctx.moveTo(x(f), y(p)); } ctx.stroke();
+  // simulation dots
+  ctx.fillStyle = tok('--sim') || '#3E7CB1';
+  for (let f = 2; f <= N - 1; f++) { const c = sim.cnt[f]; if (!c.t) continue; ctx.beginPath(); ctx.arc(x(f), y(c.d / c.t), f === sim.k ? 5 : 3.5, 0, TAU); ctx.fill(); }
+}
+function simAll(reset) { if (reset) simReset(); simRun(); simText(); simDraw(); }
+$('#s-n').addEventListener('input', () => {
+  sim.N = +$('#s-n').value; const kk = $('#s-k'); kk.max = sim.N - 1; if (sim.k > sim.N - 1) { sim.k = sim.N - 1; kk.value = sim.k; }
+  simAll(true);
+});
+$('#s-k').addEventListener('input', () => { sim.k = +$('#s-k').value; simText(); simDraw(); });
+$('#s-e').addEventListener('input', () => { sim.n = +$('#s-e').value; simAll(true); });
+$('#s-run').addEventListener('click', () => simAll(false));
+
+/* ---------- round 4: strip, loop, table ---------- */
+function eStrip() {
+  let h = '';
+  for (let i = 0; i < 14; i++) h += '<i style="--c:' + (i === 0 ? 'var(--day)' : 'var(--hit)') + '"></i>';
+  $('#e-strip').innerHTML = h;
+}
+function eDraw() {
+  const st = setupCanvas($('#e-cv')); if (!st) return;
+  const { ctx, W, H } = st, N = 15, k = +$('#e-k').value, C = cyc(N);
+  $('#e-kv').textContent = k;
+  ctx.fillStyle = tok('--tint') || '#F4E9E4'; rr(ctx, 0, 0, W, H, 12); ctx.fill();
+  const cx = W / 2, r = Math.min(42, W * .12), xl = cx - r, xr = cx + r, top = 18 + r, bot = H - 18 - r;
+  const fy = f => bot - (bot - top) * (f - 1) / (N - 1);
+  // point on the loop for phase p: way up on the left, a half circle over the top, way down on the right, half circle at the bottom
+  const L1 = bot - top, arc = Math.PI * r, total = 2 * L1 + 2 * arc;
+  const at = ph => {
+    let s = ((ph % C) + C) % C / C * total;
+    if (s <= L1) return [xl, bot - s]; s -= L1;
+    if (s <= arc) { const a = Math.PI + s / r; return [cx + r * Math.cos(a), top + r * Math.sin(a)]; } s -= arc;
+    if (s <= L1) return [xr, top + s]; s -= L1;
+    const a = s / r; return [cx + r * Math.cos(a), bot + r * Math.sin(a)];
+  };
+  // phase -> loop parameter: map the up leg (0..N-1) and down leg (N-1..C) to the straight parts, the turns are instant
+  const toLoop = ph => { const p = ((ph % C) + C) % C; return p <= N - 1 ? p / (N - 1) * (L1 / total) * C : (L1 + arc + (p - (N - 1)) / (N - 1) * L1) / total * C; };
+  const seg = (a, b, col, w) => {
+    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.beginPath();
+    const n = 160; for (let i = 0; i <= n; i++) { const s = a + (b - a) * i / n, [px, py] = at(s); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke();
+  };
+  const h = k - 1, A = toLoop(h), B = toLoop(C - h);
+  // long arc: from A (passing up) to B (passing down) → arrives going down; short arc: from B round the bottom to A → up
+  seg(A, B, tok('--hit'), 8);
+  seg(B, A + C, tok('--day'), 8);
+  // floor ticks
+  ctx.fillStyle = tok('--muted'); ctx.font = '10px ' + tok('--f-mono'); ctx.textBaseline = 'middle';
+  for (const f of [1, 5, 10, 15]) if (Math.abs(f - k) > 1) { ctx.textAlign = 'right'; ctx.fillText(String(f), xl - 12, fy(f)); }
+  ctx.textAlign = 'center'; ctx.fillText(L('вгору', 'up') + ' ↑', xl - r, (top + bot) / 2);
+  ctx.fillText('↓ ' + L('вниз', 'down'), xr + r, (top + bot) / 2);
+  // your two points
+  for (const [px, py, lab] of [[xl, fy(k), L('проїзд угору', 'passing up')], [xr, fy(k), L('проїзд униз', 'passing down')]]) {
+    ctx.fillStyle = tok('--surface'); ctx.beginPath(); ctx.arc(px, py, 7, 0, TAU); ctx.fill();
+    ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.fillStyle = tok('--ink'); ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = px < cx ? 'right' : 'left';
+    ctx.fillText(lab, px + (px < cx ? -12 : 12), py);
+  }
+  ctx.fillStyle = tok('--ink'); ctx.textAlign = 'left'; ctx.font = '600 11px ' + tok('--f-mono');
+  ctx.fillText(L('ваш поверх ' + k, 'your floor ' + k), xr + 12, fy(k) + 14);
+  const long = 2 * (N - k), short = 2 * (k - 1);
+  $('#e-txt').textContent = L('Довга дуга (веде до проїзду вниз): ' + long + ' прольотів із ' + C + '. Коротка (до проїзду вгору): ' + short + '. Шанс «вниз» = ' + long + '/' + C + ' = ' + frac(long, C) + ' ≈ ' + pct(long / C) + '.',
+    'The long arc (leading to passing down): ' + long + ' gaps of ' + C + '. The short one (to passing up): ' + short + '. Chance of "down" = ' + long + '/' + C + ' = ' + frac(long, C) + ' ≈ ' + pct(long / C) + '.');
+}
+$('#e-k').addEventListener('input', eDraw);
+function wTable() {
+  let rows = '';
+  for (let k = 2; k <= 14; k++) {
+    rows += '<tr' + (k === 2 || k === 8 ? ' class="hl"' : '') + '><td class="num">' + k + '</td><td class="num">' + frac(15 - k, 14) + '</td>' + [2, 3, 4].map(n => '<td class="num">' + pct(pDown(15, k, n)) + '</td>').join('') + '</tr>';
+  }
+  $('#w-tbl').innerHTML = '<thead><tr><th class="num">' + L('Поверх', 'Floor') + '</th><th class="num">' + L('1 ліфт', '1 lift') + '</th><th class="num">' + L('2 ліфти', '2 lifts') + '</th><th class="num">' + L('3 ліфти', '3 lifts') + '</th><th class="num">' + L('4 ліфти', '4 lifts') + '</th></tr></thead><tbody>' + rows + '</tbody>';
+}
+
+/* ---------- round 5: how many lifts ---------- */
+function mText() {
+  const k = +$('#m-k').value, N = 15; $('#m-kv').textContent = k;
+  const p1 = pDown(N, k, 1);
+  let n = 1; while (Math.abs(pDown(N, k, n) - 0.5) >= 0.05 && n < 500) n++;
+  $('#m-1').textContent = pct(Math.max(p1, 1 - p1)) + (p1 >= .5 ? ' ↓' : ' ↑');
+  $('#m-n').textContent = String(n);
+  const q = Math.abs(1 - 2 * (k - 1) / (N - 1));
+  $('#m-txt').textContent = k === 8 ? L('Середній поверх: рівно 50% за будь-якої кількості ліфтів.', 'The middle floor: exactly 50% for any number of lifts.')
+    : L('Кожен новий ліфт множить відхилення від 50% на |1 − 2x| = ' + frac(Math.abs(N + 1 - 2 * k), N - 1) + '. З ' + n + ' ' + liftW(n) + ' перший іде ' + (p1 >= .5 ? 'вниз' : 'вгору') + ' у ' + pct(Math.max(pDown(N, k, n), 1 - pDown(N, k, n)), 2) + ' випадків.',
+      'Every extra lift multiplies the departure from 50% by |1 − 2x| = ' + frac(Math.abs(N + 1 - 2 * k), N - 1) + '. With ' + n + ' ' + liftW(n) + ' the first is going ' + (p1 >= .5 ? 'down' : 'up') + ' ' + pct(Math.max(pDown(N, k, n), 1 - pDown(N, k, n)), 2) + ' of the time.');
+  mDraw(k, q);
+}
+function mDraw(k) {
+  const st = setupCanvas($('#m-cv')); if (!st) return;
+  const { ctx, W, H } = st, M = 20, padL = 38, padR = 6, padT = 10, padB = 24;
+  const bw = (W - padL - padR) / M, y = p => padT + (H - padT - padB) * (1 - p);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (const p of [0, .5, 1]) { ctx.beginPath(); ctx.moveTo(padL, y(p)); ctx.lineTo(W - padR, y(p)); ctx.stroke(); ctx.fillText(Math.round(p * 100) + '%', padL - 6, y(p)); }
+  ctx.fillStyle = tok('--paper'); ctx.fillRect(padL, y(.55), W - padL - padR, y(.45) - y(.55));
+  for (let n = 1; n <= M; n++) {
+    const p = pDown(15, k, n), x0 = padL + (n - 1) * bw + bw * .15;
+    ctx.fillStyle = Math.abs(p - .5) < .05 ? tok('--muted') : tok('--hit');
+    ctx.fillRect(x0, y(p), bw * .7, H - padB - y(p));
+  }
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (const n of [1, 5, 10, 15, 20]) ctx.fillText(String(n), padL + (n - .5) * bw, H - padB + 5);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText(L('P(вниз); ліфтів →', 'P(down); lifts →'), W - padR, padT);
+}
+$('#m-k').addEventListener('input', mText);
+
+/* ---------- round 5: the lift's diary and yours ---------- */
+const lg = { outs: [] };
+function lText() {
+  const k = +$('#l-k').value, N = 15, C = cyc(N); $('#l-kv').textContent = k;
+  const outs = lg.outs.map(t => arrival(t, N, k));
+  const d = outs.filter(a => !a.up).length;
+  $('#l-msg').innerHTML = L('Щоденник ліфта: за кожен рейс він проїжджає ваш поверх раз угору і раз униз, 50 на 50. ', 'The lift\'s diary: every trip it passes your floor once up and once down, 50/50. ') +
+    (outs.length ? L('Ваш щоденник: перший ліфт ішов униз <b>' + d + ' ' + timesW(d) + ' із ' + outs.length + '</b>. ', 'Your diary: the first lift was going down <b>' + d + ' times of ' + outs.length + '</b>. ') : L('Ваш щоденник поки порожній. ', 'Your diary is still empty. ')) +
+    L('Точно: ' + frac(2 * (N - k), C) + ' ≈ ' + pct(pDown(N, k, 1)) + '.', 'Exactly: ' + frac(2 * (N - k), C) + ' ≈ ' + pct(pDown(N, k, 1)) + '.');
+  lDraw(k);
+}
+function lDraw(k) {
+  const st = setupCanvas($('#l-cv')); if (!st) return;
+  const { ctx, W, H } = st, N = 15, C = cyc(N), T = 2 * C;
+  const padL = 26, padR = 8, padT = 10, padB = 26;
+  const x = t => padL + (W - padL - padR) * t / T, y = f => padT + (H - padT - padB) * (1 - (f - 1) / (N - 1));
+  // background bands on the time axis: walking out here gives "down" (tinted) or "up" (plain)
+  const h = k - 1;
+  for (let c0 = 0; c0 < T; c0 += C) {
+    // phase in [h, C - h) leads to "down"
+    ctx.fillStyle = tok('--hit-soft'); ctx.fillRect(x(c0 + h), padT, x(c0 + C - h) - x(c0 + h), H - padT - padB);
+  }
+  ctx.strokeStyle = tok('--line'); ctx.lineWidth = 1; ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (const f of [1, 8, 15]) { ctx.beginPath(); ctx.moveTo(padL, y(f)); ctx.lineTo(W - padR, y(f)); ctx.stroke(); ctx.fillText(String(f), padL - 5, y(f)); }
+  // the saw
+  ctx.strokeStyle = tok('--day'); ctx.lineWidth = 2; ctx.beginPath();
+  for (let i = 0; i <= 4; i++) { const t = i * (N - 1); i ? ctx.lineTo(x(t), y(1 + heightAt(t, N))) : ctx.moveTo(x(t), y(1)); } ctx.stroke();
+  // your floor
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(padL, y(k)); ctx.lineTo(W - padR, y(k)); ctx.stroke();
+  // walk-outs: a tick on the time axis and a line to the first crossing
+  for (const t of lg.outs) {
+    const a = arrival(t, N, k), ta = t + a.t;
+    ctx.strokeStyle = tok('--muted'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x(t), H - padB + 2); ctx.lineTo(x(t), H - padB + 8); ctx.stroke();
+    ctx.strokeStyle = 'rgba(88,96,121,.35)'; ctx.beginPath(); ctx.moveTo(x(t), H - padB); ctx.lineTo(x(ta), y(k)); ctx.stroke();
+    ctx.fillStyle = a.up ? tok('--day') : tok('--hit'); ctx.beginPath(); ctx.arc(x(ta), y(k), 4, 0, TAU); ctx.fill();
+  }
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+  ctx.fillText(L('тло: вийшли тут — приїде вниз', 'shaded: walk out here, it comes down'), padL, H - 1);
+}
+$('#l-k').addEventListener('input', lText);
+$('#l-add').addEventListener('click', () => { const C = cyc(15); for (let i = 0; i < 20; i++) lg.outs.push(Math.random() * C); if (lg.outs.length > 200) lg.outs = lg.outs.slice(-200); lText(); });
+$('#l-clr').addEventListener('click', () => { lg.outs = []; lText(); });
+
+/* ---------- round 5: the wait ---------- */
+const SEC = 2; // seconds per floor gap
+function pSim(N, k, n, M) {
+  let d = 0, wUp = 0;
+  for (let i = 0; i < M; i++) {
+    const w = walkOut(N, k, n); if (!w.up) d++;
+    let best = Infinity; for (const ph of w.ph) { const t = (((k - 1 - ph) % cyc(N)) + cyc(N)) % cyc(N); if (t < best) best = t; }
+    wUp += best;
+  }
+  return { down: d / M, wait: SEC * wUp / M };
+}
+let pRes = null;
+function pRun() {
+  const n = +$('#p-e').value; pRes = [];
+  for (let k = 2; k <= 14; k++) pRes[k] = pSim(15, k, n, 4000);
+}
+function pText() {
+  const k = +$('#p-k').value, n = +$('#p-e').value; $('#p-kv').textContent = k; $('#p-ev').textContent = n;
+  if (!pRes) pRun();
+  const r = pRes[k], exW = SEC * cyc(15) / (n + 1);
+  $('#p-d').textContent = pct(r.down);
+  $('#p-w').textContent = num(r.wait, 1) + L(' с', ' s');
+  $('#p-txt').textContent = L('Симуляція, 4 000 виходів на кожен поверх. Точно: перший униз ' + pct(pDown(15, k, n)) + '; чекати на ліфт угору ' + SEC + ' · 28/(' + n + ' + 1) = ' + num(exW, 1) + ' с на будь-якому поверсі.',
+    'Simulation, 4,000 walk-outs per floor. Exactly: first one down ' + pct(pDown(15, k, n)) + '; wait for a lift going up ' + SEC + ' · 28/(' + n + ' + 1) = ' + num(exW, 1) + ' s on any floor.');
+  pDraw(k, n, exW);
+}
+function pDraw(k, n, exW) {
+  const st = setupCanvas($('#p-cv')); if (!st) return;
+  const { ctx, W, H } = st, padL = 34, padR = 34, padT = 12, padB = 22;
+  const bw = (W - padL - padR) / 13, x = f => padL + (f - 2 + .5) * bw, y = p => padT + (H - padT - padB) * (1 - p);
+  const yw = s => padT + (H - padT - padB) * (1 - s / 40);
+  ctx.strokeStyle = tok('--line'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(padL, y(0)); ctx.lineTo(W - padR, y(0)); ctx.stroke();
+  for (let f = 2; f <= 14; f++) {
+    const r = pRes[f]; ctx.fillStyle = f === k ? tok('--hit') : tok('--hit-soft');
+    ctx.fillRect(x(f) - bw * .35, y(r.down), bw * .7, y(0) - y(r.down));
+  }
+  // the exact wait and the simulated waits
+  ctx.strokeStyle = tok('--day'); ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(padL, yw(exW)); ctx.lineTo(W - padR, yw(exW)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = tok('--day');
+  for (let f = 2; f <= 14; f++) { ctx.beginPath(); ctx.arc(x(f), yw(pRes[f].wait), f === k ? 4.5 : 3, 0, TAU); ctx.fill(); }
+  ctx.fillStyle = tok('--muted'); ctx.font = '10px ' + tok('--f-mono'); ctx.textBaseline = 'middle';
+  ctx.textAlign = 'right'; ctx.fillText('100%', padL - 4, y(1)); ctx.fillText('0', padL - 4, y(0));
+  ctx.textAlign = 'left'; ctx.fillStyle = tok('--day'); ctx.fillText('40 ' + L('с', 's'), W - padR + 4, yw(40)); ctx.fillText('0 ' + L('с', 's'), W - padR + 4, yw(0));
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (const f of [2, 8, 14]) ctx.fillText(String(f), x(f), H - padB + 5);
+}
+$('#p-k').addEventListener('input', pText);
+$('#p-e').addEventListener('input', () => { pRun(); pText(); });
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Парадокс ліфта: чому перший ліфт їде вниз', 'The Elevator Paradox: Why the First Lift Is Going Down');
+  $('#lang').querySelectorAll('a').forEach(el => el.setAttribute('aria-current', el.dataset.l === lang));
+  heroCapText = ''; heroDraw(); guessText(); gText(); gDraw(); simText(); simDraw(); eStrip(); eDraw(); wTable(); mText(); lText(); pText();
+}
+$('#lang').addEventListener('click', e => {
+  const el = e.target.closest('a'); if (!el || STATIC) return;
+  e.preventDefault();
+  if (el.dataset.l === lang) return;
+  lang = el.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang || lang; applyLang(); });
+document.addEventListener('solved', () => { heroCapText = ''; heroDraw(); gText(); gDraw(); });
+const redraw = () => { heroDraw(); gDraw(); simDraw(); eDraw(); mText(); lText(); pText(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state ---------- */
+simReset(); simRun();
+lg.outs = []; for (let i = 0; i < 20; i++) lg.outs.push(Math.random() * cyc(15));
+applyLang();
+heroStart();
+})();
+</script>
+
+<script type="application/json" id="mp-terms">{"independence": {"name": "Independence", "short": "Events are independent if knowing about one doesn't change the chances of the other.", "hook": "After five heads in a row tails is no more likely: the coin remembers nothing.", "url": "https://mathparadoxes.com/glossary/independence/en/", "link": "Try it in a simulation"}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'en' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Sections"><a href="https://mathparadoxes.com/en/#all" aria-current="page">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/">Glossary</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+</body>
+</html>

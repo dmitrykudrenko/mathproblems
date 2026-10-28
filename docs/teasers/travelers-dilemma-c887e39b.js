@@ -1,0 +1,47 @@
+
+(() => {
+  const root = document.getElementById('tz-travelers-dilemma');
+  if (!root) return;
+  const en = () => document.documentElement.dataset.lang === 'en';
+  const L = (uk, e) => en() ? e : uk;
+  const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), [bDn, bGo, bUp] = root.querySelectorAll('.tz-btn');
+  const col = (name, fb) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb;
+  const pay = (x, y) => x === y ? x : x < y ? x + 2 : y - 2;
+  // a stranger from the same crowd as the page: 10/45 write 100, 23/45 write 95-99, 3/45 write 2, 9/45 anything from 3 to 94
+  function stranger() {
+    const u = Math.random() * 45, r = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+    return u < 10 ? 100 : u < 33 ? r(95, 99) : u < 36 ? 2 : r(3, 94);
+  }
+  let x = 90, trips = [], you = 0;
+  function draw() {
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+    if (!W) return;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const ink = col('--ink', '#151515'), mut = col('--muted', '#5F5F5F'), f = col('--f', 'system-ui');
+    const l = 10, r = 10, base = H - 22, X = v => l + (v - 2) / 98 * (W - l - r);
+    ctx.strokeStyle = mut; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(l, base); ctx.lineTo(W - r, base); ctx.stroke();
+    ctx.fillStyle = mut; ctx.font = '600 11px ' + f; ctx.textBaseline = 'top';
+    [2, 50, 100].forEach(v => { ctx.textAlign = v === 2 ? 'left' : v === 100 ? 'right' : 'center'; ctx.fillText('$' + v, v === 2 ? l : v === 100 ? W - r : X(v), base + 6); });
+    trips.slice(-8).forEach((t, i, a) => { const yy = base - 14 - (a.length - 1 - i) * 13; ctx.globalAlpha = .35 + .65 * (i + 1) / a.length; ctx.fillStyle = mut; ctx.beginPath(); ctx.arc(X(t.y), yy, 4, 0, 7); ctx.fill(); ctx.globalAlpha = 1; });
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.moveTo(X(x), base - 2); ctx.lineTo(X(x) - 7, base - 14 - 8 * 13 + 4); ctx.lineTo(X(x) + 7, base - 14 - 8 * 13 + 4); ctx.closePath(); ctx.globalAlpha = .15; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.fillRect(X(x) - 1.5, base - 116, 3, 114);
+    ctx.font = '800 16px ' + f; ctx.textAlign = X(x) > W / 2 ? 'right' : 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('$' + x, X(x) + (X(x) > W / 2 ? -6 : 6), 4);
+  }
+  function show() {
+    const t = trips[trips.length - 1];
+    msg.textContent = !t
+      ? L('Оберіть число і напишіть його. Незнайомець пише своє.', 'Pick a number and write it. A stranger writes theirs.')
+      : L('Ви ' + t.x + ', незнайомець ' + t.y + ': ви отримали $' + t.a + '. Поїздок: ' + trips.length + ', разом $' + you + '.', 'You ' + t.x + ', the stranger ' + t.y + ': you got $' + t.a + '. Trips: ' + trips.length + ', total $' + you + '.');
+    bGo.textContent = L('Написати $' + x, 'Write $' + x);
+    draw();
+  }
+  const set = v => { x = Math.max(2, Math.min(100, v)); show(); };
+  bDn.addEventListener('click', () => set(x - 5));
+  bUp.addEventListener('click', () => set(x + 5));
+  bGo.addEventListener('click', () => { const y = stranger(), a = pay(x, y); trips.push({ x, y, a }); you += a; show(); });
+  document.addEventListener('langchange', show);
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
+  show();
+})();
