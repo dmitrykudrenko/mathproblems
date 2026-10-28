@@ -1,0 +1,1171 @@
+<style>
+/* Layout: the simplest course on A/B tests, for readers who found "A/B testing paradoxes" too hard. Each chapter is one
+   question people actually ask, answered with counts ("6 of 100"), coins and repeated runs instead of formulas. Part 1
+   (ch 1–4) is how a test works: before/after misleads, a coin splits the groups, identical pages still differ, and how
+   many people it takes. Part 2 (ch 5–8) reads the result: what "95% confidence" promises, peeking, many variants, and
+   why winners shrink after launch. Every chapter opens with a guess-first .cs-quiz; the case stays blurred (.locked)
+   until it is answered. Chapter 9 is a six-dashboard exam with the verdict on the header dashboard; the checklist and
+   a share card close the course. "Confidence" here is one-sided: the share of A/A tests where B leads with ≥ 95% is
+   1 in 20, the frame every case keeps. */
+:root { --tint: #EEF2E0; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul, dl, dd { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+.time { font-size: .92rem; font-weight: 600; }
+
+/* the dashboard card (header, exam, verdict) */
+.dash { background: var(--paper); border-radius: 18px; padding: 18px 20px; display: grid; gap: 12px; max-width: 560px; box-shadow: 0 1px 0 rgba(21,21,21,.06); min-width: 0; }
+.dash-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: .82rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.dash-rows { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 14px; align-items: center; font-variant-numeric: tabular-nums; }
+.dash-rows b { font-weight: 800; }
+.dash-bar { height: 8px; border-radius: 999px; background: var(--soft); overflow: hidden; min-width: 24px; }
+.dash-bar i { display: block; height: 100%; background: var(--ink); border-radius: 999px; }
+.dash-win { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.dash-win b { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; }
+.dash-win span { color: var(--muted); font-size: .92rem; }
+.dash-note { font-size: .88rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
+.exam .dash { background: var(--soft); box-shadow: none; }
+.exam .dash-bar { background: var(--paper); }
+.exam .dash-win b { font-size: 1.4rem; }
+
+/* the words dictionary: one quiet line under the contents, opens into a two-column list */
+.dict { margin-top: 20px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.dict summary { cursor: pointer; list-style: none; padding: 14px 0; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: .95rem; }
+.dict summary::-webkit-details-marker { display: none; }
+.dict summary b { font-weight: 700; }
+.dict summary b::after { content: " +"; color: var(--muted); }
+.dict[open] summary b::after { content: " −"; }
+.dict summary span.words { color: var(--muted); }
+.dict dl { margin: 0 0 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; }
+.dict dl > div { padding: 10px 0; border-top: 1px solid var(--line); }
+.dict dt { font-weight: 700; display: inline; }
+.dict dt::after { content: " — "; font-weight: 400; color: var(--muted); }
+.dict dd { display: inline; margin: 0; color: var(--muted); font-size: .94rem; }
+@media (max-width: 760px) { .dict dl { grid-template-columns: 1fr; } }
+
+/* table of contents: three columns like the contents page of a book, one per part */
+.cs-toc.parts { display: grid; grid-template-columns: 1fr 1fr .8fr; gap: 32px; margin-top: 40px; }
+.toc-row { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.toc-lab { display: grid; gap: 2px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid var(--ink); }
+.toc-lab > span:first-child { font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.toc-lab .sub { font-size: 1.02rem; font-weight: 800; color: var(--ink); text-transform: none; letter-spacing: 0; }
+.cs-toc.parts a { display: grid; grid-template-columns: 2em minmax(0, 1fr); align-items: baseline; border: 0; border-radius: 0; padding: 5px 0; background: none; color: var(--ink); font-size: .94rem; font-weight: 500; line-height: 1.35; }
+.cs-toc.parts a > span, .cs-toc.parts a.done > span { color: inherit; font-size: inherit; }
+.cs-toc.parts a > span:first-child { color: var(--muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
+.cs-toc.parts a:hover > span:not(:first-child) { text-decoration: underline; text-underline-offset: 3px; }
+.cs-toc.parts a.done { background: none; color: var(--muted); border: 0; }
+.cs-toc.parts a.done > span:first-child { font-size: 0; }
+.cs-toc.parts a.done > span:first-child::before { content: "✓"; font-size: .9rem; color: var(--ink); font-weight: 700; }
+@media (max-width: 900px) { .cs-toc.parts { grid-template-columns: 1fr 1fr; gap: 28px 32px; } }
+.toc-lab { font-family: inherit; background: none; border-top: 0; border-left: 0; border-right: 0; cursor: default; text-align: left; color: inherit; padding-left: 0; padding-right: 0; padding-top: 0; }
+.toc-lab .cnt { display: none; }
+@media (max-width: 560px) {
+  .cs-toc.parts { grid-template-columns: 1fr; gap: 0; }
+  .toc-lab { cursor: pointer; width: 100%; margin: 0; padding: 12px 0; border-bottom: 1px solid var(--line); grid-template-columns: minmax(0, 1fr) auto; }
+  .toc-lab > span:first-child { grid-column: 1; }
+  .toc-lab .sub { grid-column: 1; }
+  .toc-lab .cnt { display: block; grid-column: 2; grid-row: 1 / span 2; align-self: center; color: var(--muted); font-size: .82rem; font-weight: 600; }
+  .toc-lab .cnt::after { content: " ▾"; }
+  .toc-row.open .toc-lab .cnt::after { content: " ▴"; }
+  .toc-row:not(.open) > a { display: none; }
+  .toc-row.open > a:last-child { margin-bottom: 8px; }
+}
+.bridge { max-width: 72ch; margin-top: 40px; padding: 18px 20px; border-radius: var(--r); background: var(--soft); font-size: 1rem; }
+.bridge b { display: block; margin-bottom: 4px; }
+
+/* the lock: a case that would reveal a quiz answer is blurred until the quiz is answered */
+.lock-note { display: none; font-weight: 600; font-size: .92rem; }
+.locked > .lock-note { display: block; }
+.locked > :not(.lock-note) { filter: blur(6px); pointer-events: none; user-select: none; }
+.qv { display: none !important; }
+.cs-quiz .opts button:disabled { cursor: default; opacity: 1; }
+.cs-quiz .verdict a { font-weight: 600; }
+.exam-score { font-size: 1.15rem; font-weight: 700; }
+
+/* controls */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+.gl-stat b { font-variant-numeric: tabular-nums; }
+.gl-stat small { color: var(--muted); font-size: .85rem; }
+.key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .86rem; color: var(--muted); margin: 0; }
+.key i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
+.key i.ln { width: 18px; height: 3px; border-radius: 2px; vertical-align: middle; }
+.msg { min-height: 1.6em; }
+.btn { cursor: pointer; }
+.seg { display: inline-flex; flex-wrap: wrap; justify-self: start; max-width: 100%; }
+.seg button { font-family: inherit; border: 0; background: none; cursor: pointer; }
+.chk { display: flex; gap: 8px; align-items: center; font-size: .92rem; cursor: pointer; }
+.chk input { width: 18px; height: 18px; accent-color: var(--ink); }
+
+/* ch 1: monthly orders as plain bars */
+.months { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: end; height: 220px; max-width: 560px; padding-top: 22px; }
+.month { display: grid; grid-template-rows: 1fr auto; height: 100%; gap: 6px; min-width: 0; }
+.month .pair { display: flex; gap: 4px; align-items: end; justify-content: center; height: 100%; }
+.month .bar { width: 34%; max-width: 44px; border-radius: 6px 6px 0 0; background: var(--ink); position: relative; }
+.month .bar.ly { background: transparent; border: 2px dashed var(--muted); border-bottom: 0; }
+.month .bar span { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); font-size: .72rem; color: var(--muted); white-space: nowrap; padding-bottom: 2px; font-variant-numeric: tabular-nums; }
+.month > b { text-align: center; font-size: .86rem; font-weight: 600; }
+.month.launch > b::after { content: " ●"; color: var(--signal); }
+.months:not(.show-ly) .bar.ly { visibility: hidden; }
+
+/* ch 2: who is in each group */
+.grp { display: grid; grid-template-columns: minmax(0, 9em) minmax(0, 1fr) auto; gap: 8px 14px; align-items: center; max-width: 640px; font-variant-numeric: tabular-nums; }
+.grp .mix { display: flex; height: 22px; border-radius: 6px; overflow: hidden; background: var(--line); }
+.grp .mix i { display: block; height: 100%; background: var(--ink); }
+.grp b { font-weight: 800; }
+.grp small { color: var(--muted); font-size: .84rem; }
+
+/* ch 3–5: squares for visitors and tests */
+.sq-two { display: grid; grid-template-columns: repeat(2, minmax(0, 220px)); gap: 16px 28px; }
+.sq-two h4 { margin: 0 0 6px; font-size: .9rem; }
+.sq { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; max-width: 220px; }
+.sq i { aspect-ratio: 1; border-radius: 3px; background: var(--line); }
+.sq i.on { background: var(--ink); }
+.sq i.out { background: transparent; box-shadow: inset 0 0 0 2px var(--ink); }
+.sq.wide { max-width: 320px; }
+@media (max-width: 480px) { .sq-two { grid-template-columns: 1fr 1fr; gap: 12px; } }
+.tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; max-width: 520px; }
+.tiles span { border-radius: 10px; background: var(--paper); padding: 8px 6px; text-align: center; font-size: .82rem; font-variant-numeric: tabular-nums; color: var(--muted); }
+.tiles span b { display: block; font-size: 1rem; color: var(--ink); }
+.tiles span.win { background: var(--ink); color: #fff; }
+.tiles span.win b { color: #fff; }
+
+/* ch 7: ten headlines against the old one */
+.heads { display: grid; gap: 6px; max-width: 620px; }
+.heads > div { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 3.4em; gap: 10px; align-items: center; font-size: .86rem; font-variant-numeric: tabular-nums; }
+.heads .hb { position: relative; height: 12px; border-radius: 999px; background: var(--line); }
+.heads .hb i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--muted); }
+.heads .hb i.win { background: var(--ink); }
+.heads .hb u { position: absolute; left: 95%; top: -4px; bottom: -4px; width: 2px; background: var(--ink); text-decoration: none; }
+.heads > div > span:last-child { text-align: right; }
+
+.cs-take li { max-width: 72ch; }
+.cs-check a { font-weight: 600; }
+.cs-check span { color: var(--muted); }
+.check-group { display: grid; gap: 12px; align-content: start; }
+.check-group .cs-check { align-content: start; }
+.check-group h3 { font-size: 1.05rem; }
+.two { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px 32px; }
+@media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .cs-quiz { padding: 18px 16px; } .grp { grid-template-columns: minmax(0, 1fr) minmax(0, 28%) auto; gap: 8px 10px; } }
+
+/* short sourced stories */
+.cs-story { max-width: 72ch; border-left: 3px solid var(--ink); padding: 4px 0 4px 16px; display: grid; gap: 4px; font-size: .95rem; }
+.cs-story b { font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.cs-story small { color: var(--muted); font-size: .84rem; }
+
+/* share card */
+.share-card { margin-top: 48px; border-radius: var(--r); border: 2px solid var(--ink); background: var(--soft); padding: 28px; display: grid; gap: 12px; max-width: 820px; box-sizing: border-box; }
+.share-card h2 { font-size: 1.5rem; }
+.share-card #sh-txt { font-weight: 700; font-size: 1.1rem; }
+.share-card .btn { justify-self: start; }
+@media (max-width: 860px) { .share-card { padding: 22px 18px; } }
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="{{HOME}}">{{BRAND}}</a>
+    <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="{{COURSES}}"><span class="uk">Курси</span><span class="en">Courses</span></a> / <span class="uk">A/B-тести простими словами</span><span class="en">A/B testing in plain words</span></p>
+
+  <header class="cs-head">
+    <span class="eyebrow"><span class="uk">Курс · нематематикам</span><span class="en">Course · for non-mathematicians</span></span>
+    <h1><span class="uk">A/B-тести простими словами</span><span class="en">A/B testing in plain words</span></h1>
+    <div class="dash" id="dash-head" aria-label="Приклад дашборда A/B-тесту" data-aria-en="An example A/B test dashboard">
+      <div class="dash-top"><span><span class="uk">Тест: кнопка «Купити зараз»</span><span class="en">Test: a "Buy now" button</span></span><span><span class="uk">день 3 з 14</span><span class="en">day 3 of 14</span></span></div>
+      <div class="dash-rows">
+        <b>A</b><span class="dash-bar"><i style="width:48%"></i></span><span><span class="uk">48 покупок з 1&nbsp;000</span><span class="en">48 purchases of 1,000</span></span>
+        <b>B</b><span class="dash-bar"><i style="width:61%"></i></span><span><span class="uk">61 покупка з 1&nbsp;000</span><span class="en">61 purchases of 1,000</span></span>
+      </div>
+      <div class="dash-win"><b>B +27%</b><span><span class="uk">впевненість 90%</span><span class="en">confidence 90%</span></span></div>
+      <p class="dash-note"><span class="uk">Керівник питає: «Запускаємо B для всіх?»</span><span class="en">The boss asks: "Do we ship B to everyone?"</span></p>
+    </div>
+    <p class="lead uk">A/B-тест — це спосіб чесно порівняти дві версії: половина людей бачить A, половина B, і ми рахуємо, хто купив. Ідея проста, а питань навколо неї багато. Навіщо тест, якщо можна порівняти «до» і «після»? Скільки людей треба? Що означає «впевненість 95%»? Коли можна зупинитися? Курс відповідає на вісім таких питань, по одному в розділі. Формул тут немає: лише лічба («6 покупок зі 100»), монетка і кнопка «Повторити ще раз». Наприкінці іспит із шести дашбордів і відповідь керівникові з цього.</p>
+    <p class="lead en">An A/B test is a way to compare two versions fairly: half the people see A, half see B, and we count who bought. The idea is simple, but it comes with many questions. Why test when you can compare "before" and "after"? How many people do you need? What does "95% confidence" mean? When may you stop? The course answers eight such questions, one per chapter. There are no formulas: only counting ("6 purchases in 100"), a coin and a "Run it again" button. At the end comes an exam of six dashboards and an answer for the boss on this one.</p>
+    <p class="time"><span class="uk">≈ 30–40 хвилин, можна частинами по 5 хвилин; прогрес зберігається.</span><span class="en">≈ 30–40 minutes, in 5-minute parts if you like; your progress is saved.</span></p>
+    <p class="time"><span class="uk">Це перший крок. Коли захочеться глибше, є курс для тих, хто проводить тести щотижня: <a href="{{C:ab-testing}}">«Парадокси A/B-тестування»</a>.</span><span class="en">This is the first step. When you want more, there is a course for those who run tests every week: <a href="{{C:ab-testing}}">"A/B testing paradoxes"</a>.</span></p>
+    <!--PROGRESS-->
+  </header>
+
+  <nav class="cs-toc parts" aria-label="Розділи курсу" data-aria-en="Course chapters">
+    <div class="toc-row"><button type="button" class="toc-lab" aria-expanded="false"><span><span class="uk">Частина 1</span><span class="en">Part 1</span></span><span class="sub"><span class="uk">Як влаштований тест</span><span class="en">How a test works</span></span><span class="cnt"><span class="uk">4 розділи</span><span class="en">4 chapters</span></span></button>
+      <a href="#ch-1"><span>1</span><span class="uk">Навіщо тест, якщо є «до і після»?</span><span class="en">Why test if there is "before and after"?</span></a>
+      <a href="#ch-2"><span>2</span><span class="uk">Чому групи ділить монетка?</span><span class="en">Why does a coin split the groups?</span></a>
+      <a href="#ch-3"><span>3</span><span class="uk">Чи буває різниця на рівному місці?</span><span class="en">Can a difference come from nowhere?</span></a>
+      <a href="#ch-4"><span>4</span><span class="uk">Скільки людей треба?</span><span class="en">How many people do you need?</span></a>
+    </div>
+    <div class="toc-row"><button type="button" class="toc-lab" aria-expanded="false"><span><span class="uk">Частина 2</span><span class="en">Part 2</span></span><span class="sub"><span class="uk">Як читати результат</span><span class="en">How to read the result</span></span><span class="cnt"><span class="uk">4 розділи</span><span class="en">4 chapters</span></span></button>
+      <a href="#ch-5"><span>5</span><span class="uk">Що означає «впевненість 95%»?</span><span class="en">What does "95% confidence" mean?</span></a>
+      <a href="#ch-6"><span>6</span><span class="uk">Коли можна зупинити тест?</span><span class="en">When may you stop a test?</span></a>
+      <a href="#ch-7"><span>7</span><span class="uk">Чому не тестувати 10 варіантів одразу?</span><span class="en">Why not test 10 variants at once?</span></a>
+      <a href="#ch-8"><span>8</span><span class="uk">Чому після запуску ефект менший?</span><span class="en">Why is the effect smaller after launch?</span></a>
+    </div>
+    <div class="toc-row"><button type="button" class="toc-lab" aria-expanded="false"><span><span class="uk">Фінал</span><span class="en">Finale</span></span><span class="sub"><span class="uk">Іспит і чекліст</span><span class="en">Exam and checklist</span></span><span class="cnt"><span class="uk">2 пункти</span><span class="en">2 items</span></span></button>
+      <a href="#ch-9"><span>9</span><span class="uk">Іспит: шість дашбордів</span><span class="en">Exam: six dashboards</span></a>
+      <a href="#checklist"><span>✓</span><span class="uk">Чекліст</span><span class="en">Checklist</span></a>
+    </div>
+  </nav>
+
+  <details class="dict">
+    <summary><b><span class="uk">Словничок тесту</span><span class="en">Test dictionary</span></b><span class="words"><span class="uk">версія A і B, конверсія, контрольна група, A/A-тест, впевненість, переможець</span><span class="en">versions A and B, conversion rate, control group, A/A test, confidence, winner</span></span></summary>
+    <dl>
+      <div><dt><span class="uk">Версії A і B</span><span class="en">Versions A and B</span></dt><dd><span class="uk">A — те, що є зараз, B — нова ідея: інша кнопка, тема листа, ціна.</span><span class="en">A is what you have now, B is the new idea: another button, subject line or price.</span></dd></div>
+      <div><dt><span class="uk">Конверсія</span><span class="en">Conversion rate</span></dt><dd><span class="uk">Скільки людей зі 100 зробили потрібну дію: 6 покупок на 100 відвідувачів — це 6%.</span><span class="en">How many people in 100 took the action: 6 purchases per 100 visitors is 6%.</span></dd></div>
+      <div><dt><span class="uk">Контрольна група</span><span class="en">Control group</span></dt><dd><span class="uk">Ті, хто бачить стару версію A в той самий час, що інші бачать B (розділ 1).</span><span class="en">Those who see the old version A at the same time as others see B (chapter 1).</span></dd></div>
+      <div><dt><span class="uk">A/A-тест</span><span class="en">A/A test</span></dt><dd><span class="uk">Тест двох однакових версій. Показує, яку різницю дає сам випадок (розділ 3).</span><span class="en">A test of two identical versions. It shows how much difference chance alone makes (chapter 3).</span></dd></div>
+      <div><dt><span class="uk">Впевненість</span><span class="en">Confidence</span></dt><dd><span class="uk">Число на дашборді, яке показує, наскільки рідко такий відрив дав би випадок (розділ 5).</span><span class="en">A number on the dashboard that shows how rarely chance alone would give such a lead (chapter 5).</span></dd></div>
+      <div><dt><span class="uk">Переможець</span><span class="en">Winner</span></dt><dd><span class="uk">Версія, яка в кінці тесту попереду з упевненістю 95% чи більше.</span><span class="en">The version that leads with 95% confidence or more at the end of the test.</span></dd></div>
+    </dl>
+  </details>
+
+  <!-- ===================== PART 1 ===================== -->
+  <div class="cs-part" id="part-1">
+    <span class="eyebrow"><span class="uk">Частина 1 · без формул</span><span class="en">Part 1 · no formulas</span></span>
+    <h2><span class="uk">Як влаштований тест</span><span class="en">How a test works</span></h2>
+    <p><span class="uk">Чотири питання про те, чому тест улаштований саме так: дві групи водночас, монетка, і людей має бути багато. Кожен розділ починається з питання: спершу вгадайте, потім перевірте на живій картинці.</span><span class="en">Four questions about why a test is built the way it is: two groups at the same time, a coin, and many people. Each chapter starts with a question: guess first, then check it on a live picture.</span></p>
+  </div>
+
+  <!-- 1 -->
+  <section class="cs-ch" id="ch-1">
+    <div class="cs-ch-head"><span class="cs-n">1</span><h2><span class="uk">Навіщо тест, якщо є «до і після»?</span><span class="en">Why test if there is "before and after"?</span></h2></div>
+    <p class="cs-ask"><span class="uk">«Ми оновили сайт 1 листопада, і замовлень у листопаді на 30% більше, ніж у жовтні. Хіба це не доказ?»</span><span class="en">"We redesigned the site on 1 November, and there were 30% more orders in November than in October. Isn't that proof?"</span></p>
+    <p class="uk">Найпростіший спосіб перевірити зміну — порівняти місяць до і місяць після. У жовтні інтернет-магазин отримав 4&nbsp;500 замовлень. 1 листопада запустили новий дизайн, і за листопад замовлень стало 5&nbsp;850, на 30% більше.</p>
+    <p class="en">The simplest way to check a change is to compare the month before and the month after. In October an online shop got 4,500 orders. On 1 November a new design went live, and November brought 5,850 orders, 30% more.</p>
+    <div class="cs-quiz" data-ch="ch-1" data-q="q1">
+      <p class="q"><span class="uk">Скільки замовлень додав новий дизайн?</span><span class="en">How many orders did the new design add?</span></p>
+      <div class="opts">
+        <button type="button" data-o="0"><span class="uk">Близько 1&nbsp;350, усі +30%</span><span class="en">About 1,350, the whole +30%</span></button>
+        <button type="button" data-o="1"><span class="uk">Частину з них: щось додав точно</span><span class="en">Some of them: it surely added something</span></button>
+        <button type="button" data-o="2" data-right><span class="uk">З цих чисел не видно</span><span class="en">These numbers can't tell</span></button>
+      </div>
+      <p class="verdict" aria-live="polite"></p>
+      <div class="qv"><span class="ok"><span class="uk">Листопад — це «чорна п'ятниця» і початок подарунків. Торік, без жодного редизайну, замовлень від жовтня до листопада стало на 29% більше. Тож +30% майже цілком дав сезон, а дизайн міг додати трохи, нічого або навіть зашкодити. Увімкніть минулий рік нижче.</span><span class="en">November is Black Friday and the start of gift shopping. Last year, with no redesign at all, orders rose 29% from October to November. So the season gave almost the whole +30%, and the design may have added a little, nothing, or even hurt. Switch on last year below.</span></span><span class="no"><span class="uk">З цих чисел не видно. Листопад — це «чорна п'ятниця» і початок подарунків. Торік, без жодного редизайну, замовлень від жовтня до листопада стало на 29% більше. Тож +30% майже цілком дав сезон, а дизайн міг додати трохи, нічого або навіть зашкодити. Увімкніть минулий рік нижче.</span><span class="en">These numbers can't tell. November is Black Friday and the start of gift shopping. Last year, with no redesign at all, orders rose 29% from October to November. So the season gave almost the whole +30%, and the design may have added a little, nothing, or even hurt. Switch on last year below.</span></span></div>
+    </div>
+    <div class="cs-case locked" data-lock="ch-1">
+      <h3><span class="uk">Замовлення по місяцях</span><span class="en">Orders by month</span></h3>
+      <label class="chk"><input type="checkbox" id="mo-ly"><span class="uk">Показати минулий рік, коли редизайну не було</span><span class="en">Show last year, when there was no redesign</span></label>
+      <div class="months" id="mo" aria-label="Замовлення у вересні–грудні цього і минулого року" data-aria-en="Orders in September–December this year and last year"></div>
+      <p class="key"><span><i style="background:var(--ink)"></i><span class="uk">цей рік</span><span class="en">this year</span></span><span><i style="background:transparent;border:2px dashed var(--muted)"></i><span class="uk">минулий рік</span><span class="en">last year</span></span><span><span style="color:var(--signal)">●</span> <span class="uk">запуск дизайну</span><span class="en">design launch</span></span></p>
+      <div class="stats">
+        <div class="gl-stat"><span><span class="uk">Листопад до жовтня, цей рік</span><span class="en">November vs October, this year</span></span><b>+30%</b><small><span class="uk">з новим дизайном</span><span class="en">with the new design</span></small></div>
+        <div class="gl-stat"><span><span class="uk">Листопад до жовтня, минулий рік</span><span class="en">November vs October, last year</span></span><b class="hit" id="mo-lyv">?</b><small><span class="uk">без жодних змін</span><span class="en">with no changes at all</span></small></div>
+      </div>
+    </div>
+    <p class="uk">Від місяця до місяця змінюється все одразу: сезон, погода, реклама, ціни конкурентів, новини. «До і після» складає їх усі в одне число і приписує новому дизайну. A/B-тест робить інакше: у ті самі дні половина людей бачить старий сайт, половина новий. Сезон, погода й реклама однакові для обох половин, тож різниця між ними — від дизайну. Половину зі старою версією називають контрольною групою.</p>
+    <p class="en">From one month to the next everything changes at once: the season, the weather, ads, competitors' prices, the news. "Before and after" adds them all into one number and credits it to the new design. An A/B test does it differently: on the same days, half the people see the old site and half see the new one. The season, the weather and the ads are the same for both halves, so the difference between them comes from the design. The half with the old version is called the control group.</p>
+    <div class="cs-after" data-after-ch="ch-1">
+      <ul class="cs-take">
+        <li><span class="uk">Торік без жодних змін листопад дав +29% до жовтня, цього року з новим дизайном +30%. Майже весь приріст дав сезон. Скільки дав дизайн, покаже лише порівняння з контрольною групою в ті самі тижні.</span><span class="en">Last year, with no changes, November gave +29% on October; this year, with the new design, +30%. The season gave almost all of the increase. How much the design gave only a comparison with a control group in the same weeks can show.</span></li>
+      </ul>
+    </div>
+    <ul class="cs-take">
+      <li><span class="uk">«До і після» показує все, що змінилося за цей час, а не лише вашу зміну.</span><span class="en">"Before and after" shows everything that changed in that time, not just your change.</span></li>
+      <li><span class="uk">A/B-тест порівнює дві версії в ті самі дні, тож усе інше для них однакове.</span><span class="en">An A/B test compares two versions on the same days, so everything else is the same for both.</span></li>
+    </ul>
+    <p class="uk">Як оцінити зміну, коли тест провести не можна, розповідає курс <a href="{{C:feature-impact}}#ch-4">«Чи працює фіча?»</a>.</p>
+    <p class="en">How to judge a change when a test is impossible is the subject of the course <a href="{{C:feature-impact}}#ch-4">"Does the feature work?"</a>.</p>
+  </section>
+
+  <!-- 2 -->
+  <section class="cs-ch" id="ch-2">
+    <div class="cs-ch-head"><span class="cs-n">2</span><h2><span class="uk">Чому групи ділить монетка?</span><span class="en">Why does a coin split the groups?</span></h2></div>
+    <p class="cs-ask"><span class="uk">«Новий кошик бачать ті, хто сам натиснув «Спробувати нову версію». Вони купують у 2,5 раза частіше. Вмикаємо для всіх?»</span><span class="en">"The new cart is seen by those who clicked "Try the new version" themselves. They buy 2.5 times as often. Shall we switch it on for everyone?"</span></p>
+    <p class="uk">У магазин за тиждень заходить 1&nbsp;000 людей. Серед них 200 постійних покупців, які купують часто, і 800 новачків, які здебільшого просто дивляться. На сайті з'явилася кнопка «Спробувати новий кошик», і її натиснули 100 людей.</p>
+    <p class="en">A shop gets 1,000 visitors a week. Among them are 200 regular customers who buy often and 800 newcomers who mostly just look. A "Try the new cart" button appeared on the site, and 100 people clicked it.</p>
+    <p class="uk">Із тих, хто натиснув, купили 13 зі 100. Серед решти 900 — лише 5 зі 100.</p>
+    <p class="en">Of those who clicked, 13 in 100 bought. Among the other 900, only 5 in 100.</p>
+    <div class="cs-quiz" data-ch="ch-2" data-q="q2">
+      <p class="q"><span class="uk">Новий кошик кращий за старий?</span><span class="en">Is the new cart better than the old one?</span></p>
+      <div class="opts">
+        <button type="button" data-o="0"><span class="uk">Так, у 2,5 раза</span><span class="en">Yes, 2.5 times</span></button>
+        <button type="button" data-o="1"><span class="uk">Так, хоч і менше, ніж у 2,5 раза</span><span class="en">Yes, though by less than 2.5 times</span></button>
+        <button type="button" data-o="2" data-right><span class="uk">Невідомо: кнопку натискали ті, хто й так купує частіше</span><span class="en">Unknown: the button was clicked by those who buy more often anyway</span></button>
+      </div>
+      <p class="verdict" aria-live="polite"></p>
+      <div class="qv"><span class="ok"><span class="uk">Пробувати нове охочіше йдуть постійні покупці. Серед 100, хто натиснув, їх 60, а серед решти 900 — лише 140. Постійні купують частіше в будь-якому кошику. У цьому прикладі новий кошик узагалі нічого не змінює, а різниця 13 проти 5 усе одно виходить. Подивіться нижче, хто в якій групі.</span><span class="en">Regular customers are keener to try new things. They are 60 of the 100 who clicked, and only 140 of the other 900. Regulars buy more often with any cart. In this example the new cart changes nothing at all, and the 13 vs 5 gap appears anyway. See below who is in which group.</span></span><span class="no"><span class="uk">Невідомо. Пробувати нове охочіше йдуть постійні покупці. Серед 100, хто натиснув, їх 60, а серед решти 900 — лише 140. Постійні купують частіше в будь-якому кошику. У цьому прикладі новий кошик узагалі нічого не змінює, а різниця 13 проти 5 усе одно виходить. Подивіться нижче, хто в якій групі.</span><span class="en">Unknown. Regular customers are keener to try new things. They are 60 of the 100 who clicked, and only 140 of the other 900. Regulars buy more often with any cart. In this example the new cart changes nothing at all, and the 13 vs 5 gap appears anyway. See below who is in which group.</span></span></div>
+    </div>
+    <div class="cs-case locked" data-lock="ch-2">
+      <h3><span class="uk">Хто в якій групі</span><span class="en">Who is in which group</span></h3>
+      <div class="seg" id="sp-mode" role="group">
+        <button type="button" class="btn ghost" data-m="self" aria-pressed="true"><span class="uk">Обрали самі</span><span class="en">They chose</span></button>
+        <button type="button" class="btn ghost" data-m="coin"><span class="uk">Поділила монетка</span><span class="en">A coin split them</span></button>
+      </div>
+      <div class="grp" id="sp-grp"></div>
+      <p class="key"><span><i style="background:var(--ink)"></i><span class="uk">постійні покупці: купують 20 зі 100</span><span class="en">regular customers: 20 in 100 buy</span></span><span><i style="background:var(--line)"></i><span class="uk">новачки: купують 2–3 зі 100</span><span class="en">newcomers: 2–3 in 100 buy</span></span></p>
+      <p class="msg" id="sp-msg" aria-live="polite"></p>
+      <div class="gl-btns"><button type="button" class="btn ghost" id="sp-flip" hidden><span class="uk">Кинути монетку ще раз</span><span class="en">Flip the coins again</span></button></div>
+    </div>
+    <p class="uk">Коли люди обирають самі, у групи потрапляють різні люди, і різниця в покупках показує їх, а не версії. Монетка нічого не знає про людей: постійні й новачки потрапляють в A і B порівну, з невеликим тремтінням. Тому в A/B-тесті групу кожному обирає випадок, а не він сам і не менеджер.</p>
+    <p class="en">When people choose for themselves, different people end up in the groups, and the difference in purchases shows the people, not the versions. A coin knows nothing about people: regulars and newcomers land in A and B equally, with a little wobble. That is why in an A/B test each person's group is picked by chance, not by them and not by a manager.</p>
+    <div class="cs-after" data-after-ch="ch-2">
+      <ul class="cs-take">
+        <li><span class="uk">Коли групу обирали самі, 13 проти 5 вийшло без жодного ефекту кошика: серед тих, хто натиснув, 60 постійних зі 100, а серед решти 140 з 900. Коли ділить монетка, в обох групах близько 100 постійних, і обидві купують близько 6 зі 100.</span><span class="en">When people chose their group, 13 vs 5 appeared with no effect of the cart at all: 60 of the 100 who clicked are regulars, against 140 of the other 900. When a coin splits them, both groups get about 100 regulars, and both buy about 6 in 100.</span></li>
+      </ul>
+    </div>
+    <ul class="cs-take">
+      <li><span class="uk">Якщо люди самі обрали версію, різниця показує, хто обирав, а не яка версія краща.</span><span class="en">If people chose the version themselves, the difference shows who chose, not which version is better.</span></li>
+      <li><span class="uk">Групи має ділити випадок: монетка, лотерея, генератор у сервісі тестів.</span><span class="en">Groups must be split by chance: a coin, a lottery, the random generator in the testing tool.</span></li>
+    </ul>
+    <div class="cs-story">
+      <b><span class="uk">Історія</span><span class="en">Story</span></b>
+      <span class="uk">1948 року британська Рада медичних досліджень перевіряла стрептоміцин від туберкульозу. Хто з 107 хворих отримає ліки, а хто ні, вирішували не лікарі, а випадкові числа в запечатаних конвертах. Так лікарі не могли, навіть ненавмисно, давати ліки тим, хто й так мав більше шансів одужати. Це вважають одним із перших рандомізованих випробувань у медицині.</span><span class="en">In 1948 Britain's Medical Research Council tested streptomycin against tuberculosis. Which of the 107 patients got the drug was decided not by doctors but by random numbers in sealed envelopes. That way doctors could not, even unintentionally, give the drug to those who were more likely to recover anyway. It is counted among the first randomised trials in medicine.</span>
+      <small><span class="uk">Джерело: Medical Research Council, «Streptomycin treatment of pulmonary tuberculosis», BMJ, 30 жовтня 1948.</span><span class="en">Source: Medical Research Council, "Streptomycin treatment of pulmonary tuberculosis", BMJ, 30 October 1948.</span></small>
+    </div>
+    <!--TERMS:sampling-bias-->
+  </section>
+
+  <!-- 3 -->
+  <section class="cs-ch" id="ch-3">
+    <div class="cs-ch-head"><span class="cs-n">3</span><h2><span class="uk">Чи буває різниця на рівному місці?</span><span class="en">Can a difference come from nowhere?</span></h2></div>
+    <p class="cs-ask"><span class="uk">«Сторінки A і B однакові. Звідки ж різниця?»</span><span class="en">"Pages A and B are identical. So where does a difference come from?"</span></p>
+    <p class="uk">Найкращий спосіб зрозуміти тест — запустити його на двох однакових сторінках. Таке перевіряння називають A/A-тестом. Монетка ділить відвідувачів, обидві половини бачать ту саму сторінку. На ній купує в середньому 5 людей зі 100.</p>
+    <p class="en">The best way to understand a test is to run it on two identical pages. Such a check is called an A/A test. A coin splits the visitors, and both halves see the same page. On it, an average of 5 people in 100 buy.</p>
+    <p class="uk">У кожну групу потрапило по 100 відвідувачів.</p>
+    <p class="en">Each group got 100 visitors.</p>
+    <div class="cs-quiz" data-ch="ch-3" data-q="q3">
+      <p class="q"><span class="uk">Як часто одна група матиме хоча б на 3 покупки більше за іншу, наприклад 4 проти 7?</span><span class="en">How often will one group have at least 3 more purchases than the other, say 4 against 7?</span></p>
+      <div class="opts">
+        <button type="button" data-o="0"><span class="uk">Ніколи: сторінки ж однакові</span><span class="en">Never: the pages are identical</span></button>
+        <button type="button" data-o="1"><span class="uk">Рідко, приблизно 1 раз зі 100</span><span class="en">Rarely, about 1 time in 100</span></button>
+        <button type="button" data-o="2"><span class="uk">Іноді, приблизно 1 раз із 10</span><span class="en">Sometimes, about 1 time in 10</span></button>
+        <button type="button" data-o="3" data-right><span class="uk">Часто, приблизно 4 рази з 10</span><span class="en">Often, about 4 times in 10</span></button>
+      </div>
+      <p class="verdict" aria-live="polite"></p>
+      <div class="qv"><span class="ok"><span class="uk">Приблизно у 41 тесті зі 100 одна з однакових груп обганяє іншу на 3 покупки чи більше. А 4 проти 7 на дашборді виглядає як «B краща на 75%». Покупки — це окремі люди, і в маленькій групі кожен зайвий покупець помітно зсуває число. Запустіть тест нижче кілька разів.</span><span class="en">In about 41 tests out of 100, one of the identical groups beats the other by 3 purchases or more. And 4 vs 7 on a dashboard looks like "B is 75% better". Purchases are separate people, and in a small group each extra buyer moves the number noticeably. Run the test below a few times.</span></span><span class="no"><span class="uk">Часто: приблизно у 41 тесті зі 100 одна з однакових груп обганяє іншу на 3 покупки чи більше. А 4 проти 7 на дашборді виглядає як «B краща на 75%». Покупки — це окремі люди, і в маленькій групі кожен зайвий покупець помітно зсуває число. Запустіть тест нижче кілька разів.</span><span class="en">Often: in about 41 tests out of 100, one of the identical groups beats the other by 3 purchases or more. And 4 vs 7 on a dashboard looks like "B is 75% better". Purchases are separate people, and in a small group each extra buyer moves the number noticeably. Run the test below a few times.</span></span></div>
+    </div>
+    <div class="cs-case locked" data-lock="ch-3">
+      <h3><span class="uk">A/A-тест: по 100 відвідувачів на однакову сторінку</span><span class="en">An A/A test: 100 visitors each on the same page</span></h3>
+      <div class="sq-two">
+        <div><h4 id="aa-la">A</h4><div class="sq" id="aa-a"></div></div>
+        <div><h4 id="aa-lb">B</h4><div class="sq" id="aa-b"></div></div>
+      </div>
+      <p class="key"><span><i style="background:var(--ink)"></i><span class="uk">купив</span><span class="en">bought</span></span><span><i style="background:var(--line)"></i><span class="uk">не купив</span><span class="en">didn't buy</span></span></p>
+      <p class="msg" id="aa-msg" aria-live="polite"></p>
+      <div class="stats">
+        <div class="gl-stat"><span><span class="uk">Тестів проведено</span><span class="en">Tests run</span></span><b id="aa-n">0</b></div>
+        <div class="gl-stat"><span><span class="uk">Різниця 3+ покупки</span><span class="en">A gap of 3+ purchases</span></span><b class="hit" id="aa-big">–</b><small><span class="uk">точно: 41 тест зі 100</span><span class="en">exactly: 41 tests in 100</span></small></div>
+      </div>
+      <div class="gl-btns">
+        <button type="button" class="btn" id="aa-one"><span class="uk">Ще один тест</span><span class="en">One more test</span></button>
+        <button type="button" class="btn ghost" id="aa-many"><span class="uk">Ще 100 тестів</span><span class="en">100 more tests</span></button>
+      </div>
+    </div>
+    <p class="uk">Навіть коли версії однакові, числа в групах різні: хто саме зайшов і хто саме купив, вирішує випадок. Що менше людей, то сильніше це тремтіння. Тому різниця на дашборді ще не означає, що одна версія краща. Питання завжди одне: чи більша ця різниця за ту, яку дає сам випадок?</p>
+    <p class="en">Even when the versions are the same, the numbers in the groups differ: chance decides exactly who came and who bought. The fewer the people, the stronger this wobble. So a difference on a dashboard does not yet mean one version is better. The question is always the same: is this difference bigger than what chance alone gives?</p>
+    <div class="cs-after" data-after-ch="ch-3">
+      <ul class="cs-take">
+        <li><span class="uk">Між однаковими групами по 100 людей різниця в 3 покупки і більше трапляється приблизно в 41 тесті зі 100, а однакова кількість покупок — лише в 13. Така різниця нічого не каже про версії.</span><span class="en">Between identical groups of 100 people, a gap of 3 purchases or more happens in about 41 tests out of 100, and equal purchase counts in only 13. Such a gap says nothing about the versions.</span></li>
+      </ul>
+    </div>
+    <ul class="cs-take">
+      <li><span class="uk">Різниця буває і між однаковими версіями. Перш ніж радіти, спитайте, чи могла б такою вийти різниця між A і A.</span><span class="en">There is a difference even between identical versions. Before celebrating, ask whether A against A could have shown such a gap.</span></li>
+      <li><span class="uk">Відсотки на маленьких групах обманюють: 4 проти 7 покупок — це «+75%».</span><span class="en">Percentages on small groups mislead: 4 against 7 purchases is "+75%".</span></li>
+    </ul>
+    <!--PROBLEM:ab-test-->
+    <!--TERMS:law-of-large-numbers-->
+  </section>
+
+  <!-- 4 -->
+  <section class="cs-ch" id="ch-4">
+    <div class="cs-ch-head"><span class="cs-n">4</span><h2><span class="uk">Скільки людей треба?</span><span class="en">How many people do you need?</span></h2></div>
+    <p class="cs-ask"><span class="uk">«У нас тисяча відвідувачів на версію. Цього не досить?»</span><span class="en">"We have a thousand visitors per version. Isn't that enough?"</span></p>
+    <p class="uk">Тепер нехай B справді краща. На старій сторінці A купує 5 людей зі 100, на новій B — 6 зі 100. Для бізнесу це багато: кожна п'ята зайва покупка.</p>
+    <p class="en">Now let B really be better. On the old page A, 5 people in 100 buy; on the new page B, 6 in 100. For a business that is a lot: one extra purchase for every five.</p>
+    <p class="uk">Тест іде, доки кожну версію не побачить 1&nbsp;000 людей. Тоді порівнюємо, де покупок більше.</p>
+    <p class="en">The test runs until each version has been seen by 1,000 people. Then we compare where there are more purchases.</p>
+    <div class="cs-quiz" data-ch="ch-4" data-q="q4">
+      <p class="q"><span class="uk">Як часто гірша версія A опиниться попереду?</span><span class="en">How often will the worse version A come out ahead?</span></p>
+      <div class="opts">
+        <button type="button" data-o="0"><span class="uk">Ніколи: B же краща</span><span class="en">Never: B is better</span></button>
+        <button type="button" data-o="1"><span class="uk">Приблизно 1 раз зі 100</span><span class="en">About 1 time in 100</span></button>
+        <button type="button" data-o="2" data-right><span class="uk">Приблизно 1 раз із 7</span><span class="en">About 1 time in 7</span></button>
+        <button type="button" data-o="3"><span class="uk">Приблизно в половині тестів</span><span class="en">In about half of the tests</span></button>
+      </div>
+      <p class="verdict" aria-live="polite"></p>
+      <div class="qv"><span class="ok"><span class="uk">Тисяча людей — це в середньому 50 покупок на A і 60 на B. Різниця в 10 покупок, а випадок легко зсуває кожне число на 7–10 покупок у будь-який бік. Тож приблизно в 15 тестах зі 100 попереду гірша A. Пересуньте кількість людей нижче.</span><span class="en">A thousand people means on average 50 purchases on A and 60 on B. That is a gap of 10 purchases, while chance easily moves each number by 7–10 purchases either way. So in about 15 tests out of 100, the worse A is ahead. Change the number of people below.</span></span><span class="no"><span class="uk">Приблизно 1 раз із 7. Тисяча людей — це в середньому 50 покупок на A і 60 на B. Різниця в 10 покупок, а випадок легко зсуває кожне число на 7–10 покупок у будь-який бік. Тож приблизно в 15 тестах зі 100 попереду гірша A. Пересуньте кількість людей нижче.</span><span class="en">About 1 time in 7. A thousand people means on average 50 purchases on A and 60 on B. That is a gap of 10 purchases, while chance easily moves each number by 7–10 purchases either way. So in about 15 tests out of 100, the worse A is ahead. Change the number of people below.</span></span></div>
+    </div>
+    <div class="cs-case locked" data-lock="ch-4">
+      <h3><span class="uk">100 тестів, де B справді краща</span><span class="en">100 tests where B really is better</span></h3>
+      <div class="seg" id="sz-n" role="group">
+        <button type="button" class="btn ghost" data-n="100">100</button><button type="button" class="btn ghost" data-n="300">300</button><button type="button" class="btn ghost" data-n="1000" aria-pressed="true">1&nbsp;000</button><button type="button" class="btn ghost" data-n="3000">3&nbsp;000</button><button type="button" class="btn ghost" data-n="10000">10&nbsp;000</button>
+      </div>
+      <p class="gl-note"><span class="uk">людей на кожну версію</span><span class="en">people per version</span></p>
+      <div class="sq wide" id="sz-sq" aria-label="Результати 100 тестів" data-aria-en="The results of 100 tests"></div>
+      <p class="key"><span><i style="background:var(--ink)"></i><span class="uk">попереду B</span><span class="en">B ahead</span></span><span><i style="background:transparent;box-shadow:inset 0 0 0 2px var(--ink)"></i><span class="uk">попереду гірша A</span><span class="en">the worse A ahead</span></span><span><i style="background:var(--line)"></i><span class="uk">нічия</span><span class="en">a tie</span></span></p>
+      <div class="stats">
+        <div class="gl-stat"><span><span class="uk">Попереду B</span><span class="en">B ahead</span></span><b id="sz-b">–</b><small id="sz-bx"></small></div>
+        <div class="gl-stat"><span><span class="uk">Попереду гірша A</span><span class="en">The worse A ahead</span></span><b class="hit" id="sz-a">–</b><small id="sz-ax"></small></div>
+      </div>
+      <div class="gl-btns"><button type="button" class="btn ghost" id="sz-again"><span class="uk">Ще 100 тестів</span><span class="en">100 more tests</span></button></div>
+    </div>
+    <p class="uk">Тест бачить різницю, лише коли вона більша за тремтіння випадку. А тремтіння слабшає повільно: щоб воно стало вдвічі меншим, людей треба вчетверо більше. Звідси просте правило: що меншу різницю ви хочете помітити, то більше людей треба. Удвічі менша різниця — учетверо більше людей.</p>
+    <p class="en">A test sees a difference only when it is bigger than the wobble of chance. And the wobble fades slowly: to make it half as big you need four times as many people. Hence a simple rule: the smaller the difference you want to notice, the more people you need. Half the difference means four times the people.</p>
+    <p class="uk">Скільки саме, рахують калькулятори розміру вибірки, їх є безкоштовні. Їм треба дати дві речі: яка конверсія зараз і яку найменшу різницю ви хочете помітити. Для 5 проти 6 зі 100 виходить близько 6&nbsp;500 людей на кожну версію. Тоді тест помітить таку різницю приблизно у 8 випадках із 10. Що означає «помітить», пояснює наступний розділ.</p>
+    <p class="en">Exactly how many is what sample-size calculators work out, and there are free ones. They need two things: the current conversion rate and the smallest difference you want to notice. For 5 vs 6 in 100 it comes to about 6,500 people per version. Then the test will notice such a difference about 8 times in 10. What "notice" means is the next chapter.</p>
+    <div class="cs-after" data-after-ch="ch-4">
+      <ul class="cs-take">
+        <li><span class="uk">Коли B справді купує 6 зі 100, а A 5 зі 100, на 1&nbsp;000 людей гірша A попереду приблизно в 15 тестах зі 100. На 100 людях — у 32, на 10&nbsp;000 — майже ніколи.</span><span class="en">When B truly gets 6 purchases in 100 and A gets 5, with 1,000 people the worse A is ahead in about 15 tests out of 100. With 100 people it is 32, with 10,000 almost never.</span></li>
+      </ul>
+    </div>
+    <ul class="cs-take">
+      <li><span class="uk">Рахуйте, скільки людей треба, до старту тесту, а не після.</span><span class="en">Work out how many people you need before the test starts, not after.</span></li>
+      <li><span class="uk">Маленька різниця вимагає багато людей. Якщо стільки людей у вас немає, тестуйте сміливіші зміни або довше.</span><span class="en">A small difference needs many people. If you don't have that many, test bolder changes or run longer.</span></li>
+    </ul>
+    <!--PROBLEM:small-numbers-->
+    <!--TERMS:statistical-power-->
+  </section>
+
+  <div class="bridge">
+    <b><span class="uk">Що ви вже знаєте</span><span class="en">What you know now</span></b>
+    <span class="uk">«До і після» складає зміну з сезоном (1), тому дві версії порівнюють водночас, а групи ділить монетка (2). Навіть однакові версії дають різні числа (3), і щоб помітити справжню різницю, людей треба багато (4). Друга частина про те, як дашборд відокремлює справжню різницю від випадкової, і де цей спосіб можна зламати.</span><span class="en">"Before and after" mixes the change with the season (1), so two versions are compared at the same time and a coin splits the groups (2). Even identical versions give different numbers (3), and to notice a real difference you need many people (4). The second part is about how a dashboard tells a real difference from a chance one, and where that method can be broken.</span>
+  </div>
+
+  <!-- ===================== PART 2 ===================== -->
+  <div class="cs-part" id="part-2">
+    <span class="eyebrow"><span class="uk">Частина 2 · усе ще без формул</span><span class="en">Part 2 · still no formulas</span></span>
+    <h2><span class="uk">Як читати результат</span><span class="en">How to read the result</span></h2>
+    <p><span class="uk">Що обіцяє число «впевненість 95%», і три звички, які непомітно роблять цю обіцянку порожньою.</span><span class="en">What the number "95% confidence" promises, and three habits that quietly make that promise empty.</span></p>
+  </div>
+
+  <!-- 5 -->
+  <section class="cs-ch" id="ch-5">
+    <div class="cs-ch-head"><span class="cs-n">5</span><h2><span class="uk">Що означає «впевненість 95%»?</span><span class="en">What does "95% confidence" mean?</span></h2></div>
+    <p class="cs-ask"><span class="uk">«Дашборд пише: B попереду, впевненість 95%. Це гарантія?»</span><span class="en">"The dashboard says: B is ahead, confidence 95%. Is that a guarantee?"</span></p>
+    <p class="uk">Сервіс тестів знає, як тремтять числа (розділ 3), і порівнює з цим тремтінням відрив B. Що більший відрив і що більше людей, то вища «впевненість». Переможцем зазвичай оголошують, коли вона доходить до 95%.</p>
+    <p class="en">The testing tool knows how the numbers wobble (chapter 3) and compares B's lead with that wobble. The bigger the lead and the more people, the higher the "confidence". A winner is usually declared once it reaches 95%.</p>
+    <p class="uk">Щоб зрозуміти, що обіцяє цей поріг, знову візьмемо однакові сторінки, по 1&nbsp;000 людей на кожну.</p>
+    <p class="en">To see what this threshold promises, take identical pages again, 1,000 people on each.</p>
+    <div class="cs-quiz" data-ch="ch-5" data-q="q5">
+      <p class="q"><span class="uk">A і B однакові. Як часто тест усе одно покаже «B попереду, впевненість 95%» чи більше?</span><span class="en">A and B are identical. How often will the test still show "B ahead, confidence 95%" or more?</span></p>
+      <div class="opts">
+        <button type="button" data-o="0"><span class="uk">Ніколи: на однакових такого не буває</span><span class="en">Never: it can't happen with identical pages</span></button>
+        <button type="button" data-o="1" data-right><span class="uk">Приблизно 1 раз на 20</span><span class="en">About 1 time in 20</span></button>
+        <button type="button" data-o="2"><span class="uk">Приблизно 1 раз на 2</span><span class="en">About 1 time in 2</span></button>
+        <button type="button" data-o="3"><span class="uk">95 разів зі 100</span><span class="en">95 times in 100</span></button>
+      </div>
+      <p class="verdict" aria-live="polite"></p>
+      <div class="qv"><span class="ok"><span class="uk">Саме це і означають 95%: якби версії були однакові, такий відрив на користь B давав би випадок рідше, ніж 1 раз на 20 тестів. Це не гарантія, а домовленість про ризик: приблизно кожен двадцятий «переможець» серед однакових версій буде фальшивим. Запустіть 20 тестів нижче.</span><span class="en">That is exactly what 95% means: if the versions were the same, chance would give such a lead for B less than 1 time in 20 tests. It is not a guarantee but an agreement about risk: about one "winner" in twenty among identical versions will be fake. Run 20 tests below.</span></span><span class="no"><span class="uk">Приблизно 1 раз на 20. Саме це і означають 95%: якби версії були однакові, такий відрив на користь B давав би випадок рідше, ніж 1 раз на 20 тестів. Це не гарантія, а домовленість про ризик: приблизно кожен двадцятий «переможець» серед однакових версій буде фальшивим. Запустіть 20 тестів нижче.</span><span class="en">About 1 time in 20. That is exactly what 95% means: if the versions were the same, chance would give such a lead for B less than 1 time in 20 tests. It is not a guarantee but an agreement about risk: about one "winner" in twenty among identical versions will be fake. Run 20 tests below.</span></span></div>
+    </div>
+    <div class="cs-case locked" data-lock="ch-5">
+      <h3><span class="uk">20 A/A-тестів по 1&nbsp;000 людей на сторінку</span><span class="en">20 A/A tests, 1,000 people per page</span></h3>
+      <div class="tiles" id="cf-t" aria-label="Впевненість у 20 тестах однакових сторінок" data-aria-en="Confidence in 20 tests of identical pages"></div>
+      <p class="key"><span><i style="background:var(--ink)"></i><span class="uk">«переможець»: B попереду з упевненістю 95%+</span><span class="en">"winner": B ahead with 95%+ confidence</span></span></p>
+      <div class="stats">
+        <div class="gl-stat"><span><span class="uk">Тестів проведено</span><span class="en">Tests run</span></span><b id="cf-n">0</b></div>
+        <div class="gl-stat"><span><span class="uk">Фальшивих переможців</span><span class="en">Fake winners</span></span><b class="hit" id="cf-w">–</b><small><span class="uk">у середньому 1 з 20</span><span class="en">on average 1 in 20</span></small></div>
+      </div>
+      <div class="gl-btns"><button type="button" class="btn" id="cf-more"><span class="uk">Ще 20 тестів</span><span class="en">20 more tests</span></button></div>
+    </div>
+    <p class="uk">Поріг 95% захищає від випадку, але лише на одну двадцяту. І ця обіцянка діє, тільки якщо грати чесно: людей порахували заздалегідь, результат дивляться один раз у кінці, і перевіряють одну версію проти однієї. Наступні три розділи — три способи цю обіцянку непомітно зламати.</p>
+    <p class="en">The 95% threshold protects against chance, but only up to one in twenty. And the promise holds only if you play fair: the number of people is set in advance, the result is read once at the end, and one version is checked against one. The next three chapters are three ways to break that promise without noticing.</p>
+    <p class="uk">Ще одне: 95% нічого не каже про розмір виграшу. «B +27%, впевненість 95%» не обіцяє +27% після запуску (розділ 8). Деякі сервіси показують замість упевненості «шанс перемогти»; він рахується інакше, про нього розділ <a href="{{C:ab-testing}}#ch-11">курсу для маркетологів</a>.</p>
+    <p class="en">One more thing: 95% says nothing about the size of the gain. "B +27%, confidence 95%" does not promise +27% after launch (chapter 8). Some tools show a "chance to beat" instead of confidence; it is computed differently, and a chapter of <a href="{{C:ab-testing}}#ch-11">the course for marketers</a> covers it.</p>
+    <div class="cs-after" data-after-ch="ch-5">
+      <ul class="cs-take">
+        <li><span class="uk">Серед однакових версій «B попереду з упевненістю 95%» виходить приблизно в 1 тесті з 20. Це і є ціна порогу: кожен двадцятий переможець серед однакових версій фальшивий.</span><span class="en">Among identical versions, "B ahead with 95% confidence" comes up in about 1 test in 20. That is the price of the threshold: one winner in twenty among identical versions is fake.</span></li>
+      </ul>
+    </div>
+    <ul class="cs-take">
+      <li><span class="uk">«Впевненість 95%» означає: випадок дає такий відрив рідше, ніж 1 раз на 20. Це не гарантія і не розмір виграшу.</span><span class="en">"95% confidence" means chance gives such a lead less than 1 time in 20. It is neither a guarantee nor the size of the gain.</span></li>
+      <li><span class="uk">Обіцянка діє, лише якщо людей порахували заздалегідь і результат читають один раз, у кінці.</span><span class="en">The promise holds only if the number of people was set in advance and the result is read once, at the end.</span></li>
+    </ul>
+    <div class="cs-story">
+      <b><span class="uk">Історія</span><span class="en">Story</span></b>
+      <span class="uk">Звідки взялися саме 95%? 1926 року статистик Рональд Фішер, який працював із польовими дослідами на агростанції Ротамстед, написав, що особисто він вважає результат вартим уваги, коли випадок дав би його рідше, ніж 1 раз на 20. Це було його особисте правило, а не закон природи. Воно прижилося і тепер стоїть на більшості дашбордів.</span><span class="en">Why 95% in particular? In 1926 the statistician Ronald Fisher, who worked with field trials at the Rothamsted agricultural station, wrote that he personally considered a result worth attention when chance would give it less than once in 20 times. It was his personal rule, not a law of nature. It stuck and now sits on most dashboards.</span>
+      <small><span class="uk">Джерело: R. A. Fisher, «The Arrangement of Field Experiments», Journal of the Ministry of Agriculture 33 (1926).</span><span class="en">Source: R. A. Fisher, "The Arrangement of Field Experiments", Journal of the Ministry of Agriculture 33 (1926).</span></small>
+    </div>
+    <!--TERMS:p-value-->
+  </section>
+
+  <!-- 6 -->
+  <section class="cs-ch" id="ch-6">
+    <div class="cs-ch-head"><span class="cs-n">6</span><h2><span class="uk">Коли можна зупинити тест?</span><span class="en">When may you stop a test?</span></h2></div>
+    <p class="cs-ask"><span class="uk">«Тест на 14 днів, а на третій день уже 95%. Навіщо чекати?»</span><span class="en">"The test is planned for 14 days, but on day three it is already at 95%. Why wait?"</span></p>
+    <p class="uk">Тест заплановано на 14 днів, щодня кожну версію бачать 300 людей. Дашборд оновлюється щоранку, і щоранку його хтось відкриває. Домовилися так: щойно впевненість дійде до 95%, тест зупиняють і оголошують переможця.</p>
+    <p class="en">The test is planned for 14 days, with 300 people seeing each version every day. The dashboard updates every morning, and every morning someone opens it. The agreement: as soon as confidence reaches 95%, the test stops and the winner is announced.</p>
+    <p class="uk">Знову візьмемо однакові версії, де переможця бути не може.</p>
+    <p class="en">Take identical versions again, where there can be no winner.</p>
+    <div class="cs-quiz" data-ch="ch-6" data-q="q6">
+      <p class="q"><span class="uk">Як часто за 14 днів з'явиться фальшивий переможець?</span><span class="en">How often will a fake winner appear within the 14 days?</span></p>
+      <div class="opts">
+        <button type="button" data-o="0"><span class="uk">1 раз на 20, як обіцяє поріг</span><span class="en">1 time in 20, as the threshold promises</span></button>
+        <button type="button" data-o="1" data-right><span class="uk">Приблизно 1 раз на 5</span><span class="en">About 1 time in 5</span></button>
+        <button type="button" data-o="2"><span class="uk">Майже щоразу</span><span class="en">Almost every time</span></button>
+      </div>
+      <p class="verdict" aria-live="polite"></p>
+      <div class="qv"><span class="ok"><span class="uk">Приблизно в 19 тестах зі 100, учетверо частіше, ніж обіцяє поріг. Впевненість щодня гуляє вгору-вниз, і кожен ранок — новий шанс випадково торкнутися 95%. Якби тест не зупиняли, на 14-й день більшість цих «переможців» знову опустилися б нижче. Подивіться, як гуляє впевненість, нижче.</span><span class="en">In about 19 tests out of 100, four times as often as the threshold promises. Confidence wanders up and down every day, and each morning is a new chance to touch 95% by luck. Had the test not been stopped, most of these "winners" would have dropped back below by day 14. See how confidence wanders below.</span></span><span class="no"><span class="uk">Приблизно 1 раз на 5: у 19 тестах зі 100, учетверо частіше, ніж обіцяє поріг. Впевненість щодня гуляє вгору-вниз, і кожен ранок — новий шанс випадково торкнутися 95%. Якби тест не зупиняли, на 14-й день більшість цих «переможців» знову опустилися б нижче. Подивіться, як гуляє впевненість, нижче.</span><span class="en">About 1 time in 5: in 19 tests out of 100, four times as often as the threshold promises. Confidence wanders up and down every day, and each morning is a new chance to touch 95% by luck. Had the test not been stopped, most of these "winners" would have dropped back below by day 14. See how confidence wanders below.</span></span></div>
+    </div>
+    <div class="cs-case locked" data-lock="ch-6">
+      <h3><span class="uk">Впевненість день за днем, версії однакові</span><span class="en">Confidence day by day, identical versions</span></h3>
+      <canvas class="gl-canvas" id="pk-cv" style="height:240px" aria-label="Впевненість за 14 днів тесту" data-aria-en="Confidence over the 14 days of the test"></canvas>
+      <p class="key"><span><i class="ln" style="background:var(--ink)"></i><span class="uk">впевненість, що B краща</span><span class="en">confidence that B is better</span></span><span><i class="ln" style="background:var(--signal)"></i><span class="uk">поріг 95%</span><span class="en">the 95% threshold</span></span></p>
+      <p class="msg" id="pk-msg" aria-live="polite"></p>
+      <div class="stats">
+        <div class="gl-stat"><span><span class="uk">Тестів проведено</span><span class="en">Tests run</span></span><b id="pk-n">0</b></div>
+        <div class="gl-stat"><span><span class="uk">Торкнулися 95% хоч раз</span><span class="en">Touched 95% at least once</span></span><b class="hit" id="pk-any">–</b><small><span class="uk">так зупинили б щоденні перевірки</span><span class="en">what daily checks would stop</span></small></div>
+        <div class="gl-stat"><span><span class="uk">95% на 14-й день</span><span class="en">95% on day 14</span></span><b id="pk-end">–</b><small><span class="uk">так, як обіцяє поріг</span><span class="en">as the threshold promises</span></small></div>
+      </div>
+      <div class="gl-btns">
+        <button type="button" class="btn" id="pk-one"><span class="uk">Новий тест</span><span class="en">A new test</span></button>
+        <button type="button" class="btn ghost" id="pk-many"><span class="uk">Ще 100 тестів</span><span class="en">100 more tests</span></button>
+      </div>
+    </div>
+    <p class="uk">Поріг 95% розрахований на один погляд у кінці. Кожна щоденна перевірка з правом зупинитися — ще одна спроба, і фальшиві переможці накопичуються. Дивитися на дашборд можна: щоб помітити поломку чи катастрофу. Не можна зупиняти тест через те, що він «уже позеленів».</p>
+    <p class="en">The 95% threshold is designed for one look at the end. Every daily check with the right to stop is one more try, and fake winners pile up. You may look at the dashboard: to spot a bug or a disaster. You may not stop the test because it has "already gone green".</p>
+    <div class="cs-after" data-after-ch="ch-6">
+      <ul class="cs-take">
+        <li><span class="uk">З перевіркою щоранку однакові версії хоч раз торкаються 95% приблизно в 19 тестах зі 100, а на запланований 14-й день — лише в 5. Найчастіше фальшивий переможець з'являється в перші дні, коли людей ще мало.</span><span class="en">With a check every morning, identical versions touch 95% at least once in about 19 tests out of 100, but on the planned day 14 in only 5. The fake winner most often appears in the first days, when there are still few people.</span></li>
+      </ul>
+    </div>
+    <ul class="cs-take">
+      <li><span class="uk">Заздалегідь запишіть, скільки людей і днів триватиме тест, і читайте результат лише тоді.</span><span class="en">Write down in advance how many people and days the test will take, and read the result only then.</span></li>
+      <li><span class="uk">Тестуйте цілими тижнями: у понеділок і в суботу купують різні люди.</span><span class="en">Test in whole weeks: different people buy on Monday and on Saturday.</span></li>
+      <li><span class="uk">Якщо зупиняти рано дуже треба, є спеціальні методи з поправкою на підглядання. Звичайне «95%» для цього не годиться.</span><span class="en">If you really need to stop early, there are special methods that correct for peeking. The ordinary "95%" is not one of them.</span></li>
+    </ul>
+    <div class="cs-story">
+      <b><span class="uk">Історія</span><span class="en">Story</span></b>
+      <span class="uk">2010 року розробник Еван Міллер опублікував коротку статтю «Як не треба проводити A/B-тест». Він показав, що звичка зупинятися на першому «значущому» результаті перетворює обіцяні 5% хибних перемог на значно більше, і запропонував просте правило: визначити розмір вибірки заздалегідь і не зупинятися раніше. Відтоді багато сервісів тестів додали захист від підглядання.</span><span class="en">In 2010 the developer Evan Miller published a short article, "How Not To Run an A/B Test". He showed that the habit of stopping at the first "significant" result turns the promised 5% of false wins into far more, and proposed a simple rule: fix the sample size in advance and don't stop earlier. Since then many testing tools have added protection against peeking.</span>
+      <small><span class="uk">Джерело: Evan Miller, «How Not To Run an A/B Test», evanmiller.org, 2010.</span><span class="en">Source: Evan Miller, "How Not To Run an A/B Test", evanmiller.org, 2010.</span></small>
+    </div>
+    <!--PROBLEM:ab-test-peeking-->
+  </section>
+
+  <!-- 7 -->
+  <section class="cs-ch" id="ch-7">
+    <div class="cs-ch-head"><span class="cs-n">7</span><h2><span class="uk">Чому не тестувати 10 варіантів одразу?</span><span class="en">Why not test 10 variants at once?</span></h2></div>
+    <p class="cs-ask"><span class="uk">«AI написав 10 заголовків. Тестуємо всі проти старого, і один переміг з упевненістю 95%. Беремо?»</span><span class="en">"AI wrote 10 headlines. We test them all against the old one, and one won with 95% confidence. Do we take it?"</span></p>
+    <p class="uk">Нові заголовки нічим не кращі за старий: на кожному купує ті самі 5 людей зі 100. Кожен заголовок бачить 2&nbsp;000 людей, старий — теж 2&nbsp;000, і кожен новий порівнюють зі старим.</p>
+    <p class="en">The new headlines are no better than the old one: on each, the same 5 people in 100 buy. Each headline is seen by 2,000 people, the old one by 2,000 as well, and each new one is compared with the old.</p>
+    <div class="cs-quiz" data-ch="ch-7" data-q="q7">
+      <p class="q"><span class="uk">Як часто хоча б один із 10 однаково добрих заголовків «переможе» з упевненістю 95%?</span><span class="en">How often will at least one of the 10 equally good headlines "win" with 95% confidence?</span></p>
+      <div class="opts">
+        <button type="button" data-o="0"><span class="uk">1 раз на 20, як для одного</span><span class="en">1 time in 20, as for one</span></button>
+        <button type="button" data-o="1" data-right><span class="uk">Приблизно 1 раз на 4</span><span class="en">About 1 time in 4</span></button>
+        <button type="button" data-o="2"><span class="uk">Майже щоразу</span><span class="en">Almost every time</span></button>
+      </div>
+      <p class="verdict" aria-live="polite"></p>
+      <div class="qv"><span class="ok"><span class="uk">Приблизно в 24 тестах зі 100. Кожен заголовок має свій шанс 1 на 20 випадково обігнати старий, а заголовків десять. Шанси складаються, і «переможець» знаходиться вже в кожному четвертому тесті, хоча кращих заголовків немає. Запустіть нижче.</span><span class="en">In about 24 tests out of 100. Each headline has its own 1-in-20 chance to beat the old one by luck, and there are ten headlines. The chances add up, and a "winner" turns up in every fourth test, though no headline is better. Run it below.</span></span><span class="no"><span class="uk">Приблизно 1 раз на 4: у 24 тестах зі 100. Кожен заголовок має свій шанс 1 на 20 випадково обігнати старий, а заголовків десять. Шанси складаються, і «переможець» знаходиться вже в кожному четвертому тесті, хоча кращих заголовків немає. Запустіть нижче.</span><span class="en">About 1 time in 4: in 24 tests out of 100. Each headline has its own 1-in-20 chance to beat the old one by luck, and there are ten headlines. The chances add up, and a "winner" turns up in every fourth test, though no headline is better. Run it below.</span></span></div>
+    </div>
+    <div class="cs-case locked" data-lock="ch-7">
+      <h3><span class="uk">10 однаково добрих заголовків проти старого</span><span class="en">10 equally good headlines against the old one</span></h3>
+      <div class="heads" id="mv-h" aria-label="Впевненість кожного заголовка" data-aria-en="Each headline's confidence"></div>
+      <p class="key"><span><i class="ln" style="background:var(--ink)"></i><span class="uk">риска — поріг 95%</span><span class="en">the tick is the 95% threshold</span></span><span><i style="background:var(--ink)"></i><span class="uk">«переможець»</span><span class="en">"winner"</span></span></p>
+      <p class="msg" id="mv-msg" aria-live="polite"></p>
+      <div class="stats">
+        <div class="gl-stat"><span><span class="uk">Тестів проведено</span><span class="en">Tests run</span></span><b id="mv-n">0</b></div>
+        <div class="gl-stat"><span><span class="uk">Тестів із «переможцем»</span><span class="en">Tests with a "winner"</span></span><b class="hit" id="mv-w">–</b><small><span class="uk">з одним заголовком було б 1 з 20</span><span class="en">with one headline it would be 1 in 20</span></small></div>
+      </div>
+      <div class="gl-btns">
+        <button type="button" class="btn" id="mv-one"><span class="uk">Ще раз</span><span class="en">Again</span></button>
+        <button type="button" class="btn ghost" id="mv-many"><span class="uk">Ще 100 разів</span><span class="en">100 more times</span></button>
+      </div>
+    </div>
+    <p class="uk">Те саме стається, коли результат одного тесту ріжуть на шматки: мобільні й комп'ютери, нові й постійні, міста, дні тижня. Кожен шматок — ще одна спроба, і серед дюжини шматків легко знайдеться «B перемагає на Android у Харкові». Що більше спроб, то певніше хоч одна виграє випадково.</p>
+    <p class="en">The same happens when one test's result is cut into pieces: mobile and desktop, new and returning, cities, days of the week. Each piece is one more try, and among a dozen pieces "B wins on Android in Kharkiv" is easy to find. The more tries, the surer one of them wins by luck.</p>
+    <div class="cs-after" data-after-ch="ch-7">
+      <ul class="cs-take">
+        <li><span class="uk">Серед 10 заголовків, які нічим не кращі за старий, «переможець» з'являється приблизно в 24 тестах зі 100, а не в 5. Перемога одного з багатьох варіантів — ще не перемога.</span><span class="en">Among 10 headlines that are no better than the old one, a "winner" appears in about 24 tests out of 100, not 5. One of many variants winning is not yet a win.</span></li>
+      </ul>
+    </div>
+    <ul class="cs-take">
+      <li><span class="uk">Що більше варіантів чи сегментів, то більше фальшивих переможців. Рахуйте, скільки було спроб.</span><span class="en">The more variants or segments, the more fake winners. Count how many tries there were.</span></li>
+      <li><span class="uk">Переможця з багатьох перевірте окремим тестом: він проти старого, один на один.</span><span class="en">Check a winner picked from many in a separate test: it against the old one, one on one.</span></li>
+      <li><span class="uk">Сегменти, які вас цікавлять, запишіть до старту, а не шукайте після.</span><span class="en">Write down the segments you care about before the start, rather than searching after.</span></li>
+    </ul>
+    <div class="cs-story">
+      <b><span class="uk">Історія</span><span class="en">Story</span></b>
+      <span class="uk">У коміксі xkcd «Significant» (2011) науковці перевіряють, чи желейки викликають прищі. Загалом ні. Тоді перевіряють 20 кольорів окремо, і зелені «пов'язані з прищами» з упевненістю 95%. Газета виходить із заголовком про зелені желейки, хоча один збіг із двадцяти саме стільки й мав дати випадок.</span><span class="en">In the xkcd comic "Significant" (2011), scientists check whether jelly beans cause acne. Overall, no. Then they check 20 colours one by one, and green ones are "linked to acne" with 95% confidence. A newspaper runs a headline about green jelly beans, though one hit in twenty is exactly what chance should give.</span>
+      <small><span class="uk">Джерело: Randall Munroe, xkcd № 882 «Significant», 2011.</span><span class="en">Source: Randall Munroe, xkcd #882, "Significant", 2011.</span></small>
+    </div>
+    <!--PROBLEM:multiple-testing-->
+  </section>
+
+  <!-- 8 -->
+  <section class="cs-ch" id="ch-8">
+    <div class="cs-ch-head"><span class="cs-n">8</span><h2><span class="uk">Чому після запуску ефект менший?</span><span class="en">Why is the effect smaller after launch?</span></h2></div>
+    <p class="cs-ask"><span class="uk">«У тесті B дала +20%, а після запуску лише +10%. Хтось помилився?»</span><span class="en">"In the test B gave +20%, and after launch only +10%. Did someone make a mistake?"</span></p>
+    <p class="uk">Цього разу B справді краща на 10%: на A купує 5 людей зі 100, на B 5,5. Кожну версію бачить 5&nbsp;000 людей, тест чесний: людей пораховано заздалегідь, результат читають один раз у кінці. Команда проводить багато таких тестів і запускає ті, де B перемогла з упевненістю 95%.</p>
+    <p class="en">This time B really is 10% better: 5 people in 100 buy on A, 5.5 on B. Each version is seen by 5,000 people, and the test is fair: the number of people was set in advance and the result is read once at the end. The team runs many such tests and ships those where B won with 95% confidence.</p>
+    <div class="cs-quiz" data-ch="ch-8" data-q="q8">
+      <p class="q"><span class="uk">Який приріст у середньому показують тести, де B перемогла?</span><span class="en">What gain, on average, do the tests show where B won?</span></p>
+      <div class="opts">
+        <button type="button" data-o="0"><span class="uk">Близько +10%, як насправді</span><span class="en">About +10%, the true value</span></button>
+        <button type="button" data-o="1"><span class="uk">Менше, близько +5%</span><span class="en">Less, about +5%</span></button>
+        <button type="button" data-o="2" data-right><span class="uk">Більше, близько +20%</span><span class="en">More, about +20%</span></button>
+      </div>
+      <p class="verdict" aria-live="polite"></p>
+      <div class="qv"><span class="ok"><span class="uk">У середньому близько +21%, удвічі більше за правду. Переможцем стає не кожен тест, а лише той, де випадок підштовхнув B вгору: без цього поштовху +10% на 5&nbsp;000 людях рідко доходить до 95%. Після запуску поштовху вже немає, і лишаються справжні +10%. Ніхто не помилився. Подивіться на 100 тестів нижче.</span><span class="en">About +21% on average, twice the truth. Not every test produces a winner, only one where chance pushed B upward: without that push, +10% on 5,000 people rarely reaches 95%. After launch the push is gone, and the true +10% remains. Nobody made a mistake. Look at 100 tests below.</span></span><span class="no"><span class="uk">Більше: у середньому близько +21%, удвічі більше за правду. Переможцем стає не кожен тест, а лише той, де випадок підштовхнув B вгору: без цього поштовху +10% на 5&nbsp;000 людях рідко доходить до 95%. Після запуску поштовху вже немає, і лишаються справжні +10%. Ніхто не помилився. Подивіться на 100 тестів нижче.</span><span class="en">More: about +21% on average, twice the truth. Not every test produces a winner, only one where chance pushed B upward: without that push, +10% on 5,000 people rarely reaches 95%. After launch the push is gone, and the true +10% remains. Nobody made a mistake. Look at 100 tests below.</span></span></div>
+    </div>
+    <div class="cs-case locked" data-lock="ch-8">
+      <h3><span class="uk">100 чесних тестів, де B справді краща на 10%</span><span class="en">100 fair tests where B really is 10% better</span></h3>
+      <canvas class="gl-canvas" id="wc-cv" style="height:220px" aria-label="Приріст, який показав кожен тест" data-aria-en="The gain each test showed"></canvas>
+      <p class="key"><span><i style="background:var(--ink)"></i><span class="uk">B перемогла</span><span class="en">B won</span></span><span><i style="background:transparent;box-shadow:inset 0 0 0 2px var(--muted)"></i><span class="uk">переможця немає</span><span class="en">no winner</span></span><span><i class="ln" style="background:var(--ink)"></i><span class="uk">правда, +10%</span><span class="en">the truth, +10%</span></span><span><i class="ln" style="background:var(--signal)"></i><span class="uk">середнє переможців</span><span class="en">the winners' average</span></span></p>
+      <div class="stats">
+        <div class="gl-stat"><span><span class="uk">Тестів, де B перемогла</span><span class="en">Tests where B won</span></span><b id="wc-w">–</b><small><span class="uk">зі 100</span><span class="en">of 100</span></small></div>
+        <div class="gl-stat"><span><span class="uk">Їхній середній приріст</span><span class="en">Their average gain</span></span><b class="hit" id="wc-avg">–</b><small><span class="uk">насправді +10%</span><span class="en">really +10%</span></small></div>
+      </div>
+      <div class="gl-btns"><button type="button" class="btn ghost" id="wc-again"><span class="uk">Ще 100 тестів</span><span class="en">100 more tests</span></button></div>
+    </div>
+    <p class="uk">Це називають прокляттям переможця: коли обираєш найкращих, обираєш і тих, кому пощастило. Що менше людей у тесті, то більший поштовх потрібен, щоб перемогти, і то сильніше переможець перебільшує. Є й друга причина: ефект новизни. Нове яскраве привертає увагу перші тижні, а потім люди звикають, і різниця слабшає.</p>
+    <p class="en">This is called the winner's curse: when you pick the best, you also pick the lucky ones. The fewer people in a test, the bigger the push needed to win, and the more the winner exaggerates. There is a second reason too: the novelty effect. Something new and bright draws attention for the first weeks, then people get used to it and the difference fades.</p>
+    <div class="cs-after" data-after-ch="ch-8">
+      <ul class="cs-take">
+        <li><span class="uk">B перемагає лише приблизно в 30 тестах зі 100, і ці переможці показують у середньому близько +21% замість справжніх +10%. Менший ефект після запуску тут не помилка, а звичайна ціна відбору переможців.</span><span class="en">B wins in only about 30 tests out of 100, and these winners show about +21% on average instead of the true +10%. A smaller effect after launch is not a mistake here, just the usual price of picking winners.</span></li>
+      </ul>
+    </div>
+    <ul class="cs-take">
+      <li><span class="uk">Приріст переможця в тесті зазвичай завищений. Плануйте бюджет і прогнози на менше число.</span><span class="en">A winner's gain in the test is usually inflated. Plan budgets and forecasts on a smaller number.</span></li>
+      <li><span class="uk">Що більше людей у тесті, то менше перебільшення.</span><span class="en">The more people in the test, the smaller the exaggeration.</span></li>
+      <li><span class="uk">Щоб побачити справжній ефект, лишіть невелику групу без змін на кілька тижнів після запуску.</span><span class="en">To see the real effect, keep a small group without the change for a few weeks after launch.</span></li>
+    </ul>
+    <div class="cs-story">
+      <b><span class="uk">Історія</span><span class="en">Story</span></b>
+      <span class="uk">У Microsoft, де щороку проводять тисячі онлайн-експериментів, аналітики керуються «законом Тваймана»: будь-яке число, яке виглядає цікавим чи незвичним, найчастіше хибне. Рон Кохаві, який роками очолював там експерименти, радить перевіряти несподівано великий виграш так само прискіпливо, як і поломку.</span><span class="en">At Microsoft, which runs thousands of online experiments a year, analysts go by "Twyman's law": any figure that looks interesting or different is usually wrong. Ron Kohavi, who led experimentation there for years, advises checking a surprisingly big win as carefully as a bug.</span>
+      <small><span class="uk">Джерело: Ron Kohavi, Diane Tang, Ya Xu, «Trustworthy Online Controlled Experiments» (2020), розділ 3.</span><span class="en">Source: Ron Kohavi, Diane Tang, Ya Xu, "Trustworthy Online Controlled Experiments" (2020), chapter 3.</span></small>
+    </div>
+    <!--PROBLEM:winners-curse-->
+  </section>
+
+  <div class="bridge">
+    <b><span class="uk">Що ви вже знаєте</span><span class="en">What you know now</span></b>
+    <span class="uk">«Впевненість 95%» означає, що випадок дає такий відрив рідше, ніж 1 раз на 20 (5). Ця обіцянка ламається, коли зупиняєш тест, щойно позеленіло (6), і коли перебираєш багато варіантів чи сегментів (7). А навіть чесний переможець показує в тесті більше, ніж дасть після запуску (8). Лишився іспит: шість дашбордів, а потім відповідь керівникові з початку курсу.</span><span class="en">"95% confidence" means chance gives such a lead less than 1 time in 20 (5). That promise breaks when you stop the test as soon as it goes green (6) and when you sift through many variants or segments (7). And even a fair winner shows more in the test than it will deliver after launch (8). What remains is the exam: six dashboards, and then an answer for the boss from the start of the course.</span>
+  </div>
+
+  <!-- ===================== FINALE ===================== -->
+  <div class="cs-part" id="part-3">
+    <span class="eyebrow"><span class="uk">Фінал</span><span class="en">Finale</span></span>
+    <h2><span class="uk">Іспит і відповідь керівникові</span><span class="en">The exam and an answer for the boss</span></h2>
+    <p><span class="uk">Усе, що було в курсі, тепер у дашбордах, які могли б прийти вам у робочий чат.</span><span class="en">Everything from the course is now in dashboards that could land in your work chat.</span></p>
+  </div>
+
+  <!-- 9 -->
+  <section class="cs-ch" id="ch-9">
+    <div class="cs-ch-head"><span class="cs-n">9</span><h2><span class="uk">Іспит: шість дашбордів</span><span class="en">Exam: six dashboards</span></h2></div>
+    <p class="cs-ask"><span class="uk">«Ось шість результатів. Що з ними робити?»</span><span class="en">"Here are six results. What do we do with them?"</span></p>
+    <p class="uk">У п'яти дашбордах по одній пастці з курсу, а один чистий. Оберіть, що робити. Після відповіді з'явиться пояснення і посилання на розділ, де про це йшлося.</p>
+    <p class="en">Five dashboards hold one trap from the course each, and one is clean. Choose what to do. After you answer, an explanation appears with a link to the chapter that covered it.</p>
+
+    <div class="cs-quiz exam" data-ch="ch-9" data-q="x1">
+      <p class="q"><span class="uk">Дашборд 1</span><span class="en">Dashboard 1</span></p>
+      <div class="dash">
+        <div class="dash-top"><span><span class="uk">Тема листа</span><span class="en">Email subject line</span></span><span><span class="uk">тестова розсилка</span><span class="en">a test send</span></span></div>
+        <div class="dash-rows">
+          <b>A</b><span class="dash-bar"><i style="width:28%"></i></span><span><span class="uk">5 відкриттів із 60</span><span class="en">5 opens of 60</span></span>
+          <b>B</b><span class="dash-bar"><i style="width:50%"></i></span><span><span class="uk">9 відкриттів із 60</span><span class="en">9 opens of 60</span></span>
+        </div>
+        <div class="dash-win"><b>B +80%</b></div>
+        <p class="dash-note"><span class="uk">Пропозиція: надіслати тему B на всю базу, 40&nbsp;000 адрес.</span><span class="en">Proposal: send subject B to the whole list, 40,000 addresses.</span></p>
+      </div>
+      <div class="opts" data-right-i="1"></div>
+      <p class="verdict" aria-live="polite"></p>
+      <div class="qv"><span class="ok"><span class="uk">Замало людей. 5 проти 9 відкриттів — це різниця в 4 людини, а на 60 адресах таке дає й випадок (<a href="#ch-3">розділ 3</a>). «+80%» тут звучить гучно лише тому, що числа маленькі. Щоб помітити справжню різницю, тестову розсилку треба на тисячі адрес (<a href="#ch-4">розділ 4</a>).</span><span class="en">Too few people. 5 vs 9 opens is a gap of 4 people, and on 60 addresses chance gives that too (<a href="#ch-3">chapter 3</a>). "+80%" sounds loud here only because the numbers are small. To notice a real difference, the test send needs thousands of addresses (<a href="#ch-4">chapter 4</a>).</span></span></div>
+    </div>
+
+    <div class="cs-quiz exam" data-ch="ch-9" data-q="x2">
+      <p class="q"><span class="uk">Дашборд 2</span><span class="en">Dashboard 2</span></p>
+      <div class="dash">
+        <div class="dash-top"><span><span class="uk">Новий банер на головній</span><span class="en">A new home-page banner</span></span><span><span class="uk">з 1 грудня</span><span class="en">since 1 December</span></span></div>
+        <div class="dash-rows">
+          <b><span class="uk">Лис</span><span class="en">Nov</span></b><span class="dash-bar"><i style="width:60%"></i></span><span><span class="uk">3&nbsp;200 продажів</span><span class="en">3,200 sales</span></span>
+          <b><span class="uk">Гру</span><span class="en">Dec</span></b><span class="dash-bar"><i style="width:81%"></i></span><span><span class="uk">4&nbsp;320 продажів</span><span class="en">4,320 sales</span></span>
+        </div>
+        <div class="dash-win"><b><span class="uk">+35%</span><span class="en">+35%</span></b><span><span class="uk">після запуску банера</span><span class="en">after the banner launch</span></span></div>
+        <p class="dash-note"><span class="uk">Пропозиція: зробити такі банери на всіх сторінках.</span><span class="en">Proposal: put such banners on every page.</span></p>
+      </div>
+      <div class="opts" data-right-i="5"></div>
+      <p class="verdict" aria-live="polite"></p>
+      <div class="qv"><span class="ok"><span class="uk">Це порівняння з минулим, а не тест. Грудень — місяць подарунків, і продажі в ньому ростуть і без банера (<a href="#ch-1">розділ 1</a>). Щоб дізнатися, що дав банер, покажіть його випадковій половині відвідувачів, а другій половині — головну без нього, у ті самі дні.</span><span class="en">This is a comparison with the past, not a test. December is gift month, and sales rise in it even without a banner (<a href="#ch-1">chapter 1</a>). To learn what the banner gave, show it to a random half of visitors and the page without it to the other half, on the same days.</span></span></div>
+    </div>
+
+    <div class="cs-quiz exam" data-ch="ch-9" data-q="x3">
+      <p class="q"><span class="uk">Дашборд 3</span><span class="en">Dashboard 3</span></p>
+      <div class="dash">
+        <div class="dash-top"><span><span class="uk">Тест ціни доставки</span><span class="en">A delivery price test</span></span><span><span class="uk">день 3 з 14</span><span class="en">day 3 of 14</span></span></div>
+        <div class="dash-rows">
+          <b>A</b><span class="dash-bar"><i style="width:45%"></i></span><span><span class="uk">45 замовлень з 900</span><span class="en">45 orders of 900</span></span>
+          <b>B</b><span class="dash-bar"><i style="width:62%"></i></span><span><span class="uk">62 замовлення з 900</span><span class="en">62 orders of 900</span></span>
+        </div>
+        <div class="dash-win"><b>B +38%</b><span><span class="uk">впевненість 95%</span><span class="en">confidence 95%</span></span></div>
+        <p class="dash-note"><span class="uk">Пропозиція: зупинити тест сьогодні й увімкнути B для всіх.</span><span class="en">Proposal: stop the test today and switch B on for everyone.</span></p>
+      </div>
+      <div class="opts" data-right-i="2"></div>
+      <p class="verdict" aria-live="polite"></p>
+      <div class="qv"><span class="ok"><span class="uk">Зарано. Тест розрахований на 14 днів, а 95% на третій день — саме той випадок, коли однакові версії часто торкаються порогу (<a href="#ch-6">розділ 6</a>). Дочекайтеся запланованого кінця і читайте результат тоді.</span><span class="en">Too early. The test is planned for 14 days, and 95% on day three is exactly when identical versions often touch the threshold (<a href="#ch-6">chapter 6</a>). Wait for the planned end and read the result then.</span></span></div>
+    </div>
+
+    <div class="cs-quiz exam" data-ch="ch-9" data-q="x4">
+      <p class="q"><span class="uk">Дашборд 4</span><span class="en">Dashboard 4</span></p>
+      <div class="dash">
+        <div class="dash-top"><span><span class="uk">Новий опис товару</span><span class="en">A new product description</span></span><span><span class="uk">день 21 з 21</span><span class="en">day 21 of 21</span></span></div>
+        <div class="dash-rows">
+          <b>A</b><span class="dash-bar"><i style="width:50%"></i></span><span><span class="uk">1&nbsp;070 покупок з 21&nbsp;400</span><span class="en">1,070 purchases of 21,400</span></span>
+          <b>B</b><span class="dash-bar"><i style="width:55%"></i></span><span><span class="uk">1&nbsp;180 покупок з 21&nbsp;350</span><span class="en">1,180 purchases of 21,350</span></span>
+        </div>
+        <div class="dash-win"><b>B +11%</b><span><span class="uk">впевненість 99%</span><span class="en">confidence 99%</span></span></div>
+        <p class="dash-note"><span class="uk">Групи ділив сервіс тестів випадково. Розмір і тривалість — за калькулятором, записаним до старту. Один варіант проти одного. Пропозиція: увімкнути B.</span><span class="en">The testing tool split the groups at random. Size and length follow a calculator written down before the start. One variant against one. Proposal: switch on B.</span></p>
+      </div>
+      <div class="opts" data-right-i="0"></div>
+      <p class="verdict" aria-live="polite"></p>
+      <div class="qv"><span class="ok"><span class="uk">Можна запускати. Пастки тут немає: групи поділено випадково (<a href="#ch-2">розділ 2</a>), людей пораховано заздалегідь (<a href="#ch-4">розділ 4</a>), результат прочитано в запланований кінець (<a href="#ch-6">розділ 6</a>), варіант один (<a href="#ch-7">розділ 7</a>). Лише не обіцяйте керівникові рівно +11%: справжній приріст, найпевніше, трохи менший (<a href="#ch-8">розділ 8</a>).</span><span class="en">You can ship it. There is no trap here: the groups were split at random (<a href="#ch-2">chapter 2</a>), the number of people was set in advance (<a href="#ch-4">chapter 4</a>), the result was read at the planned end (<a href="#ch-6">chapter 6</a>), and there is one variant (<a href="#ch-7">chapter 7</a>). Just don't promise the boss exactly +11%: the real gain is most likely a bit smaller (<a href="#ch-8">chapter 8</a>).</span></span></div>
+    </div>
+
+    <div class="cs-quiz exam" data-ch="ch-9" data-q="x5">
+      <p class="q"><span class="uk">Дашборд 5</span><span class="en">Dashboard 5</span></p>
+      <div class="dash">
+        <div class="dash-top"><span><span class="uk">Нова форма реєстрації</span><span class="en">A new sign-up form</span></span><span><span class="uk">12 сегментів</span><span class="en">12 segments</span></span></div>
+        <div class="dash-rows">
+          <b><span class="uk">Усі</span><span class="en">All</span></b><span class="dash-bar"><i style="width:50%"></i></span><span><span class="uk">B +1%, впевненість 58%</span><span class="en">B +1%, confidence 58%</span></span>
+          <b><span class="uk">1 з 12</span><span class="en">1 of 12</span></b><span class="dash-bar"><i style="width:70%"></i></span><span><span class="uk">B +24%, впевненість 96%</span><span class="en">B +24%, confidence 96%</span></span>
+        </div>
+        <div class="dash-win"><b><span class="uk">Android, Харків</span><span class="en">Android, Kharkiv</span></b></div>
+        <p class="dash-note"><span class="uk">Результат розбили на 12 сегментів після тесту. Пропозиція: показувати нову форму користувачам Android у Харкові.</span><span class="en">The result was cut into 12 segments after the test. Proposal: show the new form to Android users in Kharkiv.</span></p>
+      </div>
+      <div class="opts" data-right-i="3"></div>
+      <p class="verdict" aria-live="polite"></p>
+      <div class="qv"><span class="ok"><span class="uk">Багато спроб. Серед 12 сегментів хоч один часто «перемагає» випадково, особливо коли загалом різниці немає (<a href="#ch-7">розділ 7</a>). Якщо цей сегмент справді важливий, перевірте його окремим тестом, записавши це до старту.</span><span class="en">Many tries. Among 12 segments, one often "wins" by luck, especially when there is no difference overall (<a href="#ch-7">chapter 7</a>). If this segment really matters, check it in a separate test, writing that down before the start.</span></span></div>
+    </div>
+
+    <div class="cs-quiz exam" data-ch="ch-9" data-q="x6">
+      <p class="q"><span class="uk">Дашборд 6</span><span class="en">Dashboard 6</span></p>
+      <div class="dash">
+        <div class="dash-top"><span><span class="uk">Нова посадкова сторінка</span><span class="en">A new landing page</span></span><span><span class="uk">4 тижні</span><span class="en">4 weeks</span></span></div>
+        <div class="dash-rows">
+          <b>A</b><span class="dash-bar"><i style="width:31%"></i></span><span><span class="uk">3,1 заявки зі 100</span><span class="en">3.1 sign-ups in 100</span></span>
+          <b>B</b><span class="dash-bar"><i style="width:47%"></i></span><span><span class="uk">4,7 заявки зі 100</span><span class="en">4.7 sign-ups in 100</span></span>
+        </div>
+        <div class="dash-win"><b>B +52%</b><span><span class="uk">впевненість 99%</span><span class="en">confidence 99%</span></span></div>
+        <p class="dash-note"><span class="uk">Нову сторінку B бачать ті, хто прийшов з email-розсилки, а стару A — усі інші. Пропозиція: зробити B головною для всіх.</span><span class="en">The new page B is seen by those who came from the newsletter, and the old page A by everyone else. Proposal: make B the main page for everyone.</span></p>
+      </div>
+      <div class="opts" data-right-i="4"></div>
+      <p class="verdict" aria-live="polite"></p>
+      <div class="qv"><span class="ok"><span class="uk">Групи не випадкові. Читачі розсилки вже знають магазин і реєструються охочіше на будь-якій сторінці (<a href="#ch-2">розділ 2</a>). Впевненість 99% тут нічого не рятує: вона відділяє різницю від випадку, а не від того, що в групах різні люди. Поділіть відвідувачів монеткою і повторіть.</span><span class="en">The groups aren't random. Newsletter readers already know the shop and sign up more readily on any page (<a href="#ch-2">chapter 2</a>). The 99% confidence saves nothing here: it separates a difference from chance, not from different people being in the groups. Split visitors by coin and repeat.</span></span></div>
+    </div>
+
+    <p class="exam-score" id="ex-score" aria-live="polite"></p>
+
+    <div class="cs-after" data-after-ch="ch-9">
+      <div class="cs-case" id="final">
+        <h3><span class="uk">А тепер дашборд із початку курсу</span><span class="en">And now the dashboard from the start of the course</span></h3>
+        <div class="dash">
+          <div class="dash-top"><span><span class="uk">Тест: кнопка «Купити зараз»</span><span class="en">Test: a "Buy now" button</span></span><span><span class="uk">день 3 з 14</span><span class="en">day 3 of 14</span></span></div>
+          <div class="dash-rows">
+            <b>A</b><span class="dash-bar"><i style="width:48%"></i></span><span><span class="uk">48 покупок з 1&nbsp;000</span><span class="en">48 purchases of 1,000</span></span>
+            <b>B</b><span class="dash-bar"><i style="width:61%"></i></span><span><span class="uk">61 покупка з 1&nbsp;000</span><span class="en">61 purchases of 1,000</span></span>
+          </div>
+          <div class="dash-win"><b>B +27%</b><span><span class="uk">впевненість 90%</span><span class="en">confidence 90%</span></span></div>
+        </div>
+        <p><b><span class="uk">Відповідь керівникові: «Поки ні. Повернемося до цього через 11 днів».</span><span class="en">The answer for the boss: "Not yet. Let's come back to it in 11 days."</span></b></p>
+        <ul class="cs-take">
+          <li><span class="uk">Третій день із чотирнадцяти: рішення за ранніми цифрами збільшує шанс фальшивого переможця (<a href="#ch-6">розділ 6</a>).</span><span class="en">Day three of fourteen: deciding on early numbers raises the chance of a fake winner (<a href="#ch-6">chapter 6</a>).</span></li>
+          <li><span class="uk">Впевненість 90% не дотягує навіть до звичного порогу 95% (<a href="#ch-5">розділ 5</a>).</span><span class="en">Confidence of 90% doesn't reach even the usual 95% threshold (<a href="#ch-5">chapter 5</a>).</span></li>
+          <li><span class="uk">На 1&nbsp;000 людях різниця в 13 покупок цілком може бути випадком, а версія, справді краща на 1 покупку зі 100, на такій кількості людей програє приблизно 1 раз із 7 (<a href="#ch-3">розділи 3</a> і <a href="#ch-4">4</a>).</span><span class="en">With 1,000 people, a gap of 13 purchases may well be chance, and a version truly better by 1 purchase in 100 loses about 1 time in 7 with that many people (<a href="#ch-3">chapters 3</a> and <a href="#ch-4">4</a>).</span></li>
+          <li><span class="uk">А якщо B переможе в кінці, «+27%» після запуску майже напевно стане меншим (<a href="#ch-8">розділ 8</a>).</span><span class="en">And if B wins at the end, the "+27%" will almost certainly shrink after launch (<a href="#ch-8">chapter 8</a>).</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- checklist -->
+  <section class="cs-ch" id="checklist">
+    <div class="cs-ch-head"><span class="cs-n">✓</span><h2><span class="uk">Перш ніж повірити A/B-тесту</span><span class="en">Before you believe an A/B test</span></h2></div>
+    <p><span class="uk">Вісім питань, по одному з кожного розділу. Їх можна поставити будь-якому дашборду, не рахуючи нічого самому.</span><span class="en">Eight questions, one from each chapter. You can ask them of any dashboard without calculating anything yourself.</span></p>
+    <div class="two">
+      <div class="check-group">
+        <h3><span class="uk">Як тест улаштовано</span><span class="en">How the test is built</span></h3>
+        <ol class="cs-check">
+          <li><a href="#ch-1"><span class="uk">Чи є контрольна група в ті самі дні?</span><span class="en">Is there a control group on the same days?</span></a><span class="uk"> «До і після» — не тест.</span><span class="en"> "Before and after" is not a test.</span></li>
+          <li><a href="#ch-2"><span class="uk">Хто ділив групи?</span><span class="en">Who split the groups?</span></a><span class="uk"> Має випадок, а не люди й не менеджер.</span><span class="en"> It should be chance, not the people and not a manager.</span></li>
+          <li><a href="#ch-3"><span class="uk">Чи могла б така різниця вийти між A і A?</span><span class="en">Could A against A have shown such a gap?</span></a><span class="uk"> На малих числах — запросто.</span><span class="en"> On small numbers, easily.</span></li>
+          <li><a href="#ch-4"><span class="uk">Чи пораховано людей заздалегідь?</span><span class="en">Was the number of people worked out in advance?</span></a><span class="uk"> Калькулятор вибірки, до старту.</span><span class="en"> A sample-size calculator, before the start.</span></li>
+        </ol>
+      </div>
+      <div class="check-group">
+        <h3><span class="uk">Як читати результат</span><span class="en">How to read the result</span></h3>
+        <ol class="cs-check" start="5">
+          <li><a href="#ch-5"><span class="uk">95% — це ризик 1 з 20</span><span class="en">95% is a risk of 1 in 20</span></a><span class="uk">, а не гарантія і не розмір виграшу.</span><span class="en">, not a guarantee and not the size of the gain.</span></li>
+          <li><a href="#ch-6"><span class="uk">Тест дійшов до запланованого кінця?</span><span class="en">Did the test reach its planned end?</span></a><span class="uk"> Не зупиняйте, щойно позеленіло.</span><span class="en"> Don't stop as soon as it goes green.</span></li>
+          <li><a href="#ch-7"><span class="uk">Скільки було варіантів і сегментів?</span><span class="en">How many variants and segments were there?</span></a><span class="uk"> Переможця з багатьох перевірте окремо.</span><span class="en"> Check a winner picked from many separately.</span></li>
+          <li><a href="#ch-8"><span class="uk">Чекайте меншого ефекту після запуску</span><span class="en">Expect a smaller effect after launch</span></a><span class="uk"> і лишіть невелику групу без змін.</span><span class="en"> and keep a small group without the change.</span></li>
+        </ol>
+      </div>
+    </div>
+    <p class="uk">Готові до складніших випадків: виручки замість покупок, байєсівського «шансу перемогти», плану тесту і звіту для керівника? Далі курс <a href="{{C:ab-testing}}">«Парадокси A/B-тестування»</a>, а свої числа можна перевірити в інструменті <a href="{{C:ab-testing/check}}">«Перевірте свій тест»</a>.</p>
+    <p class="en">Ready for harder cases: revenue instead of purchases, a Bayesian "chance to beat", a test plan and a report for the boss? Next comes the course <a href="{{C:ab-testing}}">"A/B testing paradoxes"</a>, and you can check your own numbers with the <a href="{{C:ab-testing/check}}">"Check your test"</a> tool.</p>
+  </section>
+
+  <section class="share-card" id="share">
+    <h2><span class="uk">Кінець курсу</span><span class="en">The end of the course</span></h2>
+    <p id="sh-txt"></p>
+    <p><span class="uk">Знаєте колегу, якому дашборди тестів здаються китайською грамотою? Надішліть йому курс: тут лише лічба і монетка.</span><span class="en">Know a colleague to whom test dashboards look like Greek? Send them the course: it is only counting and a coin.</span></p>
+    <button type="button" class="btn" id="sh-btn"><span class="uk">Поділитися курсом</span><span class="en">Share the course</span></button>
+    <p class="gl-note" id="sh-msg"></p>
+  </section>
+
+  <!--MORE-->
+
+  <footer>
+    <span class="uk">Математичні парадокси · автор <a href="{{HOME}}#author">Дмитро Кудренко</a></span><span class="en">Math paradoxes · by <a href="{{HOME}}#author">Dmytro Kudrenko</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const root = document.documentElement, $ = s => document.querySelector(s);
+  let en = root.dataset.lang === 'en';
+  const L = (uk, e) => en ? e : uk;
+  const tok = n => getComputedStyle(root).getPropertyValue(n).trim();
+  const col = () => ({ ink: tok('--ink') || '#151515', muted: tok('--muted') || '#5F5F5F', line: tok('--line') || '#E4E4E4', soft: tok('--soft') || '#F4F4F4',
+    paper: tok('--paper') || '#FFFFFF', hit: tok('--signal') || '#D9318F' });
+  const ariaEn = () => { if (en) document.querySelectorAll('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn)); };
+  const store = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
+  // numbers: Ukrainian comma decimals and spaces, a true minus sign
+  const nf = (v, d = 0) => (v < 0 && Math.abs(v) >= 0.5 * 10 ** -d ? '−' : '') + Math.abs(v).toLocaleString(en ? 'en-US' : 'uk-UA', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fmt = v => nf(Math.round(v));
+  const pct = (p, d = 0) => nf(100 * p, d) + '%';
+  const sgn = (v, d = 0) => (Math.round(100 * v * 10 ** d) > 0 ? '+' : '') + nf(100 * v, d) + '%';
+  const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+  const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+  function setup(cv) {
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (!r.width || !r.height) return null;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, r.width, r.height);
+    g.font = '12px Inter, system-ui, sans-serif'; g.textBaseline = 'alphabetic';
+    return { g, w: r.width, h: r.height };
+  }
+  const font = (g, wt, px) => { g.font = `${wt} ${px}px Inter, system-ui, sans-serif`; };
+  // a label on a paper backing so lines do not cross it
+  function tag(g, txt, x, y, color, align = 'left', wt = 600) {
+    font(g, wt, 12); const w = g.measureText(txt).width, x0 = align === 'left' ? x : align === 'right' ? x - w : x - w / 2;
+    g.fillStyle = col().paper; g.globalAlpha = .9; g.fillRect(x0 - 3, y - 11, w + 6, 15); g.globalAlpha = 1;
+    g.fillStyle = color; g.textAlign = 'left'; g.fillText(txt, x0, y);
+  }
+
+  /* ---------- maths ---------- */
+  // purchases among n visitors who each buy with chance p, one coin per visitor (n stays ≤ 10 000 here)
+  const buyers = (n, p) => { let s = 0; for (let i = 0; i < n; i++) if (Math.random() < p) s++; return s; };
+  function erf(x) { const t = 1 / (1 + .3275911 * Math.abs(x)), y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - .284496736) * t + .254829592) * t * Math.exp(-x * x); return x >= 0 ? y : -y; }
+  // the dashboard's one-sided confidence that B beats A (pooled two-proportion z); identical pages reach .95 in 1 test of 20
+  function conf(a, na, b, nb) {
+    const p = (a + b) / (na + nb); if (p <= 0 || p >= 1) return .5;
+    const z = (b / nb - a / na) / Math.sqrt(p * (1 - p) * (1 / na + 1 / nb));
+    return .5 * (1 + erf(z / Math.SQRT2));
+  }
+  function lgamma(x) { const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, .1208650973866179e-2, -.5395239384953e-5]; let y = x, t = x + 5.5; t -= (x + .5) * Math.log(t); let s = 1.000000000190015; for (const v of c) s += v / ++y; return -t + Math.log(2.5066282746310005 * s / x); }
+  const pmf = (n, p) => { const lc = lgamma(n + 1), lp = Math.log(p), lq = Math.log(1 - p), out = new Float64Array(n + 1); for (let k = 0; k <= n; k++) out[k] = Math.exp(lc - lgamma(k + 1) - lgamma(n - k + 1) + k * lp + (n - k) * lq); return out; };
+  // exact chances that B (pb) shows more purchases than A (pa), fewer, or the same, n visitors each
+  function race(n, pa, pb) {
+    const A = pmf(n, pa), B = pmf(n, pb); let cum = 0, bAhead = 0, tie = 0;
+    for (let k = 0; k <= n; k++) { bAhead += B[k] * cum; tie += A[k] * B[k]; cum += A[k]; }
+    return { b: bAhead, a: 1 - bAhead - tie, tie };
+  }
+
+  /* ---------- 1: before and after ---------- */
+  const MO = [{ uk: 'Вер', en: 'Sep', ty: 4400, ly: 4000 }, { uk: 'Жов', en: 'Oct', ty: 4500, ly: 4100 }, { uk: 'Лис', en: 'Nov', ty: 5850, ly: 5300, launch: 1 }, { uk: 'Гру', en: 'Dec', ty: 6600, ly: 6000 }];
+  function moShow() {
+    const box = $('#mo'), max = 7000;
+    box.innerHTML = MO.map(m => `<div class="month${m.launch ? ' launch' : ''}"><div class="pair"><div class="bar ly" style="height:${100 * m.ly / max}%"><span>${fmt(m.ly)}</span></div><div class="bar" style="height:${100 * m.ty / max}%"><span>${fmt(m.ty)}</span></div></div><b>${L(m.uk, m.en)}</b></div>`).join('');
+    const ly = $('#mo-ly').checked;
+    box.classList.toggle('show-ly', ly);
+    $('#mo-lyv').textContent = ly ? sgn(MO[2].ly / MO[1].ly - 1) : '?';
+  }
+  $('#mo-ly').addEventListener('change', moShow);
+
+  /* ---------- 2: who chose, or a coin ---------- */
+  // 200 regulars buy 20 in 100, 800 newcomers 2.5 in 100; the new cart changes nothing
+  const SP = { mode: 'self', coin: null };
+  const rate = (r, n) => (r * .2 + n * .025) / (r + n);
+  function spFlip() { let ra = 0, na = 0; for (let i = 0; i < 200; i++) if (Math.random() < .5) ra++; for (let i = 0; i < 800; i++) if (Math.random() < .5) na++; SP.coin = { ra, na }; }
+  function spShow() {
+    const self = SP.mode === 'self';
+    if (!self && !SP.coin) spFlip();
+    const g = self ? [{ l: L('Натиснули «спробувати»', 'Clicked "try it"'), r: 60, n: 40 }, { l: L('Решта', 'The rest'), r: 140, n: 760 }]
+      : [{ l: L('Група A', 'Group A'), r: SP.coin.ra, n: SP.coin.na }, { l: L('Група B', 'Group B'), r: 200 - SP.coin.ra, n: 800 - SP.coin.na }];
+    $('#sp-grp').innerHTML = g.map(x => `<span>${esc(x.l)}<br><small>${fmt(x.r + x.n)} ${L('людей', 'people')}, ${L('постійних', 'regulars')} ${fmt(x.r)}</small></span><span class="mix"><i style="width:${100 * x.r / (x.r + x.n)}%"></i></span><span><b>${nf(100 * rate(x.r, x.n), 1)}</b> ${L('зі 100 купують', 'in 100 buy')}</span>`).join('');
+    $('#sp-msg').textContent = self ? L('Кошик тут ні до чого: різниця 13 проти 5 зі 100 — це різниця в складі груп.', 'The cart has nothing to do with it: the gap of 13 vs 5 in 100 is a gap in who is in the groups.')
+      : L('Монетка розкладає постійних покупців майже порівну, тож обидві групи купують близько 6 зі 100.', 'The coin spreads the regulars almost evenly, so both groups buy about 6 in 100.');
+    $('#sp-flip').hidden = self;
+    document.querySelectorAll('#sp-mode button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === SP.mode ? 'true' : 'false'));
+  }
+  document.querySelectorAll('#sp-mode button').forEach(b => b.addEventListener('click', () => { SP.mode = b.dataset.m; spShow(); }));
+  $('#sp-flip').addEventListener('click', () => { spFlip(); spShow(); });
+
+  /* ---------- 3: an A/A test with 100 visitors each ---------- */
+  const AA = { n: 0, big: 0, last: null };
+  const grid = (k, n = 100) => { const on = new Set(); while (on.size < k) on.add(Math.floor(Math.random() * n)); return Array.from({ length: n }, (_, i) => `<i${on.has(i) ? ' class="on"' : ''}></i>`).join(''); };
+  function aaRun(k) {
+    for (let i = 0; i < k; i++) { const a = buyers(100, .05), b = buyers(100, .05); AA.n++; if (Math.abs(a - b) >= 3) AA.big++; AA.last = { a, b, ga: grid(a), gb: grid(b) }; }
+    aaShow();
+  }
+  function aaShow() {
+    const s = AA.last; if (!s) return;
+    $('#aa-a').innerHTML = s.ga; $('#aa-b').innerHTML = s.gb;
+    $('#aa-la').textContent = `A: ${s.a} ${L(plural(s.a, 'покупка', 'покупки', 'покупок'), s.a === 1 ? 'purchase' : 'purchases')}`;
+    $('#aa-lb').textContent = `B: ${s.b} ${L(plural(s.b, 'покупка', 'покупки', 'покупок'), s.b === 1 ? 'purchase' : 'purchases')}`;
+    const hi = Math.max(s.a, s.b), lo = Math.min(s.a, s.b), w = s.b > s.a ? 'B' : 'A';
+    $('#aa-msg').textContent = s.a === s.b ? L('Цього разу порівну. Таке буває лише приблизно в 13 тестах зі 100.', 'Equal this time. That happens in only about 13 tests out of 100.')
+      : lo === 0 ? L(`На дашборді: «${w} перемагає», ${hi} проти 0. А сторінки однакові.`, `On a dashboard: "${w} wins", ${hi} to 0. And the pages are identical.`)
+      : L(`На дашборді це було б «${w} краща на ${Math.round(100 * (hi / lo - 1))}%». А сторінки однакові.`, `On a dashboard this would read "${w} is ${Math.round(100 * (hi / lo - 1))}% better". And the pages are identical.`);
+    $('#aa-n').textContent = fmt(AA.n);
+    $('#aa-big').textContent = `${fmt(AA.big)} ${L('з', 'of')} ${fmt(AA.n)} · ${pct(AA.big / AA.n)}`;
+  }
+  $('#aa-one').addEventListener('click', () => aaRun(1));
+  $('#aa-many').addEventListener('click', () => aaRun(100));
+
+  /* ---------- 4: how many people ---------- */
+  const SZ = { n: 1000, res: null };
+  function szRun() { SZ.res = Array.from({ length: 100 }, () => { const a = buyers(SZ.n, .05), b = buyers(SZ.n, .06); return b > a ? 1 : a > b ? -1 : 0; }); szShow(); }
+  function szShow() {
+    if (!SZ.res) return;
+    const r = race(SZ.n, .05, .06), b = SZ.res.filter(x => x > 0).length, a = SZ.res.filter(x => x < 0).length;
+    $('#sz-sq').innerHTML = SZ.res.map(x => `<i${x > 0 ? ' class="on"' : x < 0 ? ' class="out"' : ''}></i>`).join('');
+    $('#sz-b').textContent = `${b} ${L('зі 100', 'of 100')}`;
+    $('#sz-a').textContent = `${a} ${L('зі 100', 'of 100')}`;
+    $('#sz-bx').textContent = L('точно: ', 'exactly: ') + pct(r.b, r.b > .995 ? 1 : 0);
+    $('#sz-ax').textContent = L('точно: ', 'exactly: ') + pct(r.a, r.a < .005 ? 1 : 0);
+    document.querySelectorAll('#sz-n button').forEach(x => x.setAttribute('aria-pressed', +x.dataset.n === SZ.n ? 'true' : 'false'));
+  }
+  document.querySelectorAll('#sz-n button').forEach(x => x.addEventListener('click', () => { SZ.n = +x.dataset.n; szRun(); }));
+  $('#sz-again').addEventListener('click', szRun);
+
+  /* ---------- 5: twenty A/A tests and their confidence ---------- */
+  const CF = { n: 0, w: 0, last: [] };
+  function cfRun() {
+    CF.last = Array.from({ length: 20 }, () => conf(buyers(1000, .05), 1000, buyers(1000, .05), 1000));
+    CF.n += 20; CF.w += CF.last.filter(c => c >= .95).length; cfShow();
+  }
+  function cfShow() {
+    if (!CF.n) return;
+    $('#cf-t').innerHTML = CF.last.map((c, i) => `<span${c >= .95 ? ' class="win"' : ''}>${L('тест', 'test')} ${CF.n - 20 + i + 1}<b>${pct(Math.min(c, .999))}</b></span>`).join('');
+    $('#cf-n').textContent = fmt(CF.n);
+    $('#cf-w').textContent = `${fmt(CF.w)} ${L('з', 'of')} ${fmt(CF.n)}`;
+  }
+  $('#cf-more').addEventListener('click', cfRun);
+
+  /* ---------- 6: peeking every morning for 14 days ---------- */
+  const PK = { n: 0, any: 0, end: 0, last: null };
+  function pkTest() {
+    let a = 0, b = 0; const c = [];
+    for (let d = 1; d <= 14; d++) { a += buyers(300, .05); b += buyers(300, .05); c.push(conf(a, 300 * d, b, 300 * d)); }
+    PK.n++; if (c.some(x => x >= .95)) PK.any++; if (c[13] >= .95) PK.end++;
+    return c;
+  }
+  function pkRun(k) { for (let i = 0; i < k; i++) PK.last = pkTest(); pkShow(); }
+  function pkShow() {
+    if (!PK.last) return;
+    const c = PK.last, first = c.findIndex(x => x >= .95);
+    $('#pk-msg').textContent = first < 0 ? L('Цей тест жодного дня не торкнувся 95%: щоденні перевірки його б не зупинили.', 'This test never touched 95%: daily checks would not have stopped it.')
+      : c[13] >= .95 ? L(`Цей тест торкнувся 95% на ${first + 1}-й день і лишився там до кінця: фальшивий переможець навіть за правилами.`, `This test touched 95% on day ${first + 1} and stayed there to the end: a fake winner even by the rules.`)
+      : L(`Щоденна перевірка зупинила б цей тест на ${first + 1}-й день із «переможцем». На 14-й день впевненість лише ${pct(c[13])}.`, `A daily check would have stopped this test on day ${first + 1} with a "winner". On day 14 confidence is only ${pct(c[13])}.`);
+    $('#pk-n').textContent = fmt(PK.n);
+    $('#pk-any').textContent = `${fmt(PK.any)} ${L('з', 'of')} ${fmt(PK.n)} · ${pct(PK.any / PK.n)}`;
+    $('#pk-end').textContent = `${fmt(PK.end)} ${L('з', 'of')} ${fmt(PK.n)} · ${pct(PK.end / PK.n)}`;
+    pkDraw();
+  }
+  function pkDraw() {
+    const s = setup($('#pk-cv')); if (!s || !PK.last) return;
+    const { g, w, h } = s, C = col(), c = PK.last, l = 38, r = 12, t = 12, b = 26;
+    const X = d => l + (d - 1) / 13 * (w - l - r), Y = v => t + (1 - v) * (h - t - b);
+    font(g, 500, 11); g.fillStyle = C.muted; g.strokeStyle = C.line; g.lineWidth = 1;
+    for (const v of [0, .5, 1]) { g.beginPath(); g.moveTo(l, Y(v)); g.lineTo(w - r, Y(v)); g.stroke(); g.textAlign = 'right'; g.fillText(pct(v), l - 6, Y(v) + 4); }
+    for (const d of [1, 7, 14]) { g.textAlign = d === 1 ? 'left' : d === 14 ? 'right' : 'center'; g.fillText(L(`день ${d}`, `day ${d}`), d === 1 ? X(d) - 4 : d === 14 ? X(d) + 4 : X(d), h - 8); }
+    g.strokeStyle = C.hit; g.lineWidth = 2; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(l, Y(.95)); g.lineTo(w - r, Y(.95)); g.stroke(); g.setLineDash([]);
+    tag(g, '95%', w - r, Y(.95) - 5, C.hit, 'right', 700);
+    g.strokeStyle = C.ink; g.lineWidth = 2.5; g.beginPath(); c.forEach((v, i) => i ? g.lineTo(X(i + 1), Y(v)) : g.moveTo(X(1), Y(v))); g.stroke();
+    c.forEach((v, i) => { g.beginPath(); g.arc(X(i + 1), Y(v), v >= .95 ? 5 : 3, 0, 7); g.fillStyle = v >= .95 ? C.hit : C.ink; g.fill(); });
+    const first = c.findIndex(x => x >= .95);
+    if (first >= 0) tag(g, L('зупинили б тут', 'would stop here'), X(first + 1), Y(c[first]) + 20, C.ink, first > 9 ? 'right' : 'center');
+  }
+  $('#pk-one').addEventListener('click', () => pkRun(1));
+  $('#pk-many').addEventListener('click', () => pkRun(100));
+
+  /* ---------- 7: ten headlines against the old one ---------- */
+  const MV = { n: 0, w: 0, last: null };
+  function mvTest() {
+    const a = buyers(2000, .05), c = Array.from({ length: 10 }, () => conf(a, 2000, buyers(2000, .05), 2000));
+    MV.n++; if (c.some(x => x >= .95)) MV.w++;
+    return c;
+  }
+  function mvRun(k) { for (let i = 0; i < k; i++) MV.last = mvTest(); mvShow(); }
+  function mvShow() {
+    if (!MV.last) return;
+    const c = MV.last, wins = c.filter(x => x >= .95).length;
+    $('#mv-h').innerHTML = c.map((v, i) => `<div><span>${L('Заголовок', 'Headline')} ${i + 1}</span><span class="hb"><i class="${v >= .95 ? 'win' : ''}" style="width:${100 * v}%"></i><u></u></span><span>${pct(Math.min(v, .999))}</span></div>`).join('');
+    $('#mv-msg').textContent = wins ? L(`«Переможців»: ${wins}. Хоча жоден заголовок не кращий за старий.`, `"Winners": ${wins}. Though no headline is better than the old one.`)
+      : L('Цього разу жоден не дійшов до 95%.', 'This time none reached 95%.');
+    $('#mv-n').textContent = fmt(MV.n);
+    $('#mv-w').textContent = `${fmt(MV.w)} ${L('з', 'of')} ${fmt(MV.n)} · ${pct(MV.w / MV.n)}`;
+  }
+  $('#mv-one').addEventListener('click', () => mvRun(1));
+  $('#mv-many').addEventListener('click', () => mvRun(100));
+
+  /* ---------- 8: the winner's curse ---------- */
+  const WC = { res: null };
+  function wcRun() {
+    WC.res = Array.from({ length: 100 }, () => { const a = buyers(5000, .05), b = buyers(5000, .055); return { lift: b / Math.max(a, 1) - 1, win: conf(a, 5000, b, 5000) >= .95, j: Math.random() }; });
+    wcShow();
+  }
+  function wcShow() {
+    if (!WC.res) return;
+    const w = WC.res.filter(x => x.win), avg = w.length ? w.reduce((s, x) => s + x.lift, 0) / w.length : null;
+    $('#wc-w').textContent = fmt(w.length);
+    $('#wc-avg').textContent = avg === null ? '–' : sgn(avg);
+    wcDraw(avg);
+  }
+  function wcDraw(avg) {
+    const s = setup($('#wc-cv')); if (!s || !WC.res) return;
+    const { g, w, h } = s, C = col(), l = 14, r = 14, t = 26, b = 30, lo = -.2, hi = .5;
+    const X = v => l + (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (w - l - r), Y = j => t + j * (h - t - b);
+    font(g, 500, 11); g.fillStyle = C.muted; g.textAlign = 'center';
+    for (const v of [-.2, -.1, 0, .1, .2, .3, .4, .5]) g.fillText(sgn(v), X(v), h - 10);
+    g.strokeStyle = C.line; g.lineWidth = 1; g.beginPath(); g.moveTo(X(0), t - 8); g.lineTo(X(0), h - b + 4); g.stroke();
+    WC.res.forEach(x => { g.beginPath(); g.arc(X(x.lift), Y(x.j), 4.5, 0, 7); if (x.win) { g.fillStyle = C.ink; g.fill(); } else { g.strokeStyle = C.muted; g.lineWidth = 1.5; g.stroke(); } });
+    g.setLineDash([5, 4]); g.lineWidth = 2;
+    g.strokeStyle = C.ink; g.beginPath(); g.moveTo(X(.1), t - 8); g.lineTo(X(.1), h - b + 4); g.stroke();
+    if (avg !== null) { g.strokeStyle = C.hit; g.beginPath(); g.moveTo(X(avg), t - 8); g.lineTo(X(avg), h - b + 4); g.stroke(); }
+    g.setLineDash([]);
+    tag(g, L('правда +10%', 'truth +10%'), X(.1) - 4, t - 12, C.ink, 'right');
+    if (avg !== null) tag(g, L('переможці ', 'winners ') + sgn(avg), X(avg) + 4, t - 12, C.hit, 'left', 700);
+  }
+  $('#wc-again').addEventListener('click', wcRun);
+
+  /* ---------- 9: the exam's verdict buttons ---------- */
+  const VERDICTS = () => [L('Можна запускати B', 'You can ship B'), L('Замало людей: це ще шум', "Too few people: it's still noise"),
+    L('Зарано: дочекатися запланованого кінця', 'Too early: wait for the planned end'), L('Багато спроб: перевірити окремим тестом', 'Many tries: confirm with a separate test'),
+    L('Групи не випадкові: ділити монеткою', "The groups aren't random: split by coin"), L('Порівняння з минулим: потрібен тест у ті самі дні', 'A comparison with the past: run a test on the same days')];
+  function verdictButtons() {
+    document.querySelectorAll('.exam .opts').forEach(box => {
+      const r = +box.dataset.rightI, qz = box.closest('.cs-quiz');
+      box.innerHTML = VERDICTS().map((v, i) => `<button type="button" data-o="${i}"${i === r ? ' data-right' : ''}>${esc(v)}</button>`).join('');
+      box.querySelectorAll('button').forEach(b => b.addEventListener('click', () => answer(qz, +b.dataset.o, true)));
+      if (qz.dataset.done) mark(qz, qz.dataset.pick === undefined ? -1 : +qz.dataset.pick);
+    });
+  }
+
+  /* ---------- the end: a share card ---------- */
+  async function copyText(t) {
+    try { await navigator.clipboard.writeText(t); return true; } catch (e) {
+      const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.append(ta); ta.select();
+      let ok = false; try { ok = document.execCommand('copy'); } catch (e2) {} ta.remove(); return ok;
+    }
+  }
+  function shStats() {
+    const P = document.querySelector('.cs-progress'), ch = P && P.dataset.chapters ? P.dataset.chapters.split(' ') : [];
+    const done = ch.filter(isDone).length, ex = [...document.querySelectorAll('.exam')], all = ex.every(q => q.dataset.done && q.dataset.pick !== '-1');
+    return { done, n: ch.length, score: all ? ex.filter(q => q.dataset.right === '1').length : null, of: ex.length };
+  }
+  function shShow() {
+    const { done, n, score, of } = shStats();
+    $('#sh-txt').textContent = L(`Пройдено ${done} з ${n} розділів · ` + (score === null ? 'іспит ще попереду' : `іспит ${score} з ${of}`), `Done ${done} of ${n} chapters · ` + (score === null ? 'the exam is still ahead' : `exam ${score} of ${of}`));
+  }
+  $('#sh-btn').onclick = async () => {
+    const { done, n, score, of } = shStats(), url = location.origin + location.pathname;
+    const text = L(`Курс «A/B-тести простими словами»: що означає «впевненість 95%», скільки людей треба і коли можна зупинити тест, без формул. Мій результат: ${done} з ${n} розділів` + (score === null ? '.' : `, іспит ${score} з ${of}.`),
+      `The course "A/B testing in plain words": what "95% confidence" means, how many people you need and when you may stop a test, with no formulas. My result: ${done} of ${n} chapters` + (score === null ? '.' : `, exam ${score} of ${of}.`));
+    if (window.mpCourseEvent) mpCourseEvent('share');
+    if (navigator.share) { try { await navigator.share({ title: L('A/B-тести простими словами', 'A/B testing in plain words'), text, url }); $('#sh-msg').textContent = ''; return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+    const ok = await copyText(text + ' ' + url);
+    $('#sh-msg').textContent = ok ? L('Текст і посилання скопійовано: вставте їх у чат чи лист.', 'The text and link are copied: paste them into a chat or an email.') : L('Не вдалося скопіювати. Посилання: ', 'Could not copy. The link: ') + url;
+  };
+
+  /* ---------- the table of contents folds by part on phones ---------- */
+  document.querySelectorAll('.toc-lab').forEach(b => b.addEventListener('click', () => { const row = b.closest('.toc-row'), open = row.classList.toggle('open'); b.setAttribute('aria-expanded', open ? 'true' : 'false'); }));
+
+  /* ---------- check questions: guess first, then the case unlocks ---------- */
+  const QKEY = 'mp-abb-picks';
+  let PICKS = store.get(QKEY) || {};
+  const isDone = ch => !!(window.mpCourseIsDone && window.mpCourseIsDone(ch));
+  const onUnlock = {
+    'ch-3': () => { if (!AA.last) aaRun(1); },
+    'ch-4': () => { if (!SZ.res) szRun(); },
+    'ch-5': () => { if (!CF.n) cfRun(); },
+    'ch-6': () => { if (!PK.last) pkRun(1); },
+    'ch-7': () => { if (!MV.last) mvRun(1); },
+    'ch-8': () => { if (!WC.res) wcRun(); },
+  };
+  function unlock(ch) {
+    document.querySelectorAll(`[data-lock="${ch}"]`).forEach(el => el.classList.remove('locked'));
+    if (onUnlock[ch]) onUnlock[ch]();
+    requestAnimationFrame(redraw);
+  }
+  function examScore() {
+    const ex = [...document.querySelectorAll('.exam')], done = ex.filter(q => q.dataset.done).length;
+    if (!done) { $('#ex-score').textContent = ''; return; }
+    const known = ex.filter(q => q.dataset.pick !== undefined && q.dataset.pick !== '-1'), right = known.filter(q => q.dataset.right === '1').length;
+    $('#ex-score').textContent = done < ex.length ? L(`Відповідей: ${done} з ${ex.length}.`, `Answered: ${done} of ${ex.length}.`)
+      : known.length === ex.length ? L(`Ваш результат: ${right} з ${ex.length}.`, `Your score: ${right} of ${ex.length}.`) + (right === ex.length ? L(' Усі пастки впізнано.', ' Every trap spotted.') : L(' Пояснення і посилання на розділи — під кожним дашбордом.', ' Explanations and chapter links are under each dashboard.'))
+      : L('Іспит пройдено.', 'Exam done.');
+  }
+  // the buttons and the verdict of an answered quiz; the exam's buttons are rebuilt on a language switch, so this runs again
+  function mark(qz, i) {
+    const btns = [...qz.querySelectorAll('.opts button')], pick = btns.find(b => +b.dataset.o === +i), right = !!(pick && pick.hasAttribute('data-right'));
+    btns.forEach(b => { b.disabled = true; b.setAttribute('aria-pressed', b === pick ? 'true' : 'false'); if (b.hasAttribute('data-right')) b.classList.add('right'); });
+    const ok = qz.querySelector('.qv .ok'), no = qz.querySelector('.qv .no') || ok;
+    qz.querySelector('.verdict').innerHTML = (i < 0 || !pick ? '' : right ? L('Так. ', 'Right. ') : L('Ні. ', 'Not quite. ')) + (right || i < 0 || !pick ? ok : no).innerHTML;
+    return right;
+  }
+  // i is the option's data-o (its original position), so stored picks survive reordering the buttons
+  function answer(qz, i, byUser) {
+    if (qz.dataset.done) return;
+    const right = mark(qz, i);
+    qz.dataset.done = '1'; qz.dataset.pick = i; qz.dataset.right = right ? '1' : '0';
+    if (byUser) { PICKS[qz.dataset.q] = i; store.set(QKEY, PICKS); }
+    const ch = qz.dataset.ch;
+    if (qz.classList.contains('exam')) examScore();
+    const all = [...document.querySelectorAll(`.cs-quiz[data-ch="${ch}"]`)];
+    if (all.every(x => x.dataset.done)) {
+      // the anonymous counter gets whether the first answer was right; for the exam, whether all six were
+      if (byUser && window.mpCourseDone) window.mpCourseDone(ch, all.every(x => x.dataset.right === '1'));
+      if (byUser && qz.classList.contains('exam') && window.mpCourseEvent) mpCourseEvent('exam.' + all.filter(x => x.dataset.right === '1').length);
+      unlock(ch);
+    }
+    shShow();
+  }
+  function quizInit() {
+    document.querySelectorAll('.cs-quiz:not(.exam)').forEach(qz => {
+      qz.querySelectorAll('.opts button').forEach(b => b.addEventListener('click', () => answer(qz, +b.dataset.o, true)));
+    });
+    // a reload keeps answered chapters; picks without a done chapter are stale (the course was reset)
+    const stale = {};
+    document.querySelectorAll('.cs-quiz').forEach(qz => {
+      const ch = qz.dataset.ch, id = qz.dataset.q, p = PICKS[id];
+      if (isDone(ch)) answer(qz, p === undefined ? -1 : p, false);
+      else if (qz.classList.contains('exam') && p !== undefined) answer(qz, p, false); // a half-done exam keeps its answers
+      else if (p !== undefined) stale[id] = 1;
+    });
+    if (Object.keys(stale).length) { Object.keys(stale).forEach(k => delete PICKS[k]); store.set(QKEY, PICKS); }
+    const r = document.querySelector('.cs-reset');
+    if (r) r.addEventListener('click', () => store.del(QKEY), true);
+  }
+  function lockNotes() {
+    document.querySelectorAll('[data-lock]').forEach(el => {
+      let p = el.querySelector(':scope > .lock-note');
+      if (!p) { p = document.createElement('p'); p.className = 'lock-note'; el.prepend(p); }
+      p.textContent = L('Спершу дайте відповідь на питання вище, тоді картинка відкриється.', 'Answer the question above first, then the picture opens.');
+    });
+  }
+
+  /* ---------- wiring ---------- */
+  const texts = () => { moShow(); spShow(); aaShow(); szShow(); cfShow(); pkShow(); mvShow(); wcShow(); verdictButtons(); lockNotes(); examScore(); shShow(); };
+  function redraw() { pkDraw(); wcShow(); }
+  document.addEventListener('langchange', () => { en = root.dataset.lang === 'en'; ariaEn(); texts(); });
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+  new MutationObserver(redraw).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+  ariaEn(); texts();
+  // the course script (progress, mpCourseDone) is added by the build after this one, so quiz state waits for it
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', quizInit); else quizInit();
+})();
+</script>
