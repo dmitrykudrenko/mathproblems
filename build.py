@@ -915,6 +915,10 @@ VL_INLINE = ("a", "b", "i", "em", "strong")  # tags inside a sentence; any other
 VL_SKIP = ("script", "style", "svg", "canvas", "title", "textarea", "option", "select", "head", "code", "math", "sub", "sup")
 VL_TOKEN = re.compile(r"(?<![\w/.°(|∩∪-])([ABC])(?![\w/()|∩∪-])")
 VL_NOT = re.compile(r"\.\s+[A-Z]|\s+to\s+Z(?![A-Za-z])")  # an initial (C. R. Blake, Alan B. Krueger), "from A to Z"
+# The same pass glues numbers so a line never breaks inside one: digit groups (10 000), a number and its unit
+# (75 км, 10 $, 3 млн, 5 km) and, in Ukrainian, the space before a dash, so a line never starts with «—».
+NB_GROUPS = re.compile(r"(?<![\d.,])\d{1,3}(?: \d{3})+(?!\d)")
+NB_UNIT = re.compile(r"(\d) (%|‰|₴|\$|€|°|км|см|мм|м|кг|хв|год|с|грн|млн|млрд|тис\.|km|cm|mm|m|kg|min|h|s|million|billion)(?!\w)")
 
 
 def mark_labels(doc, lang):
@@ -944,6 +948,9 @@ def _mark_text(doc, lang):
         if skip or not part.strip():
             out.append(part)
             continue
+        part = NB_UNIT.sub(r"\1&nbsp;\2", NB_GROUPS.sub(lambda mo: mo.group(0).replace(" ", "&nbsp;"), part))
+        if lang == "uk":
+            part = part.replace(" — ", "&nbsp;— ")
         # the text that follows this run, across inline tags (a term link, a bold word)
         nxt = "".join(x for x in parts[k + 1:k + 6] if not x.startswith("<"))
         def rep(mo, part=part, nxt=nxt, prev=prev):
