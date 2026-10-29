@@ -1,0 +1,1543 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/revenue-equivalence/", "en": "/revenue-equivalence/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "revenue-equivalence";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else window.mpSolve();
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>Еквівалентність доходу: чотири аукціони дають однаково</title>
+<meta name="description" content="Перша ціна, друга, англійський чи голландський аукціон? З розумними покупцями всі чотири дають продавцю в середньому однаково. Гра, симуляція і пояснення.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/revenue-equivalence/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/revenue-equivalence/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/revenue-equivalence/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/revenue-equivalence/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Чотири аукціони">
+<meta property="og:description" content="Четверо розумних покупців, чотири формати аукціону: перша ціна, друга ціна, англійський і голландський. Який принесе продавцю найбільше в середньому?">
+<meta property="og:url" content="https://mathparadoxes.com/revenue-equivalence/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/revenue-equivalence/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Чотири формати аукціону: перша ціна, друга ціна, англійський і голландський, з питанням, який принесе більше.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Чотири аукціони">
+<meta name="twitter:description" content="Четверо розумних покупців, чотири формати аукціону: перша ціна, друга ціна, англійський і голландський. Який принесе продавцю найбільше в середньому?">
+<meta name="twitter:image" content="https://mathparadoxes.com/revenue-equivalence/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/revenue-equivalence/#page", "url": "https://mathparadoxes.com/revenue-equivalence/", "name": "Еквівалентність доходу: чотири аукціони дають однаково", "description": "Перша ціна, друга, англійський чи голландський аукціон? З розумними покупцями всі чотири дають продавцю в середньому однаково. Гра, симуляція і пояснення.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "advanced", "about": {"@type": "Thing", "name": "Revenue equivalence", "sameAs": "https://en.wikipedia.org/wiki/Revenue_equivalence"}, "image": "https://mathparadoxes.com/revenue-equivalence/og-uk.png", "datePublished": "2026-10-29", "dateModified": "2026-10-29", "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "workTranslation": {"@id": "https://mathparadoxes.com/revenue-equivalence/en/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "Чотири аукціони", "item": "https://mathparadoxes.com/revenue-equivalence/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/revenue-equivalence/#faq", "inLanguage": "uk", "mainEntity": [{"@type": "Question", "name": "Що таке теорема про еквівалентність доходу?", "acceptedAnswer": {"@type": "Answer", "text": "Якщо цінності покупців незалежні й однаково розподілені, покупці байдужі до ризику, перемагає найбільша цінність, а покупець із нульовою цінністю нічого не платить, то будь-який формат аукціону дає продавцю той самий середній дохід. Перша ціна, друга ціна, англійський і голландський аукціони за цих умов рівноцінні."}}, {"@type": "Question", "name": "Скільки отримає продавець із чотирма покупцями?", "acceptedAnswer": {"@type": "Answer", "text": "Якщо цінності рівномірні від 0 до 100, у середньому 100 · (n − 1)/(n + 1), тобто 60 для чотирьох покупців і 33,3 для двох. За першої ціни покупці ставлять (n − 1)/n своєї цінності, за другої рівно цінність, і обидва шляхи дають те саме число."}}, {"@type": "Question", "name": "Чому за другої ціни треба ставити рівно свою цінність?", "acceptedAnswer": {"@type": "Answer", "text": "Ставка вирішує лише, чи ви виграєте, а ціну визначає чужа ставка. Вища за цінність ставка інколи змушує купити дорожче, ніж річ варта для вас, нижча інколи відбирає вигідний лот. Чесна ставка найкраща, хоч би що робили інші."}}, {"@type": "Question", "name": "Коли формат аукціону таки важливий?", "acceptedAnswer": {"@type": "Answer", "text": "Коли порушено умови теореми: покупці бояться ризику (тоді перша ціна дає більше), покупці різні, цінність спільна для всіх (з'являється прокляття переможця) або ставки не чесні, як у рекламних аукціонах узагальненої другої ціни. Резервна ціна піднімає дохід за будь-яких правил: для цінностей від 0 до 100 найкраща 50."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the winners-curse page. Four auction formats side by side, each with the seller's
+   average take, is this problem's signature object: before the guess the four takes are question marks. */
+:root {
+  --tint: #DCE9F0;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --aa: #9AA0AE;
+  --c1: #141A30;
+  --c2: #2F6F8F;
+  --c3: #B07A2A;
+  --c4: #8C93A3;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--ink); }
+.odd.hit b { color: var(--hit); }
+.odd span { font-size: .82rem; color: var(--muted); }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl input[type=range] { width: 220px; max-width: 100%; accent-color: var(--ink); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.hit { color: var(--hit); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--ink); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.fmts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+.fmt { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; background: var(--surface); }
+.fmt b { font-size: .92rem; }
+.fmt span { font-size: .84rem; color: var(--muted); line-height: 1.4; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.opts { display: grid; gap: 10px; }
+.opts .btn { text-align: left; font-weight: 500; line-height: 1.35; }
+.opts .btn[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 150px 1fr 64px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+
+/* ---------- game ---------- */
+.room { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 18px; }
+.status { display: flex; gap: 20px 24px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.35rem; font-weight: 800; }
+.badge { display: inline-block; border-radius: 8px; padding: 4px 10px; font-weight: 700; font-size: .9rem; background: var(--cell); }
+.msg { min-height: 3em; font-weight: 500; }
+.pos { color: var(--win); }
+.neg { color: var(--loss); }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.tiles { display: grid; gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.7rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.quad { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.quad div { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.quad .k { font-size: .76rem; color: var(--muted); display: block; }
+.quad b { font-family: var(--f-display); font-size: 1.2rem; }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vs > div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 4px; }
+.vs b { font-family: var(--f-display); font-size: 1.6rem; }
+.vs span { font-size: .84rem; color: var(--muted); }
+
+/* ---------- escalation ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .card { display: grid; gap: 14px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.result-row .big { font-size: clamp(1.7rem, 4vw, 2.4rem); }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; }
+td.num { white-space: nowrap; }
+tr.hl td { font-weight: 700; }
+tr.hl td.ans { color: var(--hit); }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 1fr 56px; }
+  .crow > span:first-child { grid-column: 1 / -1; }
+  .vs, .fmts { grid-template-columns: 1fr; }
+  th, td { padding: 8px 6px; }
+  table { font-size: .82rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=d9a074c5">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+  <nav class="mp-nav" aria-label="Розділи" data-t="{&quot;cont&quot;: &quot;Продовжити&quot;, &quot;course&quot;: &quot;Продовжити курс&quot;}" data-slug="revenue-equivalence" data-me="{&quot;s&quot;: &quot;revenue-equivalence&quot;, &quot;n&quot;: {&quot;uk&quot;: &quot;Чотири аукціони&quot;, &quot;en&quot;: &quot;Four auctions&quot;}, &quot;u&quot;: {&quot;uk&quot;: &quot;https://mathparadoxes.com/revenue-equivalence/&quot;, &quot;en&quot;: &quot;https://mathparadoxes.com/revenue-equivalence/en/&quot;}}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Меню"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Продовжити: <b></b></a><a href="https://mathparadoxes.com/#all" aria-current="page">Задачі</a><a href="https://mathparadoxes.com/courses/">Курси</a><a href="https://mathparadoxes.com/glossary/">Словник</a></div></nav>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/revenue-equivalence/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/revenue-equivalence/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <div class="mp-meta"><span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i></span>Поглиблено</button><span class="mp-level-hint" hidden>Сподівання, дисперсія, кореляція, логарифми, ряди<a href="https://mathparadoxes.com/?l=3#all">Усі задачі цього рівня →</a></span></span><a class="mp-course" href="https://mathparadoxes.com/courses/auctions/#ch-7"><b>Курс «Як виграти аукціон і не програти»</b> · розділ 7 з 13 →</a></div>
+    <h1 class="uk"><span class="kw">Чотири аукціони</span> Продавець обирає правила аукціону. <span class="q sp-before">Які принесуть йому більше?</span><span class="q sp-after">Усі четверо дають однаково.</span></h1>
+    
+    <p class="lead uk sp-before">Четверо покупців хочуть ту саму річ, і кожен знає, скільки вона варта для нього. Продавець може продати її за першою ціною, за другою ціною, на англійському чи на голландському аукціоні. Покупці розумні й підлаштовують ставки під правила. Які правила дадуть продавцю найбільше в середньому? Зафіксуйте відповідь, а потім перевірте її в грі, на симуляції і в поясненнях.</p>
+    <p class="lead uk sp-after">За другої ціни покупці ставлять чесно, але переможець платить чужу, нижчу ставку. За першої платить свою, зате ставить менше, ніж річ варта для нього. Ці дві знижки в середньому точно однакові: усі чотири формати дають продавцю 60 із 100. Різниться лише розкид. Перевірте це в грі, на симуляції і в поясненнях.</p>
+    
+    
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd hit"><b class="mono">60</b><span><span class="uk">середній дохід у кожному з чотирьох форматів</span></span></div>
+      <div class="odd"><b class="mono"><span class="uk">12 проти 20</span></b><span><span class="uk">типовий розкид: перша ціна проти другої</span></span></div>
+    </div>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-chart" style="height:280px"></canvas>
+    <p class="cap sp-before"><span class="uk">Чотири формати, ті самі четверо покупців. Скільки в середньому отримає продавець у кожному?</span></p>
+    <p class="cap sp-after"><span class="uk">Кожен стовпчик: середній дохід за 2&nbsp;000 нових лотів у цьому форматі. Пунктир: точне значення 60.</span></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span></span>
+    <h2><span class="uk">Один лот, четверо покупців, чотири правила</span></h2>
+    <p class="lead uk">Це класична модель теорії аукціонів. Тут усе, що потрібно знати про лот, покупців і правила.</p>
+    
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Лот і покупці</span></h3>
+        <p class="uk">Продається одна річ, скажімо, вінтажна гітара. Кожен із чотирьох покупців знає, скільки вона варта саме для нього: це його цінність, число від 0 до 100, і будь-яке значення однаково ймовірне. Свою цінність покупець знає, чужих ні. Цінності незалежні: що одному гітара дуже потрібна, нічого не каже про інших.</p>
+        </div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Чотири формати</span></h3>
+        <p class="uk">Продавець обирає один із чотирьох форматів:</p>
+        
+        <div class="fmts">
+          <div class="fmt"><b><span class="uk">Перша ціна</span></b><span class="uk">Ставки в закритих конвертах. Перемагає найвища і платить свою ставку.</span></div>
+          <div class="fmt"><b><span class="uk">Друга ціна (Вікрі)</span></b><span class="uk">Ставки в закритих конвертах. Перемагає найвища, але платить другу за величиною ставку.</span></div>
+          <div class="fmt"><b><span class="uk">Англійський</span></b><span class="uk">Ціна відкрито росте, покупці виходять. Останній, хто лишився, платить ціну, на якій вийшов передостанній.</span></div>
+          <div class="fmt"><b><span class="uk">Голландський</span></b><span class="uk">Ціна відкрито падає від 100. Хто першим крикне «беру», той купує за поточною ціною.</span></div>
+        </div></div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Розумні покупці</span></h3>
+        <p class="uk">Кожен покупець хоче заробити якомога більше: різницю між своєю цінністю і ціною, яку заплатить. Він знає правила і знає, що інші теж розумні, тож обирає ставку, найкращу для себе за цих правил. Ніхто не змовляється і не ставить більше, ніж річ варта для нього.</p>
+        </div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span></h3>
+        <p class="uk">Якщо продавати такі лоти знову і знову, який формат принесе продавцю найбільше в середньому?</p>
+        </div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span></span>
+        <p class="q"><span class="uk">«Перша ціна, бо переможець платить свою ставку, а не чужу»</span></p>
+        <p class="uk">Але покупці теж це знають і ставлять менше. Розумний покупець за першої ціни ставить рівно стільки, скільки в середньому заплатив би за другої. Тому всі чотири формати дають продавцю 60.</p>
+        
+      </div>
+      <div class="card">
+        <h3><span class="uk">Припущення моделі</span></h3>
+        <ul class="rules uk">
+          <li>4 покупці, цінності незалежні й рівномірні від 0 до 100.</li>
+          <li>Кожен знає лише свою цінність.</li>
+          <li>Покупцям однаково важливий кожен заробіток: ризик їх не лякає і не вабить.</li>
+          <li>Резервної ціни немає: лот продається завжди.</li>
+        </ul>
+        
+        <p class="note"><span class="uk">«Дохід продавця»&nbsp;— ціна, яку заплатив переможець.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span></span>
+    <h2><span class="uk">Який формат вигідніший продавцю?</span></h2>
+    <p class="lead uk">Ті самі четверо розумних покупців, цінності від 0 до 100. Який формат принесе продавцю найбільше в середньому?</p>
+    
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px">
+      <span class="note"><span class="uk">Ваша відповідь</span></span>
+      <div class="opts" id="opts">
+        <button type="button" class="btn ghost" data-o="first" aria-pressed="false"><span class="uk">Перша ціна: переможець платить свою ставку</span></button>
+        <button type="button" class="btn ghost" data-o="second" aria-pressed="false"><span class="uk">Друга ціна: усі ставлять чесно</span></button>
+        <button type="button" class="btn ghost" data-o="english" aria-pressed="false"><span class="uk">Англійський: азарт відкритих торгів</span></button>
+        <button type="button" class="btn ghost" data-o="dutch" aria-pressed="false"><span class="uk">Голландський: хтось не витримає і крикне раніше</span></button>
+        <button type="button" class="btn ghost" data-o="same" aria-pressed="false"><span class="uk">Усі приблизно однаково</span></button>
+      </div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Оберіть відповідь. Тут з'явиться симуляція 10&nbsp;000 лотів у кожному форматі.</p>
+      
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Підказки</span>
+    <p class="mp-hints-intro">Важко вирішити? Відкривайте підказки по одній: спочатку легка, далі сильніша.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Подумайте, як покупці ставлять за кожних правил. Чи поставить розумний покупець усю свою цінність, якщо в разі перемоги платить саме свою ставку?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>За другої ціни найкраще ставити рівно свою цінність, але переможець платить чужу, нижчу ставку. За першої ставка нижча за цінність, зате переможець платить її саму. Яка з двох знижок більша?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>Візьміть двох покупців. За другої ціни продавець отримує меншу з двох цінностей. За першої кожен ставить половину своєї цінності, і перемагає більша. Порівняйте середнє меншої з двох цінностей і половину середнього більшої.</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Показати підказку 1 з 3 · легка&quot;, &quot;Показати підказку 2 з 3 · середня&quot;, &quot;Показати підказку 3 з 3 · сильна&quot;]">Показати підказку 1 з 3 · легка</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "revenue-equivalence";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "revenue-equivalence", RULE = {"right": ["same"]}, MIN = 30, T = {"kicker": "Як відповідають інші", "all": "Відповідей: {n}. Правильних серед них {p}.", "yes": "Ви серед тих, хто впорався.", "no": "Не засмучуйтеся: інтуїція підводить більшість.", "bar": "правильно", "note": "Рахуємо лише першу відповідь з кожного браузера, до того як він побачив розв'язок. Анонімно."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    // "crowd" pages have no right answer: they get the raw counts and draw their own block
+    if (RULE.crowd) { document.dispatchEvent(new CustomEvent("mp-crowd", { detail: { k: data.k || {}, mine: mine } })); return; }
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (n < MIN) return;
+    var p = Math.round(100 * ok / n), html = '<span class="kicker">' + T.kicker + '</span>';
+    html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span></span>
+    <h2><span class="uk">Ставте проти трьох ботів</span></h2>
+    <p class="lead uk">Тепер ви покупець. Кожен лот продається то за першою, то за другою ціною, і ви бачите, за якою. Ваша цінність випадкова від 0 до 100, у ботів так само. Боти досвідчені: кожен ставить по-своєму і трохи по-різному від лоту до лоту. Повзунок задає вашу ставку у відсотках від вашої цінності, окремо для кожного формату. Серія&nbsp;— 10 лотів. Ваш заробіток порівнюється з «підручником»: тими самими лотами, зіграними за правилом із теорії.</p>
+    
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="status" id="game-status"></div>
+      <div class="controls" style="margin-bottom:0">
+        <label class="ctl" for="g-p"><span><span class="uk">Ставка у відсотках від цінності:</span> <b class="mono" id="g-p-v">100%</b></span>
+          <input type="range" id="g-p" min="0" max="130" step="5" value="100">
+        </label>
+      </div>
+      <canvas id="game-chart" style="height:200px"></canvas>
+      <p class="msg" id="game-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn pri" id="g-bid"></button>
+        <button class="btn ghost" id="g-auto"><span class="uk">Ще 100 лотів із цими відсотками</span></button>
+        <button class="btn ghost" id="g-reset"><span class="uk">Почати заново</span></button>
+      </div>
+    </div>
+    <div class="card" style="display:grid;gap:14px">
+      <h3><span class="uk">Рахунок</span></h3>
+      <div class="tbl-wrap">
+        <table><tbody id="g-tally"></tbody></table>
+      </div>
+      <p class="note" id="g-verdict"></p>
+      <p class="note" id="g-seller"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span></span>
+    <h2><span class="uk">Тисячі лотів у кожному форматі</span></h2>
+    <p class="lead uk">Симуляція продає 10&nbsp;000 лотів у кожному форматі, кожен формат на своїх, незалежних покупцях. Покупці ставлять так, як велить теорія: за другої ціни і на англійському аукціоні свою цінність, за першої ціни і на голландському (n − 1)/n від неї (раунд 4 пояснює чому). Лінії показують, як середній дохід змінюється з кількістю проданих лотів, пунктир&nbsp;— точне значення.</p>
+    
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="sim-n"><span><span class="uk">Покупців n:</span> <b class="mono" id="sim-n-v">4</b></span>
+        <input type="range" id="sim-n" min="2" max="10" step="1" value="4">
+      </label>
+      <button class="btn pri" id="sim-run"><span class="uk">Нові 10&nbsp;000 лотів</span></button>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <canvas id="sim-chart" style="height:320px" role="img" aria-label="Running average revenue of four auction formats"></canvas>
+        <div class="legend" id="sim-legend"></div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k"><span class="uk">Середній дохід після 10&nbsp;000 лотів</span></div><div class="quad" id="sim-q"></div><div class="s" id="sim-ex"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Типовий розкид доходу (стандартне відхилення)</span></div><div class="quad" id="sim-sd"></div><div class="s" id="sim-sd-s"></div></div>
+      </div>
+    </div>
+    <canvas id="sim-hist" style="height:200px;margin-top:20px" role="img" aria-label="Distribution of revenue at first price and at second price"></canvas>
+    <div class="legend">
+      <span style="--c:var(--c1)"><b class="uk">перша ціна: скільки лотів дали такий дохід</b></span>
+      <span style="--c:var(--c2)"><b class="uk">друга ціна</b></span>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Пояснення</span></span>
+    <h2><span class="uk">Чому правила не змінюють дохід</span></h2>
+    <p class="lead uk">Перший шар без формул, другий з прикладом, таблицею і формулами, третій про теорему і людей, які її довели.</p>
+    
+  </div>
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">На пальцях</span><span class="mp-layer-desc">картинки, аналогії, маленькі числа</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «На пальцях» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Ідея (без чисел)</span></span>
+      <h3><span class="uk">Дві знижки, які гасять одна одну</span></h3>
+      <p class="uk">За другої ціни переможець ставить чесно, але платить не свою ставку, а нижчу чужу. За першої платить свою, але сам її занижує. В обох форматах переможець платить менше, ніж річ варта для нього, тільки знижку дає в одному випадку правило, а в іншому сам покупець.</p>
+      
+      <p class="uk">Ця картка пояснює, чому різниця між форматами менша, ніж здається, але ще не чому вона точно нуль. Чому знижки однакові, показує картка «Ставка = очікувана друга ціна» в наступному шарі.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Друга ціна</span></span>
+      <h3><span class="uk">Чому тут найкраще ставити рівно свою цінність</span></h3>
+      <p class="uk">Ваша ставка за другої ціни вирішує лише одне: виграєте ви чи ні. Скільки платити, вирішує чужа ставка. Поставите більше за цінність&nbsp;— інколи виграєте лот за ціною, вищою за його цінність для вас, і втратите. Поставите менше&nbsp;— інколи програєте лот, який міг принести заробіток. Чесна ставка не помиляється ні так, ні так, хоч би що робили інші.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Відкриті торги</span></span>
+      <h3><span class="uk">Англійський&nbsp;— це друга ціна, голландський&nbsp;— перша</span></h3>
+      <p class="uk">На англійському аукціоні розумний покупець тримається, доки ціна не дійде до його цінності. Торги зупиняються, щойно виходить передостанній, тобто на другій за величиною цінності. Це той самий результат, що й за другої ціни.</p>
+      
+      <p class="uk">На голландському ціна падає, і кожен мусить наперед вирішити, на якій ціні крикне. Нічого нового за час торгів він не дізнається, бо перший крик їх і завершує. Це та сама ставка в конверті, що й за першої ціни.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Однаково в середньому</span></span>
+      <h3><span class="uk">Але не щоразу</span></h3>
+      <div class="vs">
+        <div><span><span class="uk">Типовий розкид за першої ціни</span></span><b class="mono">± 12</b></div>
+        <div><span><span class="uk">Типовий розкид за другої ціни</span></span><b class="mono">± 20</b></div>
+      </div>
+      <p class="uk">В окремому лоті формати дають різні суми. За другої ціни продавець залежить від того, чи знайшовся другий покупець, який теж дуже хоче річ, тож дохід скаче сильніше. За першої переможець сам «згладжує» ставку, і дохід стабільніший. <a href="https://mathparadoxes.com/glossary/median-vs-mean/" class="mp-term" data-term="mean" aria-expanded="false">Середнє</a> те саме, ризик різний.</p>
+      
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Строго</span><span class="mp-layer-desc">таблиці, графіки, формули</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Строго» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Двоє покупців</span></span>
+      <h3><span class="uk">Приклад, який можна перевірити в голові</span></h3>
+      <p class="uk">Нехай покупців двоє. Дві випадкові точки на відрізку від 0 до 100 у середньому ділять його на три рівні частини, тож менша з двох цінностей у середньому 33,3, а більша 66,7.</p>
+      
+      <p class="uk">Друга ціна: переможець платить меншу цінність, у середньому 33,3. Перша ціна: кожен ставить половину своєї цінності, перемагає більша, і продавець отримує половину від 66,7, тобто ті самі 33,3. В окремому лоті суми різні: за цінностей 70 і 40 друга ціна дає 40, а перша 35.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Серце теореми</span></span>
+      <h3><span class="uk">Ставка = очікувана друга ціна</span></h3>
+      <p class="uk">Ваша цінність 80, суперників троє. Якщо ви перемогли, усі троє мають цінності нижчі за 80, рівномірно від 0 до 80. Найбільша з трьох таких цінностей у середньому дорівнює ¾ · 80 = 60. Стільки ви в середньому заплатили б, перемігши за другої ціни.</p>
+      
+      <p class="uk">Рівно стільки, 60, розумний покупець і ставить за першої ціни. Тобто перша ціна бере з переможця наперед і без ризику те, що друга ціна взяла б у середньому. Звідси однаковий дохід.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Будь-яка кількість покупців</span></span>
+      <h3><span class="uk">Два шляхи до того самого числа</span></h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Покупців n</span></th><th class="num"><span class="uk">Найбільша цінність</span></th><th class="num"><span class="uk">Ставка за 1-ї ціни</span></th><th class="num"><span class="uk">Дохід, 1-ша ціна</span></th><th class="num"><span class="uk">Дохід, 2-га ціна</span></th><th class="num"><span class="uk">Розкид 1-ї / 2-ї</span></th></tr></thead>
+          <tbody id="eq-table"></tbody>
+        </table>
+      </div>
+      <p class="uk">Середня найбільша з n цінностей дорівнює 100 · n/(n + 1). Перша ціна бере з неї частку (n − 1)/n. Друга ціна бере середню другу за величиною цінність, 100 · (n − 1)/(n + 1). Обидва шляхи дають те саме число. Розкид за першої ціни завжди менший.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span></span>
+      <h3><span class="uk">Рівновага і теорема про еквівалентність доходу</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Цінності V<sub>i</sub> <a href="https://mathparadoxes.com/glossary/independence/" class="mp-term" data-term="independence" aria-expanded="false">незалежні</a> й рівномірні на [0, 1] (у сотнях). Рівноважна ставка за першої ціни дорівнює середній найбільшій з n − 1 чужих цінностей за умови, що всі вони нижчі за вашу.</span></p>
+          <math display="block"><mi>b</mi><mo stretchy="false">(</mo><mi>v</mi><mo stretchy="false">)</mo><mo>=</mo><mi>E</mi><mo stretchy="false">[</mo><msub><mi>Y</mi><mn>1</mn></msub><mo>∣</mo><msub><mi>Y</mi><mn>1</mn></msub><mo>&lt;</mo><mi>v</mi><mo stretchy="false">]</mo><mo>=</mo><mfrac><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow><mi>n</mi></mfrac><mi>v</mi></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Дохід за першої ціни: частка від середньої найбільшої цінності. За другої: середня друга за величиною цінність.</span></p>
+          <math display="block"><mfrac><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow><mi>n</mi></mfrac><mo>·</mo><mfrac><mi>n</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></mfrac><mo>=</mo><mfrac><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></mfrac><mo>=</mo><mi>E</mi><mo stretchy="false">[</mo><msub><mi>V</mi><mrow><mo stretchy="false">(</mo><mn>2</mn><mo stretchy="false">)</mo></mrow></msub><mo stretchy="false">]</mo><mo>,</mo><mspace width="0.6em"></mspace><mi>n</mi><mo>=</mo><mn>4</mn><mo>:</mo><mspace width="0.3em"></mspace><mn>100</mn><mo>·</mo><mfrac><mn>3</mn><mn>5</mn></mfrac><mo>=</mo><mn class="hl">60</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Загальна теорема: якщо в будь-якому форматі перемагає найбільша цінність, а покупець із нульовою цінністю нічого не платить, то покупець із цінністю v у середньому платить те саме. P(v) — <a href="https://mathparadoxes.com/glossary/confidence-vs-chance-to-beat/" class="mp-term" data-term="chance-to-beat" aria-expanded="false">шанс перемогти</a>.</span></p>
+          <math display="block"><mi>m</mi><mo stretchy="false">(</mo><mi>v</mi><mo stretchy="false">)</mo><mo>=</mo><mi>v</mi><mi>P</mi><mo stretchy="false">(</mo><mi>v</mi><mo stretchy="false">)</mo><mo>−</mo><msubsup><mo>∫</mo><mn>0</mn><mi>v</mi></msubsup><mi>P</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo><mspace width="0.2em"></mspace><mi>d</mi><mi>x</mi><mo>,</mo><mspace width="0.6em"></mspace><mi>P</mi><mo stretchy="false">(</mo><mi>v</mi><mo stretchy="false">)</mo><mo>=</mo><msup><mi>v</mi><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msup></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Розкид доходу: друга ціна має <a href="https://mathparadoxes.com/glossary/variance/" class="mp-term" data-term="variance" aria-expanded="false">дисперсію</a> в 2n/(n − 1) разів більшу. Для n = 4 стандартні відхилення 12,2 і 20.</span></p>
+          <math display="block"><mfrac><mrow><mi>Var</mi><mo stretchy="false">[</mo><msub><mi>V</mi><mrow><mo stretchy="false">(</mo><mn>2</mn><mo stretchy="false">)</mo></mrow></msub><mo stretchy="false">]</mo></mrow><mrow><mi>Var</mi><mo stretchy="false">[</mo><mi>b</mi><mo stretchy="false">(</mo><msub><mi>V</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo stretchy="false">)</mo><mo stretchy="false">]</mo></mrow></mfrac><mo>=</mo><mfrac><mrow><mn>2</mn><mi>n</mi></mrow><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></mfrac></math>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Глибше</span><span class="mp-layer-desc">узагальнення, теорія, історія</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Глибше» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">1961</span></span>
+      <h3><span class="uk">Вільям Вікрі</span></h3>
+      <p class="uk">Економіст із Колумбійського університету Вільям Вікрі 1961 року описав аукціон другої ціни у статті «Контрспекуляція, аукціони і конкурентні закриті тендери» (Journal of Finance). Там же він уперше порівняв доходи різних форматів і побачив, що за таких умов, як у нашій задачі, вони однакові.</p>
+      
+      <p class="uk">1996 року Вікрі отримав Нобелівську премію з економіки разом із Джеймсом Мірлісом. Він помер через три дні після оголошення, і премію вручили посмертно.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">1981</span></span>
+      <h3><span class="uk">Маєрсон, Райлі і Семюелсон</span></h3>
+      <p class="uk">Загальну теорему довели незалежно одне від одного Роджер Маєрсон («Оптимальний дизайн аукціонів», Mathematics of Operations Research) і Джон Райлі з Вільямом Семюелсоном («Оптимальні аукціони», American Economic Review), обидві статті 1981 року. Однаковий дохід дає не лише ця четвірка, а будь-який формат, де перемагає найбільша цінність, навіть такий, де ставку платять усі учасники, а не лише переможець.</p>
+      
+      <p class="uk">Ті самі статті відповіли, як продавцю заробити більше: правила не допоможуть, допоможе резервна ціна (про неї раунд 5). Маєрсон 2007 року отримав Нобелівську премію за основи теорії дизайну механізмів.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">2020</span></span>
+      <h3><span class="uk">Мілгром і Вілсон: аукціони частот</span></h3>
+      <p class="uk">Пол Мілгром і Роберт Вілсон зі Стенфорда отримали Нобелівську премію 2020 року за вдосконалення теорії аукціонів і нові формати аукціонів. Разом із Престоном Макафі вони запропонували одночасний багатораундовий аукціон, де багато пов'язаних ліцензій торгуються водночас і торги закінчуються для всіх разом.</p>
+      
+      <p class="uk">Перший такий аукціон Федеральна комісія зв'язку США провела в липні 1994 року: десять загальнонаціональних ліцензій на пейджинговий зв'язок за п'ять днів принесли 617&nbsp;млн доларів.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Теорія і реальність</span></span>
+      <h3><span class="uk">Карти Magic в інтернеті</span></h3>
+      <p class="uk">1999 року Девід Лакінг-Райлі перевірив теорему в полі: продавав колекційні карти Magic: The Gathering через інтернет парами однакових лотів у різних форматах. Англійський аукціон і друга ціна дали приблизно однаковий дохід, як і обіцяє теорія. А голландський приніс приблизно на 30% більше, ніж перша ціна.</p>
+      
+      <p class="uk">Ціна на його голландських аукціонах падала повільно, приблизно на 5% на день, тож покупці не просто «ставили в конверт». Справжні люди і справжні правила додають те, чого немає в моделі.</p>
+      
+    </div>
+
+  </div>
+  </div>
+<script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "revenue-equivalence" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+<!-- ROUND 5: scaling -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Масштабування</span></span>
+    <h2><span class="uk">Коли правила таки мають значення</span></h2>
+    <p class="lead uk">Спершу математика (резервна ціна, яка піднімає дохід за будь-яких правил), потім логіка (на яких умовах тримається теорема і що буває, коли одна з них ламається), потім практика (рекламні аукціони, де чесна ставка програє).</p>
+    
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card stage">
+        <span class="kicker"><span class="uk">1 · Математика: резервна ціна</span></span>
+        <div class="controls" style="margin:0">
+          <label class="ctl" for="r-r"><span><span class="uk">Резервна ціна:</span> <b class="mono" id="r-r-v"></b></span>
+            <input type="range" id="r-r" min="0" max="100" step="5" value="50">
+          </label>
+          <label class="ctl" for="r-n"><span><span class="uk">Покупців:</span> <b class="mono" id="r-n-v"></b></span>
+            <input type="range" id="r-n" min="1" max="10" step="1" value="2">
+          </label>
+        </div>
+        <canvas id="r-chart" style="height:220px" role="img" aria-label="Seller's average revenue against the reserve price"></canvas>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Точно</span></span><b class="big mono" id="r-e">–</b></div>
+          <div><span class="k"><span class="uk">Симуляція, 20&nbsp;000 лотів</span></span><b class="big mono" id="r-s">–</b></div>
+        </div>
+        <div class="actions"><button class="btn ghost" id="r-run"><span class="uk">Перевірити симуляцією</span></button></div>
+        <p class="note" id="r-note"></p>
+      </div>
+      <div class="card esc-text">
+        <h3><span class="uk">Найкраща резервна ціна&nbsp;— 50 за будь-якої кількості покупців</span></h3>
+        <p class="uk">Резервна ціна&nbsp;— це мінімум, нижче якого продавець не продає. Вона працює як невидимий п'ятий покупець, що ставить чесно. Якщо найвища цінність нижча, лот лишається непроданим. Якщо лише одна цінність вища, переможець платить резервну ціну, а не меншу чужу ставку.</p>
+        
+        <p class="uk">Для цінностей від 0 до 100 найкраща резервна ціна 50, і вона не залежить від кількості покупців (так показали Маєрсон, Райлі і Семюелсон). З двома покупцями вона піднімає дохід з 33,3 до 41,7, хоча кожен четвертий лот лишається непроданим. З чотирма лише з 60 до 61,25: конкуренція вже сама тримає ціну. Оскільки резерв діє однаково за всіх правил, еквівалентність зберігається і з ним.</p>
+        
+        <p class="uk">Те саме перевіряється й з іншого боку: аукціон, де ставку платять усі, навіть ті, хто програв, теж дає 60 із чотирма покупцями. Ставки там значно нижчі, зате платять усі. Щоправда, у <a href="../dollar-auction/">аукціоні за долар</a>, де ставки відкриті й ростуть по черзі, ця логіка веде до ескалації.</p>
+        
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <span class="kicker"><span class="uk">2 · Логіка: покупці, які бояться ризику</span></span>
+        <label class="ctl" for="k-a"><span><span class="uk">Страх ризику:</span> <b class="mono" id="k-a-v"></b></span>
+          <input type="range" id="k-a" min="0" max="8" step="1" value="0">
+        </label>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Перша ціна</span></span><b class="big mono hit" id="k-f">–</b></div>
+          <div><span class="k"><span class="uk">Друга ціна</span></span><b class="big mono" id="k-s">60</b></div>
+        </div>
+        <p class="note" id="k-note"></p>
+        <div class="actions"><button class="btn ghost" id="k-run"><span class="uk">Перевірити симуляцією</span></button></div>
+        <p class="note" id="k-sim"></p>
+      </div>
+      <div class="card esc-text">
+        <h3><span class="uk">Теорема тримається на кількох умовах</span></h3>
+        <p class="uk">Однаковий дохід гарантований, лише коли перемагає найбільша цінність, цінності незалежні й приватні, покупці однакові за розкладом цінностей і байдужі до ризику. Порушіть одну умову&nbsp;— і формати розходяться.</p>
+        
+        <p class="uk"><b>Страх ризику.</b> Покупець, якому прикро програти лот, за першої ціни ставить вище, ніж байдужий до ризику, щоб рідше програвати. За другої ціни чесна ставка лишається найкращою, тож дохід там не змінюється. Повзунок показує, наскільки перша ціна обганяє другу. <b>Різні покупці.</b> Коли один покупець зазвичай цінує річ більше за інших, порядок форматів залежить від деталей: інколи вигідніша перша ціна, інколи друга (Маскін і Райлі, 2000). <b>Спільна цінність.</b> Якщо річ варта для всіх однаково, але ніхто не знає скільки, з'являється <a href="../winners-curse/">прокляття переможця</a>, і рівність ламається. Мілгром і Вебер 1982 року довели: коли оцінки покупців пов'язані між собою, англійський аукціон, де видно, коли виходять інші, приносить у середньому не менше за другу ціну, а друга ціна&nbsp;— не менше за першу. Що більше покупці дізнаються з торгів, то сміливіше вони ставлять.</p>
+        
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <span class="kicker"><span class="uk">3 · Практика: рекламний аукціон</span></span>
+        <p class="note"><span class="uk">Два рекламні місця над результатами пошуку: на перше 200 кліків на годину, на друге 199. Троє рекламодавців цінують клік у $10, $4 і $2. Хто поставив найбільше, отримує перше місце і платить за клік наступну ставку, другий&nbsp;— друге місце за третьою ставкою. Двоє інших ставлять чесно. Скільки поставите ви, рекламодавець з $10?</span></p>
+        <label class="ctl" for="ad-b"><span><span class="uk">Ваша ставка за клік:</span> <b class="mono" id="ad-b-v"></b></span>
+          <input type="range" id="ad-b" min="0" max="12" step="0.5" value="10">
+        </label>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Місце</span></span><b class="big mono" id="ad-slot">–</b></div>
+          <div><span class="k"><span class="uk">Ціна кліку</span></span><b class="big mono" id="ad-p">–</b></div>
+          <div><span class="k"><span class="uk">Заробіток на годину</span></span><b class="big mono" id="ad-g">–</b></div>
+        </div>
+        <p class="note" id="ad-note"></p>
+      </div>
+      <div class="card esc-text">
+        <h3><span class="uk">Узагальнена друга ціна: чесність програє</span></h3>
+        <p class="uk">Пошукова реклама довго продавалася саме так: Google запустив цей формат 2002 року, і 2004-го понад 98% його доходу в 3,189&nbsp;млрд доларів давали такі аукціони. Його називають узагальненою другою ціною, бо переможець платить ставку наступного. Але, як показали Бенджамін Едельман, Михайло Островський і Майкл Шварц (American Economic Review, 2007), тут, на відміну від аукціону Вікрі, чесна ставка не найкраща.</p>
+        
+        <p class="uk">Перевірте їхній приклад повзунком. Чесна ставка $10 дає перше місце за $4 і (10 − 4) · 200 = 1200 на годину. Ставка $3 дає друге місце за $2 і (10 − 2) · 199 = 1592. Один клік на годину коштує $2 зайвих. Причина в тому, що ваша ставка тут визначає не лише, чи ви виграєте, а й яке місце дістанеться іншим, а з ним і ваша ціна. Коли ставки перестають бути чесними, проста формула «правила не важливі» більше не працює: 2019 року Google перевів продаж медійної реклами в Ad Manager на аукціон першої ціни.</p>
+        
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<!-- Sources: Vickrey, "Counterspeculation, Auctions, and Competitive Sealed Tenders", J. Finance 16(1):8–37 (1961);
+     Nobel 1996 and Vickrey's death three days after the announcement: NAS biographical memoir (Drèze), Wikipedia;
+     Myerson, "Optimal Auction Design", Math. Oper. Res. 6(1):58–73 (1981); Riley & Samuelson, "Optimal Auctions",
+     AER 71(3):381–392 (1981); Maskin & Riley, "Asymmetric Auctions", Rev. Econ. Stud. 67(3):413–438 (2000);
+     Moldovanu & Tietzel, "Goethe's Second-Price Auction", JPE 106(4):854–859 (1998);
+     Lucking-Reiley, "Vickrey Auctions in Practice", JEP 14(3):183–192 (2000) (stamp mail auctions since 1893);
+     Lucking-Reiley, "Using Field Experiments to Test Equivalence between Auction Formats: Magic on the Internet",
+     AER 89(5):1063–1080 (1999); Nobel 2020 press release (Milgrom, Wilson); FCC narrowband PCS auction July 1994
+     ($617M, 10 licences, 5 days); Edelman, Ostrovsky & Schwarz, AER 97(1):242–259 (2007), Remark 3 and intro
+     (Google 2004 revenue $3.189bn, >98% from GSP; GSP introduced by Google in February 2002);
+     Google Ad Manager blog, March and September 2019 (unified first-price auction);
+     Milgrom & Weber, "A Theory of Auctions and Competitive Bidding", Econometrica 50(5):1089–1122 (1982)
+     (affiliated values: English ≥ second price ≥ first price in expected revenue). -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span></span>
+    <h2><span class="uk">Що розповісти друзям</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1797</span>
+        <h3><span class="uk">Ґете продає поему</span></h3>
+        <p class="uk">Йоганн Вольфганг Ґете запропонував видавцю Фівегу назвати ціну за рукопис поеми «Герман і Доротея», а свою вимогу запечатав у конверті в посередника. Якщо пропозиція не нижча за вимогу, угода за вимогою Ґете. Економісти Бенні Молдовану і Манфред Тіцель 1998 року показали, що це аукціон другої ціни, винайдений за 164 роки до Вікрі.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1893</span>
+        <h3><span class="uk">Марки поштою</span></h3>
+        <p class="uk">Продавці поштових марок проводили аукціони за поштовими заявками за правилом, близьким до другої ціни, щонайменше з 1893 року, ще до народження Вікрі. Девід Лакінг-Райлі показав це 2000 року, простеживши історію від філателії XIX століття до eBay, де автоматична ставка працює так само.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">3 дні</span></span>
+        <h3><span class="uk">Нобель, якого не встиг отримати</span></h3>
+        <p class="uk">Вільяма Вікрі оголосили лауреатом Нобелівської премії з економіки 1996 року за внесок в економічну теорію стимулів за асиметричної інформації, зокрема про аукціони. Через три дні він помер дорогою на наукову конференцію. Премію за нього отримав колега з Колумбійського університету.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">617&nbsp;млн $</span></span>
+        <h3><span class="uk">Перший аукціон частот</span></h3>
+        <p class="uk">У липні 1994 року Федеральна комісія зв'язку США за п'ять днів продала десять загальнонаціональних ліцензій за 617&nbsp;млн доларів. Це був перший одночасний багатораундовий аукціон за схемою Мілгрома, Вілсона і Макафі, за яку Мілгром і Вілсон згодом отримали Нобеля.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">+30%</span>
+        <h3><span class="uk">Голландський обігнав першу ціну</span></h3>
+        <p class="uk">У польовому експерименті Лакінга-Райлі з картами Magic через інтернет голландські аукціони дали приблизно на 30% більше, ніж аукціони першої ціни, хоча теорія обіцяє однаково. У лабораторних дослідах до того виходило навпаки.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">98%</span>
+        <h3><span class="uk">Аукціони, що годують Google</span></h3>
+        <p class="uk">2004 року Google заробив 3,189&nbsp;млрд доларів, і понад 98% з них дали аукціони узагальненої другої ціни за рекламу в пошуку. Так рахують Едельман, Островський і Шварц у статті, яка показала, що чесно ставити в цих аукціонах не найкраще.</p>
+        
+      </article>
+  </div>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">Ще задачі</span>
+    <h2>Інші парадокси</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/gamblers-ruin/"><h3>Розорення гравця</h3><p>У вас $100, ви ставите по $1 на червоне в рулетці, доки не матимете $200 або нуль. Який шанс подвоїти гроші?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/dollar-auction/"><h3>Аукціон за долар</h3><p>Продають купюру в 1 долар. Платять обидва лідери торгів, а долар отримує лише переможець. Скільки зазвичай збирає продавець?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/braess-paradox/"><h3>Парадокс Браеса</h3><p>4000 водіїв їдуть по 65 хвилин. Місто відкриває безкоштовну миттєву перемичку між маршрутами. Поїздка стане коротшою чи довшою?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/pirates-gold/"><h3>Пірати і 100 золотих</h3><p>П&#x27;ятеро логічних піратів ділять 100 монет, а капітана, чий поділ не підтримала половина, викидають за борт. Скільки монет він залишить собі?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/hotelling-beach/"><h3>Морозиво на пляжі</h3><p>Кілометр пляжу і два продавці морозива, які можуть пересувати кіоски. Кожен покупець іде до найближчого. Де продавці стануть?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/axelrod-tournament/"><h3>Турнір Аксельрода</h3><p>Програми грають дилему в&#x27;язня по 200 раундів кожна з кожною. Хто набере найбільше: вічний зрадник, хитрун, «Око за око» чи монетка?</p></a>
+  </div>
+  <p class="mp-related-all"><a href="https://mathparadoxes.com/">Усі задачі →</a> <a href="https://mathparadoxes.com/glossary/">Словник →</a></p>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Обговорення</span>
+    <h2>Що ви думаєте?</h2>
+    <p>Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub.</p>
+    <div class="mp-lvote"><p>Рівень «Поглиблено» відповідає задачі?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">Ні, складніше</button><button type="button" data-vote="right">Так</button><button type="button" data-vote="easier">Ні, простіше</button></div><p class="mp-lvote-thanks">Дякуємо! Це допоможе точніше ставити рівні.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "revenue-equivalence" + "-lvl", LEVEL = 3, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="revenue-equivalence" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="uk" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Розсилка</span>
+    <h2>Нові задачі, пояснення й обговорення</h2>
+    <p>Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">Форма підписки з'явиться тут найближчим часом.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+<footer>
+  <span class="uk">Теорему про еквівалентність доходу довели Вікрі (1961), Маєрсон, Райлі і Семюелсон (1981). Якщо перемагає найбільша цінність, правила аукціону не змінюють середній дохід продавця.</span>
+  
+  <span class="mono">E[rev] = 100 · (n − 1)/(n + 1)</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const solved = () => !window.mpSolved || mpSolved();
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const pct = (p, d = 0) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => Math.round(n).toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const f1 = v => dec(v.toFixed(1));
+const f2 = v => dec(v.toFixed(2));
+const MINUS = '−';
+const sgn = (v, d = 1) => { const s = Math.abs(v).toFixed(d); return (+s === 0 ? '' : v > 0 ? '+' : MINUS) + dec(s); };
+
+/* ---------- maths ---------- */
+// values uniform on [0, 100]; symmetric equilibrium bids: honest at second price and English,
+// (n − 1)/n of the value at first price and Dutch
+const FM = [
+  { id: 'first', uk: 'Перша ціна', en: 'First price', c: '--c1' },
+  { id: 'second', uk: 'Друга ціна', en: 'Second price', c: '--c2' },
+  { id: 'english', uk: 'Англійський', en: 'English', c: '--c3' },
+  { id: 'dutch', uk: 'Голландський', en: 'Dutch', c: '--c4' }
+];
+const fname = f => L(f.uk, f.en);
+const top2 = n => { let a = -1, b = -1; for (let i = 0; i < n; i++) { const v = 100 * Math.random(); if (v > a) { b = a; a = v; } else if (v > b) b = v; } return [a, b]; };
+function revenue(id, n) {
+  const [a, b] = top2(n);
+  if (id === 'first') return (n - 1) / n * a;            // the winner pays their own shaded bid
+  if (id === 'dutch') return (n - 1) / n * a;            // the clock stops at the highest planned bid
+  return b;                                              // second price; English stops when the second-last drops out
+}
+const exactRev = n => 100 * (n - 1) / (n + 1);
+const exactMax = n => 100 * n / (n + 1);
+// standard deviations: second-highest ~ Beta(n−1, 2), highest ~ Beta(n, 1), times 100
+const sdSecond = n => 100 * Math.sqrt(2 * (n - 1) / ((n + 1) ** 2 * (n + 2)));
+const sdFirst = n => 100 * (n - 1) / n * Math.sqrt(n / ((n + 1) ** 2 * (n + 2)));
+function batch(n, N) {
+  return FM.map(f => { let s = 0, q = 0; for (let i = 0; i < N; i++) { const r = revenue(f.id, n); s += r; q += r * r; } const m = s / N; return { m, sd: Math.sqrt(Math.max(0, q / N - m * m)) }; });
+}
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const sig = () => tok('--signal') || tok('--hit');
+function rrect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
+
+/* ---------- hero ---------- */
+let heroRes = null, heroTimer = null;
+function drawIcon(ctx, id, cx, cy) {
+  ctx.strokeStyle = tok('--ink'); ctx.fillStyle = tok('--ink'); ctx.lineWidth = 2;
+  if (id === 'first' || id === 'second') {
+    rrect(ctx, cx - 18, cy - 12, 36, 24, 3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - 18, cy - 12); ctx.lineTo(cx, cy + 2); ctx.lineTo(cx + 18, cy - 12); ctx.stroke();
+    ctx.font = '800 12px ' + tok('--f-display'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(id === 'first' ? '1' : '2', cx, cy + 25);
+  } else {
+    const up = id === 'english';
+    ctx.beginPath(); ctx.moveTo(cx, cy + (up ? 16 : -16)); ctx.lineTo(cx, cy + (up ? -14 : 14)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - 9, cy + (up ? -5 : 5)); ctx.lineTo(cx, cy + (up ? -15 : 15)); ctx.lineTo(cx + 9, cy + (up ? -5 : 5)); ctx.stroke();
+  }
+}
+function drawHero() {
+  const s = setupCanvas($('#hero-chart')); if (!s) return;
+  const { ctx, W, H } = s, cw = (W - 8) / 4;
+  if (!solved()) {
+    FM.forEach((f, i) => {
+      const x = 4 + i * cw, cx = x + cw / 2;
+      ctx.fillStyle = tok('--surface') || '#fff'; ctx.strokeStyle = tok('--line'); ctx.lineWidth = 1;
+      rrect(ctx, x + 4, 10, cw - 8, H - 20, 12); ctx.fill(); ctx.stroke();
+      drawIcon(ctx, f.id, cx, 56);
+      ctx.fillStyle = tok('--muted'); ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      const nm = fname(f).split(' ');
+      nm.forEach((w, k) => ctx.fillText(w, cx, 100 + k * 14));
+      ctx.fillStyle = tok('--ink'); ctx.font = '800 34px ' + tok('--f-display'); ctx.textBaseline = 'middle';
+      ctx.fillText('?', cx, H - 70);
+    });
+    return;
+  }
+  if (!heroRes) heroRes = batch(4, 2000);
+  const t = 24, b = 46, y = v => t + (1 - v / 80) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  FM.forEach((f, i) => {
+    const x = 4 + i * cw, r = heroRes[i];
+    ctx.fillStyle = tok(f.c); rrect(ctx, x + cw * .2, y(r.m), cw * .6, y(0) - y(r.m), 6); ctx.fill();
+    ctx.fillStyle = tok('--ink'); ctx.font = '700 13px ' + tok('--f-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(f1(r.m), x + cw / 2, y(r.m) - 14);
+    ctx.fillStyle = tok('--muted'); ctx.font = '600 10px ' + tok('--f-mono'); ctx.textBaseline = 'top';
+    fname(f).split(' ').forEach((w, k) => ctx.fillText(w, x + cw / 2, y(0) + 6 + k * 12));
+  });
+  ctx.strokeStyle = sig(); ctx.setLineDash([6, 4]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(4, y(60)); ctx.lineTo(W - 4, y(60)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = sig(); ctx.font = '700 12px ' + tok('--f-mono'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+  ctx.fillText('60', 6, y(60) - 3);
+}
+function heroStep() { heroRes = batch(4, 2000); drawHero(); }
+function heroStart() {
+  clearInterval(heroTimer); heroTimer = null;
+  if (solved() && !reduce() && !STATIC) heroTimer = setInterval(heroStep, 2200);
+  drawHero();
+}
+document.addEventListener('solved', () => { heroStart(); gameText(); });
+
+/* ---------- round 1: guess ---------- */
+let guessed = null;
+const base = batch(4, 10000);
+$('#opts').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  guessed = b.dataset.o;
+  $('#opts').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  guessText();
+  window.mpSolve && mpSolve(guessed);
+});
+function guessText() {
+  if (guessed === null) return;
+  const v = {
+    first: L('Ні. Переможець справді платить свою ставку, але розумний покупець це знає і ставить менше: із чотирма покупцями ¾ своєї цінності. Ця знижка в середньому точно дорівнює тій, яку за другої ціни дає правило.', 'No. The winner does pay their own bid, but a smart buyer knows it and bids less: with four buyers, ¾ of their value. On average this discount exactly equals the one the rule gives at second price.'),
+    second: L('Ні. Чесні ставки за другої ціни правда, але переможець платить не свою ставку, а другу за величиною. Середня друга цінність із чотирьох дорівнює 60, стільки ж, скільки дає перша ціна.', 'No. Bids at second price are indeed honest, but the winner pays not their own bid but the second highest. The average second value of four is 60, the same as first price gives.'),
+    english: L('Ні. Азарту в моделі немає: розумний покупець тримається до своєї цінності, і торги зупиняються на другій за величиною цінності. Це рівно друга ціна, у середньому 60.', 'No. There is no thrill in the model: a smart buyer stays in up to their value, and bidding stops at the second-highest value. That is exactly second price, 60 on average.'),
+    dutch: L('Ні. Розумний покупець наперед вирішує, на якій ціні крикнути, і це та сама ставка, що й у конверті за першої ціни. У середньому 60, як і в інших форматах.', 'No. A smart buyer decides in advance at what price to shout, and that is the same bid as in a first-price envelope. 60 on average, like the other formats.'),
+    same: L('Так. За таких умов усі чотири формати дають продавцю в середньому рівно 100 · 3/5 = 60. Різниться лише розкид: за першої ціни дохід стабільніший.', 'Right. Under these conditions all four formats give the seller exactly 100 · 3/5 = 60 on average. Only the spread differs: first price gives a steadier revenue.')
+  }[guessed];
+  const ok = guessed === 'same';
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big ' + (ok ? 'hit ' : '') + 'mono">' + (ok ? L('Правильно', 'Correct') : L('Не зовсім', 'Not quite')) + '</p>' +
+    '<p>' + v + '</p><div class="compare">' + FM.map((f, i) => '<div class="crow"><span>' + fname(f) + '</span><div class="bar"><i style="--c:var(' + f.c + ');width:' + (base[i].m) + '%"></i></div><span class="mono">' + f1(base[i].m) + '</span></div>').join('') +
+    '</div><p class="note">' + L('10 000 лотів у кожному форматі, 4 покупці. Точно: 60 у кожному.', '10,000 lots in each format, 4 buyers. Exact: 60 in each.') + '</p>';
+}
+
+/* ---------- round 2: game ---------- */
+// you + 3 bots, integer values 0–100. Bots at first price bid 65–85% of their value (around the equilibrium 75%),
+// at second price their value give or take 5. The textbook bids 75% at first price and 100% at second price.
+const SERIES = 10;
+const g = { pct: { first: 100, second: 100 }, cur: null, hist: [] };
+const ri = n => Math.floor(Math.random() * (n + 1));
+function newLot() {
+  const f = Math.random() < .5 ? 'first' : 'second', v = ri(100), bv = [ri(100), ri(100), ri(100)];
+  const bots = bv.map(x => f === 'first' ? Math.round(x * (.65 + .2 * Math.random())) : clamp(Math.round(x + 10 * (Math.random() - .5)), 0, 105));
+  g.cur = { f, v, bots, done: false };
+}
+// highest bid wins (ties at random); price = own bid at first price, the best other bid at second price
+function settle(f, my, bots) {
+  const top = Math.max(...bots), ties = bots.filter(b => b === my).length;
+  const won = my > top || (my === top && Math.random() < 1 / (ties + 1));
+  const price = won ? (f === 'first' ? my : top) : (f === 'first' ? top : Math.max(my, ...bots.filter((b, i) => i !== bots.indexOf(top))));
+  return { won, price };
+}
+function play() {
+  const a = g.cur, my = Math.round(a.v * g.pct[a.f] / 100);
+  const me = settle(a.f, my, a.bots);
+  const tb = a.f === 'first' ? Math.round(a.v * .75) : a.v, tx = settle(a.f, tb, a.bots);
+  Object.assign(a, { my, won: me.won, price: me.price, profit: me.won ? a.v - me.price : 0, tb, tprofit: tx.won ? a.v - tx.price : 0, done: true });
+  g.hist.push({ f: a.f, won: a.won, profit: a.profit, tprofit: a.tprofit, rev: a.price });
+}
+function gameText() {
+  const a = g.cur, inSeries = g.hist.length % SERIES, seriesNo = Math.floor((g.hist.length - (a.done ? 1 : 0)) / SERIES) + 1;
+  const lotNo = a.done ? (inSeries === 0 ? SERIES : inSeries) : inSeries + 1;
+  $('#g-p').value = g.pct[a.f];
+  $('#g-p-v').textContent = g.pct[a.f] + '%';
+  const myBid = a.done ? a.my : Math.round(a.v * g.pct[a.f] / 100);
+  $('#game-status').innerHTML =
+    '<div><span class="k">' + L('Серія ', 'Series ') + seriesNo + L(', лот', ', lot') + '</span><b class="mono">' + lotNo + ' / ' + SERIES + '</b></div>' +
+    '<div><span class="k">' + L('Формат', 'Format') + '</span><span class="badge">' + fname(FM.find(f => f.id === a.f)) + '</span></div>' +
+    '<div><span class="k">' + L('Ваша цінність', 'Your value') + '</span><b class="mono">' + a.v + '</b></div>' +
+    '<div><span class="k">' + L('Ваша ставка', 'Your bid') + '</span><b class="mono">' + myBid + '</b></div>';
+  let m;
+  if (!a.done) m = a.f === 'first'
+    ? L('Перша ціна: якщо переможете, заплатите свою ставку. Оберіть відсоток і ставте.', 'First price: if you win, you pay your own bid. Pick a percentage and bid.')
+    : L('Друга ціна: якщо переможете, заплатите найвищу зі ставок ботів. Оберіть відсоток і ставте.', 'Second price: if you win, you pay the highest bot bid. Pick a percentage and bid.');
+  else if (a.won) m = L('Ви перемогли зі ставкою ' + a.my + ' і заплатили ' + a.price + '. Ваш заробіток ', 'You won with a bid of ' + a.my + ' and paid ' + a.price + '. Your gain is ') + sgn(a.profit, 0) + '.' + (a.profit < 0 ? L(' Ви заплатили більше, ніж лот вартий для вас.', ' You paid more than the lot is worth to you.') : '');
+  else m = L('Лот забрав бот зі ставкою ' + Math.max(...a.bots) + '.', 'A bot took the lot with a bid of ' + Math.max(...a.bots) + '.') + (a.v > Math.max(...a.bots) ? L(' Шкода: ваша цінність ' + a.v + ' була вища, ви могли заробити.', ' A pity: your value of ' + a.v + ' was higher, you could have gained.') : '');
+  if (a.done) m += ' ' + L('Підручник поставив би ' + a.tb + ' і отримав ' + sgn(a.tprofit, 0) + '.', 'The textbook would have bid ' + a.tb + ' and got ' + sgn(a.tprofit, 0) + '.');
+  $('#game-msg').textContent = m;
+  $('#g-bid').textContent = a.done ? (g.hist.length % SERIES === 0 ? L('Нова серія', 'New series') : L('Наступний лот', 'Next lot')) : L('Зробити ставку', 'Place the bid');
+  // tally over the current series and over all lots
+  const H = g.hist, S = H.slice(Math.floor((H.length - 1) / SERIES) * SERIES), sum = (arr, k) => arr.reduce((t, h) => t + h[k], 0);
+  const cell = v => '<td class="num ' + (v > 0 ? 'pos' : v < 0 ? 'neg' : '') + '">' + sgn(v, 0) + '</td>';
+  const avgBy = (f, k) => { const x = H.filter(h => h.f === f); return x.length ? sgn(sum(x, k) / x.length) : '–'; };
+  $('#g-tally').innerHTML =
+    '<tr><th></th><th class="num">' + L('Ви', 'You') + '</th><th class="num">' + L('Підручник', 'Textbook') + '</th></tr>' +
+    '<tr><td>' + L('Ця серія', 'This series') + '</td>' + cell(sum(S, 'profit')) + cell(sum(S, 'tprofit')) + '</tr>' +
+    '<tr><td>' + L('Усього за ', 'Total over ') + fmt(H.length) + L(' лотів', ' lots') + '</td>' + cell(sum(H, 'profit')) + cell(sum(H, 'tprofit')) + '</tr>' +
+    '<tr><td>' + L('За лот, перша ціна', 'Per lot, first price') + '</td><td class="num">' + avgBy('first', 'profit') + '</td><td class="num">' + avgBy('first', 'tprofit') + '</td></tr>' +
+    '<tr><td>' + L('За лот, друга ціна', 'Per lot, second price') + '</td><td class="num">' + avgBy('second', 'profit') + '</td><td class="num">' + avgBy('second', 'tprofit') + '</td></tr>';
+  const done = H.length && H.length % SERIES === 0 && a.done;
+  $('#g-verdict').textContent = done
+    ? (sum(S, 'profit') >= sum(S, 'tprofit')
+      ? L('Серію завершено: ви не гірші за підручник. Удача чи стратегія? Зіграйте ще 100 лотів із тими самими відсотками.', 'Series over: you did no worse than the textbook. Luck or strategy? Play 100 more lots at the same percentages.')
+      : L('Серію завершено: підручник заробив більше. Спробуйте інші відсотки для кожного формату.', 'Series over: the textbook earned more. Try other percentages for each format.'))
+    : L('Підручник: за першої ціни ставить 75% цінності, за другої рівно цінність. Проти таких ботів він заробляє близько 5 за лот у кожному форматі.', 'The textbook bids 75% of its value at first price and exactly its value at second price. Against these bots it earns about 5 per lot in each format.');
+  const rv = f => { const x = H.filter(h => h.f === f); return x.length ? f1(sum(x, 'rev') / x.length) : '–'; };
+  $('#g-seller').textContent = solved() && H.length >= 20
+    ? L('Продавець у ваших лотах отримав у середньому: перша ціна ' + rv('first') + ', друга ціна ' + rv('second') + '.', 'The seller got on average in your lots: first price ' + rv('first') + ', second price ' + rv('second') + '.')
+    : '';
+}
+function drawGame() {
+  const s = setupCanvas($('#game-chart')); if (!s) return;
+  const { ctx, W, H } = s, a = g.cur, l = 14, r = 14, x = v => l + clamp(v, 0, 130) / 130 * (W - l - r), base = H - 30;
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.beginPath(); ctx.moveTo(l, base); ctx.lineTo(W - r, base); ctx.stroke();
+  for (let v = 0; v <= 125; v += 25) { ctx.beginPath(); ctx.moveTo(x(v), base - 4); ctx.lineTo(x(v), base + 4); ctx.stroke(); ctx.fillText(v, x(v), base + 8); }
+  const row = (y, label) => { ctx.fillStyle = tok('--muted'); ctx.font = '11px ' + tok('--f-mono'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(label, l, y - 24); };
+  const yMe = 46, yB = 120, myBid = a.done ? a.my : Math.round(a.v * g.pct[a.f] / 100);
+  row(yMe, L('ви: цінність ○ і ставка ●', 'you: value ○ and bid ●'));
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x(a.v), yMe); ctx.lineTo(x(myBid), yMe); ctx.stroke();
+  ctx.fillStyle = tok('--surface') || '#fff'; ctx.beginPath(); ctx.arc(x(a.v), yMe, 6, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = tok('--ink'); ctx.beginPath(); ctx.arc(x(myBid), yMe, 6, 0, 7); ctx.fill();
+  row(yB, L('ставки ботів', 'bot bids'));
+  if (a.done) {
+    const top = Math.max(...a.bots);
+    a.bots.forEach((b, i) => { ctx.fillStyle = b === top && !a.won ? tok('--ink') : tok('--aa'); ctx.beginPath(); ctx.arc(x(b), yB + (i - 1) * 9, 5, 0, 7); ctx.fill(); });
+    ctx.strokeStyle = a.won ? (a.profit >= 0 ? tok('--win') : tok('--loss')) : tok('--muted'); ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x(a.price), 22); ctx.lineTo(x(a.price), base); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = tok('--ink'); ctx.font = '600 11px ' + tok('--f-mono'); ctx.textBaseline = 'bottom';
+    ctx.textAlign = x(a.price) > W - 90 ? 'right' : 'left';
+    ctx.fillText(L('ціна ', 'price ') + a.price, x(a.price) + (ctx.textAlign === 'left' ? 4 : -4), base - 6);
+    if (a.won) { ctx.strokeStyle = a.profit >= 0 ? tok('--win') : tok('--loss'); ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x(a.v), yMe + 16); ctx.lineTo(x(a.price), yMe + 16); ctx.stroke(); }
+  } else {
+    ctx.fillStyle = tok('--muted'); ctx.font = '800 20px ' + tok('--f-display'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('? ? ?', x(50), yB);
+  }
+}
+function gameAll() { gameText(); drawGame(); }
+$('#g-p').addEventListener('input', e => { g.pct[g.cur.f] = +e.target.value; gameAll(); });
+$('#g-bid').addEventListener('click', () => { if (g.cur.done) newLot(); else play(); gameAll(); });
+$('#g-auto').addEventListener('click', () => { for (let i = 0; i < 100; i++) { if (g.cur.done) newLot(); play(); } gameAll(); });
+$('#g-reset').addEventListener('click', () => { g.hist = []; newLot(); gameAll(); });
+newLot();
+
+/* ---------- round 3: simulation ---------- */
+const SIM_N = 10000, MARKS = [];
+for (let k = 10; k <= SIM_N; k = Math.ceil(k * 1.08)) MARKS.push(k);
+MARKS.push(SIM_N);
+let n3 = 4, sim = null, simAnim = null;
+function runSim() {
+  // running averages at the marks, plus first/second price revenues for the histogram
+  const run = FM.map(() => []), sums = FM.map(() => 0), sq = FM.map(() => 0), hist = [new Array(20).fill(0), new Array(20).fill(0)];
+  let mi = 0;
+  for (let i = 1; i <= SIM_N; i++) {
+    FM.forEach((f, j) => { const r = revenue(f.id, n3); sums[j] += r; sq[j] += r * r; if (j < 2) hist[j][Math.min(19, Math.floor(r / 5))]++; });
+    if (i === MARKS[mi]) { FM.forEach((f, j) => run[j].push(sums[j] / i)); mi++; }
+  }
+  sim = { n: n3, run, m: sums.map(s => s / SIM_N), sd: sums.map((s, j) => Math.sqrt(Math.max(0, sq[j] / SIM_N - (s / SIM_N) ** 2))), hist, shown: reduce() || STATIC ? MARKS.length : 1 };
+}
+function simText() {
+  $('#sim-n-v').textContent = n3;
+  $('#sim-q').innerHTML = FM.map((f, j) => '<div><span class="k">' + fname(f) + '</span><b class="mono" style="color:var(' + f.c + ')">' + f1(sim.m[j]) + '</b></div>').join('');
+  $('#sim-ex').textContent = L('точно в кожному: 100 · (n − 1)/(n + 1) = ', 'exact in each: 100 · (n − 1)/(n + 1) = ') + f1(exactRev(n3));
+  $('#sim-sd').innerHTML = FM.map((f, j) => '<div><span class="k">' + fname(f) + '</span><b class="mono">' + f1(sim.sd[j]) + '</b></div>').join('');
+  $('#sim-sd-s').textContent = L('точно: перша ціна і голландський ', 'exact: first price and Dutch ') + f1(sdFirst(n3)) + L(', друга ціна і англійський ', ', second price and English ') + f1(sdSecond(n3));
+  $('#sim-legend').innerHTML = FM.map(f => '<span style="--c:var(' + f.c + ')"><b>' + fname(f) + '</b></span>').join('') + '<span style="--c:' + sig() + '"><b>' + L('точно', 'exact') + '</b></span>';
+}
+function drawSim() {
+  const s = setupCanvas($('#sim-chart')); if (!s || !sim) return;
+  const { ctx, W, H } = s, l = 40, r = 14, t = 14, b = 34, ex = exactRev(sim.n);
+  const ylo = Math.max(0, Math.floor((ex - 25) / 5) * 5), yhi = Math.min(100, ylo + 50);
+  const x = k => l + Math.log(k / 10) / Math.log(SIM_N / 10) * (W - l - r), y = v => t + (1 - (clamp(v, ylo, yhi) - ylo) / (yhi - ylo)) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1;
+  for (let v = ylo; v <= yhi; v += 10) { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - r, y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, l - 6, y(v)); }
+  [10, 100, 1000, 10000].forEach(k => { ctx.textAlign = k === 10 ? 'left' : k === 10000 ? 'right' : 'center'; ctx.textBaseline = 'top'; ctx.fillText(fmt(k), x(k), H - b + 6); });
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(L('продано лотів (логарифмічна шкала) →', 'lots sold (log scale) →'), W - r, H - 2);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(L('↑ середній дохід', '↑ average revenue'), l + 6, t);
+  ctx.strokeStyle = sig(); ctx.setLineDash([6, 4]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(l, y(ex)); ctx.lineTo(W - r, y(ex)); ctx.stroke(); ctx.setLineDash([]);
+  FM.forEach((f, j) => {
+    ctx.strokeStyle = tok(f.c); ctx.lineWidth = 2; ctx.beginPath();
+    for (let i = 0; i < sim.shown; i++) { const X = x(MARKS[i]), Y = y(sim.run[j][i]); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+    ctx.stroke();
+  });
+  drawHistSim();
+}
+function drawHistSim() {
+  const s = setupCanvas($('#sim-hist')); if (!s || !sim) return;
+  const { ctx, W, H } = s, l = 14, r = 14, t = 10, b = 40, bw = (W - l - r) / 20, mx = Math.max(...sim.hist[0], ...sim.hist[1]);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.beginPath(); ctx.moveTo(l, H - b); ctx.lineTo(W - r, H - b); ctx.stroke();
+  for (let v = 0; v <= 100; v += 20) ctx.fillText(v, l + v / 5 * bw, H - b + 6);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(L('дохід продавця за лот →', 'seller revenue per lot →'), W - r, H - 2);
+  [0, 1].forEach(j => {
+    ctx.fillStyle = tok(FM[j].c); ctx.globalAlpha = j ? .55 : .85;
+    sim.hist[j].forEach((c, i) => { const h = (H - t - b) * c / mx; ctx.fillRect(l + i * bw + (j ? bw * .5 : bw * .08), H - b - h, bw * .42, h); });
+  });
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(L('↑ лотів із таким доходом', '↑ lots with this revenue'), l, t);
+}
+function simGo() {
+  cancelAnimationFrame(simAnim); runSim(); simText();
+  const step = () => { drawSim(); if (sim.shown < MARKS.length) { sim.shown = Math.min(MARKS.length, sim.shown + 2); simAnim = requestAnimationFrame(step); } };
+  step();
+}
+$('#sim-n').addEventListener('input', e => { n3 = +e.target.value; simGo(); });
+$('#sim-run').addEventListener('click', simGo);
+runSim();
+
+/* ---------- round 4 ---------- */
+function whyText() {
+  $('#eq-table').innerHTML = [2, 3, 4, 5, 10].map(n => '<tr' + (n === 4 ? ' class="hl"' : '') + '><td>' + n + '</td><td class="num">' + f1(exactMax(n)) + '</td><td class="num">' + dec(((n - 1) / n).toFixed(2)) + ' · v</td><td class="num ans">' + f1((n - 1) / n * exactMax(n)) + '</td><td class="num ans">' + f1(exactRev(n)) + '</td><td class="num">' + f1(sdFirst(n)) + ' / ' + f1(sdSecond(n)) + '</td></tr>').join('');
+}
+
+/* ---------- round 5 ---------- */
+// second price with reserve r (share ρ = r/100): revenue = 100·n·∫ρ¹ (2v − 1) v^(n−1) dv
+const revRes = (n, rho) => 100 * n * (2 / (n + 1) * (1 - rho ** (n + 1)) - (1 - rho ** n) / n);
+let rsim = null;
+function rVals() { return { r: +$('#r-r').value, n: +$('#r-n').value }; }
+function runRes() {
+  const { r, n } = rVals(); let s = 0; const N = 20000;
+  for (let i = 0; i < N; i++) { const [a, b] = n > 1 ? top2(n) : [100 * Math.random(), -1]; s += a < r ? 0 : Math.max(r, b); }
+  rsim = { r, n, m: s / N };
+}
+function rText() {
+  const { r, n } = rVals(), e = revRes(n, r / 100);
+  $('#r-r-v').textContent = r; $('#r-n-v').textContent = n;
+  $('#r-e').textContent = f1(e);
+  $('#r-s').textContent = rsim && rsim.r === r && rsim.n === n ? f1(rsim.m) : '–';
+  $('#r-note').textContent = L('Без резерву: ' + f1(revRes(n, 0)) + '. Найкращий резерв 50: ' + f1(revRes(n, .5)) + '. Лот лишається непроданим у ' + pct((r / 100) ** n, 1) + ' випадків.',
+    'No reserve: ' + f1(revRes(n, 0)) + '. Best reserve, 50: ' + f1(revRes(n, .5)) + '. The lot goes unsold ' + pct((r / 100) ** n, 1) + ' of the time.');
+}
+function drawRes() {
+  const s = setupCanvas($('#r-chart')); if (!s) return;
+  const { ctx, W, H } = s, { r, n } = rVals(), l = 34, rr = 14, t = 12, b = 40;
+  const ymax = Math.ceil(revRes(n, .5) / 10) * 10 + 10;
+  const x = v => l + v / 100 * (W - l - rr), y = v => t + (1 - v / ymax) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1;
+  for (let v = 0; v <= ymax; v += ymax > 60 ? 20 : 10) { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - rr, y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, l - 6, y(v)); }
+  for (let v = 0; v <= 100; v += 25) { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, x(v), H - b + 6); }
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(L('резервна ціна →', 'reserve price →'), W - rr, H - 2);
+  ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let v = 0; v <= 100; v++) { const X = x(v), Y = y(revRes(n, v / 100)); v ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+  ctx.stroke();
+  ctx.strokeStyle = sig(); ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(50), t); ctx.lineTo(x(50), H - b); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = tok('--ink'); ctx.beginPath(); ctx.arc(x(r), y(revRes(n, r / 100)), 6, 0, 7); ctx.fill();
+}
+['#r-r', '#r-n'].forEach(id => $(id).addEventListener('input', () => { rText(); drawRes(); }));
+$('#r-run').addEventListener('click', () => { runRes(); rText(); });
+// risk aversion: utility of a gain x is x^α; first-price equilibrium bid (n−1)/(n−1+α)·v, second price unchanged
+const AL = [1, .9, .8, .7, .6, .5, .4, .3, .2];
+let ksim = null;
+function kText() {
+  const i = +$('#k-a').value, a = AL[i], n = 4, k = (n - 1) / (n - 1 + a), e = k * exactMax(n);
+  $('#k-a-v').textContent = i === 0 ? L('немає (α = 1)', 'none (α = 1)') : 'α = ' + dec(a);
+  $('#k-f').textContent = f1(e);
+  $('#k-note').textContent = L('4 покупці. Заробіток x приносить покупцю задоволення x^' + dec(a) + ': що менша степінь, то сильніше він боїться лишитися ні з чим. Рівноважна ставка за першої ціни ' + dec(k.toFixed(3)) + ' · v замість 0,75 · v.',
+    '4 buyers. A gain x gives the buyer satisfaction x^' + a + ': the smaller the power, the more they fear ending up with nothing. The equilibrium first-price bid is ' + k.toFixed(3) + ' · v instead of 0.75 · v.');
+  $('#k-sim').textContent = ksim && ksim.i === i ? L('Симуляція, 20 000 лотів: перша ціна ' + f1(ksim.f) + ', друга ціна ' + f1(ksim.s) + '.', 'Simulation, 20,000 lots: first price ' + f1(ksim.f) + ', second price ' + f1(ksim.s) + '.') : '';
+}
+$('#k-a').addEventListener('input', kText);
+$('#k-run').addEventListener('click', () => {
+  const i = +$('#k-a').value, a = AL[i], n = 4, k = (n - 1) / (n - 1 + a); let sf = 0, ss = 0; const N = 20000;
+  for (let j = 0; j < N; j++) { sf += k * top2(n)[0]; ss += top2(n)[1]; }
+  ksim = { i, f: sf / N, s: ss / N }; kText();
+});
+// generalized second price: rivals bid 4 and 2 honestly; slots get 200 and 199 clicks; ties go to the rival
+function adText() {
+  const bid = +$('#ad-b').value, bids = [4, 2];
+  let slot, price;
+  if (bid > 4) { slot = 1; price = 4; } else if (bid > 2) { slot = 2; price = 2; } else { slot = 0; price = 0; }
+  const clicks = slot === 1 ? 200 : slot === 2 ? 199 : 0, gain = (10 - price) * clicks;
+  $('#ad-b-v').textContent = '$' + dec(bid.toFixed(1));
+  $('#ad-slot').textContent = slot ? slot : '–';
+  $('#ad-p').textContent = slot ? '$' + price : '–';
+  $('#ad-g').textContent = '$' + fmt(gain);
+  $('#ad-g').classList.toggle('hit', slot === 2);
+  $('#ad-note').textContent = slot === 1
+    ? L('Перше місце: (10 − 4) · 200 = ' + fmt(gain) + '. Спробуйте поставити між $2 і $4.', 'First slot: (10 − 4) · 200 = ' + fmt(gain) + '. Try a bid between $2 and $4.')
+    : slot === 2
+      ? L('Друге місце: (10 − 2) · 199 = ' + fmt(gain) + ', на ' + fmt(gain - 1200) + ' більше, ніж за чесної ставки.', 'Second slot: (10 − 2) · 199 = ' + fmt(gain) + ', ' + fmt(gain - 1200) + ' more than with an honest bid.')
+      : L('Без місця: ставка не вища за $2 не дає жодного кліку.', 'No slot: a bid of $2 or less gets no clicks.');
+}
+$('#ad-b').addEventListener('input', adText);
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Чотири аукціони — один дохід', 'Four Auctions, One Revenue');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  guessText(); gameText(); simText(); whyText(); rText(); kText(); adText();
+  redraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+function redraw() { drawHero(); drawGame(); drawSim(); drawRes(); }
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+
+applyLang();
+heroStart();
+simGo();
+})();
+</script>
+
+<script type="application/json" id="mp-terms">{"mean": {"name": "Середнє", "short": "Сума всіх значень, поділена на їхню кількість: скільки дісталося б кожному, якби поділити порівну.", "hook": "Майже кожна людина має більше ніг, ніж у середньому: середнє трохи менше за дві.", "url": "https://mathparadoxes.com/glossary/median-vs-mean/", "link": "Спробувати на симуляції"}, "independence": {"name": "Незалежність", "short": "Події незалежні, якщо знання про одну не змінює шансів іншої.", "hook": "Після п'яти орлів поспіль решка не стає ймовірнішою: монета нічого не пам'ятає.", "url": "https://mathparadoxes.com/glossary/independence/", "link": "Спробувати на симуляції"}, "chance-to-beat": {"name": "Шанс перемогти", "short": "Число з байєсівських дашбордів: наскільки ймовірно, що B кращий за A, з огляду на дані й початкове припущення.", "hook": "«Шанс 97%» каже правду, лише коли кожна ваша ідея щось змінює; якщо чотири з п'яти марні, B кращий лише в третині таких тестів.", "url": "https://mathparadoxes.com/glossary/confidence-vs-chance-to-beat/", "link": "Спробувати на симуляції"}, "variance": {"name": "Дисперсія і стандартне відхилення", "short": "Міра розкиду: наскільки значення в середньому відходять від середнього. Стандартне відхилення — корінь з дисперсії, у тих самих одиницях.", "hook": "Два міста з однаковою середньою температурою: в одному весь рік близько +15, в іншому то −20, то +50.", "url": "https://mathparadoxes.com/glossary/variance/", "link": "Спробувати на симуляції"}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'uk' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Розділи"><a href="https://mathparadoxes.com/#all" aria-current="page">Задачі</a><a href="https://mathparadoxes.com/courses/">Курси</a><a href="https://mathparadoxes.com/glossary/">Словник</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+</body>
+</html>
