@@ -336,20 +336,47 @@ def problem_cards(problems):
     return "\n".join(out)
 
 
-RELATED_COUNT = 3
+RELATED_COUNT = 6
+RELATED_MAX_IN = 8
+RELATED_MIN_IN = 3
 RELATED_TEXT = {
     "uk": ("Ще задачі", "Інші парадокси", "Усі задачі"),
     "en": ("More puzzles", "Other paradoxes", "All puzzles"),
 }
 
 
-def pick_related(slug, metas):
-    """Problems sharing the most tags (ignoring the ubiquitous "симуляція"), then the next ones in site order."""
+def pick_related(metas):
+    """{slug: related slugs}. Problems sharing the most home-page topics (worth two tags each), then card tags
+    (ignoring the ubiquitous "симуляція"), then the same level, then the next ones in site order. No problem is
+    linked from more than RELATED_MAX_IN pages or fewer than RELATED_MIN_IN, so close neighbours do not hog
+    the links and every page gets some."""
     order = [s for s, _ in metas]
+    topics = {s: set(m["topics"]) for s, m in metas}
     tags = {s: set(m["uk"]["card"]["tags"]) - {"симуляція"} for s, m in metas}
-    i = order.index(slug)
-    others = order[i + 1:] + order[:i]
-    return sorted(others, key=lambda s: -len(tags[s] & tags[slug]))[:RELATED_COUNT]
+    level = {s: m["level"] for s, m in metas}
+    inbound = dict.fromkeys(order, 0)
+    out = {}
+    for i, slug in enumerate(order):
+        others = order[i + 1:] + order[:i]
+        score = lambda s: (2 * len(topics[s] & topics[slug]) + len(tags[s] & tags[slug]), level[s] == level[slug], -inbound[s])
+        ranked = sorted(others, key=score, reverse=True)
+        out[slug] = list(dict.fromkeys([s for s in ranked if inbound[s] < RELATED_MAX_IN] + ranked))[:RELATED_COUNT]
+        for s in out[slug]:
+            inbound[s] += 1
+    # Second pass: a problem linked from fewer than RELATED_MIN_IN pages takes the last card of the pages
+    # closest to it, where that card's own problem can spare a link.
+    for slug in sorted(order, key=lambda s: inbound[s]):
+        hosts = sorted((h for h in order if h != slug and slug not in out[h]),
+                       key=lambda h: (2 * len(topics[h] & topics[slug]) + len(tags[h] & tags[slug]), level[h] == level[slug]),
+                       reverse=True)
+        for h in hosts:
+            if inbound[slug] >= RELATED_MIN_IN:
+                break
+            if inbound[out[h][-1]] > RELATED_MIN_IN:
+                inbound[out[h][-1]] -= 1
+                out[h][-1] = slug
+                inbound[slug] += 1
+    return out
 
 
 def related_block(lang, items, hub_url, glossary=None):
@@ -962,11 +989,12 @@ def _mark_text(doc, lang):
             if mo.group(1) == "A" and re.match(r"\s+[A-Z][a-z]", after) or lang == "uk" and re.match(r"\s+[a-z]{2}", after):
                 return mo.group(0)  # the article in a title: "A Case Study", also quoted on Ukrainian pages
             if lang == "en" and mo.group(1) == "A":
-                # the article: "A $3,000 order", or "A visitor" with no word before it in the sentence
+                # the article: "A $3,000 order", or "A visitor" / "A 100-floor building" with no word before it in the sentence
                 if re.match(r"\s+([A-Z][^\W\d_]|[$₴€£])", after):
                     return mo.group(0)
                 b = before.rstrip()[-1:]
-                if re.match(r"\s+[a-z]", after) and not (b.isalnum() or (b and b in ",%")):
+                if (re.match(r"\s+[a-z\d]", after) and not re.match(r"\s+[\d.,%]+\s+[BC]\b", after)  # "A 52, B 61" is a label
+                        and not (b.isalnum() or (b and b in ",%"))):
                     return mo.group(0)
             return f'<span class="vl">{mo.group(1)}</span>'
         out.append(VL_TOKEN.sub(rep, part))
@@ -1056,10 +1084,9 @@ def write(path, doc):
     print(f"{path.relative_to(DOCS)}  {len(doc) // 1024} KB")
 
 
-def build_problem(slug, base, metas, books):
+def build_problem(slug, base, metas, books, related):
     src_dir = PROBLEMS / slug
     meta = dict(metas)[slug]
-    related = pick_related(slug, metas)
     refs = book_refs(slug, meta, books)
     src = (src_dir / "page.html").read_text(encoding="utf-8")
     rest = src[src.index("<style>"):]
@@ -2086,7 +2113,8 @@ def build(base, out=None):
                     courses={c: {"s": "course:" + c, "n": {l: cm[l]["name"] for l in LANGS},
                                  "u": {l: course_url(base, l, c) for l in LANGS},
                                  "c": [ch["id"] for ch in cm["chapters"] if ch.get("check", True)]} for c, cm in COURSE_LIST})
-    problems = [build_problem(s, base, metas, books) for s, _ in metas]
+    related = pick_related(metas)
+    problems = [build_problem(s, base, metas, books, related[s]) for s, _ in metas]
     hub = build_hub(problems, base)
     build_404(problems, base)
     build_subscribed(problems, base)
