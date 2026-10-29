@@ -1,0 +1,75 @@
+<div class="tz-text">
+  <span class="eyebrow"><span class="uk">Аукціони · правила гри</span><span class="en">Auctions · the rules of the game</span></span>
+  <h2><a href="{{URL}}"><span class="uk">Чотири аукціони</span><span class="en">Four auctions</span></a></h2>
+  <p class="tz-q uk">Четверо розумних покупців, чотири формати аукціону: перша ціна, друга ціна, англійський і голландський. Який принесе продавцю найбільше в середньому?</p>
+  <p class="tz-q en">Four smart buyers, four auction formats: first price, second price, English and Dutch. Which brings the seller the most on average?</p>
+  <button type="button" class="tz-reveal sp-before" data-solve><span><span class="uk">Інтуїція і відповідь</span><span class="en">Intuition and answer</span></span><b><span class="uk">Показати відповідь</span><span class="en">Show the answer</span></b></button>
+  <div class="tz-ans sp-after">
+    <div><span><span class="uk">Інтуїція</span><span class="en">Intuition</span></span><b><span class="uk">Перша ціна</span><span class="en">First price</span></b></div>
+    <div class="r"><span><span class="uk">Насправді</span><span class="en">Actually</span></span><b><span class="uk">Усі однаково: 60</span><span class="en">All the same: 60</span></b></div>
+  </div>
+  <p class="tz-d uk">Гра проти ботів за першою і другою ціною, симуляція тисяч лотів, лист Ґете видавцеві і рекламні аукціони пошуковиків.</p>
+  <p class="tz-d en">A game against bots at first and second price, a simulation of thousands of lots, Goethe's letter to his publisher and search-engine ad auctions.</p>
+  <a class="tz-cta" href="{{URL}}"><span class="uk">Порівняти чотири аукціони</span><span class="en">Compare the four auctions</span> →</a>
+</div>
+<div class="tz-stage" id="tz-revenue-equivalence">
+  <span class="tz-try"><span class="uk">Спробуйте тут</span><span class="en">Try it here</span></span>
+  <canvas style="display:block;width:100%;max-width:300px;height:200px" aria-hidden="true"></canvas>
+  <p class="tz-msg" aria-live="polite"></p>
+  <div class="tz-acts"><button type="button" class="tz-btn"></button><button type="button" class="tz-btn"></button></div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById('tz-revenue-equivalence');
+  if (!root) return;
+  const en = () => document.documentElement.dataset.lang === 'en';
+  const L = (uk, e) => en() ? e : uk;
+  const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), btns = root.querySelectorAll('.tz-btn');
+  const col = (name, fb) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb;
+  const dec = v => en() ? v.toFixed(1) : v.toFixed(1).replace('.', ',');
+  // four buyers with values uniform 0–100; equilibrium bids: honest at second price and English, 3/4 at first price and Dutch
+  const NAMES = [['1-ша ціна', '1st price'], ['2-га ціна', '2nd price'], ['Англ.', 'English'], ['Голл.', 'Dutch']];
+  let vals = null, last = null, runs = 0, sums = [0, 0, 0, 0];
+  function lot() {
+    vals = Array.from({ length: 4 }, () => Math.round(100 * Math.random()));
+    const s = [...vals].sort((a, b) => b - a);
+    last = [.75 * s[0], s[1], s[1], .75 * s[0]];
+    runs++; last.forEach((v, i) => { sums[i] += v; });
+  }
+  function draw() {
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+    if (!W) return;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const ink = col('--ink', '#151515'), mut = col('--muted', '#5F5F5F'), line = col('--line', '#E4E4E4'), f = col('--f', 'system-ui');
+    const cw = (W - 8) / 4, base = H - 34, top = 30, y = v => base - v / 100 * (base - top);
+    ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(4, base); ctx.lineTo(W - 4, base); ctx.stroke();
+    // buyers' values along the top
+    ctx.font = '600 11px ' + f; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = mut;
+    ctx.fillText(L('цінності: ', 'values: ') + (vals ? vals.join(' · ') : '? · ? · ? · ?'), W / 2, 12);
+    NAMES.forEach((n, i) => {
+      const cx = 4 + i * cw + cw / 2, v = runs > 1 ? sums[i] / runs : last ? last[i] : null;
+      if (v === null) { ctx.fillStyle = ink; ctx.font = '800 26px ' + f; ctx.fillText('?', cx, (base + top) / 2); }
+      else {
+        ctx.fillStyle = ink; ctx.globalAlpha = .85; ctx.fillRect(cx - cw * .28, y(v), cw * .56, base - y(v)); ctx.globalAlpha = 1;
+        ctx.font = '700 12px ' + f; ctx.textBaseline = 'bottom'; ctx.fillText(dec(v), cx, y(v) - 3); ctx.textBaseline = 'middle';
+      }
+      ctx.fillStyle = mut; ctx.font = '600 11px ' + f; ctx.textBaseline = 'top'; ctx.fillText(L(n[0], n[1]), cx, base + 8); ctx.textBaseline = 'middle';
+    });
+  }
+  function text() {
+    msg.textContent = !last
+      ? L('Четверо покупців, той самий лот у чотирьох форматах. Скільки отримає продавець?', 'Four buyers, the same lot in four formats. What does the seller get?')
+      : runs > 1
+        ? L('Лотів: ' + runs + '. Стовпчики: середній дохід продавця в кожному форматі.', 'Lots: ' + runs + '. Bars: the seller\'s average revenue in each format.')
+        : L('Один лот: дохід продавця в кожному форматі, якщо покупці ставлять розумно.', 'One lot: the seller\'s revenue in each format when buyers bid smartly.');
+    btns[0].textContent = L('Новий лот', 'New lot');
+    btns[1].textContent = L('Ще 100 лотів', '100 more lots');
+  }
+  btns[0].addEventListener('click', () => { runs = 0; sums = [0, 0, 0, 0]; lot(); draw(); text(); });
+  btns[1].addEventListener('click', () => { if (!last) { runs = 0; sums = [0, 0, 0, 0]; } for (let i = 0; i < 100; i++) lot(); draw(); text(); });
+  document.addEventListener('langchange', () => { draw(); text(); });
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
+  draw(); text();
+})();
+</script>

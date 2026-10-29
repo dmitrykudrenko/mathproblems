@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-basics": "#EEF2E0", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "course-feature-impact": "#EFEDE6", "course-feature-impact--trust": "#EFEDE6", "lake-escape": "#D7ECEF", "winners-curse": "#F2E4D9", "small-numbers": "#E4E6EE", "multi-armed-bandit": "#F8E3EC", "will-rogers": "#E6F1EA", "persuadables": "#F4EEDC", "truel": "#F0DCD4", "guess-two-thirds": "#E7DDF0", "dollar-auction": "#DDEADF", "hotelling-beach": "#F6EAD3", "fly-between-trains": "#E6F3F7", "hilbert-hotel": "#DFE4F2", "parrondo-paradox": "#E9DCEC", "axelrod-tournament": "#D6E6F7", "travelers-dilemma": "#E8D9CF", "prosecutors-fallacy": "#F3E8E4", "ant-rubber-rope": "#F5E9DF", "hat-check": "#EDE4D8", "broken-stick": "#F1E9DC", "elevator-paradox": "#F4E9E4", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-basics": "#EEF2E0", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "course-feature-impact": "#EFEDE6", "course-feature-impact--trust": "#EFEDE6", "lake-escape": "#D7ECEF", "winners-curse": "#F2E4D9", "small-numbers": "#E4E6EE", "multi-armed-bandit": "#F8E3EC", "will-rogers": "#E6F1EA", "persuadables": "#F4EEDC", "truel": "#F0DCD4", "guess-two-thirds": "#E7DDF0", "dollar-auction": "#DDEADF", "hotelling-beach": "#F6EAD3", "fly-between-trains": "#E6F3F7", "hilbert-hotel": "#DFE4F2", "parrondo-paradox": "#E9DCEC", "axelrod-tournament": "#D6E6F7", "travelers-dilemma": "#E8D9CF", "prosecutors-fallacy": "#F3E8E4", "ant-rubber-rope": "#F5E9DF", "hat-check": "#EDE4D8", "broken-stick": "#F1E9DC", "elevator-paradox": "#F4E9E4", "revenue-equivalence": "#DCE9F0", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -282,6 +282,10 @@ TEXT = {
     "elevator-paradox": {
         "uk": (["ПАРАДОКС", "ЛІФТА"], "Ви на 2-му. Ліфт їде вгору чи вниз?"),
         "en": (["THE ELEVATOR", "PARADOX"], "Floor 2. Is the lift going up or down?"),
+    },
+    "revenue-equivalence": {
+        "uk": (["ЧОТИРИ", "АУКЦІОНИ"], "Який принесе продавцю більше?"),
+        "en": (["FOUR", "AUCTIONS"], "Which one pays the seller most?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -1080,6 +1084,22 @@ def extra_visual(kind, x, y, lang="en"):
         out += [f'<circle cx="{px}" cy="{py - 46:.1f}" r="10" fill="{INK}"/>',
                 f'<rect x="{px - 11}" y="{py - 34:.1f}" width="22" height="32" rx="7" fill="{INK}"/>',
                 f'<text x="{px + 22}" y="{py - 16:.1f}" font-family="{FONT}" font-weight="800" font-size="24" fill="{SIGNAL}">↑ ↓ ?</text>']
+    elif kind == "revenue-equivalence":
+        # four auction formats as cards (two sealed envelopes, a rising and a falling price), each with "?" for the take
+        labels = {"uk": ("1-ША ЦІНА", "2-ГА ЦІНА", "АНГЛІЙСЬКИЙ", "ГОЛЛАНДСЬКИЙ"), "en": ("1ST PRICE", "2ND PRICE", "ENGLISH", "DUTCH")}[lang]
+        for i, lab in enumerate(labels):
+            cx, cy = x + 100 + (i % 2) * 180, y + 10 + (i // 2) * 175
+            out += [f'<rect x="{cx - 80}" y="{cy}" width="160" height="160" rx="18" fill="#fff"/>',
+                    f'<text x="{cx}" y="{cy + 150}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="15" fill="{MUTED}">{lab}</text>']
+            if i < 2:
+                out += [f'<rect x="{cx - 34}" y="{cy + 22}" width="68" height="46" rx="5" fill="none" stroke="{INK}" stroke-width="4"/>',
+                        f'<polyline points="{cx - 34},{cy + 22} {cx},{cy + 50} {cx + 34},{cy + 22}" fill="none" stroke="{INK}" stroke-width="4"/>']
+            else:
+                a, b = (cy + 72, cy + 20) if i == 2 else (cy + 20, cy + 72)
+                d = -1 if i == 2 else 1
+                out += [f'<line x1="{cx}" y1="{a}" x2="{cx}" y2="{b}" stroke="{INK}" stroke-width="5" stroke-linecap="round"/>',
+                        f'<polyline points="{cx - 14},{b - d * 14} {cx},{b} {cx + 14},{b - d * 14}" fill="none" stroke="{INK}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>']
+            out.append(f'<text x="{cx}" y="{cy + 122}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>')
     return "".join(out)
 
 
@@ -1116,7 +1136,7 @@ def svg(kind, lang):
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
                   "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin", "berkson-paradox",
                   "ab-test", "ab-test-peeking", "multiple-testing", "course-ab-testing", "course-ab-testing--check", "course-ab-basics", "course-interview-puzzles", "course-interview-puzzles--trainer", "course-data-traps", "course-feature-impact", "course-feature-impact--trust", "lake-escape",
-                  "winners-curse", "small-numbers", "multi-armed-bandit", "will-rogers", "persuadables", "truel", "guess-two-thirds", "dollar-auction", "hotelling-beach", "fly-between-trains", "hilbert-hotel", "parrondo-paradox", "axelrod-tournament", "travelers-dilemma", "prosecutors-fallacy", "ant-rubber-rope", "hat-check", "broken-stick", "elevator-paradox"):
+                  "winners-curse", "small-numbers", "multi-armed-bandit", "will-rogers", "persuadables", "truel", "guess-two-thirds", "dollar-auction", "hotelling-beach", "fly-between-trains", "hilbert-hotel", "parrondo-paradox", "axelrod-tournament", "travelers-dilemma", "prosecutors-fallacy", "ant-rubber-rope", "hat-check", "broken-stick", "elevator-paradox", "revenue-equivalence"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
