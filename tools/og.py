@@ -109,7 +109,7 @@ TEXT = {
     },
     "poisoned-wine": {
         "uk": (["ОТРУЄНЕ", "ВИНО"], "1000 пляшок. Скільки треба щурів?"),
-        "en": (["THE POISONED", "WINE"], "1000 bottles. How many rats?"),
+        "en": (["THE POISONED", "WINE"], "1,000 bottles. How many rats?"),
     },
     "election-poll": {
         "uk": (["СКІЛЬКИ", "ОПИТАТИ?"], "30 млн виборців, похибка ±3%"),
@@ -538,12 +538,14 @@ def extra_visual(kind, x, y, lang="en"):
                         f'<text x="{cx + 14}" y="{py + 30}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="15" fill="{"#fff" if h else INK}">{side[0 if h else 1]}</text>']
             out.append(f'<text x="{x + 360}" y="{py + 34}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="30" fill="{INK}">${2 ** k}</text>')
     elif kind == "benford-law":
-        # powers of two, first digit in bold; how often it is 1 is the answer
-        nums = [2 ** n for n in range(1, 25)]
+        # the first nine powers of two, first digit in bold; how often it is 1 is the answer, and a longer
+        # list would let one count it (24 powers gave 7 ones), so only nine
+        nums = [2 ** n for n in range(1, 10)]
         for i, v in enumerate(nums):
             s = str(v)
-            px, py = x + 20 + (i % 3) * 125, y + 30 + (i // 3) * 36
-            out.append(f'<text x="{px}" y="{py}" font-family="{FONT}" font-size="26" fill="{MUTED}"><tspan font-weight="800" fill="{INK}">{s[0]}</tspan>{s[1:]}</text>')
+            px, py = x + 30 + (i % 3) * 120, y + 60 + (i // 3) * 80
+            out.append(f'<text x="{px}" y="{py}" font-family="{FONT}" font-size="46" fill="{MUTED}"><tspan font-weight="800" fill="{INK}">{s[0]}</tspan>{s[1:]}</text>')
+        out.append(f'<text x="{x + 360}" y="{y + 290}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">…?</text>')
     elif kind == "poisoned-wine":
         # a rack of identical bottles and a row of rats; how few rats suffice is the answer
         for i in range(30):

@@ -2,6 +2,9 @@
 (() => {
   const root = document.getElementById('tz-secretary-problem');
   const L = (uk, e) => document.documentElement.dataset.lang === 'en' ? e : uk;
+  // the card is [data-spoil]; the rule's win rate stays hidden until it is solved
+  const card = root.closest('[data-spoil]');
+  const solved = () => card ? card.classList.contains('solved') : !!(window.mpSolved && mpSolved());
   const N = 10, line = root.querySelector('.sp-line'), msg = root.querySelector('.tz-msg');
   const [bNext, bHire] = root.querySelectorAll('.tz-btn');
   const bars = [];
@@ -34,7 +37,9 @@
     if (hired >= 0) {
       const win = ranks[hired] === 1;
       msg.textContent = (win ? L('Найкращий! ', 'The best! ') : L('Не найкращий: місце ' + ranks[hired] + ' з 10. ', 'Not the best: ranked ' + ranks[hired] + ' of 10. ')) +
-        L('Перемог: ' + wins + ' з ' + games + '. Правило «пропусти 3» виграє приблизно в 40% випадків.', 'Wins: ' + wins + ' of ' + games + '. The rule "skip 3" wins about 40% of the time.');
+        L('Перемог: ' + wins + ' з ' + games + '. ', 'Wins: ' + wins + ' of ' + games + '. ') +
+        (solved() ? L('Правило «пропусти 3» виграє приблизно в 40% випадків.', 'The rule "skip 3" wins about 40% of the time.')
+          : L('Чи є стратегія, яка вигравала б частіше?', 'Is there a strategy that would win more often?'));
       bNext.textContent = L('Нова черга', 'New lineup'); bHire.style.display = 'none';
       return;
     }
@@ -47,5 +52,6 @@
   bNext.addEventListener('click', () => { if (hired >= 0) start(); else if (pos < N - 1) { pos++; draw(); } });
   bHire.addEventListener('click', () => { if (hired >= 0) return; hired = pos; games++; if (ranks[hired] === 1) wins++; draw(); });
   document.addEventListener('langchange', text);
+  if (card) new MutationObserver(text).observe(card, { attributes: true, attributeFilter: ['class'] });
   start();
 })();

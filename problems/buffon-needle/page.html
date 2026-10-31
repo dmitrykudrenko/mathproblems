@@ -668,6 +668,8 @@ const plural = (k, one, few, many) => {
   return many;
 };
 const dropsWord = k => lang === 'en' ? (k === 1 ? 'drop' : 'drops') : plural(k, 'кидок', 'кидки', 'кидків');
+// genitive, after «для», «після»: 1 кидка, 2 кидків, 5 кидків
+const dropsGen = k => lang === 'en' ? (k === 1 ? 'drop' : 'drops') : plural(k, 'кидка', 'кидків', 'кидків');
 const crossWord = k => lang === 'en' ? (k === 1 ? 'crossing' : 'crossings') : plural(k, 'перетин', 'перетини', 'перетинів');
 
 /* ---------- maths ---------- */
@@ -704,7 +706,7 @@ function setupCanvas(c) {
   return { ctx, W, H };
 }
 // a floor of `boards` vertical boards; needles are stored in board units: {cx, f, c, s, k}
-function drawFloor(canvas, list, boards, max) {
+function drawFloor(canvas, list, boards, max, plain) {
   const s = setupCanvas(canvas); if (!s) return;
   const { ctx, W, H } = s, bw = W / boards, len = bw;
   ctx.fillStyle = tok('--surface'); ctx.fillRect(0, 0, W, H);
@@ -720,7 +722,8 @@ function drawFloor(canvas, list, boards, max) {
     for (let i = from; i < list.length; i++) {
       const m = list[i]; if ((m.k > 0) !== (pass === 1)) continue;
       const px = m.cx * bw, py = len / 2 + m.f * (H - len), dx = m.c * len / 2, dy = m.s * len / 2;
-      ctx.strokeStyle = m.k ? hit : ink; ctx.globalAlpha = m.k ? 1 : (thin ? .35 : .75);
+      const lit = m.k && !plain;   // plain: no crossing highlight (the hero before the answer)
+      ctx.strokeStyle = lit ? hit : ink; ctx.globalAlpha = lit ? 1 : (thin ? .35 : .75);
       ctx.lineWidth = thin ? 1.2 : 2.6;
       ctx.beginPath(); ctx.moveTo(px - dx, py - dy); ctx.lineTo(px + dx, py + dy); ctx.stroke();
       if (!thin) { ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(px + dx, py + dy, 3.4, 0, 7); ctx.fill(); }
@@ -738,7 +741,7 @@ function dropOn(boards) {
 const HERO_BOARDS = 5;
 const hero = Array.from({ length: 36 }, () => dropOn(HERO_BOARDS));
 function heroDraw() {
-  drawFloor($('#hero-floor'), hero, HERO_BOARDS, 100);
+  drawFloor($('#hero-floor'), hero, HERO_BOARDS, 100, !!(window.mpSolved && !mpSolved()));
   const h = Math.max(1, hero.filter(m => m.k).length);
   if (window.mpSolved && !mpSolved()) { $('#hero-cap').textContent = L(hero.length + ' сірників на підлозі з ' + HERO_BOARDS + ' дощок. Скільки з них перетнули шов?', hero.length + ' matches on a floor of ' + HERO_BOARDS + ' boards. How many crossed a seam?'); return; }
   $('#hero-cap').textContent = L(hero.length + ' сірників, ' + h + ' перетнули шов. 2 · ' + hero.length + ' / ' + h + ' ≈ ' + num(2 * hero.length / h, 2),
@@ -791,7 +794,7 @@ function flText(k) {
   if (est) {
     const err = Math.abs(est - PI);
     $('#fl-err').textContent = num(err, err < .01 ? 4 : 3);
-    $('#fl-err-s').textContent = L('збіглося знаків після коми: ' + digits(est) + ' · типова похибка для ' + fmt(flN) + ' ' + dropsWord(flN) + ': ' + num(seNeedle(1, flN), 3),
+    $('#fl-err-s').textContent = L('збіглося знаків після коми: ' + digits(est) + ' · типова похибка для ' + fmt(flN) + ' ' + dropsGen(flN) + ': ' + num(seNeedle(1, flN), 3),
       'correct decimals: ' + digits(est) + ' · typical error for ' + fmt(flN) + ' ' + dropsWord(flN) + ': ' + seNeedle(1, flN).toFixed(3));
   } else { $('#fl-err').textContent = '–'; $('#fl-err-s').textContent = L('ще немає перетинів', 'no crossings yet'); }
   let m;
@@ -838,10 +841,10 @@ function simText() {
   const x = +simX.value, P = 2 * x / PI;
   $('#sim-x-v').textContent = num(x, 2);
   $('#sim-t').textContent = pct(P, 2);
-  $('#sim-ts').textContent = cur && cur.n ? L('симуляція: ', 'simulated: ') + pct(cur.h / cur.n, 2) : '';
+  $('#sim-ts').textContent = cur && cur.n && cur.x === x ? L('симуляція: ', 'simulated: ') + pct(cur.h / cur.n, 2) : '';
   if (cur && cur.h) {
     const est = 2 * cur.x * cur.n / cur.h, err = Math.abs(est - PI);
-    $('#sim-k').textContent = L('Оцінка π після ' + fmt(cur.n) + ' ' + dropsWord(cur.n), 'π estimate after ' + fmt(cur.n) + ' drops');
+    $('#sim-k').textContent = L('Оцінка π після ' + fmt(cur.n) + ' ' + dropsGen(cur.n), 'π estimate after ' + fmt(cur.n) + ' drops');
     $('#sim-v').textContent = num(est, 5);
     $('#sim-s').textContent = L('похибка ' + num(err, 5) + ' · правильних знаків: ' + digits(est), 'error ' + err.toFixed(5) + ' · correct decimals: ' + digits(est));
   } else { $('#sim-k').textContent = L('Оцінка π', 'π estimate'); $('#sim-v').textContent = '–'; $('#sim-s').textContent = ''; }
@@ -923,7 +926,7 @@ function drawArea() {
   const P = 2 * x / PI;
   $('#area-txt').innerHTML = L('Під кривою x = (l/2)·sin θ лежать усі кидки з перетином. Площа під кривою займає 2l/(πd) = <b>' + pct(P) + '</b> прямокутника.',
     'All drops with a crossing lie under the curve x = (l/2)·sin θ. The area under it takes up 2l/(πd) = <b>' + pct(P) + '</b> of the rectangle.') + ' ' +
-    (n ? L('Точки є вашими ' + fmt(n) + ' ' + dropsWord(n) + ' з раунду 2: під кривою ' + fmt(inN) + ', тобто ' + pct(inN / n) + '.', 'The dots are your ' + fmt(n) + ' ' + dropsWord(n) + ' from round 2: ' + fmt(inN) + ' under the curve, ' + pct(inN / n) + '.')
+    (n ? L('Точки показують кидки з раунду 2, усього ' + fmt(n) + ': під кривою ' + fmt(inN) + ', тобто ' + pct(inN / n) + '.', 'The dots are your ' + fmt(n) + ' ' + dropsWord(n) + ' from round 2: ' + fmt(inN) + ' under the curve, ' + pct(inN / n) + '.')
        : L('Киньте сірники в раунді 2, і вони з\'являться тут точками.', 'Drop matches in round 2 and they will show up here as dots.'));
 }
 

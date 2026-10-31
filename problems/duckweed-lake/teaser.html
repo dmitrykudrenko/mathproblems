@@ -34,6 +34,11 @@
   }
   cells.sort((a, b) => a.o - b.o);
   let day = 25;
+  // the day-25 share is part of the answer, so an unsolved card starts on an empty lake until the first click
+  const card = root.closest('[data-spoil]');
+  let started = !card || card.classList.contains('solved');
+  const shown = () => started || !card || card.classList.contains('solved');
+  const cover0 = d => shown() ? Math.min(1, Math.pow(2, d - 30)) : 0;
   const cover = d => Math.min(1, Math.pow(2, d - 30));
   function draw() {
     const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
@@ -42,7 +47,7 @@
     const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
     const R = Math.min(W, H) / 2 - 4, cx = W / 2, cy = H / 2, cr = Math.max(1, S * R * 0.62);
     ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
-    const n = cover(day) * cells.length, prev = Math.floor(cover(day - 1) * cells.length);
+    const n = cover0(day) * cells.length, prev = Math.floor(cover0(day - 1) * cells.length);
     const ink = col('--ink', '#151515'), sig = col('--signal', '#D9318F');
     for (let i = 0; i < Math.ceil(n) && i < cells.length; i++) {
       const c = cells[i], part = Math.min(1, n - i);
@@ -54,15 +59,19 @@
     const p = 100 * cover(day), d = s => en() ? s : s.replace('.', ',');
     const ps = p >= 1 ? d(String(+p.toFixed(1))) : d(p.toFixed(2));
     const left = 30 - day, w = left === 1 ? L('день', 'day') : left >= 2 && left <= 4 ? L('дні', 'days') : L('днів', 'days');
-    msg.textContent = day >= 30
+    msg.textContent = !shown()
+      ? L('Ряска щодня подвоюється. Натисніть кнопку, щоб побачити останні дні озера.', 'The duckweed doubles every day. Press a button to see the lake\'s last days.')
+      : day >= 30
       ? L('День 30: озеро заросло. Половина ряски з\'явилася за останню добу.', 'Day 30: the lake is full. Half of the duckweed appeared in the last day.')
       : L('День ' + day + ': вкрито ' + ps + '% озера. До повного озера ' + left + ' ' + w + '.', 'Day ' + day + ': ' + ps + '% of the lake covered. ' + left + ' ' + w + ' to a full lake.');
-    btns[0].textContent = L('Наступний день', 'Next day');
+    btns[0].textContent = shown() ? L('Наступний день', 'Next day') : L('Почати з 25-го дня', 'Start at day 25');
     btns[1].textContent = L('Знову з 25-го дня', 'Back to day 25');
-    btns[0].disabled = day >= 30;
+    btns[1].hidden = !shown();
+    btns[0].disabled = shown() && day >= 30;
   }
-  btns[0].addEventListener('click', () => { if (day < 30) day++; draw(); text(); });
-  btns[1].addEventListener('click', () => { day = 25; draw(); text(); });
+  btns[0].addEventListener('click', () => { if (!shown()) started = true; else if (day < 30) day++; draw(); text(); });
+  btns[1].addEventListener('click', () => { started = true; day = 25; draw(); text(); });
+  if (card) new MutationObserver(() => { draw(); text(); }).observe(card, { attributes: true, attributeFilter: ['class'] });
   document.addEventListener('langchange', text);
   let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
   draw(); text();
