@@ -41,9 +41,9 @@
     btns[0].textContent = L('Кинути 10 сірників', 'Drop 10 matches');
     btns[1].textContent = L('Кинути 100', 'Drop 100');
     if (!n) { msg.textContent = L('Натисніть «Кинути 10 сірників» і порахуйте, яка частка перетне шов між дошками.', 'Press "Drop 10 matches" and see what share of them crosses a seam between boards.'); return; }
-    const est = h ? d((2 * n / h).toFixed(3)) : '–';
-    msg.textContent = L('Кидків: ' + n + ', перетинів: ' + h + ' (' + d((100 * h / n).toFixed(1)) + '%). π ≈ 2 · ' + n + ' / ' + h + ' = ' + est,
-      'Drops: ' + n + ', crossings: ' + h + ' (' + (100 * h / n).toFixed(1) + '%). π ≈ 2 · ' + n + ' / ' + h + ' = ' + est);
+    const est = h ? d((2 * n / h).toFixed(3)) : '–', f = k => k.toLocaleString(en() ? 'en-US' : 'uk-UA');
+    msg.textContent = L('Кидків: ' + f(n) + ', перетинів: ' + f(h) + ' (' + d((100 * h / n).toFixed(1)) + '%). π ≈ 2 · ' + f(n) + ' / ' + f(h) + ' = ' + est,
+      'Drops: ' + f(n) + ', crossings: ' + f(h) + ' (' + (100 * h / n).toFixed(1) + '%). π ≈ 2 · ' + f(n) + ' / ' + f(h) + ' = ' + est);
   }
   btns.forEach(b => b.addEventListener('click', () => drop(+b.dataset.k)));
   document.addEventListener('langchange', text);

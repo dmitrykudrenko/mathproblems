@@ -3,6 +3,8 @@
   const root = document.getElementById('tz-bertrand-paradox');
   const en = () => document.documentElement.dataset.lang === 'en';
   const L = (uk, e) => en() ? e : uk;
+  // the exact values are the answer, so they show only once the card is solved
+  const card = root.closest('[data-spoil]'), solved = () => !!card && card.classList.contains('solved');
   const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), btns = root.querySelectorAll('.tz-btn');
   const col = (name, fb) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb;
   const TAU = 2 * Math.PI, FR = ['1/3', '1/2', '1/4'];
@@ -37,13 +39,14 @@
     if (!list.length) { msg.textContent = L('Натисніть «Провести 100 хорд» і порахуйте, скільки з них довші за сторону вписаного трикутника.', 'Press "Draw 100 chords" and count how many are longer than the side of the inscribed triangle.'); btns[0].textContent = L('Провести 100 хорд', 'Draw 100 chords'); return; }
     const n = list.length, l = list.filter(c => c.d < .5).length, d = s => en() ? s : s.replace('.', ',');
     const name = [L('випадкові кінці', 'random endpoints'), L('випадковий радіус', 'random radius'), L('випадкова середина', 'random midpoint')][m];
-    msg.textContent = L('Спосіб ' + (m + 1) + ', ' + name + ': довгих ' + l + ' з ' + n + ' (' + d((100 * l / n).toFixed(0)) + '%). Точне значення ' + FR[m] + '.',
-      'Method ' + (m + 1) + ', ' + name + ': ' + l + ' of ' + n + ' long (' + (100 * l / n).toFixed(0) + '%). Exact value ' + FR[m] + '.');
+    msg.textContent = L('Спосіб ' + (m + 1) + ', ' + name + ': довгих ' + l + ' з ' + n + ' (' + d((100 * l / n).toFixed(0)) + '%). ' + (solved() ? 'Точне значення ' + FR[m] + '.' : 'Скільки буде іншим способом?'),
+      'Method ' + (m + 1) + ', ' + name + ': ' + l + ' of ' + n + ' long (' + (100 * l / n).toFixed(0) + '%). ' + (solved() ? 'Exact value ' + FR[m] + '.' : 'What does another method give?'));
     btns[0].textContent = L('Ще 50 хорд', '50 more chords');
     btns[1].textContent = L('Інший спосіб', 'Another method');
   }
   btns.forEach(b => b.addEventListener('click', () => { if (b.dataset.a === 'next') { m = (m + 1) % 3; list = []; add(100); } else add(list.length ? 50 : 100); }));
   document.addEventListener('langchange', text);
+  if (card) new MutationObserver(text).observe(card, { attributes: true, attributeFilter: ['class'] });
   let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
   draw(); text();
 })();

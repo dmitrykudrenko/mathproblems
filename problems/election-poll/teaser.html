@@ -23,6 +23,8 @@
   const root = document.getElementById('tz-election-poll');
   const L = (uk, e) => document.documentElement.dataset.lang === 'en' ? e : uk;
   const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), b = root.querySelector('.tz-btn');
+  // the margin after ~1 100 people is the answer, so it shows only once the card is solved
+  const card = root.closest('[data-spoil]'), solved = () => !!card && card.classList.contains('solved');
   const LANDS = [3e7, 3e8], DOTS = 300, STEP = 100, FULL = 1100;
   let land = 0, t = 0, n = 0, a = 0, started = false, lit = new Int8Array(DOTS).fill(-1);
   const fmt = v => Math.round(v).toLocaleString(L('uk-UA', 'en-US'));
@@ -46,16 +48,17 @@
     n += STEP; draw(); text();
   }
   function text() {
-    const N = LANDS[land];
-    if (!n) { msg.textContent = L('Країна на ' + fmt(N) + ' виборців. Опитуйте випадкових людей по 100 і стежте за похибкою.', 'A country of ' + fmt(N) + ' voters. Ask random people 100 at a time and watch the margin of error.'); b.textContent = L('Опитати 100 людей', 'Ask 100 people'); return; }
+    const N = LANDS[land], sv = solved();
+    if (!n) { msg.textContent = sv ? L('Країна на ' + fmt(N) + ' виборців. Опитуйте випадкових людей по 100 і стежте за похибкою.', 'A country of ' + fmt(N) + ' voters. Ask random people 100 at a time and watch the margin of error.') : L('Країна на ' + fmt(N) + ' виборців. Опитуйте випадкових людей по 100 і стежте за прогнозом.', 'A country of ' + fmt(N) + ' voters. Ask random people 100 at a time and watch the forecast.'); b.textContent = L('Опитати 100 людей', 'Ask 100 people'); return; }
     const p = a / n, e = 1.96 * Math.sqrt(p * (1 - p) / n);
-    msg.textContent = L('Опитано ' + fmt(n) + '. За А ' + pc(p) + '% ± ' + pc(e) + ' пункти.', 'Asked ' + fmt(n) + '. For A ' + pc(p) + '% ± ' + pc(e) + ' points.') +
+    msg.textContent = L('Опитано ' + fmt(n) + '. За А ' + pc(p) + '%' + (sv ? ' ± ' + pc(e) + ' пункту' : '') + '.', 'Asked ' + fmt(n) + '. For A ' + pc(p) + '%' + (sv ? ' ± ' + pc(e) + ' points' : '') + '.') +
       (n >= FULL ? ' ' + L('Справжній результат ' + pc(t) + '%. А якщо країна вдесятеро більша?', 'The true result is ' + pc(t) + '%. What if the country were ten times bigger?') : '');
     b.textContent = n >= FULL ? L('Країна на ' + fmt(LANDS[1 - land]), 'A country of ' + fmt(LANDS[1 - land])) : L('Опитати ще 100', 'Ask 100 more');
   }
   b.addEventListener('click', step);
   document.addEventListener('langchange', () => { draw(); text(); });
   window.addEventListener('resize', draw);
+  if (card) new MutationObserver(text).observe(card, { attributes: true, attributeFilter: ['class'] });
   draw(); text();
 })();
 </script>

@@ -25,7 +25,7 @@
     if (picked === null) {
       bars.innerHTML = group(G[2]);
       msg.textContent = L('Загальні результати двох методів, по 350 пацієнтів. Який оберете?', 'Overall results of two treatments, 350 patients each. Which do you pick?');
-      acts.innerHTML = '<button type="button" class="tz-btn" data-t="0">' + L('Обрати A', 'Pick A') + '</button><button type="button" class="tz-btn" data-t="1">' + L('Обрати B', 'Pick B') + '</button>';
+      acts.innerHTML = '<button type="button" class="tz-btn" data-t="0" data-solve>' + L('Обрати A', 'Pick A') + '</button><button type="button" class="tz-btn" data-t="1" data-solve>' + L('Обрати B', 'Pick B') + '</button>';
     } else {
       bars.innerHTML = G.map(group).join('');
       msg.textContent = (picked ? L('Ви обрали B. ', 'You picked B. ') : L('Ви обрали A. ', 'You picked A. ')) +
@@ -33,9 +33,11 @@
       acts.innerHTML = '<button type="button" class="tz-btn" data-t="r">' + L('Спочатку', 'Start over') + '</button>';
     }
   }
+  // picking a treatment is the visitor's answer, so the buttons carry data-solve and open the card's answer
   acts.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
-    picked = b.dataset.t === 'r' ? null : +b.dataset.t; text();
+    // redraw after the click has reached the shared spoiler handler, which needs the button still in the card
+    picked = b.dataset.t === 'r' ? null : +b.dataset.t; setTimeout(text);
   });
   document.addEventListener('langchange', text);
   text();

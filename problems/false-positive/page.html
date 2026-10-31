@@ -755,12 +755,15 @@ function Crowd(el) {
 
 /* ---------- hero: a typical 1,000, reshuffled now and then ---------- */
 const hero = Crowd($('#hero-crowd'));
-// until the problem is solved, ill and healthy positives look the same
-let heroA = typical(0.01, 0.99, 0.99);
-const heroDraw = () => hero.render(window.mpSolved && !mpSolved() ? heroA.map(c => c === 3 ? 1 : c) : heroA);
+// until the problem is solved, ill and healthy positives look the same, and the crowd is a random one:
+// a typical crowd always has exactly 20 positives, which with 1% ill points straight at 50%
+const heroUnsolved = () => window.mpSolved && !mpSolved();
+const heroRoll = () => heroUnsolved() ? sample(0.01, 0.99, 0.99) : typical(0.01, 0.99, 0.99);
+let heroA = heroRoll();
+const heroDraw = () => hero.render(heroUnsolved() ? heroA.map(c => c === 3 ? 1 : c) : heroA);
 heroDraw();
-document.addEventListener('solved', heroDraw);
-if (!REDUCE) setInterval(() => { if (!document.hidden) { heroA = typical(0.01, 0.99, 0.99); heroDraw(); } }, 3500);
+document.addEventListener('solved', () => { heroA = heroRoll(); heroDraw(); });
+if (!REDUCE) setInterval(() => { if (!document.hidden) { heroA = heroRoll(); heroDraw(); } }, 3500);
 
 /* ---------- round 1: guess ---------- */
 const guessIn = $('#guess-n');
@@ -781,7 +784,7 @@ function guessText() {
     : L('Занижено на ' + (50 - g) + ' в. п. Тест справді знаходить майже всіх хворих, а хибних тривог рівно стільки ж, скільки справжніх знахідок.', 'Too low by ' + (50 - g) + ' percentage points. The test does find almost every ill person, and there are exactly as many false alarms as true finds.');
   $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big hit mono">' + (done ? '50%' : '?') + '</p>' +
     '<p>' + verdict + '</p><div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1]) + '%"></i></div><span class="mono">' + r[3] + '</span></div>').join('') +
-    '</div><p class="note">' + L('Із 10 000 людей позитивний результат отримають 99 хворих і 99 здорових. Детально в раунді 4.', 'Of 10,000 people, 99 ill and 99 healthy ones test positive. Details in round 4.') + '</p>';
+    '</div>' + (done ? '<p class="note">' + L('Із 10 000 людей позитивний результат отримають 99 хворих і 99 здорових. Детально в раунді 4.', 'Of 10,000 people, 99 ill and 99 healthy ones test positive. Details in round 4.') + '</p>' : '');
 }
 
 /* ---------- round 2: the crowd ---------- */

@@ -6,6 +6,10 @@
   const cv = root.querySelector('canvas'), msg = root.querySelector('.tz-msg'), btns = root.querySelectorAll('.tz-btn');
   const col = (name, fb) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb;
   const N = 100;
+  // the loops show the answer, so the first shuffle also opens the card's answer; hiding it again resets the game
+  const card = root.closest('[data-spoil][id]');
+  const solved = () => !card || card.classList.contains('solved');
+  const solve = () => { if (!solved()) { const r = card.querySelector('[data-solve]'); if (r) r.click(); } };
   function perm() {
     const p = Array.from({ length: N }, (_, i) => i);
     for (let i = N - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; }
@@ -18,6 +22,7 @@
   }
   let lens = [], tries = 0, wins = 0;
   function roll(k) {
+    solve();
     for (let i = 0; i < k; i++) { lens = loops(perm()); tries++; if (lens[0] <= 50) wins++; }
     draw(); text();
   }
@@ -72,6 +77,7 @@
   btns[0].addEventListener('click', () => roll(1));
   btns[1].addEventListener('click', () => roll(100));
   document.addEventListener('langchange', text);
+  if (card) new MutationObserver(() => { if (!solved() && tries) { lens = []; tries = 0; wins = 0; draw(); text(); } }).observe(card, { attributes: true, attributeFilter: ['class'] });
   let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
   draw(); text();
 })();

@@ -32,6 +32,8 @@ Bilingual (uk/en) interactive explainers of math puzzles where intuition is wron
 
 ## Checks before commit
 
+`python3 tools/check.py` automates all but the browser check (CI runs it on every PR and push to main):
+
 - build succeeds; `node --check` on every inline script of the uk and en builds and the hub;
 - uk build has 0 `class="en"`, en build has 0 `class="uk"`;
 - no horizontal scroll at 375px, no console errors (look at it in a browser via a local server);
