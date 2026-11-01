@@ -44,6 +44,17 @@
     return b;
   }
   if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+  });
   window.mpSolved = function () { return d.classList.contains("solved"); };
   // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
   window.mpSolve = function (guess) {
@@ -578,7 +589,7 @@ table.t { border-collapse: collapse; width: 100%; font-size: .9rem; }
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
 </style>
-<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=fbc4fde6">
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=3735a47c">
 </head>
 <body>
 <div class="wrap">
@@ -753,7 +764,7 @@ table.t { border-collapse: collapse; width: 100%; font-size: .9rem; }
   if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
   document.addEventListener("solved", function (e) {
     var g = e.detail && e.detail.guess;
-    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1" || d.classList.contains("rounds-open")) { if (!get(KEY)) set(KEY, "seen"); load(); return; }
     var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
     set(KEY, "1");
     fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })

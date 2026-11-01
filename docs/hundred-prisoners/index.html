@@ -44,6 +44,17 @@
     return b;
   }
   if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+  });
   window.mpSolved = function () { return d.classList.contains("solved"); };
   // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
   window.mpSolve = function (guess) {
@@ -446,6 +457,8 @@ canvas { display: block; width: 100%; }
 .ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
 .ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
 .ask p:not(.q) { font-size: .93rem; }
+.gate { display: grid; gap: 10px; justify-items: start; max-width: 62ch; }
+.gate p { margin: 0; }
 .loop-steps { margin: -4px 0; padding-left: 1.4em; display: grid; gap: 2px; }
 .lead b { color: var(--ink); }
 .rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
@@ -586,7 +599,7 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
 </style>
-<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=fbc4fde6">
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=3735a47c">
 </head>
 <body>
 <div class="wrap">
@@ -764,7 +777,7 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
   if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
   document.addEventListener("solved", function (e) {
     var g = e.detail && e.detail.guess;
-    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1" || d.classList.contains("rounds-open")) { if (!get(KEY)) set(KEY, "seen"); load(); return; }
     var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
     set(KEY, "1");
     fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
@@ -775,6 +788,20 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
 </script>
 </section>
 
+<!-- rounds 2–5 and the facts show the strategy, so they open only after a guess, "go on", or "always show all rounds" -->
+<section class="round sp-gate" id="next">
+  <div class="card gate">
+    <span class="kicker"><span class="uk">Далі розв'язок</span></span>
+    <h3><span class="uk">Далі пояснення, і в ньому спойлери</span></h3>
+    <p class="uk">Наступні раунди розкривають стратегію, яка рятує в'язнів: гра, симуляція і пояснення. Спершу відповісти в раунді 1 чи йти далі?</p>
+    
+    <div class="actions"><a class="btn pri" href="#guess"><span class="uk">Відповісти в раунді 1</span></a><button type="button" class="btn ghost" data-solve><span class="uk">Йти далі</span></button></div>
+    <button type="button" class="sp-skip" data-rounds="open"><span class="uk">Завжди показувати всі раунди, я не боюся спойлерів</span></button>
+  </div>
+</section>
+
+<div class="sp-rounds">
+<p class="note rounds-on"><span class="uk">Ви обрали завжди показувати всі раунди.</span> <button type="button" class="sp-skip" data-rounds="gate"><span class="uk">Ховати їх до відповіді</span></button></p>
 <!-- ROUND 2: game -->
 <section class="round" id="game">
   <div class="round-head">
@@ -1168,6 +1195,7 @@ print(f&quot;усі на волі: симуляція {100 * wins / TRIALS:.2f}%
   </div>
 </section>
 
+
 <!-- FUN FACTS -->
 <section class="round" id="facts">
   <div class="round-head">
@@ -1213,6 +1241,7 @@ print(f&quot;усі на волі: симуляція {100 * wins / TRIALS:.2f}%
       </article>
   </div>
 </section>
+</div>
 
 <section class="mp-books" id="books">
   <div class="mp-related-head">
@@ -1979,6 +2008,9 @@ const redraw = () => { heroDraw(); allText(); drawSim(); drawSweep(); whyDraw();
 let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
 new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+// rounds 2–5 were hidden until now, so their canvases had no width to draw into
+document.addEventListener('solved', () => setTimeout(redraw, 0));
+document.addEventListener('rounds', () => setTimeout(redraw, 0));
 
 // open everything in a filled state
 gNew();
