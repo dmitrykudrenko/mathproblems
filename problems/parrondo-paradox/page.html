@@ -854,12 +854,13 @@ function guessText() {
 
 /* ---------- round 2: the tables ---------- */
 const MODES = ['A', 'B', 'ABAB', 'AABB', 'R', 'H'];
-const R2 = { mode: 'A', bal: 0, n: 0, path: [0], games: [], bOn0: 0, nB: 0, best: null, bot: null, hands: 0 };
+const R2 = { mode: 'A', bal: 0, n: 0, path: [0], games: [], bOn0: 0, nB: 0, ok: 0, best: null, bot: null, hands: 0 };
 const isHand = () => R2.mode === 'H';
-function r2New() { R2.bal = 0; R2.n = 0; R2.path = [0]; R2.games = []; R2.bOn0 = 0; R2.nB = 0; R2.bot = null; }
+function r2New() { R2.bal = 0; R2.n = 0; R2.path = [0]; R2.games = []; R2.bOn0 = 0; R2.nB = 0; R2.ok = 0; R2.bot = null; }
 function r2Play(g) {
   const s = mod3(R2.bal);
   if (g === 'B') { R2.nB++; if (s === 0) R2.bOn0++; }
+  if ((g === 'A') === (s === 0)) R2.ok++;   // the trick: A on a multiple of 3, B otherwise
   const won = Math.random() < pGame(g, s);
   R2.bal += won ? 1 : -1; R2.n++; R2.path.push(R2.bal); R2.games.push([g, won]);
   if (R2.games.length > 60) R2.games.shift();
@@ -903,9 +904,15 @@ function r2Text() {
   if (isHand()) {
     if (!R2.n) msg = L('50 партій, починаєте з нуля. Перед кожною обирайте A або B. Бот поруч обирає навмання. Чи наберете +10?', '50 rounds, starting from zero. Before each one choose A or B. A bot next to you chooses at random. Can you reach +10?');
     else if (R2.n >= HANDN) {
-      msg = R2.bal >= 10
-        ? L('Ви знайшли трюк: грати A на кратному 3, щоб обійти погану монетку, і B деінде. Так у середньому виходить ' + sg(SMART50, 1) + ' за 50 партій. Але це вже не парадокс: ви дивитесь на капітал. Парадокс у тому, що виграє навіть сліпе чергування.', 'You found the trick: play A on a multiple of 3 to dodge the bad coin, and B elsewhere. That gives ' + sg(SMART50, 1) + ' per 50 rounds on average. But this is no longer the paradox: you are looking at the capital. The paradox is that even blind switching wins.')
-        : L('Набір завершено: ' + (sg(R2.bal, 0) || '0') + '. Підказка: подивіться на монетку, яку B підкидала б зараз, перш ніж обирати.', 'Set over: ' + (sg(R2.bal, 0) || '0') + '. Hint: look at the coin B would toss right now before you choose.');
+      // judge the choices, not the final capital: 50 rounds is a lottery either way
+      const trick = R2.ok >= 40, cap = sg(R2.bal, 0) || '0', okT = L('За трюком зіграно ' + R2.ok + ' з 50 партій. ', R2.ok + ' of 50 rounds followed the trick. ');
+      msg = trick
+        ? L('Ви знайшли трюк: грати A на кратному 3, щоб обійти погану монетку, і B деінде. ', 'You found the trick: play A on a multiple of 3 to dodge the bad coin, and B elsewhere. ') + okT
+          + (R2.bal >= 10 ? '' : L('Цього разу вийшло ' + cap + ': так буває, трюк не добирає +10 приблизно в кожному шостому наборі. ', 'This time you got ' + cap + ': it happens, the trick misses +10 in about one set in six. '))
+          + L('У середньому трюк дає ' + sg(SMART50, 1) + ' за 50 партій. Але це вже не парадокс: ви дивитесь на капітал. Парадокс у тому, що виграє навіть сліпе чергування.', 'On average it gives ' + sg(SMART50, 1) + ' per 50 rounds. But this is no longer the paradox: you are looking at the capital. The paradox is that even blind switching wins.')
+        : L('Набір завершено: ' + cap + '. ', 'Set over: ' + cap + '. ') + okT
+          + (R2.bal >= 10 ? L('+10 є, але тут допомогла удача: навмання так виходить приблизно раз на 11 наборів. ', 'You reached +10, but luck helped: at random it happens in about one set in 11. ') : '')
+          + L('Підказка: подивіться на монетку, яку B підкидала б зараз, перш ніж обирати.', 'Hint: look at the coin B would toss right now before you choose.');
     } else msg = L('Партія ' + R2.n + ' з 50. Капітал ' + (sg(R2.bal, 0) || '0') + '.', 'Round ' + R2.n + ' of 50. Capital ' + (sg(R2.bal, 0) || '0') + '.');
   } else {
     if (!R2.n) msg = L('Натисніть «+100» або «+1000». Одна партія змінює капітал на 1, тож різницю між способами видно лише на сотнях партій.', 'Press "+100" or "+1,000". A round moves the capital by 1, so the difference between the ways shows only over hundreds of rounds.');

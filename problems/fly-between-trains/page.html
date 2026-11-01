@@ -676,6 +676,7 @@ const plural = (k, one, few, many) => {
   return many;
 };
 const legW = n => L(plural(n, 'відрізок', 'відрізки', 'відрізків'), n === 1 ? 'leg' : 'legs');
+const ptsW = n => L(plural(n, 'очко', 'очки', 'очок'), n === 1 ? 'point' : 'points');
 const turnW = n => L(plural(n, 'розворот', 'розвороти', 'розворотів'), n === 1 ? 'turn' : 'turns');
 
 /* ---------- maths ---------- */
@@ -877,7 +878,7 @@ function gTick() {
   $('#g-clock').textContent = dec(l.toFixed(1)); $('#g-clock').classList.toggle('low', l < 10);
   if (l <= 0) gFinish(null);
 }
-function gFinish(ans) {
+function gFinish(ans, skipped) {
   if (g.done) return;
   g.done = true; clearInterval(g.timer);
   const l = left(), c = g.cur, ok = ans !== null && Math.abs(ans - c.ans) <= 0.5;
@@ -887,7 +888,7 @@ function gFinish(ans) {
   let need = 0, s = 0; for (const lg of g.LG) { s += lg.d; need++; if (c.ans - s <= 0.5) break; }
   g.hist.push({ c, ans, ok, pts, used: g.legsUsed, need });
   const T = c.D / (c.u + c.v);
-  let m = ans === null ? '<span class="bad">' + L('Час вийшов.', 'Time is up.') + '</span> ' : ok ? '<span class="good">' + L('Точно! +' + pts + ' очок.', 'Exact! +' + pts + ' points.') + '</span> ' : '<span class="bad">' + L('Не те число.', 'Not that number.') + '</span> ';
+  let m = ans === null ? '<span class="bad">' + (skipped ? L('Пропущено.', 'Skipped.') : L('Час вийшов.', 'Time is up.')) + '</span> ' : ok ? '<span class="good">' + L('Точно! +' + pts + ' ' + ptsW(pts) + '.', 'Exact! +' + pts + ' ' + ptsW(pts) + '.') + '</span> ' : '<span class="bad">' + L('Не те число.', 'Not that number.') + '</span> ';
   m += L('Відповідь <b>' + num(c.ans) + ' км</b>. Годинник: потяги зустрічаються через ' + num(c.D) + ' / (' + c.u + ' + ' + c.v + ') = ' + num(T) + ' год, муха летить ' + c.f + ' × ' + num(T) + ' = ' + num(c.ans) + ' км. Ряд: щоб підійти до відповіді ближче ніж на 0,5 км, треба скласти ' + need + ' ' + legW(need) + '.',
     'The answer is <b>' + num(c.ans) + ' km</b>. The clock: the trains meet after ' + num(c.D) + ' / (' + c.u + ' + ' + c.v + ') = ' + num(T) + ' h, the fly flies ' + c.f + ' × ' + num(T) + ' = ' + num(c.ans) + ' km. The series: to come within 0.5 km you need to add ' + need + ' ' + legW(need) + '.');
   $('#g-msg').innerHTML = m;
@@ -918,7 +919,7 @@ function gText() {
     const avg = a => a.length ? num(a.reduce((x, h) => x + h.pts, 0) / a.length, 1) : '–';
     v = '<b>' + L('Точних відповідей: ' + okN + ' з ' + g.hist.length + ', підказок-відрізків: ' + used + '.', 'Exact answers: ' + okN + ' of ' + g.hist.length + ', leg hints used: ' + used + '.') + '</b>';
     v += '<span class="note">' + L('Середні очки, коли ви складали відрізки (3 і більше): ' + avg(viaLegs) + '; коли рахували в голові: ' + avg(viaClock) + '.', 'Average points when you added legs (3 or more): ' + avg(viaLegs) + '; when you worked it out in your head: ' + avg(viaClock) + '.') + '</span>';
-    if (g.k >= ROUNDS && g.done) v += '<span>' + L('Гру закінчено: ' + g.score + ' очок із 225 можливих. ', 'Game over: ' + g.score + ' points out of a possible 225. ') + (g.score >= 150 ? L('Рівень фон Неймана.', 'Von Neumann level.') : L('Спробуйте ще раз і не стежте за мухою: рахуйте, скільки часу вона летить.', 'Try again and do not follow the fly: work out how long it flies.')) + '</span>';
+    if (g.k >= ROUNDS && g.done) v += '<span>' + L('Гру закінчено: ' + g.score + ' ' + ptsW(g.score) + ' із 225 можливих. ', 'Game over: ' + g.score + ' ' + ptsW(g.score) + ' out of a possible 225. ') + (g.score >= 150 ? L('Рівень фон Неймана.', 'Von Neumann level.') : L('Спробуйте ще раз і не стежте за мухою: рахуйте, скільки часу вона летить.', 'Try again and do not follow the fly: work out how long it flies.')) + '</span>';
   } else v = '<span class="note">' + L('Два способи: складати відрізки (точно, але повільно, кожен коштує 3 с) або порахувати час до зустрічі потягів. Який швидший, побачите в таблиці.', 'Two ways: add up legs (exact but slow, each costs 3 s) or work out the time until the trains meet. The table will show which is faster.') + '</span>';
   $('#g-verdict').innerHTML = v;
 }
@@ -931,7 +932,7 @@ function gDraw() {
   const xf = g.legsUsed ? g.LG[g.legsUsed - 1].x1 : 0;
   drawScene(ctx, W, 10, H - 14, c.D, c.u * t, c.D - c.v * t, xf, 0);
 }
-$('#g-next').addEventListener('click', () => { if (g.cur && !g.done) gFinish(null); else gStart(); });
+$('#g-next').addEventListener('click', () => { if (g.cur && !g.done) gFinish(null, true); else gStart(); });
 $('#g-leg').addEventListener('click', gLeg);
 const gAnswer = () => { const raw = String($('#g-in').value).replace(',', '.'); if (raw.trim() === '' || isNaN(+raw)) return; gFinish(+raw); };
 $('#g-ok').addEventListener('click', gAnswer);

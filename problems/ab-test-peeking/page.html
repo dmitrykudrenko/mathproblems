@@ -392,8 +392,8 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
   <div class="round-head">
     <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span><span class="en">Round 3 · Simulation</span></span>
     <h2><span class="uk">Тисячі A/A-тестів і точна крива</span><span class="en">Thousands of A/A tests and the exact curve</span></h2>
-    <p class="lead uk">Ми проганяємо тисячі A/A-тестів на ті самі 30 000 відвідувачів на сторінку і змінюємо лише те, як часто на них дивляться: один раз, двічі, щовечора, щогодини або після кожного відвідувача. Лінія показує точний розрахунок, точки показують симуляцію з випадковими покупками.</p>
-    <p class="lead en">We run thousands of A/A tests on the same 30,000 visitors per page and change only how often someone looks: once, twice, every evening, every hour or after every visitor. The line is the exact calculation, the dots are a simulation with random purchases.</p>
+    <p class="lead uk">Ми проганяємо тисячі A/A-тестів на ті самі 30 000 відвідувачів на сторінку і змінюємо лише те, як часто на них дивляться: один раз, двічі, щовечора, щогодини або після кожної пари відвідувачів (по одному на кожну сторінку). Лінія показує точний розрахунок, точки показують симуляцію з випадковими покупками.</p>
+    <p class="lead en">We run thousands of A/A tests on the same 30,000 visitors per page and change only how often someone looks: once, twice, every evening, every hour or after every pair of visitors (one on each page). The line is the exact calculation, the dots are a simulation with random purchases.</p>
   </div>
   <div class="card lock">
     <div class="lock-msg sp-before">
@@ -990,14 +990,14 @@ function gameNew(prefill) {
   G.day = prefill ? 5 : (G.mode === 'imp' ? 1 : 0); G.over = false; G.verdict = null; G.stopDay = 0;
   stopAuto(); gameText(); gameDraw();
 }
-function gameEnd(declared) {
+function gameEnd(declared, mine = false) {
   const st = G.path[G.day - 1], T = G.tally[G.mode];
   G.over = true; G.stopDay = G.day; stopAuto();
   const leaderB = st.b >= st.a;
   T.n++; G.real ? T.ab++ : T.aa++;
   if (declared) { if (!G.real) T.fake++; else if (leaderB) T.real++; else T.wrong++; }
   else if (G.real) T.missed++;
-  G.verdict = { declared, leaderB };
+  G.verdict = { declared, leaderB, mine };
   gameText(); gameDraw();
 }
 function gameNext() {
@@ -1017,7 +1017,7 @@ function gameAuto() {
 }
 $('#g-next').addEventListener('click', gameNext);
 $('#g-auto').addEventListener('click', () => { G.auto ? (stopAuto(), gameText()) : gameAuto(); });
-$('#g-stop').addEventListener('click', () => { if (!G.over && G.day) gameEnd(true); });
+$('#g-stop').addEventListener('click', () => { if (!G.over && G.day) gameEnd(true, true); });
 $('#g-skip').addEventListener('click', () => { if (G.over) return; G.day = DAYS; gameEnd(Math.abs(G.path[DAYS - 1].z) > Z); });
 $('#g-new').addEventListener('click', () => gameNew(false));
 $('#g-mode').addEventListener('click', e => {
@@ -1043,9 +1043,12 @@ function gameText() {
   let m;
   if (G.over) {
     const v = G.verdict, truth = G.real ? L('B справді краща на 10%.', 'B really was 10% better.') : L('Сторінки були однакові.', 'The pages were identical.');
-    if (v.declared && !G.real) m = L('Ви оголосили переможцем ' + (v.leaderB ? 'B' : 'A') + ' на ' + G.stopDay + '-й вечір. ' + truth + ' Це фальшивий переможець: його створив шум.', 'You declared ' + (v.leaderB ? 'B' : 'A') + ' the winner on evening ' + G.stopDay + '. ' + truth + ' This is a false winner: the noise made it.');
-    else if (v.declared && v.leaderB) m = L('Ви оголосили переможцем B на ' + G.stopDay + '-й вечір. ' + truth + ' Справжній ефект знайдено.', 'You declared B the winner on evening ' + G.stopDay + '. ' + truth + ' A real effect found.');
-    else if (v.declared) m = L('Ви оголосили переможцем A на ' + G.stopDay + '-й вечір, але насправді краща на 10% була B. Шум перевернув знак.', 'You declared A the winner on evening ' + G.stopDay + ', but in fact B was 10% better. The noise flipped the sign.');
+    // who declared: the visitor with "Stop", or the rule itself on day 30
+    const won = w => v.mine ? L('Ви оголосили переможцем ' + w + ' на ' + G.stopDay + '-й вечір', 'You declared ' + w + ' the winner on evening ' + G.stopDay)
+      : L('На 30-й день впевненість вища за 95%, і правило оголосило переможцем ' + w, 'On day 30 the confidence was above 95%, and the rule declared ' + w + ' the winner');
+    if (v.declared && !G.real) m = won(v.leaderB ? 'B' : 'A') + '. ' + truth + L(' Це фальшивий переможець: його створив шум.', ' This is a false winner: the noise made it.');
+    else if (v.declared && v.leaderB) m = won('B') + '. ' + truth + L(' Справжній ефект знайдено.', ' A real effect found.');
+    else if (v.declared) m = won('A') + L(', але насправді краща на 10% була B. Шум перевернув знак.', ', but in fact B was 10% better. The noise flipped the sign.');
     else if (G.real) m = L('За 30 днів впевненість не сягнула 95%, переможця немає. ' + truth + ' Тест ефект пропустив, так буває приблизно в 1 тесті з 5.', 'In 30 days the confidence did not reach 95%, no winner. ' + truth + ' The test missed the effect, which happens in about 1 test in 5.');
     else m = L('За 30 днів впевненість не сягнула 95%, переможця немає. ' + truth + ' Правильний висновок.', 'In 30 days the confidence did not reach 95%, no winner. ' + truth + ' The right conclusion.');
     m += ' ' + L('Блідий хвіст на графіку показує, що було б далі.', 'The faint tail on the chart shows what would have happened next.');
@@ -1137,7 +1140,7 @@ function looksText() {
   $('#t-daily').textContent = pct(ANSWER); $('#t-daily-s').textContent = L('точно; ', 'exact; ') + s(30);
   $('#t-hour').textContent = '≈ ' + pct(REF[720], 0); $('#t-hour-s').textContent = s(720);
   $('#t-visit').textContent = '≈ ' + pct(REF[30000], 0); $('#t-visit-s').textContent = s(30000);
-  $('#looks-note').textContent = L('Скрізь 30 000 відвідувачів на сторінку і межа 95%, погляди рівномірні. Симуляція: 4 000 тестів на точку, для щогодинних поглядів 1 500, для перевірки після кожного відвідувача 400. Точна лінія закінчується на 100 поглядах, далі лише симуляція.', 'Always 30,000 visitors per page and a 95% bar, looks evenly spaced. Simulation: 4,000 tests per dot, 1,500 for hourly looks, 400 for a check after every visitor. The exact line ends at 100 looks; beyond that it is simulation only.');
+  $('#looks-note').textContent = L('Скрізь 30 000 відвідувачів на сторінку і межа 95%, погляди рівномірні. Симуляція: 4 000 тестів на точку, для щогодинних поглядів 1 500, для перевірки після кожної пари відвідувачів 400. Точна лінія закінчується на 100 поглядах, далі лише симуляція.', 'Always 30,000 visitors per page and a 95% bar, looks evenly spaced. Simulation: 4,000 tests per dot, 1,500 for hourly looks, 400 for a check after every pair of visitors. The exact line ends at 100 looks; beyond that it is simulation only.');
 }
 function looksDraw() {
   const s = setupCanvas($('#c-looks')); if (!s) return;
