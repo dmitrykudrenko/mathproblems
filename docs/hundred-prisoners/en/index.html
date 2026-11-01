@@ -802,7 +802,7 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
       </div>
     </div>
     <div class="card">
-      <h3><span class="en">All 20 prisoners</span> · <span id="all-how"></span></h3>
+      <h3><span class="en">All 20 prisoners</span><span id="all-how"></span></h3>
       <p class="note" id="all-k" style="margin-top:6px"></p>
       <canvas id="all-rings" style="height:200px;margin-top:10px" aria-hidden="true"></canvas>
       <p class="note" id="all-cap" style="margin-top:6px"><span class="en">A dot is a box with its number. An arrow leads from a box to the box whose number lies inside. One arrow leaves each box and one enters it, so the 20 boxes always split into a few closed loops. A prisoner who follows the loop walks the loop their box is on. Loops longer than 10 are pink: there, the tries run out.</span></p>
@@ -1525,8 +1525,8 @@ const GN = 20, GK = 10;
 let mode = 'loop', g, score = { loop: [0, 0], rand: [0, 0], free: [0, 0] };
 // hist: every run of all 20 on your arrangements, one per arrangement and strategy
 let allState = null, hist = [], allTimer = null;
-// prisoners who each choose for themselves have no common plan, so all 20 together search at random
-const runMode = () => mode === 'loop' ? 'loop' : 'rand';
+// all 20 run the strategy picked on the left; choosing freely is yours alone, so it has no run
+const runMode = () => mode;
 function gNew() {
   g = { p: randPerm(GN), me: rnd(GN), opened: [], done: false, won: false, counted: {} };
   gBoxes(); gText();
@@ -1594,7 +1594,7 @@ function gText() {
     : '';
   const st = $('#g-step');
   st.textContent = mode === 'rand' ? L('Відкрити випадкову коробку', 'Open a random box') : L('Відкрити наступну коробку петлі', 'Open the next box in the loop');
-  st.hidden = mode === 'free';
+  st.hidden = $('#g-all').hidden = mode === 'free';
   st.disabled = g.done || (mode === 'loop' && gNext() < 0);
 }
 $('#g-boxes').addEventListener('click', e => { const b = e.target.closest('button'); if (b) gOpen(+b.dataset.b); });
@@ -1612,11 +1612,11 @@ $('#g-mode').addEventListener('click', e => {
 
 // all 20 prisoners on an arrangement, rows appear one by one
 function stopAll() { clearInterval(allTimer); allTimer = null; }
-function startAll(p, example) {
+function startAll(p) {
   stopAll();
   const am = runMode(), res = am === 'loop' ? runAll(p, GK) : runRand(p, GK), lp = loopsOf(p);
-  allState = { p, res, lp, shown: REDUCE ? GN : 0, example, mode: am };
-  if (!example && !g.counted[am]) {
+  allState = { p, res, lp, shown: REDUCE ? GN : 0, mode: am };
+  if (!g.counted[am]) {
     g.counted[am] = true;
     hist.push({ m: am, lens: lp.map(c => c.length), found: res.filter(r => r.ok).length });
   }
@@ -1625,26 +1625,28 @@ function startAll(p, example) {
 }
 function allText() {
   const k = $('#all-k'), paths = $('#all-paths'), v = $('#all-v');
-  // the strategy shown is the one picked on the left, or the one the last run used
+  // the right side shows only a run of all 20: nothing while you play one prisoner on the left
   const how = allState ? allState.mode : runMode();
-  $('#all-how').textContent = how === 'loop' ? L('за петлею', 'by the loop') : L('навмання', 'at random');
-  // at random the loops decide nothing, so the rings and their caption show only for the loop
-  $('#all-cap').hidden = $('#all-rings').hidden = how !== 'loop';
+  $('#all-how').textContent = how === 'loop' ? ' · ' + L('за петлею', 'by the loop') : how === 'rand' ? ' · ' + L('навмання', 'at random') : '';
+  // the rings and their caption explain a loop run; at random the loops decide nothing
+  $('#all-cap').hidden = $('#all-rings').hidden = !allState || allState.mode !== 'loop';
   if (!allState) {
-    k.textContent = L('Натисніть «Запустити всіх 20 в\'язнів», щоб побачити шлях кожного на вашому розміщенні. ', 'Press "Run all 20 prisoners" to see each one\'s path on your arrangement. ') +
-      (how === 'loop' ? L('Усі підуть за петлею, як ви.', 'All of them will follow the loop, like you.')
-        : mode === 'free' ? L('Усі шукатимуть навмання: коли кожен обирає сам, без спільного плану, це те саме.', 'All of them will search at random: when each one chooses alone, with no common plan, it is the same thing.')
-        : L('Усі відкриватимуть коробки навмання, як ви.', 'All of them will open boxes at random, like you.'));
+    k.textContent = how === 'loop'
+      ? L('Зліва ви граєте одним в\'язнем і йдете за петлею. Натисніть «Запустити всіх 20 в\'язнів»: на цьому ж розміщенні кожен із 20 пройде свою петлю, і тут буде видно, хто знайшов свій номер.', 'On the left you play one prisoner and follow the loop. Press "Run all 20 prisoners": on the same arrangement each of the 20 walks their own loop, and here you see who found their number.')
+      : how === 'rand'
+      ? L('Зліва ви граєте одним в\'язнем і відкриваєте коробки навмання. Натисніть «Запустити всіх 20 в\'язнів»: на цьому ж розміщенні кожен із 20 відкриє 10 випадкових коробок, і тут буде видно, хто що знайшов.', 'On the left you play one prisoner and open boxes at random. Press "Run all 20 prisoners": on the same arrangement each of the 20 opens 10 random boxes, and here you see who found what.')
+      : L('Зліва ви обираєте коробки самі. За інших в\'язнів так не обереш, тож усіх 20 тут не запустити. Щоб побачити всіх, оберіть «Іти за петлею» або «Навмання».', 'On the left you pick the boxes yourself. Nobody can pick for the other prisoners, so there is no run of all 20 here. To see them all, choose "Follow the loop" or "At random".');
     paths.innerHTML = ''; v.textContent = '';
-    drawRings($('#all-rings'), [], { limit: GK });
   } else {
-    const { res, lp, shown, example, mode: am } = allState;
-    k.textContent = (example ? L('Приклад іншого розміщення. ', 'An example arrangement. ') : L('Ваше розміщення. ', 'Your arrangement. ')) +
-      (am === 'loop' ? L('Петлі: ', 'Loops: ') + lp.map(c => c.length).join(' + ') + ' = 20. ' : '') +
-      (am === 'loop' ? L('Кожен в\'язень іде за петлею.', 'Each prisoner follows the loop.') : L('Кожен в\'язень відкриває 10 коробок навмання.', 'Each prisoner opens 10 boxes at random.') +
-        (mode === 'free' ? L(' Коли кожен обирає сам, без спільного плану, це те саме, що навмання.', ' When each one chooses alone, with no common plan, it is the same as at random.') : ''));
-    if (am === 'loop') drawRings($('#all-rings'), lp, { limit: GK, labels: true, arrows: true, sMax: 26, mark: example ? -1 : g.me });
-    paths.innerHTML = res.slice(0, shown).map((r, i) => '<div class="' + (r.ok ? 'ok' : 'no') + '"><b>' + (r.ok ? '✓' : '✗') + ' ' + (i + 1) + '</b><span>' + r.path.map(b => b + 1).join('→') + (r.ok ? '' : '…') + '</span></div>').join('');
+    const { res, lp, shown, mode: am } = allState;
+    k.textContent = am === 'loop'
+      ? L('Ваше розміщення. Петлі: ', 'Your arrangement. Loops: ') + lp.map(c => c.length).join(' + ') + ' = 20. ' + L('Кожен в\'язень іде за петлею.', 'Each prisoner follows the loop.')
+      : L('Ваше розміщення. Кожен в\'язень відкриває 10 коробок навмання: які коробки відкрив і чи знайшов свій номер.', 'Your arrangement. Each prisoner opens 10 boxes at random: which boxes they opened and whether they found their number.');
+    if (am === 'loop') drawRings($('#all-rings'), lp, { limit: GK, labels: true, arrows: true, sMax: 26, mark: g.me });
+    // a loop row is the chain of boxes; a random row says the outcome first, then the boxes opened
+    const row = r => am === 'loop' ? r.path.map(b => b + 1).join('→') + (r.ok ? '' : '…')
+      : (r.ok ? L('знайшов у ' + r.path.length + '-й коробці: ', 'found in box ' + r.path.length + ' of 10: ') : L('не знайшов: ', 'not found: ')) + r.path.map(b => b + 1).join(', ');
+    paths.innerHTML = res.slice(0, shown).map((r, i) => '<div class="' + (r.ok ? 'ok' : 'no') + '"><b>' + (r.ok ? '✓' : '✗') + ' ' + (i + 1) + '</b><span>' + row(r) + '</span></div>').join('');
     if (shown >= GN) {
       const m = lp[0].length, fails = res.filter(r => !r.ok).length;
       v.innerHTML = am === 'rand'
@@ -1668,7 +1670,7 @@ function allText() {
     [tp('loop') && L('за петлею ', 'by the loop ') + tp('loop'), tp('rand') && L('навмання ', 'at random ') + tp('rand')].filter(Boolean).join(', ') + '. ' : '') +
     L('Теорія для 20 в\'язнів і 10 спроб: за петлею ', 'Theory for 20 prisoners and 10 tries: by the loop ') + pct(pLE(GN, GK)) + L(', навмання ', ', at random ') + prob(pRand(GN, GK)) + '.';
 }
-$('#g-all').addEventListener('click', () => startAll(g.p, false));
+$('#g-all').addEventListener('click', () => startAll(g.p));
 
 /* ---------- round 3: simulation ---------- */
 let sim = null;
@@ -1907,7 +1909,6 @@ new MutationObserver(redraw).observe(document.documentElement, { attributes: tru
 
 // open everything in a filled state
 gNew();
-startAll(randPerm(GN), true);
 simRun();
 wardRun();
 applyLang();
