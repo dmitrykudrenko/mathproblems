@@ -21,5 +21,5 @@ for _ in range(TRIALS):
 
 for name in methods:
     print(f"{name}: ⟨в середньому|average⟩ {total[name] / TRIALS:.1f}, "
-          f"⟨типова похибка|typical error⟩ ±{math.sqrt(sq[name] / TRIALS):.1f}")
+          f"⟨середньоквадратична похибка|RMSE (typical error)⟩ ±{math.sqrt(sq[name] / TRIALS):.1f}")
 print(f"⟨Номери 4, 10, 15, 60: оцінка|Serial numbers 4, 10, 15, 60: estimate⟩ {methods['m + m/k − 1']([4, 10, 15, 60]):g}")

@@ -6,13 +6,13 @@ MEAN, BUSES, RIDERS = 10, 100_000, 100_000
 
 bus = [0.0]                               # ⟨моменти приходу автобусів, хвилини|bus arrival times, minutes⟩
 for _ in range(BUSES):
-    bus.append(bus[-1] + random.expovariate(1 / MEAN))  # ⟨випадкові інтервали|random gaps⟩
+    bus.append(bus[-1] + random.expovariate(1 / MEAN))  # ⟨випадкові інтервали; MEAN замість них дасть розклад і очікування 5|random gaps; MEAN instead gives a timetable and a wait of 5⟩
 end = bus[-1]
 
 wait = gap = 0.0
 for _ in range(RIDERS):
-    x = random.random() * end             #⟨пасажир приходить|a rider arrives⟩
-    hi = bisect.bisect_right(bus, x)      # ⟨перший автобус після x|the first bus after x⟩
+    x = random.random() * end             # ⟨пасажир приходить|a rider arrives⟩
+    hi = bisect.bisect_right(bus, x)      # ⟨перший автобус після x (двійковий пошук)|the first bus after x (binary search)⟩
     wait += bus[hi] - x
     gap += bus[hi] - bus[hi - 1]
 

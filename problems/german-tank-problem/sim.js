@@ -24,6 +24,6 @@ for (let t = 0; t < TRIALS; t++) {
   }
 }
 for (const name in methods) {
-  console.log(`${name}: ⟨в середньому|average⟩ ${(sum[name] / TRIALS).toFixed(1)}, ⟨типова похибка|typical error⟩ ±${Math.sqrt(sq[name] / TRIALS).toFixed(1)}`);
+  console.log(`${name}: ⟨в середньому|average⟩ ${(sum[name] / TRIALS).toFixed(1)}, ⟨середньоквадратична похибка|RMSE (typical error)⟩ ±${Math.sqrt(sq[name] / TRIALS).toFixed(1)}`);
 }
 console.log(`⟨Номери 4, 10, 15, 60: оцінка|Serial numbers 4, 10, 15, 60: estimate⟩ ${methods['m + m/k − 1']([4, 10, 15, 60])}`);
