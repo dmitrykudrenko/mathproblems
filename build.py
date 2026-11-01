@@ -904,6 +904,11 @@ SPOIL_SCRIPT = """<script>
   // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
   // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
   try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  // the gate card sits after round 1; once it hides, the browser would keep the bottom of the page in view, so jump to round 2
+  function toRounds(b) {
+    var r = b.closest(".sp-gate") && document.querySelector(".sp-rounds");
+    if (r) requestAnimationFrame(function () { r.scrollIntoView({ block: "start" }); });
+  }
   document.addEventListener("click", function (e) {
     var b = e.target.closest && e.target.closest("[data-rounds]");
     if (!b) return;
@@ -911,6 +916,7 @@ SPOIL_SCRIPT = """<script>
     d.classList.toggle("rounds-open", on);
     try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
     document.dispatchEvent(new Event("rounds"));
+    if (on) toRounds(b);
   });
   window.mpSolved = function () { return d.classList.contains("solved"); };
   // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
@@ -932,7 +938,7 @@ SPOIL_SCRIPT = """<script>
       // the page may already show a guess result or a played game, so start it over
       forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
       return;
-    } else window.mpSolve();
+    } else { window.mpSolve(); toRounds(b); }
     some();
   });
   document.addEventListener("DOMContentLoaded", function () {
