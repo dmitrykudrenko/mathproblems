@@ -547,6 +547,88 @@ def with_hints(body, lang, slug, hints):
     return body[:i] + block + body[i:]
 
 
+# "Check it yourself in code" at the end of round 3 (id="sim"): problems/<slug>/sim.js and sim.py, the page's simulation
+# in a few lines with no libraries, for the browser console or Node and for Python 3. Both files or neither. Comments and
+# printed words are written ⟨Ukrainian|English⟩ and the build keeps one language. The block is sp-after: the code
+# prints the answer. Opening it and each copy are counted by the stats worker as "mp-code" with the key
+# "<slug>.open" or "<slug>.copy.js|py".
+CODE_FILES = (("sim.js", "js", "JavaScript"), ("sim.py", "py", "Python"))
+CODE_LANG = re.compile(r"⟨([^|⟨⟩]*)\|([^⟨⟩]*)⟩")
+CODE_TEXT = {
+    "uk": ("Перевірте самі в коді",
+           "Та сама симуляція коротко і без бібліотек. JavaScript запускається в консолі браузера (F12) або в Node, "
+           "Python потребує лише стандартної бібліотеки.",
+           "Копіювати", "Скопійовано", "Після вашої відповіді тут з'явиться код симуляції, який можна запустити в себе."),
+    "en": ("Check it yourself in code",
+           "The same simulation, short and with no libraries. Run the JavaScript in your browser console (F12) or in Node; "
+           "the Python needs only the standard library.",
+           "Copy", "Copied", "Once you answer, the simulation code appears here so you can run it yourself."),
+}
+CODE_SCRIPT = """<script>
+(function () {
+  var API = %s, SLUG = %s, d = document.querySelector(".mp-code");
+  if (!d) return;
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: "mp-code", k: SLUG + "." + k, h: 0 }) }).catch(function () {});
+  }
+  d.addEventListener("toggle", function () { if (d.open) count("open"); });
+  [].forEach.call(d.querySelectorAll(".mp-code-copy"), function (b) {
+    var label = b.textContent;
+    b.addEventListener("click", function () {
+      var el = b.closest(".mp-code-file").querySelector("code");
+      // without clipboard access the code gets selected, ready for Ctrl+C
+      function select() { var r = document.createRange(), s = getSelection(); r.selectNodeContents(el); s.removeAllRanges(); s.addRange(r); }
+      if (navigator.clipboard) navigator.clipboard.writeText(el.textContent).then(function () {
+        b.textContent = b.dataset.done; setTimeout(function () { b.textContent = label; }, 1500);
+      }, select);
+      else select();
+      count("copy." + b.dataset.k);
+    });
+  });
+})();
+</script>"""
+
+
+def sim_code(slug, lang):
+    """The problem's sim.js / sim.py in one language, or None; build fails on half a pair or a stray ⟨…⟩."""
+    have = [(PROBLEMS / slug / f).exists() for f, _, _ in CODE_FILES]
+    if not any(have):
+        return None
+    if not all(have):
+        raise SystemExit(f"problems/{slug}: sim.js and sim.py go together")
+    out = []
+    for f, key, name in CODE_FILES:
+        src = (PROBLEMS / slug / f).read_text(encoding="utf-8")
+        code = CODE_LANG.sub(lambda mo: mo.group(1 if lang == "uk" else 2), src).strip() + "\n"
+        if "⟨" in code or "⟩" in code:
+            raise SystemExit(f"problems/{slug}/{f}: a ⟨…⟩ without '|'")
+        out.append((key, name, code))
+    return out
+
+
+def with_code(body, lang, slug):
+    """Put the "check it yourself in code" block at the end of round 3."""
+    files = sim_code(slug, lang)
+    m = re.search(r'<section class="round" id="sim">', body)
+    if not files:
+        return body
+    if not m:
+        raise SystemExit(f"problems/{slug}: sim.js needs a section id=\"sim\"")
+    i = body.index("</section>", m.end())
+    title, intro, copy, done, wait = CODE_TEXT[lang]
+    parts = "\n".join(
+        f'    <div class="mp-code-file"><div class="mp-code-head"><span>{name}</span>'
+        f'<button type="button" class="btn ghost mp-code-copy" data-k="{key}" data-done="{done}">{copy}</button></div>'
+        f'<pre><code>{e(code)}</code></pre></div>' for key, name, code in files)
+    block = (f'  <p class="note mp-code-wait sp-before">{wait}</p>\n'
+             f'  <details class="card mp-code sp-after">\n    <summary><b>{title}</b></summary>\n'
+             f'    <p class="note">{intro}</p>\n{parts}\n  </details>\n'
+             f'{CODE_SCRIPT % (json.dumps(STATS_API), json.dumps(slug))}\n')
+    return body[:i] + block + body[i:]
+
+
 # Round 4 in three layers, simplest first: the page wraps its explanation cards in
 #     <div class="mp-layer" data-layer="easy|strict|deep"> ... </div>
 # and the build adds each layer's heading with a "hide on all puzzles" button and a one-line stub that brings it
@@ -1144,7 +1226,7 @@ def build_problem(slug, base, metas, books, related):
                  (m["share"]["title"], m["share"]["description"]) if "share" in m else None)
         if "i.ytimg.com" in body:
             h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
-        body = with_layers(body, lang, slug)
+        body = with_code(with_layers(body, lang, slug), lang, slug)
         body = with_discuss(with_subscribe(with_poll(with_hints(body, lang, slug, meta.get("hints")), lang, slug, meta.get("poll")), lang), lang, slug, meta["level"])
         items = []
         for s in related:
