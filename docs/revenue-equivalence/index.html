@@ -1200,7 +1200,9 @@ function guessText() {
 // you + 3 bots, integer values 0–100. Bots at first price bid 65–85% of their value (around the equilibrium 75%),
 // at second price their value give or take 5. The textbook bids 75% at first price and 100% at second price.
 const SERIES = 10;
-const g = { pct: { first: 100, second: 100 }, cur: null, hist: [] };
+// from: where the series (or a run of 100 lots) being judged began
+const g = { pct: { first: 100, second: 100 }, cur: null, hist: [], from: 0 };
+const lotsW = n => L(n % 10 === 1 && n % 100 !== 11 ? 'лот' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'лоти' : 'лотів', n === 1 ? 'lot' : 'lots');
 const ri = n => Math.floor(Math.random() * (n + 1));
 function newLot() {
   const f = Math.random() < .5 ? 'first' : 'second', v = ri(100), bv = [ri(100), ri(100), ri(100)];
@@ -1242,18 +1244,22 @@ function gameText() {
   $('#game-msg').textContent = m;
   $('#g-bid').textContent = a.done ? (g.hist.length % SERIES === 0 ? L('Нова серія', 'New series') : L('Наступний лот', 'Next lot')) : L('Зробити ставку', 'Place the bid');
   // tally over the current series and over all lots
-  const H = g.hist, S = H.slice(Math.floor((H.length - 1) / SERIES) * SERIES), sum = (arr, k) => arr.reduce((t, h) => t + h[k], 0);
+  const H = g.hist, S = H.slice(g.from), long = S.length > SERIES, sum = (arr, k) => arr.reduce((t, h) => t + h[k], 0);
   const cell = v => '<td class="num ' + (v > 0 ? 'pos' : v < 0 ? 'neg' : '') + '">' + sgn(v, 0) + '</td>';
   const avgBy = (f, k) => { const x = H.filter(h => h.f === f); return x.length ? sgn(sum(x, k) / x.length) : '–'; };
   $('#g-tally').innerHTML =
     '<tr><th></th><th class="num">' + L('Ви', 'You') + '</th><th class="num">' + L('Підручник', 'Textbook') + '</th></tr>' +
-    '<tr><td>' + L('Ця серія', 'This series') + '</td>' + cell(sum(S, 'profit')) + cell(sum(S, 'tprofit')) + '</tr>' +
+    '<tr><td>' + (long ? L('Останні ', 'The last ') + fmt(S.length) + ' ' + lotsW(S.length) : L('Ця серія', 'This series')) + '</td>' + cell(sum(S, 'profit')) + cell(sum(S, 'tprofit')) + '</tr>' +
     '<tr><td>' + L('Усього за ', 'Total over ') + fmt(H.length) + L(' лотів', ' lots') + '</td>' + cell(sum(H, 'profit')) + cell(sum(H, 'tprofit')) + '</tr>' +
     '<tr><td>' + L('За лот, перша ціна', 'Per lot, first price') + '</td><td class="num">' + avgBy('first', 'profit') + '</td><td class="num">' + avgBy('first', 'tprofit') + '</td></tr>' +
     '<tr><td>' + L('За лот, друга ціна', 'Per lot, second price') + '</td><td class="num">' + avgBy('second', 'profit') + '</td><td class="num">' + avgBy('second', 'tprofit') + '</td></tr>';
   const done = H.length && H.length % SERIES === 0 && a.done;
   $('#g-verdict').textContent = done
-    ? (sum(S, 'profit') >= sum(S, 'tprofit')
+    ? (long
+      ? (sum(S, 'profit') >= sum(S, 'tprofit')
+        ? L('За ці ' + fmt(S.length) + ' ' + lotsW(S.length) + ' ви не гірші за підручник.', 'Over these ' + fmt(S.length) + ' lots you did no worse than the textbook.')
+        : L('За ці ' + fmt(S.length) + ' ' + lotsW(S.length) + ' підручник заробив більше. Спробуйте інші відсотки для кожного формату.', 'Over these ' + fmt(S.length) + ' lots the textbook earned more. Try other percentages for each format.'))
+      : sum(S, 'profit') >= sum(S, 'tprofit')
       ? L('Серію завершено: ви не гірші за підручник. Удача чи стратегія? Зіграйте ще 100 лотів із тими самими відсотками.', 'Series over: you did no worse than the textbook. Luck or strategy? Play 100 more lots at the same percentages.')
       : L('Серію завершено: підручник заробив більше. Спробуйте інші відсотки для кожного формату.', 'Series over: the textbook earned more. Try other percentages for each format.'))
     : L('Підручник: за першої ціни ставить 75% цінності, за другої рівно цінність. Проти таких ботів він заробляє близько 5 за лот у кожному форматі.', 'The textbook bids 75% of its value at first price and exactly its value at second price. Against these bots it earns about 5 per lot in each format.');
@@ -1291,9 +1297,10 @@ function drawGame() {
 }
 function gameAll() { gameText(); drawGame(); }
 $('#g-p').addEventListener('input', e => { g.pct[g.cur.f] = +e.target.value; gameAll(); });
-$('#g-bid').addEventListener('click', () => { if (g.cur.done) newLot(); else play(); gameAll(); });
-$('#g-auto').addEventListener('click', () => { for (let i = 0; i < 100; i++) { if (g.cur.done) newLot(); play(); } gameAll(); });
-$('#g-reset').addEventListener('click', () => { g.hist = []; newLot(); gameAll(); });
+$('#g-bid').addEventListener('click', () => { if (g.cur.done) { if (g.hist.length % SERIES === 0) g.from = g.hist.length; newLot(); } else play(); gameAll(); });
+// a run of 100 is judged together with the lots already played in the current series
+$('#g-auto').addEventListener('click', () => { g.from = Math.floor(g.hist.length / SERIES) * SERIES; for (let i = 0; i < 100; i++) { if (g.cur.done) newLot(); play(); } gameAll(); });
+$('#g-reset').addEventListener('click', () => { g.hist = []; g.from = 0; newLot(); gameAll(); });
 newLot();
 
 /* ---------- round 3: simulation ---------- */

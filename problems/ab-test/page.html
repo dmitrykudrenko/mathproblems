@@ -984,9 +984,9 @@ function gameRender() {
       '<div class="pick"><button type="button" data-i="' + i + '" data-p="r" aria-pressed="' + (pk === 'r') + '">' + L('Ефект', 'Real') + '</button><button type="button" data-i="' + i + '" data-p="n" aria-pressed="' + (pk === 'n') + '">' + L('Шум', 'Noise') + '</button></div>' +
       (game.shown ? '<span class="mark">' + (pk === null ? L('без відповіді', 'no answer') : right ? L('правильно', 'right') : L('помилка', 'wrong')) + '</span>' : '') + '</div>';
   }).join('');
-  const [t, acc] = BEST[n];
+  const [t, acc] = BEST[n], done = game.picks.filter(p => p !== null).length;
+  $('#g-check').disabled = game.shown || !done;
   if (!game.shown) {
-    const done = game.picks.filter(p => p !== null).length;
     $('#g-score').innerHTML = '';
     $('#g-msg').textContent = L('Позначено ' + done + ' з 10. Підказка: звертайте увагу і на ліфт, і на «шанс, що B кращий». Коли закінчите, натисніть «Перевірити».', done + ' of 10 marked. Tip: look at both the lift and the "chance B is better". When you are done, press "Check".');
     return;
@@ -994,15 +994,18 @@ function gameRender() {
   const answered = game.items.filter((_, i) => game.picks[i] !== null).length;
   const mine = game.items.filter((it, i) => game.picks[i] !== null && (game.picks[i] === 'r') === it.real).length;
   const stat = game.items.filter(it => (it.b - it.a >= t) === it.real).length;
-  const fakeStar = game.items.filter(it => !it.real && Phi(zTest(it.a, n, it.b, n)) >= .9).length;
+  const fakeStar = game.items.filter(it => !it.real && Phi(zTest(it.a, n, it.b, n)) >= .95).length;
   const cell = (k, v) => '<div><span class="k">' + k + '</span><b class="mono">' + v + '</b></div>';
   $('#g-score').innerHTML = cell(L('Ви', 'You'), mine + ' / ' + answered) + cell(L('Найкраще правило на цих 10', 'Best rule on these 10'), stat + ' / 10') + cell(L('Найкраще правило в середньому', 'Best rule on average'), pct(acc)) + cell(L('Монетка', 'A coin'), '50%');
   const rule = L('Найкраще можливе правило: «ефект, якщо B має щонайменше на ' + t + ' ' + plural(t, 'конверсію', 'конверсії', 'конверсій') + ' більше» (ліфт +' + dec((100 * t / (n * P0)).toFixed(0)) + '%). ', 'The best possible rule: "real if B has at least ' + t + ' more conversions" (a lift of +' + (100 * t / (n * P0)).toFixed(0) + '%). ');
-  $('#g-msg').textContent = rule + (n === 1000
+  const vs = answered < 10 ? '' : mine > stat ? L('Ви вгадали більше за найкраще правило: на цих 10 пощастило, у середньому його не обійти. ', 'You beat the best rule: lucky on these 10, on average it cannot be beaten. ')
+    : mine === stat ? L('Ви вгадали стільки ж, скільки найкраще правило. ', 'You got as many right as the best rule. ')
+    : L('Найкраще правило вгадало на ' + (stat - mine) + ' більше за вас. ', 'The best rule got ' + (stat - mine) + ' more right than you. ');
+  $('#g-msg').textContent = rule + vs + (n === 1000
     ? L('При 1 000 відвідувачів навіть воно вгадує лише 60% у середньому: ледь краще за монетку. Шум у ±38% просто ховає ефект у +10%. ', 'With 1,000 visitors even it gets only 60% right on average: barely better than a coin. Noise of ±38% simply hides a +10% effect. ')
     : n === 100000 ? L('При 100 000 відвідувачів шум ±3,8% і ефект +10% видно майже завжди. ', 'With 100,000 visitors the noise is ±3.8% and a +10% effect shows almost every time. ')
     : L('При ' + fmt(n) + ' відвідувачів шум ±' + dec((100 * swing(n)).toFixed(1)) + '%, і вгадувати стає легше. ', 'With ' + fmt(n) + ' visitors the noise is ±' + (100 * swing(n)).toFixed(1) + '%, and guessing gets easier. ')) +
-    (fakeStar ? L('Тестів з однаковими сторінками, де «шанс, що B кращий» 90% і більше: ' + fakeStar + '.', 'Tests with identical pages that show a "chance B is better" of 90% or more: ' + fakeStar + '.') : '');
+    (fakeStar ? L('Тестів з однаковими сторінками, де «шанс, що B кращий» 95% і більше (★): ' + fakeStar + '.', 'Tests with identical pages that show a "chance B is better" of 95% or more (★): ' + fakeStar + '.') : '');
 }
 $('#g-grid').addEventListener('click', e => { const b = e.target.closest('button[data-p]'); if (!b || game.shown) return; const i = +b.dataset.i; game.picks[i] = game.picks[i] === b.dataset.p ? null : b.dataset.p; gameRender(); });
 $('#g-n').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; game.n = +b.dataset.n; gameNew(); });

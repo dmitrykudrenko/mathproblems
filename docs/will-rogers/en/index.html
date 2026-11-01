@@ -1179,6 +1179,13 @@ function gameUndo() {
   const p = hist[hist.length - 1]; streak = p ? p.streak : 0; best = hist.reduce((m, x) => Math.max(m, x.streak), 0);
   gameRender();
 }
+// both rise only if the player is below their own team's average and above the other team's
+function whyNot(h) {
+  const own = h.from === 'A' ? h.a0 : h.b0, oth = h.from === 'A' ? h.b0 : h.a0, to = h.from === 'A' ? 'B' : 'A', why = [];
+  if (h.v >= own - 1e-9) why.push(L('не нижче за середнє своєї команди ' + h.from + ' (' + num(own) + ')', 'not below the average of their own team ' + h.from + ' (' + num(own) + ')'));
+  if (h.v <= oth + 1e-9) why.push(L('не вище за середнє команди ' + to + ' (' + num(oth) + ')', 'not above the average of team ' + to + ' (' + num(oth) + ')'));
+  return L('Цього разу середні виросли не в обох команд: ' + h.v + ' ' + why.join(' і ') + '.', 'This time the averages did not both rise: ' + h.v + ' is ' + why.join(' and ') + '.');
+}
 function gameRender() {
   const A = members('A'), B = members('B'), a = mean(A), b = mean(B), h = hist[hist.length - 1];
   const pen = (id, g, list, m) => {
@@ -1194,7 +1201,7 @@ function gameRender() {
     const dir = h.from === 'A' ? 'A → B' : 'B → A';
     const ch = L('Середнє A ' + sgn(h.a1 - h.a0) + ', середнє B ' + sgn(h.b1 - h.b0) + '. ', 'A\'s average ' + sgn(h.a1 - h.a0) + ', B\'s average ' + sgn(h.b1 - h.b0) + '. ');
     if (h.both) m = L('Учасник з ' + h.v + ' балами, ' + dir + '. ', 'The ' + h.v + '-point player, ' + dir + '. ') + ch + L('Обидва середні виросли, а загальне досі 5.', 'Both averages rose, and the overall one is still 5.');
-    else m = L('Учасник з ' + h.v + ' балами, ' + dir + '. ', 'The ' + h.v + '-point player, ' + dir + '. ') + ch + L('Цього разу обидва не виросли: учасник не лежить між двома середніми. Серію перервано.', 'This time both did not rise: the player does not lie between the two averages. The streak is broken.');
+    else m = L('Учасник з ' + h.v + ' балами, ' + dir + '. ', 'The ' + h.v + '-point player, ' + dir + '. ') + ch + whyNot(h) + L(' Серію перервано.', ' The streak is broken.');
   }
   $('#game-msg').textContent = m;
   $('#game-status').innerHTML = '<div><span class="k">' + L('Поспіль, обидва вгору', 'In a row, both up') + '</span><b class="mono">' + streak + '</b></div>' +

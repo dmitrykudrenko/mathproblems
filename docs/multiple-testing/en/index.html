@@ -491,6 +491,7 @@ canvas { display: block; width: 100%; }
 .frow .lab { font-size: .78rem; color: var(--muted); min-width: 130px; font-weight: 600; }
 .frow button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 11px; cursor: pointer; font-size: .84rem; }
 .frow button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.frow button:disabled { opacity: .5; cursor: default; }
 .status { display: flex; gap: 22px; flex-wrap: wrap; align-items: baseline; }
 .status .k { font-size: .78rem; color: var(--muted); display: block; }
 .status b { font-family: var(--f-display); font-size: 1.45rem; font-weight: 800; }
@@ -1565,12 +1566,12 @@ function gameNew() {
   gameText();
 }
 function filtText() {
-  const chip = (j, v, lab) => '<button type="button" data-j="' + j + '" data-v="' + v + '" aria-pressed="' + ((j < 5 ? game.sel[j] : game.met) === v) + '">' + lab + '</button>';
+  const chip = (j, v, lab) => '<button type="button" data-j="' + j + '" data-v="' + v + '" aria-pressed="' + ((j < 5 ? game.sel[j] : game.met) === v) + '"' + (game.revealed ? ' disabled' : '') + '>' + lab + '</button>';
   $('#filt').innerHTML = ATTR.map((A, j) => '<div class="frow"><span class="lab">' + A[lang] + '</span>' + chip(j, -1, L('усі', 'all')) + A.v.map((v, i) => chip(j, i, v[lang === 'en' ? 1 : 0])).join('') + '</div>').join('') +
     '<div class="frow"><span class="lab">' + L('Метрика', 'Metric') + '</span>' + METRICS.map((m, i) => chip(5, i, m[lang])).join('') + '</div>';
 }
 $('#filt').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
+  const b = e.target.closest('button'); if (!b || game.revealed) return;
   const j = +b.dataset.j, v = +b.dataset.v;
   if (j < 5) game.sel[j] = v; else game.met = v;
   const row = addSlice(game.sel, game.met);
@@ -1585,12 +1586,14 @@ function randomSlice() {
   return null;
 }
 $('#g-auto').addEventListener('click', () => {
+  if (game.revealed) return;
   let last = null;
   for (let i = 0; i < 10; i++) { const q = randomSlice(); if (!q) break; last = addSlice(q.sel, q.met); }
   game.hunt = '';
   gameText(last);
 });
 $('#g-hunt').addEventListener('click', () => {
+  if (game.revealed) return;
   let n = 0, row = null;
   while (n < 400) {
     const q = randomSlice(); if (!q) break;
@@ -1605,6 +1608,7 @@ $('#g-hunt').addEventListener('click', () => {
 $('#g-new').addEventListener('click', gameNew);
 $('#g-reveal').addEventListener('click', () => {
   // re-run every "significant" slice on a fresh A/A campaign of the same size
+  if (game.revealed || !tested().some(r => r.s.p < .05)) return;
   game.revealed = true; game.fresh = makeData();
   tested().forEach(r => { if (r.s.p < .05) r.fresh = slice(game.fresh, r.sel, r.met); });
   gameText();
@@ -1642,15 +1646,18 @@ function gameText(focus) {
   if (game.revealed) {
     const back = sig.filter(r => r.fresh && r.fresh.ok && r.fresh.p < .05 && Math.sign(r.fresh.lift) === Math.sign(r.s.lift)).length;
     msg = L('<b>B і A мали однакові шанси на відкриття, клік і покупку в кожному сегменті.</b> Усі ' + fmt(sig.length) + ' «значущі» рядки є шумом: з ' + fmt(k) + ' розрізів очікувалося близько ' + dec((k * .05).toFixed(1)) + ' таких. Чесний поріг p < ' + thr(bonf) + ' проходять ' + fmt(surv.length) + '. На свіжих даних «перемога» того самого знаку повторилася в ' + fmt(back) + ' з ' + fmt(sig.length) + '.',
-      '<b>B and A had the same chance of an open, a click and a purchase in every segment.</b> All ' + fmt(sig.length) + ' "significant" rows are noise: ' + fmt(k) + ' slices should give about ' + (k * .05).toFixed(1) + ' of them. ' + fmt(surv.length) + ' pass the honest threshold p < ' + thr(bonf) + '. On fresh data the "win" of the same sign came back in ' + fmt(back) + ' of ' + fmt(sig.length) + '.');
-  } else if (game.hunt) msg = game.hunt + L('Натисніть «Що було насправді?».', 'Press "What was really there?".');
+      '<b>B and A had the same chance of an open, a click and a purchase in every segment.</b> All ' + fmt(sig.length) + ' "significant" rows are noise: ' + fmt(k) + ' slices should give about ' + (k * .05).toFixed(1) + ' of them. ' + fmt(surv.length) + ' pass the honest threshold p < ' + thr(bonf) + '. On fresh data the "win" of the same sign came back in ' + fmt(back) + ' of ' + fmt(sig.length) + '.') +
+      L(' Щоб шукати знову, почніть нову кампанію.', ' To search again, start a new campaign.');
+  } else if (game.hunt) msg = game.hunt + (sig.length ? L('Натисніть «Що було насправді?».', 'Press "What was really there?".') : '');
   else if (focus && focus.s.ok && focus.s.p < .05) msg = focus.s.lift > 0
     ? L('Є! <b>' + segName(focus.sel) + ', ' + METRICS[focus.met].uk + ': B ' + sgn(focus.s.lift) + ', p = ' + fp(focus.s.p) + '</b>. Звучить як інсайт для звіту. Але ви перевірили вже ' + fmt(k) + ' ' + plural(k, 'розріз', 'розрізи', 'розрізів') + '.', 'Got one! <b>' + segName(focus.sel) + ', ' + METRICS[focus.met].en + ': B ' + sgn(focus.s.lift) + ', p = ' + fp(focus.s.p) + '</b>. Sounds like an insight for the report. But you have already tested ' + fmt(k) + ' slices.')
     : L('Тут B «значуще» програє: ' + segName(focus.sel) + ', ' + sgn(focus.s.lift) + '. Керівнику таке не сподобається. Шукайте далі.', 'Here B "significantly" loses: ' + segName(focus.sel) + ', ' + sgn(focus.s.lift) + '. The boss won\'t like that. Keep looking.');
   else if (wins.length) msg = L('Перемог B уже ' + fmt(wins.length) + '. Можна звітувати? Спершу натисніть «Що було насправді?».', 'B already has ' + fmt(wins.length) + ' ' + (wins.length === 1 ? 'win' : 'wins') + '. Ready to report? First press "What was really there?".');
   else msg = L('Загалом B не відрізняється від A, і в першій парі розрізів теж. Обирайте фільтри вище: кожна нова комбінація додає рядок у звіт. Або доручіть пошук кнопкам нижче.', 'Overall B is no different from A, and in the first couple of slices neither. Pick filters above: each new combination adds a row to the report. Or let the buttons below do the searching.');
   $('#g-msg').innerHTML = msg;
-  $('#g-reveal').disabled = game.revealed;
+  // nothing to re-test until a "significant" row exists; no new rows after the reveal until a new campaign
+  $('#g-reveal').disabled = game.revealed || !sig.length;
+  $('#g-auto').disabled = $('#g-hunt').disabled = game.revealed;
 }
 
 /* ---------- round 3a: the chance of a false winner against k ---------- */
