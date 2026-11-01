@@ -133,6 +133,192 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/coupon-collector/en/#page", "url": "https://mathparadoxes.com/coupon-collector/en/", "name": "How Many Stickers to Fill the Album: the Coupon Collector's Problem", "description": "The coupon collector's problem: why a 50-sticker album takes 225 stickers on average. Open packs, simulate 10,000 albums, swap duplicates, see the maths.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "advanced", "about": {"@type": "Thing", "name": "Coupon collector's problem", "sameAs": "https://en.wikipedia.org/wiki/Coupon_collector%27s_problem"}, "image": "https://mathparadoxes.com/coupon-collector/og-en.png", "datePublished": "2026-10-19", "dateModified": "2026-10-31", "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "citation": [{"@type": "Book", "name": "Fifty Challenging Problems in Probability", "author": [{"@type": "Person", "name": "Frederick Mosteller"}], "datePublished": "1965", "isbn": "9780486653556"}, {"@type": "Book", "name": "Understanding Probability", "author": [{"@type": "Person", "name": "Henk Tijms"}], "datePublished": "2004", "isbn": "9780521540360"}], "translationOfWork": {"@id": "https://mathparadoxes.com/coupon-collector/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "How many stickers to fill an album", "item": "https://mathparadoxes.com/coupon-collector/en/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/coupon-collector/en/#faq", "inLanguage": "en", "mainEntity": [{"@type": "Question", "name": "How many stickers do you need to fill a 50-slot album?", "acceptedAnswer": {"@type": "Answer", "text": "225 on average, or more precisely 50 · H₅₀ ≈ 224.96, where H₅₀ = 1 + 1/2 + … + 1/50. Half of all albums are done within 214 stickers, while about one in twenty needs more than 340."}}, {"@type": "Question", "name": "Why are the last stickers so hard to get?", "acceptedAnswer": {"@type": "Answer", "text": "The chance of a new sticker equals the share of empty slots. When only one of the 50 stickers is missing, just one purchase in 50 is the right one, so it takes 50 purchases on average. The last 10 slots take 146 of the 225 stickers on average."}}, {"@type": "Question", "name": "What is the general formula for the coupon collector's problem?", "acceptedAnswer": {"@type": "Answer", "text": "For n equally likely stickers the expected number of purchases is n · Hₙ = n · (1 + 1/2 + … + 1/n). That is about n · (ln n + 0.5772), where 0.5772 is the Euler–Mascheroni constant."}}, {"@type": "Question", "name": "Does swapping duplicates with friends help?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, a lot. Two friends filling 50-slot albums together need 325 stickers between them on average, not 450. For five friends it is about 114 stickers per person instead of 225."}}]}]}</script>
+<script>
+(function () {
+  if (!window.customElements || customElements.get("mp-guess")) return;
+  var EN = document.documentElement.dataset.lang === "en";
+  var ZONES = {
+    chance: EN ? ["almost never", "rarely", "50–50", "often", "almost surely"] : ["майже ніколи", "рідко", "навпіл", "часто", "майже напевно"],
+    share: EN ? ["almost none", "a minority", "about half", "a majority", "almost all"] : ["майже ніхто", "меншість", "близько половини", "більшість", "майже всі"]
+  };
+  var EDGES = [0, 5, 35, 65, 95, 100], FIT = window.CSS && CSS.supports("field-sizing", "content");
+  // track position t (0–1) against the share of the range, for scale="p": the five zones get equal room
+  var KNOTS = [[0, 0], [0.2, 0.05], [0.8, 0.95], [1, 1]];
+  function lerp(x, a, b) {
+    for (var i = 1; i < a.length; i++) if (x <= a[i] || i === a.length - 1) return b[i - 1] + (b[i] - b[i - 1]) * (x - a[i - 1]) / (a[i] - a[i - 1]);
+  }
+  function tr(s) { s = String(s).split("|"); return s[EN && s.length > 1 ? 1 : 0]; }
+  function dec(x) {
+    var s = String(x).split("e-"), d = s[0].indexOf(".") < 0 ? 0 : s[0].length - s[0].indexOf(".") - 1;
+    return d + (+s[1] || 0);
+  }
+  function snap(v, q) { return q > 0 ? +(Math.round(v / q) * q).toFixed(dec(q)) : v; }
+  var uid = 0;
+  class Guess extends HTMLElement {
+    static get observedAttributes() { return ["min", "max", "step", "value", "disabled"]; }
+    get min() { return this.getAttribute("min") || "0"; }
+    set min(v) { this.setAttribute("min", v); }
+    get max() { return this.getAttribute("max") || "100"; }
+    set max(v) { this.setAttribute("max", v); }
+    get value() { return String(this._v); }
+    set value(v) { this._set(+v, false); }
+    get disabled() { return this.hasAttribute("disabled"); }
+    set disabled(v) { this.toggleAttribute("disabled", !!v); }
+    attributeChangedCallback(name) {
+      if (!this._r) return;
+      if (name === "value") this._set(+this.getAttribute("value"), false);
+      else if (name === "disabled") this._dis();
+      else { this._lim(); this._marks(); this._set(this._v, false); }
+    }
+    connectedCallback() {
+      if (this._r) return;
+      var me = this, id = this.id || "mp-guess-" + (++uid);
+      var unit = tr(this.getAttribute("unit") || ""), lab = this.id && document.querySelector('label[for="' + this.id + '"]');
+      this.innerHTML = '<div class="mp-g-top"><span class="mp-g-val"><input class="mp-g-num" type="text" inputmode="decimal" autocomplete="off" spellcheck="false">' +
+        (unit ? '<span class="mp-g-unit' + (/^\s/.test(unit) ? " mp-g-word" : "") + '" aria-hidden="true">' + unit.trim() + "</span>" : "") + '</span>' +
+        '<span class="mp-g-steps"><button type="button" class="mp-g-btn" data-d="-1">−</button><button type="button" class="mp-g-btn" data-d="1">+</button></span></div>' +
+        '<input class="mp-g-range" type="range"><div class="mp-g-marks" aria-hidden="true"></div>';
+      var num = this._num = this.querySelector(".mp-g-num"), rng = this._rng = this.querySelector(".mp-g-range");
+      num.id = id + "-num";
+      this._lim();
+      if (lab) { if (!lab.id) lab.id = id + "-label"; lab.htmlFor = num.id; rng.setAttribute("aria-labelledby", lab.id); }
+      else if (this.getAttribute("aria-label")) { num.setAttribute("aria-label", this.getAttribute("aria-label")); rng.setAttribute("aria-label", this.getAttribute("aria-label")); }
+      var bs = this.querySelectorAll(".mp-g-btn");
+      bs[0].setAttribute("aria-label", EN ? "Less" : "Менше"); bs[1].setAttribute("aria-label", EN ? "More" : "Більше");
+      this._r = true;
+      this._marks();
+      this._set(+(this.getAttribute("value") || this._lo), false);
+      this._dis();
+      // inner fields keep their own events; the element fires one "input" of its own after its value changed
+      rng.addEventListener("input", function (e) { e.stopPropagation(); me._set(me._fromT(+rng.value), true, rng); });
+      rng.addEventListener("change", function (e) { e.stopPropagation(); me._fire("change"); });
+      rng.addEventListener("keydown", function (e) {
+        if (me._sc === "lin") return;
+        var d = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+        if (d) { e.preventDefault(); me._step(d); me._fire("change"); }
+      });
+      num.addEventListener("input", function (e) {
+        e.stopPropagation();
+        var v = me._parse(num.value), ok = v !== null && v >= me._lo && v <= me._hi;
+        num.toggleAttribute("aria-invalid", !ok && num.value.trim() !== "");
+        me._size();
+        if (ok) me._set(v, true, num);
+      });
+      num.addEventListener("change", function (e) { e.stopPropagation(); });
+      num.addEventListener("focus", function () { num.value = me._raw(me._v); me._size(); num.select(); });
+      num.addEventListener("blur", function () { me._commit(); });
+      num.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); me._commit(); num.select(); }
+        else if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); me._step(e.key === "ArrowUp" ? 1 : -1); num.value = me._raw(me._v); me._size(); }
+      });
+      bs.forEach(function (b) { b.addEventListener("click", function () { me._step(+b.dataset.d); me._fire("change"); }); });
+    }
+    _lim() {
+      this._lo = +this.min; this._hi = +this.max;
+      this._q = +(this.getAttribute("step") || 1);
+      this._fine = +(this.getAttribute("fine") || this._q);
+      this._sc = this.getAttribute("scale") || "lin";
+      if (this._sc === "log" && this._lo <= 0) this._sc = "lin";
+      if (this._rng) {
+        var lin = this._sc === "lin";
+        this._rng.min = lin ? this._lo : 0; this._rng.max = lin ? this._hi : 1000; this._rng.step = lin ? this._q : 1;
+      }
+    }
+    _f(v) { return (v - this._lo) / (this._hi - this._lo); }
+    _toT(v) {
+      if (this._sc === "log") return Math.log(v / this._lo) / Math.log(this._hi / this._lo);
+      var f = this._f(v);
+      return this._sc === "p" ? lerp(f, KNOTS.map(function (k) { return k[1]; }), KNOTS.map(function (k) { return k[0]; })) : f;
+    }
+    _fromT(t) {
+      if (this._sc === "lin") return t;
+      t /= 1000;
+      if (this._sc === "log") {
+        var v = this._lo * Math.pow(this._hi / this._lo, t), e = Math.pow(10, Math.floor(Math.log10(v)) - 1);
+        return Math.max(this._q, snap(v, e));
+      }
+      var f = lerp(t, KNOTS.map(function (k) { return k[0]; }), KNOTS.map(function (k) { return k[1]; }));
+      var w = f < 0.05 || f > 0.95 ? this._fine : this._q;
+      return this._lo + snap(f * (this._hi - this._lo), w);
+    }
+    _parse(s) {
+      s = String(s).replace(/[\s\u00a0\u202f%]/g, "").replace(",", ".");
+      return s === "" || isNaN(+s) ? null : +s;
+    }
+    _raw(v) { return String(v).replace(".", EN ? "." : ","); }
+    _show(v) {
+      return v.toLocaleString(EN ? "en-US" : "uk-UA", { maximumFractionDigits: Math.max(dec(this._fine), dec(this._q)) });
+    }
+    _clean(v) {
+      if (isNaN(v)) v = this._lo;
+      return snap(Math.min(this._hi, Math.max(this._lo, v)), Math.min(this._fine, this._q));
+    }
+    // from: the field the visitor is using, which is left as typed
+    _set(v, user, from) {
+      var old = this._v;
+      v = this._clean(v);
+      this._v = v;
+      if (!this._r) return;
+      if (from !== this._num && document.activeElement !== this._num) this._num.value = this._show(v);
+      else if (from !== this._num) this._num.value = this._raw(v);
+      if (from !== this._rng) this._rng.value = this._sc === "lin" ? v : Math.round(1000 * this._toT(v));
+      this._num.removeAttribute("aria-invalid");
+      this._size();
+      var z = this._zone(v), unit = tr(this.getAttribute("unit") || "");
+      this._rng.setAttribute("aria-valuetext", this._show(v) + unit.trim() + (z ? ", " + z.name : ""));
+      this.querySelectorAll(".mp-g-zone").forEach(function (el, i) { el.classList.toggle("on", !!z && i === z.i); });
+      if (user && v !== old) this._fire("input");
+    }
+    _commit() {
+      var v = this._parse(this._num.value);
+      this._set(v === null ? this._v : v, true);
+      this._num.value = document.activeElement === this._num ? this._raw(this._v) : this._show(this._v);
+      this._size();
+      this._fire("change");
+    }
+    _step(d) {
+      var v = this._v, q = this._q;
+      if (this._sc === "log") q = Math.max(q, Math.pow(10, Math.floor(Math.log10(Math.max(v, 1e-9) * (d < 0 ? 0.999 : 1))) - 1));
+      var n = d > 0 ? Math.floor(v / q + 1e-9) * q + q : Math.ceil(v / q - 1e-9) * q - q;
+      this._set(+n.toFixed(dec(q)), true);
+    }
+    _zone(v) {
+      var names = ZONES[this.getAttribute("zones")];
+      if (!names) return null;
+      var p = 100 * this._f(v);
+      for (var i = 0; i < 5; i++) if (p <= EDGES[i + 1] || i === 4) return { i: i, name: names[i] };
+    }
+    _size() { if (!FIT) this._num.style.width = Math.max(1, this._num.value.length) + 0.2 + "ch"; }
+    _dis() {
+      var d = this.disabled;
+      this.querySelectorAll("input, button").forEach(function (el) { el.disabled = d; });
+    }
+    _fire(type) { this.dispatchEvent(new Event(type, { bubbles: true })); }
+    _marks() {
+      var me = this, box = this.querySelector(".mp-g-marks"), names = ZONES[this.getAttribute("zones")], html = "";
+      if (!box) return;
+      var at = function (v) { return (100 * me._toT(v)).toFixed(2) + "%"; };
+      var span = this._hi - this._lo, ticks;
+      if (names) {
+        for (var i = 0; i < 5; i++) {
+          var a = this._lo + span * EDGES[i] / 100, b = this._lo + span * EDGES[i + 1] / 100;
+          html += '<span class="mp-g-zone" style="left:' + at(a) + ";width:calc(" + at(b) + " - " + at(a) + ')">' + names[i] + "</span>";
+        }
+        ticks = EDGES.map(function (e) { return me._lo + span * e / 100; });
+      } else if (this.getAttribute("ticks")) ticks = this.getAttribute("ticks").split(",");
+      else ticks = [0, 1, 2, 3, 4].map(function (k) { return snap(me._lo + span * k / 4, me._q); });
+      var unit = tr(this.getAttribute("unit") || "");
+      html += '<span class="mp-g-ticks">' + ticks.map(function (t, i) {
+        var p = String(t).split(":"), v = +p[0];
+        return '<span style="left:' + at(v) + '">' + (p[1] ? tr(p[1]) : me._show(v) + (i === ticks.length - 1 ? unit.trim() : "")) + "</span>";
+      }).join("") + "</span>";
+      box.innerHTML = html;
+      box.classList.toggle("has-zones", !!names);
+    }
+  }
+  customElements.define("mp-guess", Guess);
+})();
+</script>
 <style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 body { margin: 0; }
@@ -354,7 +540,7 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
 </style>
-<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=ff42d868">
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=61f265b1">
 </head>
 <body>
 <div class="wrap">
@@ -452,9 +638,7 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
   <div class="guess">
     <div class="card" style="display:grid;gap:16px">
       <label for="guess-n" class="note"><span class="en">Your answer: how many stickers to buy on average</span></label>
-      <div class="val mono" id="guess-v">70</div>
-      <input type="range" id="guess-n" min="50" max="500" step="5" value="70">
-      <div class="scale"><span>50</span><span>200</span><span>350</span><span>500</span></div>
+      <mp-guess id="guess-n" min="50" max="500" step="5" fine="1" value="70" ticks="50,200,350,500"></mp-guess>
       <div class="actions"><button class="btn pri" id="guess-go"><span class="en">Check</span></button></div>
     </div>
     <div class="card reveal" id="guess-out">
@@ -1176,7 +1360,6 @@ else {
 /* ---------- round 1: guess ---------- */
 const guessIn = $('#guess-n');
 let guessed = null;
-guessIn.addEventListener('input', () => { $('#guess-v').textContent = guessIn.value; });
 $('#guess-go').addEventListener('click', () => { guessed = +guessIn.value; guessText(); window.mpSolve && mpSolve(guessed); });
 document.addEventListener('solved', heroText);
 function guessText() {
