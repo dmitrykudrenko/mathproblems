@@ -353,7 +353,7 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
 </style>
-<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=d9a074c5">
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=ff42d868">
 </head>
 <body>
 <div class="wrap">
@@ -633,6 +633,80 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
     <h3 style="margin:24px 0 12px"><span class="uk">Симуляція проти точних значень</span></h3>
     <div class="compare" id="sim-bars"></div>
   </div>
+  <p class="note mp-code-wait sp-before">Після вашої відповіді тут з'явиться код симуляції, який можна запустити в себе.</p>
+  <details class="card mp-code sp-after">
+    <summary><b>Перевірте самі в коді</b></summary>
+    <p class="note">Та сама симуляція коротко і без бібліотек. JavaScript запускається в консолі браузера (F12) або в Node, Python потребує лише стандартної бібліотеки.</p>
+    <div class="mp-code-file"><div class="mp-code-head"><span>JavaScript</span><button type="button" class="btn ghost mp-code-copy" data-k="js" data-done="Скопійовано">Копіювати</button></div><pre><code>// Автобуси без розкладу, в середньому раз на 10 хвилин. Пасажири приходять у випадкові моменти.
+const MEAN = 10, BUSES = 100000, RIDERS = 100000;
+
+const bus = [0];                                  // моменти приходу автобусів, хвилини
+for (let i = 0; i &lt; BUSES; i++) bus.push(bus[i] - MEAN * Math.log(1 - Math.random()));  // випадкові інтервали
+const end = bus[BUSES];
+
+let wait = 0, gap = 0;
+for (let r = 0; r &lt; RIDERS; r++) {
+  const x = Math.random() * end;                  // пасажир приходить
+  let lo = 0, hi = BUSES;                         // шукаємо автобуси до і після: bus[lo] ≤ x &lt; bus[hi]
+  while (hi - lo &gt; 1) {
+    const mid = (lo + hi) &gt;&gt; 1;
+    if (bus[mid] &lt;= x) lo = mid; else hi = mid;
+  }
+  wait += bus[hi] - x;
+  gap += bus[hi] - bus[lo];
+}
+console.log(`Звичайний інтервал між автобусами: ${(end / BUSES).toFixed(2)} хв`);
+console.log(`Пасажир чекав у середньому: ${(wait / RIDERS).toFixed(2)} хв`);
+console.log(`Інтервал, у який він потрапив: ${(gap / RIDERS).toFixed(2)} хв`);
+</code></pre></div>
+    <div class="mp-code-file"><div class="mp-code-head"><span>Python</span><button type="button" class="btn ghost mp-code-copy" data-k="py" data-done="Скопійовано">Копіювати</button></div><pre><code># Автобуси без розкладу, в середньому раз на 10 хвилин. Пасажири приходять у випадкові моменти.
+import bisect
+import random
+
+MEAN, BUSES, RIDERS = 10, 100_000, 100_000
+
+bus = [0.0]                               # моменти приходу автобусів, хвилини
+for _ in range(BUSES):
+    bus.append(bus[-1] + random.expovariate(1 / MEAN))  # випадкові інтервали
+end = bus[-1]
+
+wait = gap = 0.0
+for _ in range(RIDERS):
+    x = random.random() * end             #пасажир приходить
+    hi = bisect.bisect_right(bus, x)      # перший автобус після x
+    wait += bus[hi] - x
+    gap += bus[hi] - bus[hi - 1]
+
+print(f&quot;Звичайний інтервал між автобусами: {end / BUSES:.2f} хв&quot;)
+print(f&quot;Пасажир чекав у середньому: {wait / RIDERS:.2f} хв&quot;)
+print(f&quot;Інтервал, у який він потрапив: {gap / RIDERS:.2f} хв&quot;)
+</code></pre></div>
+  </details>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "inspection-paradox", d = document.querySelector(".mp-code");
+  if (!d) return;
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: "mp-code", k: SLUG + "." + k, h: 0 }) }).catch(function () {});
+  }
+  d.addEventListener("toggle", function () { if (d.open) count("open"); });
+  [].forEach.call(d.querySelectorAll(".mp-code-copy"), function (b) {
+    var label = b.textContent;
+    b.addEventListener("click", function () {
+      var el = b.closest(".mp-code-file").querySelector("code");
+      // without clipboard access the code gets selected, ready for Ctrl+C
+      function select() { var r = document.createRange(), s = getSelection(); r.selectNodeContents(el); s.removeAllRanges(); s.addRange(r); }
+      if (navigator.clipboard) navigator.clipboard.writeText(el.textContent).then(function () {
+        b.textContent = b.dataset.done; setTimeout(function () { b.textContent = label; }, 1500);
+      }, select);
+      else select();
+      count("copy." + b.dataset.k);
+    });
+  });
+})();
+</script>
 </section>
 
 <!-- ROUND 4: explanations -->
@@ -952,8 +1026,8 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
     <h2>Інші парадокси</h2>
   </div>
   <div class="mp-related-grid">
-    <a class="mp-related-card" href="https://mathparadoxes.com/regression-to-mean/"><h3>Регресія до середнього</h3><p>Після похвали гравці грають гірше, а після критики краще. Чи означає це, що критика працює?</p></a>
     <a class="mp-related-card" href="https://mathparadoxes.com/benford-law/"><h3>Закон Бенфорда</h3><p>Візьміть степені двійки від 2 до 2^1000. Яка частка з них починається з цифри 1?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/berkson-paradox/"><h3>Парадокс Берксона</h3><p>У місті врода і доброта не пов&#x27;язані. Ви ходите на побачення лише з тими, хто досить вродливий і добрий разом. Чи пов&#x27;язані ці риси серед ваших побачень?</p></a>
     <a class="mp-related-card" href="https://mathparadoxes.com/ab-test/"><h3>A/A-тест: дві однакові сторінки</h3><p>Та сама сторінка показується як «<span class="vl">A</span>» і як «<span class="vl">B</span>», конверсія 5%, по 1&nbsp;000 відвідувачів. Як часто одна з двох однакових сторінок «переможе» на 20% або більше?</p></a>
     <a class="mp-related-card" href="https://mathparadoxes.com/ab-test-peeking/"><h3>Підглядання в A/B-тест</h3><p>Дві однакові сторінки, тест на 30 днів, перевірка щовечора і зупинка на першому «95%». Як часто одну з однакових сторінок оголосять переможцем?</p></a>
     <a class="mp-related-card" href="https://mathparadoxes.com/multiple-testing/"><h3>Ріжте результат, доки щось не виграє</h3><p>Новий лист нічим не кращий за старий. Аналітик перевіряє результат у 20 країнах. Який шанс, що хоча б одна покаже «значущу» різницю?</p></a>

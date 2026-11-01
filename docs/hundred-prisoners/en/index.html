@@ -368,7 +368,7 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
 </style>
-<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=d9a074c5">
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=ff42d868">
 </head>
 <body>
 <div class="wrap">
@@ -636,6 +636,86 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
     </div>
     <p class="note" style="margin-top:10px"><span class="en">Each prisoner opens half of the boxes. More prisoners means slightly lower odds, but they never fall below 1 − ln 2 ≈ 30.69%. Even a million prisoners win almost a third of the time.</span></p>
   </div>
+  <p class="note mp-code-wait sp-before">Once you answer, the simulation code appears here so you can run it yourself.</p>
+  <details class="card mp-code sp-after">
+    <summary><b>Check it yourself in code</b></summary>
+    <p class="note">The same simulation, short and with no libraries. Run the JavaScript in your browser console (F12) or in Node; the Python needs only the standard library.</p>
+    <div class="mp-code-file"><div class="mp-code-head"><span>JavaScript</span><button type="button" class="btn ghost mp-code-copy" data-k="js" data-done="Copied">Copy</button></div><pre><code>// 100 prisoners, the loop strategy: each opens their own box, then the box with the number found inside, up to 50 times.
+const N = 100, TRIES = 50, TRIALS = 100000;
+
+function allFree() {
+  const box = [...Array(N).keys()];               // box[i] is the number in box i
+  for (let i = N - 1; i &gt; 0; i--) {               // shuffle at random
+    const j = Math.floor(Math.random() * (i + 1));
+    [box[i], box[j]] = [box[j], box[i]];
+  }
+  for (let p = 0; p &lt; N; p++) {                   // prisoner p
+    let b = p, found = false;
+    for (let t = 0; t &lt; TRIES &amp;&amp; !found; t++) {
+      found = box[b] === p;
+      b = box[b];                                 // next: the box with the number inside
+    }
+    if (!found) return false;
+  }
+  return true;
+}
+
+let wins = 0;
+for (let i = 0; i &lt; TRIALS; i++) if (allFree()) wins++;
+let exact = 1;                                    // 1 − (1/51 + … + 1/100)
+for (let k = TRIES + 1; k &lt;= N; k++) exact -= 1 / k;
+console.log(`all go free: simulation ${(100 * wins / TRIALS).toFixed(2)}%, exact ${(100 * exact).toFixed(2)}%`);
+</code></pre></div>
+    <div class="mp-code-file"><div class="mp-code-head"><span>Python</span><button type="button" class="btn ghost mp-code-copy" data-k="py" data-done="Copied">Copy</button></div><pre><code># 100 prisoners, the loop strategy: each opens their own box, then the box with the number found inside, up to 50 times.
+import random
+
+N, TRIES, TRIALS = 100, 50, 100_000
+
+
+def all_free():
+    box = list(range(N))                  # box[i] is the number in box i
+    random.shuffle(box)
+    for p in range(N):                    # prisoner p
+        b = p
+        for _ in range(TRIES):
+            if box[b] == p:
+                break
+            b = box[b]                    # next: the box with the number inside
+        else:
+            return False                  # 50 tries and no own number
+    return True
+
+
+wins = sum(all_free() for _ in range(TRIALS))
+exact = 1 - sum(1 / k for k in range(TRIES + 1, N + 1))
+print(f&quot;all go free: simulation {100 * wins / TRIALS:.2f}%, exact {100 * exact:.2f}%&quot;)
+</code></pre></div>
+  </details>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "hundred-prisoners", d = document.querySelector(".mp-code");
+  if (!d) return;
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: "mp-code", k: SLUG + "." + k, h: 0 }) }).catch(function () {});
+  }
+  d.addEventListener("toggle", function () { if (d.open) count("open"); });
+  [].forEach.call(d.querySelectorAll(".mp-code-copy"), function (b) {
+    var label = b.textContent;
+    b.addEventListener("click", function () {
+      var el = b.closest(".mp-code-file").querySelector("code");
+      // without clipboard access the code gets selected, ready for Ctrl+C
+      function select() { var r = document.createRange(), s = getSelection(); r.selectNodeContents(el); s.removeAllRanges(); s.addRange(r); }
+      if (navigator.clipboard) navigator.clipboard.writeText(el.textContent).then(function () {
+        b.textContent = b.dataset.done; setTimeout(function () { b.textContent = label; }, 1500);
+      }, select);
+      else select();
+      count("copy." + b.dataset.k);
+    });
+  });
+})();
+</script>
 </section>
 
 <!-- ROUND 4: explanations -->

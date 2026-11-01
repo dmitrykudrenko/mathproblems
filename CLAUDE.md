@@ -7,7 +7,6 @@ Bilingual (uk/en) interactive explainers of math puzzles where intuition is wron
 - **No spoilers.** The answer is hidden until the visitor guesses (`sp-before`/`sp-after`, `data-solve`, `mpSolve()`). `share` in meta.json and OG images ask the question, never answer it. Only `<title>`/description may contain the answer.
 - **Both languages always.** Every visible text exists as `class="uk"` and `class="en"`; the build strips the other language.
 - **Math must be verified** independently (exact calculation in Python, simulation in node) before shipping.
-- Duckweed lake stays second on the home page (`order: 2`).
 - Variant labels (A, B, C) get a thin frame so they don't read as «а»/«в»: the build frames standalone Latin A/B/C in page text by itself; Cyrillic labels (А, Б, В) need `<span class="vl">А</span>` in the source.
 - Author name in English: Dmytro Kudrenko. Magenta (`--signal`) marks the counter-intuitive answer only.
 - Commit `docs/` together with the sources. Never push half-finished problem folders.
@@ -21,6 +20,8 @@ Bilingual (uk/en) interactive explainers of math puzzles where intuition is wron
 4. `python3 build.py`.
 
 `meta.json` needs `published` and `updated` (YYYY-MM-DD) and `topics` (home-page filter keys from `TOPICS` in build.py) and `level` (1 for everyone, 2 school maths, 3 advanced: how much maths the main path through round 4 shows, charts included; the optional formula card and round 5 don't count; not how tricky it is), plus `poll` (which round-1 answers are right, for the answer stats; the page calls `mpSolve(guessed)`); bump `updated` after a real edit. They feed JSON-LD, sitemap and the RSS (`docs/feed.xml`, `docs/en/feed.xml`), whose items use only `share`, never `description`.
+
+Optional `sim.js` + `sim.py` in a problem folder (always both): the round-3 simulation in a few lines with no libraries, comments and printed words as `⟨uk|en⟩`; the build adds a folded "Check it yourself in code" block (sp-after) to round 3. Run both language versions in node and python before shipping (README «Код симуляції для розробників»).
 
 ## Glossary
 
