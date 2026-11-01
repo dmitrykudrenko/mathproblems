@@ -45,6 +45,7 @@ problems/<slug>/
 books.json     книжки для блоку «Що почитати» (автор uk/en, назва, рік, ISBN, українське видання)
 site.css       спільний вигляд усіх сторінок (підключається після стилів сторінки)
 tools/og.py    малює картинки для соцмереж (macOS: qlmanage + sips)
+tools/check.py перевірки перед комітом (їх же запускає GitHub Actions на кожен PR)
 brand/         логотип: mark.svg (знак), lockup-uk/en(-dark).svg; favicon.svg у корені — той самий знак
 build.py       збирає сайт у docs/
 docs/          готовий сайт (GitHub Pages публікує з main:/docs)
@@ -64,6 +65,15 @@ python3 build.py
 Для іншого домену: `python3 build.py --base-url https://example.com/`.
 Після змін у `problems/` перезберіть сайт і закомітьте `docs/` разом з ними.
 Скрипт тизера (`<script>` у `teaser.html`) збірка виносить у `docs/teasers/<slug>-<hash>.js`, а головна завантажує його, лише коли картка наближається до екрана (IntersectionObserver). Тож тизер має бути самодостатнім: шукати свій корінь за id і не чекати `DOMContentLoaded`.
+
+```bash
+python3 tools/check.py
+```
+
+Перевіряє, що збірка проходить і `docs/` з нею збігається, що вбудовані скрипти й JSON-LD без синтаксичних помилок,
+що на uk-сторінках немає `class="en"` (і навпаки), що `<title>` ≤ 70 символів, а description ≤ 160,
+і що в робочій теці немає дублікатів iCloud на кшталт `index 2.html`. Потрібен Node.js. Ширину 375px і консоль браузера
+перевіряйте вручну.
 
 ## Нова задача
 

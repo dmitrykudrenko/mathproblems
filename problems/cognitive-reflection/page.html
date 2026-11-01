@@ -747,6 +747,8 @@ inputs.forEach(inp => inp.addEventListener('input', () => {
 $('#t-check').addEventListener('click', () => {
   if (result) return;
   const vals = inputs.map((inp, i) => inp.value.trim() === '' ? null : QS[i].parse(inp.value));
+  // an empty form is not an attempt: keep the test open
+  if (vals.every(v => v === null)) { testText(true); inputs[0].focus({ preventScroll: true }); return; }
   tEnd = Date.now(); if (!tStart) tStart = tEnd;
   clearInterval(tTimer); tick();
   result = { vals, cls: vals.map((v, i) => classify(i, v)), raw: inputs.map(i => i.value.trim()), ms: tEnd - tStart };
@@ -763,11 +765,11 @@ $('#t-next').addEventListener('click', () => {
   inputs[0].focus({ preventScroll: true });
 });
 const QNAME = () => [L(`М'яч`, 'Ball'), L('Машини', 'Machines'), L('Латаття', 'Lily pads')];
-function testText() {
+function testText(empty) {
   const out = $('#t-out');
   if (!result) {
     out.innerHTML = '<span class="kicker">' + L('Як це працює', 'How it works') + '</span>' +
-      '<p>' + L('Тут з\'являться ваші відповіді поруч зі швидкими й правильними, а також ваш час.', 'Your answers will appear here next to the fast ones and the right ones, together with your time.') + '</p>' +
+      '<p>' + (empty ? '<b>' + L('Введіть хоча б одну відповідь.', 'Type at least one answer.') + '</b> ' : '') + L('Тут з\'являться ваші відповіді поруч зі швидкими й правильними, а також ваш час.', 'Your answers will appear here next to the fast ones and the right ones, together with your time.') + '</p>' +
       '<div class="compare">' + QNAME().map((n, i) => '<div class="crow"><span>' + n + '</span><div class="bar"><i style="--c:var(--line);width:0"></i></div><span class="mono">?</span></div>').join('') + '</div>' +
       '<p class="note">' + L('Порада: відповідайте так, як відповіли б у розмові, не шукаючи підступу.', 'Tip: answer as you would in conversation, without hunting for a trick.') + '</p>';
     return;
@@ -844,7 +846,7 @@ function fxText() {
   fxPresets();
   const done = fxDone(fx.t);
   const head = fx.t < T
-    ? L('Минуло ' + minW(Math.floor(fx.t)) + ', готово ' + done + ' з ' + fx.W + '.', Math.floor(fx.t) + ' min passed, ' + done + ' of ' + fx.W + ' done.')
+    ? L(plural(Math.floor(fx.t), 'Минула', 'Минуло', 'Минуло') + ' ' + minW(Math.floor(fx.t)) + ', готово ' + done + ' з ' + fx.W + '.', Math.floor(fx.t) + ' min passed, ' + done + ' of ' + fx.W + ' done.')
     : L(fx.M + ' ' + plural(fx.M, 'машина', 'машини', 'машин') + ', ' + fx.W + ' ' + plural(fx.W, 'деталь', 'деталі', 'деталей') + ': <b>' + minW(T) + '</b>.', fx.M + (fx.M === 1 ? ' machine, ' : ' machines, ') + fx.W + (fx.W === 1 ? ' widget' : ' widgets') + ': <b>' + minW(T) + '</b>.');
   $('#fx-msg').innerHTML = head + ' ' + L('Кожна машина робить одну деталь за 5 хвилин. На одну машину припадає до ' + per + ' ' + plural(per, 'деталі', 'деталей', 'деталей') + ', тож час дорівнює ' + per + ' × 5 хв.',
     'Each machine makes one widget in 5 minutes. Each machine has up to ' + per + (per === 1 ? ' widget' : ' widgets') + ' to make, so the time is ' + per + ' × 5 min.');
@@ -921,7 +923,10 @@ function simText() {
   $('#sim-c-v').textContent = simC.value + '%';
   $('#sim-marks').innerHTML = [0, 1, 2, 3].map(k => '<div><b>' + k + ' / 3</b><span>' + L('теорія ', 'theory ') + pct(th[k]) +
     (simRes ? '<br>' + L('симуляція ', 'simulated ') + pct(simRes.cnt[k] / simRes.N) : '') + '</span></div>').join('');
-  $('#sim-note').textContent = L('Навіть якщо людина перевіряє кожну відповідь з імовірністю ' + simC.value + '%, усі три правильні відповіді вона дасть лише з імовірністю ' + pct(th[3]) + '. Три шанси перемножуються: c³. Це модель, а не реальні дані: у ній питання незалежні.',
+  $('#sim-note').textContent = c === 0 || c === 1
+    ? L('Якщо людина ' + (c ? 'перевіряє кожну відповідь' : 'ніколи не перевіряє відповідь') + ', вона завжди набирає ' + (c ? 3 : 0) + ' з 3. Це модель, а не реальні дані: у ній питання незалежні.',
+      'A person who ' + (c ? 'checks every answer' : 'never checks an answer') + ' always scores ' + (c ? 3 : 0) + ' out of 3. This is a model, not real data: its questions are independent.')
+    : L('Навіть якщо людина перевіряє кожну відповідь з імовірністю ' + simC.value + '%, усі три правильні відповіді вона дасть лише з імовірністю ' + pct(th[3]) + '. Три шанси перемножуються: c³. Це модель, а не реальні дані: у ній питання незалежні.',
     'Even if a person checks each answer with probability ' + simC.value + '%, they get all three right with probability only ' + pct(th[3]) + '. The three chances multiply: c³. This is a model, not real data: its questions are independent.');
 }
 function drawSim() {

@@ -3,6 +3,8 @@
   const root = document.getElementById('tz-poisoned-wine');
   const en = () => document.documentElement.dataset.lang === 'en';
   const L = (uk, e) => en() ? e : uk;
+  // the rats' weights are the binary trick behind the answer, so they show only once the card is solved
+  const card = root.closest('[data-spoil]'), solved = () => !card || card.classList.contains('solved');
   const [rack, row] = root.querySelectorAll('div[style]'), msg = root.querySelector('.tz-msg'), btn = root.querySelector('.tz-btn');
   // bottle n is read from three rats with weights 1, 2, 4; bottle 8 is 000
   const drinks = r => [1, 2, 3, 4, 5, 6, 7, 8].filter(n => (n % 8) >> r & 1);
@@ -25,7 +27,7 @@
     row.innerHTML = [0, 1, 2].map(r => {
       const dead = stage >= 2 && (pois % 8) >> r & 1;
       const lab = stage === 0 ? L('щур ', 'rat ') + (r + 1) : drinks(r).join(' ');
-      return '<div style="display:grid;justify-items:center;gap:2px;font:500 .72rem/1.3 ui-monospace,Menlo,monospace;color:#5F5F5F;max-width:100px;text-align:center">' + rat(dead) + '<span>' + lab + '</span>' + (stage === 3 ? '<b style="color:var(--ink)">' + L('вага ', 'weight ') + 2 ** r + '</b>' : '') + '</div>';
+      return '<div style="display:grid;justify-items:center;gap:2px;font:500 .72rem/1.3 ui-monospace,Menlo,monospace;color:#5F5F5F;max-width:100px;text-align:center">' + rat(dead) + '<span>' + lab + '</span>' + (stage === 3 && solved() ? '<b style="color:var(--ink)">' + L('вага ', 'weight ') + 2 ** r + '</b>' : '') + '</div>';
     }).join('');
   }
   function text() {
@@ -38,7 +40,8 @@
     else {
       const dead = [0, 1, 2].filter(r => (pois % 8) >> r & 1).map(r => 2 ** r);
       msg.textContent = (pick === pois ? L('Так, пляшка ' + pois + '! ', 'Yes, bottle ' + pois + '! ') : L('Ні, отруєна пляшка ' + pois + '. ', 'No, bottle ' + pois + ' is poisoned. ')) +
-        (dead.length === 1 ? L('Помер лише щур із вагою ' + dead[0] + '. ', 'Only the rat with weight ' + dead[0] + ' died. ') : dead.length ? L('Ваги мертвих щурів: ' + dead.join(' + ') + ' = ' + pois + '. ', 'The dead rats\' weights: ' + dead.join(' + ') + ' = ' + pois + '. ') : L('Ніхто не помер, а таке буває лише з пляшкою 8. ', 'Nobody died, which happens only for bottle 8. ')) +
+        (!solved() ? (dead.length === 3 ? L('Лише з неї пили всі три щури. ', 'It is the only bottle all three rats drank from. ') : dead.length ? L('Лише з неї пили всі мертві щури й жоден живий. ', 'It is the only bottle that every dead rat and no live rat drank from. ') : L('Лише з неї не пив жоден щур. ', 'It is the only bottle no rat drank from. ')) :
+        dead.length === 1 ? L('Помер лише щур із вагою ' + dead[0] + '. ', 'Only the rat with weight ' + dead[0] + ' died. ') : dead.length ? L('Ваги мертвих щурів: ' + dead.join(' + ') + ' = ' + pois + '. ', 'The dead rats\' weights: ' + dead.join(' + ') + ' = ' + pois + '. ') : L('Ніхто не помер, а таке буває лише з пляшкою 8. ', 'Nobody died, which happens only for bottle 8. ')) +
         L('Влучань: ' + right + ' з ' + tries + '.', 'Hits: ' + right + ' of ' + tries + '.');
     }
   }
@@ -50,5 +53,6 @@
     timer = setTimeout(() => { stage = 2; text(); }, 900);
   });
   document.addEventListener('langchange', text);
+  if (card) new MutationObserver(text).observe(card, { attributes: true, attributeFilter: ['class'] });
   text();
 })();

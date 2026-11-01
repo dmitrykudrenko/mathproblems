@@ -13,6 +13,10 @@
   ];
   const G = 1 / (2 * Math.PI);                       // gap for one extra metre, any sphere
   let i = 2, go = false;
+  // showing the gap is the answer, so it also opens the card's answer; hiding it again resets the game
+  const card = root.closest('[data-spoil][id]');
+  const solved = () => !card || card.classList.contains('solved');
+  const solve = () => { if (!solved()) { const r = card.querySelector('[data-solve]'); if (r) r.click(); } };
   function draw() {
     const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
     if (!W) return;
@@ -49,7 +53,8 @@
       b.en + ', a rope 1 m longer than the circumference: the gap is 15.9 cm.' + (b.R > 2 ? ' A cat has to crouch to get under.' : ''));
     btn.textContent = L('Інша куля', 'Another sphere');
   }
-  btn.addEventListener('click', () => { if (go) i = (i + 1) % BALLS.length; go = true; draw(); text(); });
+  btn.addEventListener('click', () => { if (go) i = (i + 1) % BALLS.length; go = true; solve(); draw(); text(); });
+  if (card) new MutationObserver(() => { if (!solved() && go) { go = false; i = 2; draw(); text(); } }).observe(card, { attributes: true, attributeFilter: ['class'] });
   document.addEventListener('langchange', () => { draw(); text(); });
   let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
   draw(); text();

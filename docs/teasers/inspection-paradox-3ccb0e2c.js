@@ -6,6 +6,8 @@
   const NS = 'http://www.w3.org/2000/svg';
   const svg = root.querySelector('svg'), msg = root.querySelector('.tz-msg'), b = root.querySelector('.tz-btn');
   const exp = () => -10 * Math.log(1 - Math.random());
+  // the wait is the answer, so the closing remark compares it with the timetable only once the card is solved
+  const card = root.closest('[data-spoil]'), solved = () => !!card && card.classList.contains('solved');
   const pl = (n, a, f, m) => { const x = n % 10, y = n % 100; return x === 1 && y !== 11 ? a : x >= 2 && x <= 4 && (y < 12 || y > 14) ? f : m; };
   // the window shows 30 minutes before you arrive and 60 after
   const T0 = -30, T1 = 60, X = t => 16 + (t - T0) / (T1 - T0) * 328, AX = 72;
@@ -27,19 +29,22 @@
   }
   // you arrive at time 0; a Poisson stream looks the same in both directions, so buses before and after are independent
   function visit() {
-    let tb = 0; const buses = []; while ((tb -= exp()) > T0) buses.push(tb);
-    const prev = tb; let ta = 0, next = null; while ((ta += exp()) < T1) { buses.push(ta); if (next === null) next = ta; }
+    // the previous bus is the first one found walking back, not the last one before the window edge
+    let tb = 0, prev = null; const buses = []; while ((tb -= exp()) > T0) { buses.push(tb); if (prev === null) prev = tb; }
+    if (prev === null) prev = tb; let ta = 0, next = null; while ((ta += exp()) < T1) { buses.push(ta); if (next === null) next = ta; }
     if (next === null) next = ta;
     return { prev, next, buses, w: next, gap: next - prev };
   }
   function text() {
+    svg.setAttribute('aria-label', L('Автобусна зупинка', 'Bus stop'));
     if (!last) { msg.textContent = L('Автобус ходить у середньому раз на 10 хвилин. Натисніть «Прийти на зупинку» і подивіться, скільки доведеться чекати.', 'The bus comes every 10 minutes on average. Press "Go to the stop" and see how long you wait.'); b.textContent = L('Прийти на зупинку', 'Go to the stop'); return; }
     const n = waits.length, avg = waits.reduce((a, c) => a + c, 0) / n;
-    msg.textContent = L('Ви чекали ' + dec(last.w.toFixed(1)) + ' хв в інтервалі довжиною ' + dec(last.gap.toFixed(1)) + ' хв. Середнє за ' + n + ' ' + pl(n, 'прихід', 'приходи', 'приходів') + ': ' + dec(avg.toFixed(1)) + ' хв, хоча автобус ходить «раз на 10 хвилин».',
-      'You waited ' + last.w.toFixed(1) + ' min in a ' + last.gap.toFixed(1) + '-min gap. Average over ' + n + ' ' + (n === 1 ? 'visit' : 'visits') + ': ' + avg.toFixed(1) + ' min, for a bus that comes "every 10 minutes".');
+    msg.textContent = L('Ви чекали ' + dec(last.w.toFixed(1)) + ' хв в інтервалі довжиною ' + dec(last.gap.toFixed(1)) + ' хв. Середнє за ' + n + ' ' + pl(n, 'прихід', 'приходи', 'приходів') + ': ' + dec(avg.toFixed(1)) + ' хв' + (solved() ? ', хоча автобус ходить «раз на 10 хвилин».' : '. Чи це типово? Перевірте відповідь вище.'),
+      'You waited ' + last.w.toFixed(1) + ' min in a ' + last.gap.toFixed(1) + '-min gap. Average over ' + n + ' ' + (n === 1 ? 'visit' : 'visits') + ': ' + avg.toFixed(1) + ' min' + (solved() ? ', for a bus that comes "every 10 minutes".' : '. Is that typical? Check the answer above.'));
     b.textContent = L('Прийти ще раз', 'Go again');
   }
   b.addEventListener('click', () => { last = visit(); waits.push(last.w); draw(); text(); });
   document.addEventListener('langchange', () => { draw(); text(); });
+  if (card) new MutationObserver(text).observe(card, { attributes: true, attributeFilter: ['class'] });
   draw(); text();
 })();
