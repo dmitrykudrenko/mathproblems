@@ -352,8 +352,8 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
   <div class="round-head">
     <span class="eyebrow"><span class="uk">Раунд 2 · Зіграйте в'язнем</span><span class="en">Round 2 · Play a prisoner</span></span>
     <h2><span class="uk">20 коробок, 10 спроб</span><span class="en">20 boxes, 10 tries</span></h2>
-    <p class="lead uk">Зменшимо в'язницю: 20 в'язнів, 20 коробок, кожен відкриває 10. Ви один із в'язнів. Шукайте свій номер за стратегією петлі або відкривайте коробки на свій вибір. Потім запустіть усіх 20 в'язнів і подивіться, чи вийдуть вони на волю.</p>
-    <p class="lead en">Let's shrink the prison: 20 prisoners, 20 boxes, each opens 10. You are one of the prisoners. Look for your number with the loop strategy or open any boxes you like. Then run all 20 prisoners and see whether they go free.</p>
+    <p class="lead uk">Зменшимо в'язницю: 20 в'язнів, 20 коробок, кожен відкриває 10. Ви один із в'язнів. Спробуйте стратегію петлі: відкрийте коробку зі своїм номером, подивіться, який номер лежить усередині, відкрийте коробку з цим номером і так далі. Або відкривайте коробки на свій вибір. Потім запустіть усіх 20 в'язнів і подивіться, чи вийдуть вони на волю.</p>
+    <p class="lead en">Let's shrink the prison: 20 prisoners, 20 boxes, each opens 10. You are one of the prisoners. Try the loop strategy: open the box with your own number, read the number inside, open the box with that number, and so on. Or open any boxes you like. Then run all 20 prisoners and see whether they go free.</p>
   </div>
   <div class="room">
     <div class="card stage">
@@ -377,8 +377,13 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
     </div>
     <div class="card">
       <h3><span class="uk">Усі 20 в'язнів</span><span class="en">All 20 prisoners</span></h3>
-      <p class="note" id="all-k" style="margin-top:6px"></p>
+      <div class="presets" id="all-mode" style="margin-top:10px">
+        <button type="button" data-m="loop" aria-pressed="true"><span class="uk">За петлею</span><span class="en">By the loop</span></button>
+        <button type="button" data-m="rand" aria-pressed="false"><span class="uk">Навмання</span><span class="en">At random</span></button>
+      </div>
+      <p class="note" id="all-k" style="margin-top:10px"></p>
       <canvas id="all-rings" style="height:200px;margin-top:10px" aria-hidden="true"></canvas>
+      <p class="note" style="margin-top:6px"><span class="uk">Кружок — коробка з її номером. Стрілка веде від коробки до коробки з тим номером, що лежить усередині. З кожної коробки виходить одна стрілка і в кожну одна входить, тож 20 коробок завжди розпадаються на кілька замкнених петель. В'язень, що йде за петлею, обходить петлю, на якій лежить його коробка. Петлі, довші за 10, рожеві: на них спроб не вистачить.</span><span class="en">A dot is a box with its number. An arrow leads from a box to the box whose number lies inside. One arrow leaves each box and one enters it, so the 20 boxes always split into a few closed loops. A prisoner who follows the loop walks the loop their box is on. Loops longer than 10 are pink: there, the tries run out.</span></p>
       <div class="paths" id="all-paths"></div>
       <p class="verdict" id="all-v" aria-live="polite"></p>
       <p class="note" id="all-tally" style="margin-top:10px"></p>
@@ -748,6 +753,14 @@ function runAll(p, k) {
     return { path, ok: false };
   });
 }
+// all prisoners at random: each opens k different boxes picked at random
+function runRand(p, k) {
+  return Array.from(p, (_, me) => {
+    const order = randPerm(p.length), path = [];
+    for (let t = 0; t < k; t++) { path.push(order[t]); if (p[order[t]] === me) return { path, ok: true }; }
+    return { path, ok: false };
+  });
+}
 // relabelled strategy: prisoners follow sigma∘p, which is uniform for a secret uniform sigma
 function compose(sig, p) { const r = new Int32Array(p.length); for (let i = 0; i < p.length; i++) r[i] = sig[p[i]]; return r; }
 function singleLoop(n) {
@@ -878,9 +891,9 @@ function guessText() {
 /* ---------- round 2: play one prisoner ---------- */
 const GN = 20, GK = 10;
 let mode = 'loop', g, score = { loop: [0, 0], free: [0, 0] };
-let allState = null, tally = [0, 0], allTimer = null;
+let allState = null, allMode = 'loop', tally = { loop: [0, 0], rand: [0, 0] }, allTimer = null;
 function gNew() {
-  g = { p: randPerm(GN), me: rnd(GN), opened: [], done: false, won: false, counted: false };
+  g = { p: randPerm(GN), me: rnd(GN), opened: [], done: false, won: false, counted: {} };
   gBoxes(); gText();
   stopAll();
   allState = null; allText();
@@ -956,9 +969,10 @@ $('#g-mode').addEventListener('click', e => {
 function stopAll() { clearInterval(allTimer); allTimer = null; }
 function startAll(p, example) {
   stopAll();
-  const res = runAll(p, GK), lp = loopsOf(p);
-  allState = { p, res, lp, shown: REDUCE ? GN : 0, example };
-  if (!example && !g.counted) { g.counted = true; tally[1]++; if (lp[0].length <= GK) tally[0]++; }
+  const res = allMode === 'loop' ? runAll(p, GK) : runRand(p, GK), lp = loopsOf(p);
+  allState = { p, res, lp, shown: REDUCE ? GN : 0, example, mode: allMode };
+  // each arrangement counts once per strategy
+  if (!example && !g.counted[allMode]) { g.counted[allMode] = true; tally[allMode][1]++; if (res.every(r => r.ok)) tally[allMode][0]++; }
   allText();
   if (!REDUCE) allTimer = setInterval(() => { allState.shown++; allText(); if (allState.shown >= GN) stopAll(); }, 70);
 }
@@ -969,22 +983,34 @@ function allText() {
     paths.innerHTML = ''; v.textContent = '';
     drawRings($('#all-rings'), [], { limit: GK });
   } else {
-    const { res, lp, shown, example } = allState;
+    const { res, lp, shown, example, mode: am } = allState;
     k.textContent = (example ? L('Приклад іншого розміщення. ', 'An example arrangement. ') : L('Ваше розміщення. ', 'Your arrangement. ')) +
-      L('Петлі: ', 'Loops: ') + lp.map(c => c.length).join(' + ') + ' = 20.';
-    drawRings($('#all-rings'), lp, { limit: GK, labels: true, sMax: 26, mark: example ? -1 : g.me });
+      L('Петлі: ', 'Loops: ') + lp.map(c => c.length).join(' + ') + ' = 20. ' +
+      (am === 'loop' ? L('Кожен в\'язень іде за петлею.', 'Each prisoner follows the loop.') : L('Кожен в\'язень відкриває 10 коробок навмання.', 'Each prisoner opens 10 boxes at random.'));
+    drawRings($('#all-rings'), lp, { limit: GK, labels: true, arrows: true, sMax: 26, mark: example ? -1 : g.me });
     paths.innerHTML = res.slice(0, shown).map((r, i) => '<div class="' + (r.ok ? 'ok' : 'no') + '"><b>' + (r.ok ? '✓' : '✗') + ' ' + (i + 1) + '</b><span>' + r.path.map(b => b + 1).join('→') + (r.ok ? '' : '…') + '</span></div>').join('');
     if (shown >= GN) {
       const m = lp[0].length, fails = res.filter(r => !r.ok).length;
-      v.innerHTML = m <= GK
+      v.innerHTML = am === 'rand'
+        ? (fails ? L('Свій номер знайшли ' + (GN - fails) + ' з 20. Решта ' + fails + ' не знайшли, тож усі залишаються у в\'язниці. Навмання кожен незалежно вгадує з шансом 1/2.', (GN - fails) + ' of 20 found their number. The other ' + fails + ' did not, so everyone stays in prison. At random, each one independently has a 1/2 chance.')
+          : L('Неймовірно: усі 20 знайшли свій номер навмання!', 'Incredible: all 20 found their number at random!'))
+        : m <= GK
         ? L('Найдовша петля: ' + m + '. Усі 20 знайшли свій номер, тож в\'язні на волі!', 'Longest loop: ' + m + '. All 20 found their number, so the prisoners go free!')
         : L('Найдовша петля: <b>' + m + '</b>. Усі ' + fails + ' в\'язнів на ній не встигли знайти свій номер, тож усі залишаються у в\'язниці.', 'Longest loop: <b>' + m + '</b>. All ' + fails + ' prisoners on it ran out of tries, so everyone stays in prison.');
     } else v.textContent = '';
   }
-  $('#all-tally').textContent = (tally[1] ? L('Ваші розміщення, де всі вийшли на волю: ' + tally[0] + ' з ' + tally[1] + '. ', 'Your arrangements where all went free: ' + tally[0] + ' of ' + tally[1] + '. ') : '') +
-    L('Теорія для 20 в\'язнів і 10 спроб: ', 'Theory for 20 prisoners and 10 tries: ') + pct(pLE(GN, GK)) + L('. Навмання: ', '. At random: ') + prob(pRand(GN, GK)) + '.';
+  const tl = tally.loop, tr = tally.rand, tp = t => t[0] + ' ' + L('з', 'of') + ' ' + t[1];
+  $('#all-tally').textContent = (tl[1] || tr[1] ? L('Ваші розміщення, де всі вийшли на волю: ', 'Your arrangements where all went free: ') +
+    [tl[1] ? L('за петлею ', 'by the loop ') + tp(tl) : '', tr[1] ? L('навмання ', 'at random ') + tp(tr) : ''].filter(Boolean).join(', ') + '. ' : '') +
+    L('Теорія для 20 в\'язнів і 10 спроб: за петлею ', 'Theory for 20 prisoners and 10 tries: by the loop ') + pct(pLE(GN, GK)) + L(', навмання ', ', at random ') + prob(pRand(GN, GK)) + '.';
 }
 $('#g-all').addEventListener('click', () => startAll(g.p, false));
+$('#all-mode').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  allMode = b.dataset.m;
+  $('#all-mode').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  if (allState) startAll(allState.p, allState.example);
+});
 
 /* ---------- round 3: simulation ---------- */
 let sim = null;
