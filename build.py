@@ -965,6 +965,207 @@ FX_SCRIPT = """<script>
 })();
 </script>"""
 
+# The round-1 guess control: <mp-guess id="guess-n" min="0" max="100" step="1" value="50" unit="%"></mp-guess>.
+# It behaves like an <input>: .value (a string), .min, .max, .disabled, and "input"/"change" events, so a page
+# keeps its own `guessed = +guessIn.value` and mpSolve(guessed). The big number is a text field (type an exact
+# value, comma or dot), −/+ step by `step`, the slider is the coarse control. Optional attributes:
+#   fine="0.1"      precision of a typed value (default: step)
+#   scale="p"       0–100 % with finer ends: 0–5 and 95–100 get a fifth of the track each, so 0.5% or 99% are easy
+#   scale="log"     logarithmic between min and max (min > 0); the slider keeps two significant digits
+#   zones="chance"  labelled bands under the track: almost never / rarely / 50–50 / often / almost surely
+#   zones="share"   the same bands for shares: almost none / a minority / about half / a majority / almost all
+#   ticks="1,10,100" numbers under the track (default: five even steps, or the zone edges); "0.1:1 мм|1 mm" gives one a label
+# `unit` and tick labels may be "uk|en".
+# Zones are the same on every page that uses them, so they cannot point at any page's answer.
+# Defined in <head>, so the element upgrades while the page parses and its script finds a working control.
+GUESS_SCRIPT = """<script>
+(function () {
+  if (!window.customElements || customElements.get("mp-guess")) return;
+  var EN = document.documentElement.dataset.lang === "en";
+  var ZONES = {
+    chance: EN ? ["almost never", "rarely", "50–50", "often", "almost surely"] : ["майже ніколи", "рідко", "навпіл", "часто", "майже напевно"],
+    share: EN ? ["almost none", "a minority", "about half", "a majority", "almost all"] : ["майже ніхто", "меншість", "близько половини", "більшість", "майже всі"]
+  };
+  var EDGES = [0, 5, 35, 65, 95, 100], FIT = window.CSS && CSS.supports("field-sizing", "content");
+  // track position t (0–1) against the share of the range, for scale="p": the five zones get equal room
+  var KNOTS = [[0, 0], [0.2, 0.05], [0.8, 0.95], [1, 1]];
+  function lerp(x, a, b) {
+    for (var i = 1; i < a.length; i++) if (x <= a[i] || i === a.length - 1) return b[i - 1] + (b[i] - b[i - 1]) * (x - a[i - 1]) / (a[i] - a[i - 1]);
+  }
+  function tr(s) { s = String(s).split("|"); return s[EN && s.length > 1 ? 1 : 0]; }
+  function dec(x) {
+    var s = String(x).split("e-"), d = s[0].indexOf(".") < 0 ? 0 : s[0].length - s[0].indexOf(".") - 1;
+    return d + (+s[1] || 0);
+  }
+  function snap(v, q) { return q > 0 ? +(Math.round(v / q) * q).toFixed(dec(q)) : v; }
+  var uid = 0;
+  class Guess extends HTMLElement {
+    static get observedAttributes() { return ["min", "max", "step", "value", "disabled"]; }
+    get min() { return this.getAttribute("min") || "0"; }
+    set min(v) { this.setAttribute("min", v); }
+    get max() { return this.getAttribute("max") || "100"; }
+    set max(v) { this.setAttribute("max", v); }
+    get value() { return String(this._v); }
+    set value(v) { this._set(+v, false); }
+    get disabled() { return this.hasAttribute("disabled"); }
+    set disabled(v) { this.toggleAttribute("disabled", !!v); }
+    attributeChangedCallback(name) {
+      if (!this._r) return;
+      if (name === "value") this._set(+this.getAttribute("value"), false);
+      else if (name === "disabled") this._dis();
+      else { this._lim(); this._marks(); this._set(this._v, false); }
+    }
+    connectedCallback() {
+      if (this._r) return;
+      var me = this, id = this.id || "mp-guess-" + (++uid);
+      var unit = tr(this.getAttribute("unit") || ""), lab = this.id && document.querySelector('label[for="' + this.id + '"]');
+      this.innerHTML = '<div class="mp-g-top"><span class="mp-g-val"><input class="mp-g-num" type="text" inputmode="decimal" autocomplete="off" spellcheck="false">' +
+        (unit ? '<span class="mp-g-unit' + (/^\\s/.test(unit) ? " mp-g-word" : "") + '" aria-hidden="true">' + unit.trim() + "</span>" : "") + '</span>' +
+        '<span class="mp-g-steps"><button type="button" class="mp-g-btn" data-d="-1">−</button><button type="button" class="mp-g-btn" data-d="1">+</button></span></div>' +
+        '<input class="mp-g-range" type="range"><div class="mp-g-marks" aria-hidden="true"></div>';
+      var num = this._num = this.querySelector(".mp-g-num"), rng = this._rng = this.querySelector(".mp-g-range");
+      num.id = id + "-num";
+      this._lim();
+      if (lab) { if (!lab.id) lab.id = id + "-label"; lab.htmlFor = num.id; rng.setAttribute("aria-labelledby", lab.id); }
+      else if (this.getAttribute("aria-label")) { num.setAttribute("aria-label", this.getAttribute("aria-label")); rng.setAttribute("aria-label", this.getAttribute("aria-label")); }
+      var bs = this.querySelectorAll(".mp-g-btn");
+      bs[0].setAttribute("aria-label", EN ? "Less" : "Менше"); bs[1].setAttribute("aria-label", EN ? "More" : "Більше");
+      this._r = true;
+      this._marks();
+      this._set(+(this.getAttribute("value") || this._lo), false);
+      this._dis();
+      // inner fields keep their own events; the element fires one "input" of its own after its value changed
+      rng.addEventListener("input", function (e) { e.stopPropagation(); me._set(me._fromT(+rng.value), true, rng); });
+      rng.addEventListener("change", function (e) { e.stopPropagation(); me._fire("change"); });
+      rng.addEventListener("keydown", function (e) {
+        if (me._sc === "lin") return;
+        var d = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+        if (d) { e.preventDefault(); me._step(d); me._fire("change"); }
+      });
+      num.addEventListener("input", function (e) {
+        e.stopPropagation();
+        var v = me._parse(num.value), ok = v !== null && v >= me._lo && v <= me._hi;
+        num.toggleAttribute("aria-invalid", !ok && num.value.trim() !== "");
+        me._size();
+        if (ok) me._set(v, true, num);
+      });
+      num.addEventListener("change", function (e) { e.stopPropagation(); });
+      num.addEventListener("focus", function () { num.value = me._raw(me._v); me._size(); num.select(); });
+      num.addEventListener("blur", function () { me._commit(); });
+      num.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); me._commit(); num.select(); }
+        else if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); me._step(e.key === "ArrowUp" ? 1 : -1); num.value = me._raw(me._v); me._size(); }
+      });
+      bs.forEach(function (b) { b.addEventListener("click", function () { me._step(+b.dataset.d); me._fire("change"); }); });
+    }
+    _lim() {
+      this._lo = +this.min; this._hi = +this.max;
+      this._q = +(this.getAttribute("step") || 1);
+      this._fine = +(this.getAttribute("fine") || this._q);
+      this._sc = this.getAttribute("scale") || "lin";
+      if (this._sc === "log" && this._lo <= 0) this._sc = "lin";
+      if (this._rng) {
+        var lin = this._sc === "lin";
+        this._rng.min = lin ? this._lo : 0; this._rng.max = lin ? this._hi : 1000; this._rng.step = lin ? this._q : 1;
+      }
+    }
+    _f(v) { return (v - this._lo) / (this._hi - this._lo); }
+    _toT(v) {
+      if (this._sc === "log") return Math.log(v / this._lo) / Math.log(this._hi / this._lo);
+      var f = this._f(v);
+      return this._sc === "p" ? lerp(f, KNOTS.map(function (k) { return k[1]; }), KNOTS.map(function (k) { return k[0]; })) : f;
+    }
+    _fromT(t) {
+      if (this._sc === "lin") return t;
+      t /= 1000;
+      if (this._sc === "log") {
+        var v = this._lo * Math.pow(this._hi / this._lo, t), e = Math.pow(10, Math.floor(Math.log10(v)) - 1);
+        return Math.max(this._q, snap(v, e));
+      }
+      var f = lerp(t, KNOTS.map(function (k) { return k[0]; }), KNOTS.map(function (k) { return k[1]; }));
+      var w = f < 0.05 || f > 0.95 ? this._fine : this._q;
+      return this._lo + snap(f * (this._hi - this._lo), w);
+    }
+    _parse(s) {
+      s = String(s).replace(/[\\s\\u00a0\\u202f%]/g, "").replace(",", ".");
+      return s === "" || isNaN(+s) ? null : +s;
+    }
+    _raw(v) { return String(v).replace(".", EN ? "." : ","); }
+    _show(v) {
+      return v.toLocaleString(EN ? "en-US" : "uk-UA", { maximumFractionDigits: Math.max(dec(this._fine), dec(this._q)) });
+    }
+    _clean(v) {
+      if (isNaN(v)) v = this._lo;
+      return snap(Math.min(this._hi, Math.max(this._lo, v)), Math.min(this._fine, this._q));
+    }
+    // from: the field the visitor is using, which is left as typed
+    _set(v, user, from) {
+      var old = this._v;
+      v = this._clean(v);
+      this._v = v;
+      if (!this._r) return;
+      if (from !== this._num && document.activeElement !== this._num) this._num.value = this._show(v);
+      else if (from !== this._num) this._num.value = this._raw(v);
+      if (from !== this._rng) this._rng.value = this._sc === "lin" ? v : Math.round(1000 * this._toT(v));
+      this._num.removeAttribute("aria-invalid");
+      this._size();
+      var z = this._zone(v), unit = tr(this.getAttribute("unit") || "");
+      this._rng.setAttribute("aria-valuetext", this._show(v) + unit.trim() + (z ? ", " + z.name : ""));
+      this.querySelectorAll(".mp-g-zone").forEach(function (el, i) { el.classList.toggle("on", !!z && i === z.i); });
+      if (user && v !== old) this._fire("input");
+    }
+    _commit() {
+      var v = this._parse(this._num.value);
+      this._set(v === null ? this._v : v, true);
+      this._num.value = document.activeElement === this._num ? this._raw(this._v) : this._show(this._v);
+      this._size();
+      this._fire("change");
+    }
+    _step(d) {
+      var v = this._v, q = this._q;
+      if (this._sc === "log") q = Math.max(q, Math.pow(10, Math.floor(Math.log10(Math.max(v, 1e-9) * (d < 0 ? 0.999 : 1))) - 1));
+      var n = d > 0 ? Math.floor(v / q + 1e-9) * q + q : Math.ceil(v / q - 1e-9) * q - q;
+      this._set(+n.toFixed(dec(q)), true);
+    }
+    _zone(v) {
+      var names = ZONES[this.getAttribute("zones")];
+      if (!names) return null;
+      var p = 100 * this._f(v);
+      for (var i = 0; i < 5; i++) if (p <= EDGES[i + 1] || i === 4) return { i: i, name: names[i] };
+    }
+    _size() { if (!FIT) this._num.style.width = Math.max(1, this._num.value.length) + 0.2 + "ch"; }
+    _dis() {
+      var d = this.disabled;
+      this.querySelectorAll("input, button").forEach(function (el) { el.disabled = d; });
+    }
+    _fire(type) { this.dispatchEvent(new Event(type, { bubbles: true })); }
+    _marks() {
+      var me = this, box = this.querySelector(".mp-g-marks"), names = ZONES[this.getAttribute("zones")], html = "";
+      if (!box) return;
+      var at = function (v) { return (100 * me._toT(v)).toFixed(2) + "%"; };
+      var span = this._hi - this._lo, ticks;
+      if (names) {
+        for (var i = 0; i < 5; i++) {
+          var a = this._lo + span * EDGES[i] / 100, b = this._lo + span * EDGES[i + 1] / 100;
+          html += '<span class="mp-g-zone" style="left:' + at(a) + ";width:calc(" + at(b) + " - " + at(a) + ')">' + names[i] + "</span>";
+        }
+        ticks = EDGES.map(function (e) { return me._lo + span * e / 100; });
+      } else if (this.getAttribute("ticks")) ticks = this.getAttribute("ticks").split(",");
+      else ticks = [0, 1, 2, 3, 4].map(function (k) { return snap(me._lo + span * k / 4, me._q); });
+      var unit = tr(this.getAttribute("unit") || "");
+      html += '<span class="mp-g-ticks">' + ticks.map(function (t, i) {
+        var p = String(t).split(":"), v = +p[0];
+        return '<span style="left:' + at(v) + '">' + (p[1] ? tr(p[1]) : me._show(v) + (i === ticks.length - 1 ? unit.trim() : "")) + "</span>";
+      }).join("") + "</span>";
+      box.innerHTML = html;
+      box.classList.toggle("has-zones", !!names);
+    }
+  }
+  customElements.define("mp-guess", Guess);
+})();
+</script>"""
+
+
 def lang_script(lang, urls, base):
     return LANG_SCRIPT % {"path": json.dumps(urlparse(base).path or "/"), "here": json.dumps(lang),
                           "alt": json.dumps({l: urlparse(u).path for l, u in urls.items()})}
@@ -1226,6 +1427,8 @@ def build_problem(slug, base, metas, books, related):
                  (m["share"]["title"], m["share"]["description"]) if "share" in m else None)
         if "i.ytimg.com" in body:
             h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
+        if "<mp-guess" in body:
+            h += "\n" + GUESS_SCRIPT
         body = with_code(with_layers(body, lang, slug), lang, slug)
         body = with_discuss(with_subscribe(with_poll(with_hints(body, lang, slug, meta.get("hints")), lang, slug, meta.get("poll")), lang), lang, slug, meta["level"])
         items = []
