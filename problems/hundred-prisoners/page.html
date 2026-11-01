@@ -382,10 +382,10 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
       </div>
     </div>
     <div class="card">
-      <h3><span class="uk">Усі 20 в'язнів</span><span class="en">All 20 prisoners</span></h3>
+      <h3><span class="uk">Усі 20 в'язнів</span><span class="en">All 20 prisoners</span> · <span id="all-how"></span></h3>
       <p class="note" id="all-k" style="margin-top:6px"></p>
       <canvas id="all-rings" style="height:200px;margin-top:10px" aria-hidden="true"></canvas>
-      <p class="note" style="margin-top:6px"><span class="uk">Кружок — коробка з її номером. Стрілка веде від коробки до коробки з тим номером, що лежить усередині. З кожної коробки виходить одна стрілка і в кожну одна входить, тож 20 коробок завжди розпадаються на кілька замкнених петель. В'язень, що йде за петлею, обходить петлю, на якій лежить його коробка. Петлі, довші за 10, рожеві: на них спроб не вистачить.</span><span class="en">A dot is a box with its number. An arrow leads from a box to the box whose number lies inside. One arrow leaves each box and one enters it, so the 20 boxes always split into a few closed loops. A prisoner who follows the loop walks the loop their box is on. Loops longer than 10 are pink: there, the tries run out.</span></p>
+      <p class="note" id="all-cap" style="margin-top:6px"><span class="uk">Кружок — коробка з її номером. Стрілка веде від коробки до коробки з тим номером, що лежить усередині. З кожної коробки виходить одна стрілка і в кожну одна входить, тож 20 коробок завжди розпадаються на кілька замкнених петель. В'язень, що йде за петлею, обходить петлю, на якій лежить його коробка. Петлі, довші за 10, рожеві: на них спроб не вистачить.</span><span class="en">A dot is a box with its number. An arrow leads from a box to the box whose number lies inside. One arrow leaves each box and one enters it, so the 20 boxes always split into a few closed loops. A prisoner who follows the loop walks the loop their box is on. Loops longer than 10 are pink: there, the tries run out.</span></p>
       <div class="paths" id="all-paths"></div>
       <p class="verdict" id="all-v" aria-live="polite"></p>
       <ol class="hist" id="all-hist" reversed></ol>
@@ -996,8 +996,15 @@ function startAll(p, example) {
 }
 function allText() {
   const k = $('#all-k'), paths = $('#all-paths'), v = $('#all-v');
+  // the strategy shown is the one picked on the left, or the one the last run used
+  const how = allState ? allState.mode : runMode();
+  $('#all-how').textContent = how === 'loop' ? L('за петлею', 'by the loop') : L('навмання', 'at random');
+  $('#all-cap').hidden = how !== 'loop';
   if (!allState) {
-    k.textContent = L('Натисніть «Запустити всіх 20 в\'язнів», щоб побачити шлях кожного на вашому розміщенні.', 'Press "Run all 20 prisoners" to see each one\'s path on your arrangement.');
+    k.textContent = L('Натисніть «Запустити всіх 20 в\'язнів», щоб побачити шлях кожного на вашому розміщенні. ', 'Press "Run all 20 prisoners" to see each one\'s path on your arrangement. ') +
+      (how === 'loop' ? L('Усі підуть за петлею, як ви.', 'All of them will follow the loop, like you.')
+        : mode === 'free' ? L('Усі шукатимуть навмання: коли кожен обирає сам, без спільного плану, це те саме.', 'All of them will search at random: when each one chooses alone, with no common plan, it is the same thing.')
+        : L('Усі відкриватимуть коробки навмання, як ви.', 'All of them will open boxes at random, like you.'));
     paths.innerHTML = ''; v.textContent = '';
     drawRings($('#all-rings'), [], { limit: GK });
   } else {
@@ -1006,7 +1013,8 @@ function allText() {
       L('Петлі: ', 'Loops: ') + lp.map(c => c.length).join(' + ') + ' = 20. ' +
       (am === 'loop' ? L('Кожен в\'язень іде за петлею.', 'Each prisoner follows the loop.') : L('Кожен в\'язень відкриває 10 коробок навмання.', 'Each prisoner opens 10 boxes at random.') +
         (mode === 'free' ? L(' Коли кожен обирає сам, без спільного плану, це те саме, що навмання.', ' When each one chooses alone, with no common plan, it is the same as at random.') : ''));
-    drawRings($('#all-rings'), lp, { limit: GK, labels: true, arrows: true, sMax: 26, mark: example ? -1 : g.me });
+    // at random the loops don't decide anything, so none is marked as too long
+    drawRings($('#all-rings'), lp, { limit: am === 'loop' ? GK : GN, labels: true, arrows: true, sMax: 26, mark: example ? -1 : g.me });
     paths.innerHTML = res.slice(0, shown).map((r, i) => '<div class="' + (r.ok ? 'ok' : 'no') + '"><b>' + (r.ok ? '✓' : '✗') + ' ' + (i + 1) + '</b><span>' + r.path.map(b => b + 1).join('→') + (r.ok ? '' : '…') + '</span></div>').join('');
     if (shown >= GN) {
       const m = lp[0].length, fails = res.filter(r => !r.ok).length;
