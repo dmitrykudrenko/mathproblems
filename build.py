@@ -972,8 +972,9 @@ FX_SCRIPT = """<script>
 #   fine="0.1"      precision of a typed value (default: step)
 #   scale="p"       0–100 % with finer ends: 0–5 and 95–100 get a fifth of the track each, so 0.5% or 99% are easy
 #   scale="log"     logarithmic between min and max (min > 0); the slider keeps two significant digits
-#   zones="chance"  buttons under the track, one per zone (a click puts the guess mid-zone): almost never / rarely / 50–50 / often / almost surely
-#   zones="share"   the same bands for shares: almost none / a minority / about half / a majority / almost all
+#   zones="chance"  buttons under the track, one per zone (a click puts the guess mid-zone), named by the zone's middle
+#                   as a frequency: 1 in 40 / 1 in 5 / 1 in 2 / 4 in 5 / 39 in 40, with the range below
+#   zones="share"   the same, for shares (words like "rarely" would judge the answer, and some answers are the surprise)
 #   ticks="1,10,100" numbers under the track (default: five even steps, or the zone edges); "0.1:1 мм|1 mm" gives one a label
 # `unit` and tick labels may be "uk|en".
 # Zones are the same on every page that uses them, so they cannot point at any page's answer.
@@ -982,10 +983,9 @@ GUESS_SCRIPT = """<script>
 (function () {
   if (!window.customElements || customElements.get("mp-guess")) return;
   var EN = document.documentElement.dataset.lang === "en";
-  var ZONES = {
-    chance: EN ? ["almost never", "rarely", "50–50", "often", "almost surely"] : ["майже ніколи", "рідко", "навпіл", "часто", "майже напевно"],
-    share: EN ? ["almost none", "a minority", "about half", "a majority", "almost all"] : ["майже ніхто", "меншість", "близько половини", "більшість", "майже всі"]
-  };
+  // each zone is named by its middle (2.5, 20, 50, 80, 97.5 %), the value a click on it sets
+  var ODDS = EN ? ["1 in 40", "1 in 5", "1 in 2", "4 in 5", "39 in 40"] : ["1 з 40", "1 з 5", "1 з 2", "4 з 5", "39 з 40"];
+  var ZONES = { chance: ODDS, share: ODDS };
   var EDGES = [0, 5, 35, 65, 95, 100], FIT = window.CSS && CSS.supports("field-sizing", "content");
   // track position t (0–1) against the share of the range, for scale="p": the five zones get equal room
   var KNOTS = [[0, 0], [0.2, 0.05], [0.8, 0.95], [1, 1]];
@@ -1118,7 +1118,7 @@ GUESS_SCRIPT = """<script>
       this._num.removeAttribute("aria-invalid");
       this._size();
       var z = this._zone(v), unit = tr(this.getAttribute("unit") || "");
-      this._rng.setAttribute("aria-valuetext", this._show(v) + unit.trim() + (z ? ", " + z.name : ""));
+      this._rng.setAttribute("aria-valuetext", this._show(v) + unit.trim());
       this.querySelectorAll(".mp-g-zone").forEach(function (el, i) { el.setAttribute("aria-pressed", !!z && i === z.i); });
       this.style.setProperty("--t", (100 * this._toT(v)).toFixed(2) + "%");
       if (user && v !== old) this._fire("input");
