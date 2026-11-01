@@ -1,5 +1,20 @@
 # mathproblems
 
+**English.** The source of https://mathparadoxes.com/en/: interactive explainers of maths puzzles where intuition gives the wrong answer, in English and Ukrainian. There are 60 puzzles (the 100 prisoners, the German tank problem, the bus paradox, Monty Hall…), a glossary of 22 terms and 6 themed courses.
+
+Every puzzle page follows the same path: you lock in a guess first (the answer stays hidden until you do), play a small version by hand, run thousands of simulations in the browser, then read why in layers: plain words, then tables, charts and formulas, then some theory and history. Harder variants come last. Some pages also offer the simulation as a short JavaScript and Python snippet to run yourself.
+
+How it's built:
+- A static site with no frameworks, libraries or npm. `python3 build.py` turns `problems/`, `glossary/`, `courses/` and `hub/` into `docs/`, which GitHub Pages serves. Each source page has one `<style>` and one `<script>`; the build strips the other language from every page.
+- `python3 tools/check.py` builds into a temporary folder and checks that `docs/` is up to date, every inline script parses, no page leaks the other language, and titles and descriptions fit. CI runs the same script.
+- Every answer is checked independently, with an exact calculation in Python and a simulation in Node, before a page goes live.
+- Answer statistics ("how many people guessed right") come from a tiny Cloudflare Worker with D1 (`stats/`) that stores only anonymous counts per answer.
+- I built the first puzzles together with AI to test the idea, and kept going.
+
+The rest of this README is in Ukrainian and documents the build in detail. Author: Dmytro Kudrenko.
+
+---
+
 Інтерактивні пояснення математичних задач, у яких інтуїція помиляється. Українською та англійською.
 
 Сайт: https://mathparadoxes.com/
