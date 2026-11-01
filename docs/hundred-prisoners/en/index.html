@@ -44,6 +44,17 @@
     return b;
   }
   if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+  });
   window.mpSolved = function () { return d.classList.contains("solved"); };
   // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
   window.mpSolve = function (guess) {
@@ -588,7 +599,7 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
 </style>
-<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=fbc4fde6">
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=3735a47c">
 </head>
 <body>
 <div class="wrap">
@@ -766,7 +777,7 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
   if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
   document.addEventListener("solved", function (e) {
     var g = e.detail && e.detail.guess;
-    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1") { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1" || d.classList.contains("rounds-open")) { if (!get(KEY)) set(KEY, "seen"); load(); return; }
     var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
     set(KEY, "1");
     fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
@@ -777,18 +788,20 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
 </script>
 </section>
 
-<!-- rounds 2–5 and the facts show the strategy, so they open only after a guess (or "show the answer") -->
-<section class="round sp-before" id="next">
+<!-- rounds 2–5 and the facts show the strategy, so they open only after a guess, "go on", or "always show all rounds" -->
+<section class="round sp-gate" id="next">
   <div class="card gate">
     <span class="kicker"><span class="en">Next: the solution</span></span>
-    <h3><span class="en">Your answer first</span></h3>
+    <h3><span class="en">Next comes the explanation, with spoilers</span></h3>
     
-    <p class="en">The next rounds reveal the strategy that saves the prisoners: a game, a simulation and the explanation. Lock in your answer in round 1 and they open.</p>
-    <div class="actions"><a class="btn pri" href="#guess"><span class="en">To round 1</span></a><button type="button" class="sp-skip" data-solve><span class="en">Just show me the answer</span></button></div>
+    <p class="en">The next rounds reveal the strategy that saves the prisoners: a game, a simulation and the explanation. Answer round 1 first, or go on?</p>
+    <div class="actions"><a class="btn pri" href="#guess"><span class="en">Answer round 1</span></a><button type="button" class="btn ghost" data-solve><span class="en">Go on</span></button></div>
+    <button type="button" class="sp-skip" data-rounds="open"><span class="en">Always show all rounds, I don't mind spoilers</span></button>
   </div>
 </section>
 
-<div class="sp-after">
+<div class="sp-rounds">
+<p class="note rounds-on"><span class="en">You chose to always show all rounds.</span> <button type="button" class="sp-skip" data-rounds="gate"><span class="en">Hide them until I answer</span></button></p>
 <!-- ROUND 2: game -->
 <section class="round" id="game">
   <div class="round-head">
@@ -1997,6 +2010,7 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
 new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 // rounds 2–5 were hidden until now, so their canvases had no width to draw into
 document.addEventListener('solved', () => setTimeout(redraw, 0));
+document.addEventListener('rounds', () => setTimeout(redraw, 0));
 
 // open everything in a filled state
 gNew();
