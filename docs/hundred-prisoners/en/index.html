@@ -544,6 +544,11 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
 .trail b { color: var(--hit); }
 .me { display: inline-block; background: var(--hit); color: #fff; border-radius: 999px; padding: 1px 10px; font-weight: 700; }
 .odd b span, .vs b span { font-size: inherit; color: inherit; }
+.hist { margin: 12px 0 0; padding: 10px 0 0 1.6em; border-top: 1px solid var(--line); font-size: .82rem; display: grid; gap: 3px; }
+.hist:empty { display: none; }
+.hist li { margin: 0; padding: 0; font-size: .82rem; line-height: 1.4; }
+.hist .ok { color: var(--win); }
+.hist .no { color: var(--hit); }
 .paths { display: grid; grid-template-columns: 1fr; gap: 3px; font-size: .76rem; font-variant-numeric: tabular-nums; margin-top: 10px; }
 .paths div { display: flex; gap: 6px; align-items: baseline; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .paths b { min-width: 2.4em; }
@@ -773,12 +778,13 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
     <span class="eyebrow"><span class="en">Round 2 · Play a prisoner</span></span>
     <h2><span class="en">20 boxes, 10 tries</span></h2>
     
-    <p class="lead en">Let's shrink the prison: 20 prisoners, 20 boxes, each opens 10. You are one of the prisoners. Try the loop strategy: open the box with your own number, read the number inside, open the box with that number, and so on. Or open any boxes you like. Then run all 20 prisoners and see whether they go free.</p>
+    <p class="lead en">Let's shrink the prison: 20 prisoners, 20 boxes, each opens 10. You are one of the prisoners. Try the loop strategy: open the box with your own number, read the number inside, open the box with that number, and so on. Compare it with a random search, or open any boxes you like. Then run all 20 prisoners and see whether they go free.</p>
   </div>
   <div class="room">
     <div class="card stage">
       <div class="presets" id="g-mode">
         <button type="button" data-m="loop" aria-pressed="true"><span class="en">Follow the loop</span></button>
+        <button type="button" data-m="rand" aria-pressed="false"><span class="en">At random</span></button>
         <button type="button" data-m="free" aria-pressed="false"><span class="en">Choose freely</span></button>
       </div>
       <div class="status">
@@ -797,15 +803,12 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
     </div>
     <div class="card">
       <h3><span class="en">All 20 prisoners</span></h3>
-      <div class="presets" id="all-mode" style="margin-top:10px">
-        <button type="button" data-m="loop" aria-pressed="true"><span class="en">By the loop</span></button>
-        <button type="button" data-m="rand" aria-pressed="false"><span class="en">At random</span></button>
-      </div>
-      <p class="note" id="all-k" style="margin-top:10px"></p>
+      <p class="note" id="all-k" style="margin-top:6px"></p>
       <canvas id="all-rings" style="height:200px;margin-top:10px" aria-hidden="true"></canvas>
       <p class="note" style="margin-top:6px"><span class="en">A dot is a box with its number. An arrow leads from a box to the box whose number lies inside. One arrow leaves each box and one enters it, so the 20 boxes always split into a few closed loops. A prisoner who follows the loop walks the loop their box is on. Loops longer than 10 are pink: there, the tries run out.</span></p>
       <div class="paths" id="all-paths"></div>
       <p class="verdict" id="all-v" aria-live="polite"></p>
+      <ol class="hist" id="all-hist" reversed></ol>
       <p class="note" id="all-tally" style="margin-top:10px"></p>
     </div>
   </div>
@@ -1519,8 +1522,11 @@ function guessText() {
 
 /* ---------- round 2: play one prisoner ---------- */
 const GN = 20, GK = 10;
-let mode = 'loop', g, score = { loop: [0, 0], free: [0, 0] };
-let allState = null, allMode = 'loop', tally = { loop: [0, 0], rand: [0, 0] }, allTimer = null;
+let mode = 'loop', g, score = { loop: [0, 0], rand: [0, 0], free: [0, 0] };
+// hist: every run of all 20 on your arrangements, one per arrangement and strategy
+let allState = null, hist = [], allTimer = null;
+// prisoners who each choose for themselves have no common plan, so all 20 together search at random
+const runMode = () => mode === 'loop' ? 'loop' : 'rand';
 function gNew() {
   g = { p: randPerm(GN), me: rnd(GN), opened: [], done: false, won: false, counted: {} };
   gBoxes(); gText();
@@ -1534,11 +1540,12 @@ const gNext = () => {
 };
 function gBoxes() {
   const el = $('#g-boxes'), nx = mode === 'loop' ? gNext() : -1;
+  // only "choose freely" lets you click boxes; the other modes open them with the button
   el.innerHTML = Array.from(g.p, (s, b) => {
     const open = g.opened.includes(b);
     const cls = 'box' + (open ? ' open' : '') + (open && s === g.me ? ' mine' : '') + (b === nx ? ' next' : '') + (g.done ? ' done' : '');
     const lab = L('Коробка ' + (b + 1), 'Box ' + (b + 1)) + (open ? ': ' + (s + 1) : '');
-    return '<button type="button" class="' + cls + '" data-b="' + b + '" aria-label="' + lab + '"' + (open || g.done || (mode === 'loop' && b !== nx) ? ' disabled' : '') + '><span class="lb">' + (b + 1) + '</span><span class="sl">' + (open ? s + 1 : '') + '</span></button>';
+    return '<button type="button" class="' + cls + '" data-b="' + b + '" aria-label="' + lab + '"' + (open || g.done || (mode === 'loop' && b !== nx) || mode === 'rand' ? ' disabled' : '') + '><span class="lb">' + (b + 1) + '</span><span class="sl">' + (open ? s + 1 : '') + '</span></button>';
   }).join('');
 }
 // length of the loop through your box
@@ -1558,11 +1565,14 @@ function gText() {
   const sc = s => s[0] + ' ' + L('з', 'of') + ' ' + s[1];
   const parts = [];
   if (score.loop[1]) parts.push(L('петля ', 'loop ') + sc(score.loop));
+  if (score.rand[1]) parts.push(L('навмання ', 'random ') + sc(score.rand));
   if (score.free[1]) parts.push(L('самі ', 'free ') + sc(score.free));
   $('#g-score').textContent = parts.length ? parts.join(' · ') : L('ще немає', 'none yet');
   let m;
   if (!g.opened.length) m = mode === 'loop'
     ? L('Ви в\'язень <span class="me">№' + me + '</span>. Почніть з коробки зі своїм номером, №' + me + '. Вона обведена.', 'You are prisoner <span class="me">#' + me + '</span>. Start with the box that has your number, #' + me + '. It is outlined.')
+    : mode === 'rand'
+    ? L('Ви в\'язень <span class="me">№' + me + '</span>. Відкривайте коробки навмання кнопкою внизу, до 10 із 20.', 'You are prisoner <span class="me">#' + me + '</span>. Open boxes at random with the button below, up to 10 of the 20.')
     : L('Ви в\'язень <span class="me">№' + me + '</span>. Відкрийте будь-які 10 коробок із 20.', 'You are prisoner <span class="me">#' + me + '</span>. Open any 10 of the 20 boxes.');
   else if (g.won && mode === 'loop') m = g.opened.length === 1
     ? L('Знайшли! Коробка №' + me + ' одразу містить ваш номер: її стрілка веде сама в себе, тож ваша петля складається з однієї коробки.', 'Found it! Box #' + me + ' holds your number right away: its arrow points to itself, so your loop is a single box.')
@@ -1582,10 +1592,16 @@ function gText() {
   $('#g-trail').innerHTML = mode === 'loop' && g.opened.length
     ? L('Ваш шлях: ', 'Your path: ') + g.opened.map(b => b + 1).join(' → ') + (g.won ? ' → <b>' + me + '</b>' : ' → …')
     : '';
-  $('#g-step').disabled = g.done || mode !== 'loop' || gNext() < 0;
+  const st = $('#g-step');
+  st.textContent = mode === 'rand' ? L('Відкрити випадкову коробку', 'Open a random box') : L('Відкрити наступну коробку петлі', 'Open the next box in the loop');
+  st.hidden = mode === 'free';
+  st.disabled = g.done || (mode === 'loop' && gNext() < 0);
 }
 $('#g-boxes').addEventListener('click', e => { const b = e.target.closest('button'); if (b) gOpen(+b.dataset.b); });
-$('#g-step').addEventListener('click', () => { const b = gNext(); if (b >= 0) gOpen(b); });
+$('#g-step').addEventListener('click', () => {
+  if (mode === 'rand') { const shut = [...g.p.keys()].filter(b => !g.opened.includes(b)); if (shut.length) gOpen(shut[rnd(shut.length)]); return; }
+  const b = gNext(); if (b >= 0) gOpen(b);
+});
 $('#g-new').addEventListener('click', gNew);
 $('#g-mode').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
@@ -1598,10 +1614,12 @@ $('#g-mode').addEventListener('click', e => {
 function stopAll() { clearInterval(allTimer); allTimer = null; }
 function startAll(p, example) {
   stopAll();
-  const res = allMode === 'loop' ? runAll(p, GK) : runRand(p, GK), lp = loopsOf(p);
-  allState = { p, res, lp, shown: REDUCE ? GN : 0, example, mode: allMode };
-  // each arrangement counts once per strategy
-  if (!example && !g.counted[allMode]) { g.counted[allMode] = true; tally[allMode][1]++; if (res.every(r => r.ok)) tally[allMode][0]++; }
+  const am = runMode(), res = am === 'loop' ? runAll(p, GK) : runRand(p, GK), lp = loopsOf(p);
+  allState = { p, res, lp, shown: REDUCE ? GN : 0, example, mode: am };
+  if (!example && !g.counted[am]) {
+    g.counted[am] = true;
+    hist.push({ m: am, lens: lp.map(c => c.length), found: res.filter(r => r.ok).length });
+  }
   allText();
   if (!REDUCE) allTimer = setInterval(() => { allState.shown++; allText(); if (allState.shown >= GN) stopAll(); }, 70);
 }
@@ -1615,7 +1633,8 @@ function allText() {
     const { res, lp, shown, example, mode: am } = allState;
     k.textContent = (example ? L('Приклад іншого розміщення. ', 'An example arrangement. ') : L('Ваше розміщення. ', 'Your arrangement. ')) +
       L('Петлі: ', 'Loops: ') + lp.map(c => c.length).join(' + ') + ' = 20. ' +
-      (am === 'loop' ? L('Кожен в\'язень іде за петлею.', 'Each prisoner follows the loop.') : L('Кожен в\'язень відкриває 10 коробок навмання.', 'Each prisoner opens 10 boxes at random.'));
+      (am === 'loop' ? L('Кожен в\'язень іде за петлею.', 'Each prisoner follows the loop.') : L('Кожен в\'язень відкриває 10 коробок навмання.', 'Each prisoner opens 10 boxes at random.') +
+        (mode === 'free' ? L(' Коли кожен обирає сам, без спільного плану, це те саме, що навмання.', ' When each one chooses alone, with no common plan, it is the same as at random.') : ''));
     drawRings($('#all-rings'), lp, { limit: GK, labels: true, arrows: true, sMax: 26, mark: example ? -1 : g.me });
     paths.innerHTML = res.slice(0, shown).map((r, i) => '<div class="' + (r.ok ? 'ok' : 'no') + '"><b>' + (r.ok ? '✓' : '✗') + ' ' + (i + 1) + '</b><span>' + r.path.map(b => b + 1).join('→') + (r.ok ? '' : '…') + '</span></div>').join('');
     if (shown >= GN) {
@@ -1628,18 +1647,21 @@ function allText() {
         : L('Найдовша петля: <b>' + m + '</b>. Усі ' + fails + ' в\'язнів на ній не встигли знайти свій номер, тож усі залишаються у в\'язниці.', 'Longest loop: <b>' + m + '</b>. All ' + fails + ' prisoners on it ran out of tries, so everyone stays in prison.');
     } else v.textContent = '';
   }
-  const tl = tally.loop, tr = tally.rand, tp = t => t[0] + ' ' + L('з', 'of') + ' ' + t[1];
-  $('#all-tally').textContent = (tl[1] || tr[1] ? L('Ваші розміщення, де всі вийшли на волю: ', 'Your arrangements where all went free: ') +
-    [tl[1] ? L('за петлею ', 'by the loop ') + tp(tl) : '', tr[1] ? L('навмання ', 'at random ') + tp(tr) : ''].filter(Boolean).join(', ') + '. ' : '') +
+  // your runs, newest first: strategy, loops of the arrangement, outcome
+  $('#all-hist').innerHTML = hist.slice(-8).reverse().map(h => {
+    const ok = h.found === GN;
+    return '<li><span class="' + (ok ? 'ok' : 'no') + '">' + (ok ? '✓' : '✗') + '</span> ' + (h.m === 'loop' ? L('за петлею', 'by the loop') : L('навмання', 'at random')) +
+      ' · ' + L('петлі ', 'loops ') + h.lens.join('+') + ' · ' + (ok ? L('усі на волі', 'all free')
+        : h.m === 'loop' ? L('петля ' + h.lens[0] + ' довша за 10', 'a loop of ' + h.lens[0] + ' is longer than 10')
+        : L('знайшли ' + h.found + ' з 20', h.found + ' of 20 found theirs')) + '</li>';
+  }).join('');
+  if (hist.length) $('#all-hist').setAttribute('start', hist.length); else $('#all-hist').removeAttribute('start');
+  const tp = m => { const h = hist.filter(x => x.m === m); return h.length ? h.filter(x => x.found === GN).length + ' ' + L('з', 'of') + ' ' + h.length : ''; };
+  $('#all-tally').textContent = (hist.length ? L('Ваші розміщення, де всі вийшли на волю: ', 'Your arrangements where all went free: ') +
+    [tp('loop') && L('за петлею ', 'by the loop ') + tp('loop'), tp('rand') && L('навмання ', 'at random ') + tp('rand')].filter(Boolean).join(', ') + '. ' : '') +
     L('Теорія для 20 в\'язнів і 10 спроб: за петлею ', 'Theory for 20 prisoners and 10 tries: by the loop ') + pct(pLE(GN, GK)) + L(', навмання ', ', at random ') + prob(pRand(GN, GK)) + '.';
 }
 $('#g-all').addEventListener('click', () => startAll(g.p, false));
-$('#all-mode').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
-  allMode = b.dataset.m;
-  $('#all-mode').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
-  if (allState) startAll(allState.p, allState.example);
-});
 
 /* ---------- round 3: simulation ---------- */
 let sim = null;
