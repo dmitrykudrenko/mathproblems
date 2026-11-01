@@ -527,6 +527,8 @@ th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); 
 th { font-weight: 600; color: var(--muted); font-size: .78rem; }
 td.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
 td .btn { padding: 6px 10px; font-size: .8rem; }
+tr.best b { color: var(--hit); }
+.plan-sim { display: block; margin-top: 2px; font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .res { font-family: var(--f-mono); font-size: .82rem; color: var(--muted); white-space: nowrap; }
 
 footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -1109,7 +1111,7 @@ print(f&quot;all go free: simulation {100 * wins / TRIALS:.2f}%, exact {100 * ex
     <span class="eyebrow"><span class="en">Round 5 · Harder versions</span></span>
     <h2><span class="en">Other numbers of tries and a malicious warden</span></h2>
     
-    <p class="lead en">What if the prisoners may open more or fewer boxes? And what should they do if the warden knows their plan and places the numbers on purpose?</p>
+    <p class="lead en">What if the prisoners may open more or fewer boxes? And what should they do if the warden knows their plan and places the numbers on purpose? At the end, a few other agreements that lose to the loop.</p>
   </div>
   <div class="esc">
     <div class="esc-block">
@@ -1162,6 +1164,20 @@ print(f&quot;all go free: simulation {100 * wins / TRIALS:.2f}%, exact {100 * ex
           <tbody id="variants"></tbody>
         </table>
       </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="en">What about other agreements?</span></h3>
+      <p class="note" style="margin:6px 0 12px"><span class="en">Each plan below also has to be agreed in advance, and each loses to the loop. 100 prisoners, 50 tries. "Check" runs every plan on 10,000 arrangements.</span></p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="en">Plan</span></th><th style="text-align:right"><span class="en">Each finds theirs</span></th><th style="text-align:right"><span class="en">All free</span></th></tr></thead>
+          <tbody id="plans"></tbody>
+        </table>
+      </div>
+      <div class="actions" style="margin-top:14px"><button class="btn ghost" id="plans-go"><span class="en">Check</span></button></div>
+      
+      <p class="note en" style="margin-top:12px">In almost every plan each prisoner alone finds their number half the time. The plans differ in whether the prisoners fail together. Boxes 1–50 make sure half of them always fail. Two halves tie the prisoners' fates a little, which is already 12.6 times better than random, yet still hopeless. The loop from your own box gathers all the failures on one long loop. Start from someone else's box and you walk someone else's loop: even your own chance drops.</p>
     </div>
   </div>
 </section>
@@ -1913,13 +1929,59 @@ $('#variants').addEventListener('click', e => {
   varRes[i] = h / 10000; variantsText();
 });
 
+/* ---------- round 5: other agreements ---------- */
+// each plan: the boxes prisoner me opens on arrangement p (box b holds slip p[b]), stopping at their own number
+const loopFrom = (p, me, b) => { for (let t = 0; t < 50; t++) { if (p[b] === me) return true; b = p[b]; } return false; };
+const PLANS = [
+  { uk: 'Усі відкривають коробки 1–50', en: 'Everyone opens boxes 1–50', own: 0.5, all: 0,
+    run: (p, me) => { for (let b = 0; b < 50; b++) if (p[b] === me) return true; return false; } },
+  { uk: 'Кожен відкриває 50 коробок навмання', en: 'Each opens 50 boxes at random', own: 0.5, all: Math.pow(0.5, 100),
+    run: (p, me) => { const o = randPerm(100); for (let t = 0; t < 50; t++) if (p[o[t]] === me) return true; return false; } },
+  // all free only if numbers 1–50 all sit in boxes 1–50: one arrangement of the halves in C(100, 50)
+  { uk: 'Дві половини: в\'язні 1–50 відкривають коробки 1–50, решта коробки 51–100', en: 'Two halves: prisoners 1–50 open boxes 1–50, the rest boxes 51–100', own: 0.5, all: 1 / 1.0089134454556419e29,
+    run: (p, me) => { const s = me < 50 ? 0 : 50; for (let b = s; b < s + 50; b++) if (p[b] === me) return true; return false; } },
+  // own chance: your loop has length L with chance 1/100, the next number is on it with chance (L-1)/99 and within 50 steps
+  // with chance min(L-1, 50)/(L-1), so (1 + … + 50 + 49·50)/9900 = 3725/9900; all free has no simple formula
+  { uk: 'Петля з чужої коробки: почати з коробки «ваш номер + 1»', en: 'The loop from someone else\'s box: start at box "your number + 1"', own: 3725 / 9900, all: null,
+    run: (p, me) => loopFrom(p, me, (me + 1) % 100) },
+  { uk: 'Петля зі своєї коробки', en: 'The loop from your own box', own: 0.5, all: pWin(100), best: true,
+    run: (p, me) => loopFrom(p, me, me) }
+];
+const planRes = {};
+function plansText() {
+  $('#plans').innerHTML = PLANS.map((pl, i) => {
+    const r = planRes[i];
+    // the simulated result sits under the plan's name, so the table fits a phone
+    return '<tr' + (pl.best ? ' class="best"' : '') + '><td>' + L(pl.uk, pl.en) +
+      (r ? '<span class="plan-sim">' + L('симуляція: кожен ', 'simulated: each ') + pct(r.own) + ' · ' + L('усі ', 'all ') + fmt(r.all) + L(' з ', ' of ') + fmt(r.n) + '</span>' : '') +
+      '</td><td class="num">' + pct(pl.own) + '</td><td class="num"><b>' + (pl.all === null ? '≈ 0' : prob(pl.all)) + '</b></td></tr>';
+  }).join('');
+}
+$('#plans-go').addEventListener('click', () => {
+  const N = 10000, go = $('#plans-go');
+  go.disabled = true;
+  // one plan per tick, so the page stays responsive
+  const step = i => {
+    if (i >= PLANS.length) { go.disabled = false; return; }
+    let found = 0, all = 0;
+    for (let r = 0; r < N; r++) {
+      const p = randPerm(100); let k = 0;
+      for (let me = 0; me < 100; me++) if (PLANS[i].run(p, me)) k++;
+      found += k; if (k === 100) all++;
+    }
+    planRes[i] = { own: found / N / 100, all, n: N };
+    plansText(); setTimeout(() => step(i + 1), 0);
+  };
+  step(0);
+});
+
 /* ---------- language ---------- */
 function applyLang() {
   document.documentElement.dataset.lang = lang;
   document.documentElement.lang = lang;
   if (!STATIC) document.title = L('100 в\'язнів і 100 коробок', 'The 100 Prisoners Problem');
   $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
-  heroText(); guessText(); gBoxes(); gText(); allText(); simText(); drawSim(); drawSweep(); whyText(); knText(); wardText(); variantsText();
+  heroText(); guessText(); gBoxes(); gText(); allText(); simText(); drawSim(); drawSweep(); whyText(); knText(); wardText(); variantsText(); plansText();
 }
 $('#lang').addEventListener('click', e => {
   const a = e.target.closest('a'); if (!a || STATIC) return;
