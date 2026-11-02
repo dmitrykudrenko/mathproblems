@@ -212,7 +212,7 @@
       rng.addEventListener("keydown", function (e) {
         if (me._sc === "lin") return;
         var d = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
-        if (d) { e.preventDefault(); me._step(d); me._fire("change"); }
+        if (d) { e.preventDefault(); me._step(d, true); me._fire("change"); }
       });
       num.addEventListener("input", function (e) {
         e.stopPropagation();
@@ -233,8 +233,8 @@
       this.querySelector(".mp-g-zones").addEventListener("click", function (e) {
         var b = e.target.closest(".mp-g-zone");
         if (!b || me.disabled) return;
-        var span = me._hi - me._lo, i = +b.dataset.i;
-        me._set(me._lo + span * (EDGES[i] + EDGES[i + 1]) / 200, true); me._fire("change");
+        var o = me._zs[+b.dataset.i];
+        me._set(me._own ? snap((me._from(+b.dataset.i) + o.to) / 2, me._zq(o)) : (o.from + o.to) / 2, true); me._fire("change");
       });
     }
     _lim() {
@@ -243,13 +243,29 @@
       this._fine = +(this.getAttribute("fine") || this._q);
       this._sc = this.getAttribute("scale") || "lin";
       if (this._sc === "log" && this._lo <= 0) this._sc = "lin";
+      var z = this.getAttribute("zones") || "", me = this;
+      this._zs = null; this._own = false;
+      if (ZONES[z]) this._zs = EDGES.slice(1).map(function (e, i) { return { to: me._lo + (me._hi - me._lo) * e / 100, name: ZONES[z][i] }; });
+      else if (z) {
+        this._own = true; this._sc = "z";
+        this._zs = z.split(";").map(function (r) { var k = r.indexOf(":"); return { to: +r.slice(0, k), name: tr(r.slice(k + 1).trim()) }; });
+      }
+      if (this._zs) this._zs.forEach(function (o, i, a) { o.from = i ? a[i - 1].to : me._lo; });
       if (this._rng) {
         var lin = this._sc === "lin";
         this._rng.min = lin ? this._lo : 0; this._rng.max = lin ? this._hi : 1000; this._rng.step = lin ? this._q : 1;
       }
     }
     _f(v) { return (v - this._lo) / (this._hi - this._lo); }
+    // own zones: zone i takes the share [i/n, (i+1)/n] of the track; the slider snaps to a round step that gives
+    // about a hundred positions in the zone, never finer than `fine`
+    _zq(o) {
+      var r = (o.to - o.from) / 100, e = Math.pow(10, Math.floor(Math.log10(r))), m = r / e;
+      if (!(r > 0)) return Math.min(this._fine, this._q);
+      return Math.max(Math.min(this._fine, this._q), (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * e);
+    }
     _toT(v) {
+      if (this._sc === "z") { var z = this._zone(v), o = this._zs[z.i]; return (z.i + (o.to > o.from ? (v - o.from) / (o.to - o.from) : 0.5)) / this._zs.length; }
       if (this._sc === "log") return Math.log(v / this._lo) / Math.log(this._hi / this._lo);
       var f = this._f(v);
       return this._sc === "p" ? lerp(f, KNOTS.map(function (k) { return k[1]; }), KNOTS.map(function (k) { return k[0]; })) : f;
@@ -257,6 +273,10 @@
     _fromT(t) {
       if (this._sc === "lin") return t;
       t /= 1000;
+      if (this._sc === "z") {
+        var n = this._zs.length, i = Math.min(n - 1, Math.floor(t * n)), o = this._zs[i];
+        return snap(o.from + (o.to - o.from) * (t * n - i), this._zq(o));
+      }
       if (this._sc === "log") {
         var v = this._lo * Math.pow(this._hi / this._lo, t), e = Math.pow(10, Math.floor(Math.log10(v)) - 1);
         return Math.max(this._q, snap(v, e));
@@ -301,17 +321,23 @@
       this._size();
       this._fire("change");
     }
-    _step(d) {
+    // slider keys inside own zones move by the zone's own step, so 0–0.1 % is not skipped
+    _step(d, slide) {
       var v = this._v, q = this._q;
+      if (slide && this._sc === "z") q = this._zq(this._zs[this._zone(d < 0 ? v - 1e-9 : v + 1e-9).i]);
       if (this._sc === "log") q = Math.max(q, Math.pow(10, Math.floor(Math.log10(Math.max(v, 1e-9) * (d < 0 ? 0.999 : 1))) - 1));
       var n = d > 0 ? Math.floor(v / q + 1e-9) * q + q : Math.ceil(v / q - 1e-9) * q - q;
       this._set(+n.toFixed(dec(q)), true);
     }
     _zone(v) {
-      var names = ZONES[this.getAttribute("zones")];
-      if (!names) return null;
-      var p = 100 * this._f(v);
-      for (var i = 0; i < 5; i++) if (p <= EDGES[i + 1] || i === 4) return { i: i, name: names[i] };
+      var zs = this._zs;
+      if (!zs) return null;
+      for (var i = 0; i < zs.length; i++) if (v <= zs[i].to + 1e-9 || i === zs.length - 1) return { i: i, name: zs[i].name };
+    }
+    // the first value a zone shows: whole-number scales start the next zone one step after the edge (2–15, 16–40)
+    _from(i) {
+      var o = this._zs[i], q = Math.min(this._fine, this._q);
+      return i && q >= 1 && o.from % q === 0 ? o.from + q : o.from;
     }
     _size() { if (!FIT) this._num.style.width = Math.max(1, this._num.value.length) + 0.2 + "ch"; }
     _dis() {
@@ -322,23 +348,25 @@
     // zones: gaps in the bar at the zone edges and a row of buttons, one per zone, each naming its range;
     // without zones: numbers under the bar
     _marks() {
-      var me = this, box = this.querySelector(".mp-g-marks"), zb = this.querySelector(".mp-g-zones"), names = ZONES[this.getAttribute("zones")], html = "";
+      var me = this, box = this.querySelector(".mp-g-marks"), zb = this.querySelector(".mp-g-zones"), zs = this._zs, html = "";
       if (!box) return;
       var at = function (v) { return (100 * me._toT(v)).toFixed(2) + "%"; };
-      var span = this._hi - this._lo, ticks, unit = tr(this.getAttribute("unit") || "").trim();
-      var edge = function (i) { return me._lo + span * EDGES[i] / 100; };
-      zb.hidden = !names; box.hidden = !!names;
-      if (names) {
-        var mask = "linear-gradient(90deg, #000 0", cols = [];
-        for (var i = 0; i < 5; i++) {
-          html += '<button type="button" class="mp-g-zone" data-i="' + i + '" aria-pressed="false">' + names[i] +
-            "<small>" + this._show(edge(i)) + "–" + this._show(edge(i + 1)) + unit + "</small></button>";
-          cols.push((100 * (this._toT(edge(i + 1)) - this._toT(edge(i)))).toFixed(2) + "fr");
-          if (i) mask += ", transparent 0 calc(" + at(edge(i)) + " + 2px), #000 0";
-          mask += " calc(" + at(edge(i + 1)) + " - 2px)";
+      var span = this._hi - this._lo, ticks, unit = tr(this.getAttribute("unit") || ""), sp = /^\s/.test(unit) ? "\u00a0" : "";
+      unit = unit.trim();
+      zb.hidden = !zs; box.hidden = !!zs;
+      if (zs) {
+        var mask = "linear-gradient(90deg, #000 0", cols = [], n = zs.length;
+        for (var i = 0; i < n; i++) {
+          var o = zs[i], t0 = this._own ? i / n : this._toT(o.from), t1 = this._own ? (i + 1) / n : this._toT(o.to);
+          html += '<button type="button" class="mp-g-zone" data-i="' + i + '" aria-pressed="false">' + (this._own ? "<span>" + o.name + "</span>" : o.name) +
+            "<small>" + (this._own && this._from(i) === o.to ? "" : this._show(this._own ? this._from(i) : o.from) + "–") + this._show(o.to) + sp + unit + "</small></button>";
+          cols.push((100 * (t1 - t0)).toFixed(2) + "fr");
+          if (i) mask += ", transparent 0 calc(" + (100 * t0).toFixed(2) + "% + 2px), #000 0";
+          mask += " calc(" + (100 * t1).toFixed(2) + "% - 2px)";
         }
         mask += ")";
-        zb.innerHTML = html; zb.style.gridTemplateColumns = cols.join(" ");
+        zb.innerHTML = html; zb.classList.toggle("mp-g-list", this._own);
+        zb.style.gridTemplateColumns = this._own ? "" : cols.join(" ");
         zb.setAttribute("aria-label", EN ? "Zones" : "Зони");
         this.querySelectorAll(".mp-g-bar").forEach(function (b) { b.style.webkitMaskImage = b.style.maskImage = mask; });
         this._dis();
@@ -607,7 +635,7 @@ table.t { border-collapse: collapse; width: 100%; font-size: .9rem; }
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
 </style>
-<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=76ba58c8">
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=0d81c530">
 </head>
 <body>
 <div class="wrap">
@@ -706,7 +734,7 @@ table.t { border-collapse: collapse; width: 100%; font-size: .9rem; }
   <div class="guess">
     <div class="card" style="display:grid;gap:16px">
       <label for="guess-n" class="note"><span class="uk">Шанс, що першою випаде РОО</span></label>
-      <mp-guess id="guess-n" min="0" max="100" value="50" unit="%" fine="0.1" scale="p" zones="chance"></mp-guess>
+      <mp-guess id="guess-n" min="0" max="100" value="50" unit="%" fine="0.1" zones="40:Менше половини|Under half;60:Близько половини, як монетка|About half, like a coin;75:Помітно більше половини|Clearly over half;100:Набагато більше половини|Far over half"></mp-guess>
       <div class="actions"><button class="btn pri" id="guess-go"><span class="uk">Перевірити</span></button></div>
     </div>
     <div class="card reveal" id="guess-out">
