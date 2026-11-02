@@ -1,0 +1,1591 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/newcomb-paradox/", "en": "/newcomb-paradox/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "newcomb-paradox";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  // the gate card sits after round 1; once it hides, the browser would keep the bottom of the page in view, so jump to round 2
+  function toRounds(b) {
+    var r = b.closest(".sp-gate") && document.querySelector(".sp-rounds");
+    if (r) requestAnimationFrame(function () { r.scrollIntoView({ block: "start" }); });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+    if (on) toRounds(b);
+  });
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else { window.mpSolve(); toRounds(b); }
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>Парадокс Ньюкомба: одна скринька чи дві? Гра з провидцем</title>
+<meta name="description" content="Провидець, що вгадує 99% виборів, уже поклав у скриньку B мільйон або нічого. Брати лише B чи обидві? Гра з програмою-провидцем, симуляція й історія.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/newcomb-paradox/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/newcomb-paradox/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/newcomb-paradox/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/newcomb-paradox/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Парадокс Ньюкомба: одна скринька чи дві?">
+<meta property="og:description" content="У прозорій скриньці A $1 000. У скриньку B провидець, що вгадує 99% виборів, поклав мільйон, лише якщо передбачив, що ви візьмете тільки B. Що ви візьмете: лише B чи обидві?">
+<meta property="og:url" content="https://mathparadoxes.com/newcomb-paradox/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/newcomb-paradox/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Прозора скринька A з тисячею доларів і закрита скринька B під поглядом провидця. Що ви візьмете: лише B чи обидві?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Парадокс Ньюкомба: одна скринька чи дві?">
+<meta name="twitter:description" content="У прозорій скриньці A $1 000. У скриньку B провидець, що вгадує 99% виборів, поклав мільйон, лише якщо передбачив, що ви візьмете тільки B. Що ви візьмете: лише B чи обидві?">
+<meta name="twitter:image" content="https://mathparadoxes.com/newcomb-paradox/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/newcomb-paradox/#page", "url": "https://mathparadoxes.com/newcomb-paradox/", "name": "Парадокс Ньюкомба: одна скринька чи дві? Гра з провидцем", "description": "Провидець, що вгадує 99% виборів, уже поклав у скриньку B мільйон або нічого. Брати лише B чи обидві? Гра з програмою-провидцем, симуляція й історія.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "intermediate", "about": {"@type": "Thing", "name": "Newcomb's paradox", "sameAs": "https://en.wikipedia.org/wiki/Newcomb%27s_paradox"}, "image": "https://mathparadoxes.com/newcomb-paradox/og-uk.png", "datePublished": "2026-11-02", "dateModified": "2026-11-02", "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "citation": [{"@type": "Book", "name": "Paradoxes from A to Z", "author": [{"@type": "Person", "name": "Майкл Кларк"}], "datePublished": "2002", "isbn": "9780415420822"}], "workTranslation": {"@id": "https://mathparadoxes.com/newcomb-paradox/en/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "Парадокс Ньюкомба", "item": "https://mathparadoxes.com/newcomb-paradox/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/newcomb-paradox/#faq", "inLanguage": "uk", "mainEntity": [{"@type": "Question", "name": "Яка правильна відповідь у парадоксі Ньюкомба?", "acceptedAnswer": {"@type": "Answer", "text": "Обидві відповіді мають серйозних захисників, і обидві спираються на правильний розрахунок. Якщо провидець угадує 99%, ті, хто бере лише B, в середньому виносять $990 000, а ті, хто бере обидві, $11 000. Але вміст скриньки B уже зафіксовано, і для тих самих скриньок узяти ще й A завжди дає на $1 000 більше. Перший розрахунок питає, що ваш вибір каже про вміст скриньки, другий питає, що ваш вибір змінює."}}, {"@type": "Question", "name": "Хто придумав парадокс Ньюкомба?", "acceptedAnswer": {"@type": "Answer", "text": "Фізик Вільям Ньюкомб з Лабораторії Лоуренса в Ліверморі, близько 1960 року. Сам він нічого не опублікував: перший розбір надрукував філософ Роберт Нозік 1969 року, а відомою задачу зробив Мартін Ґарднер у колонці в Scientific American у липні 1973 року."}}, {"@type": "Question", "name": "Що таке евіденційна й каузальна теорії рішень?", "acceptedAnswer": {"@type": "Answer", "text": "Евіденційна теорія рішень оцінює вибір за тим, що він свідчить про світ: хто бере лише B, той зазвичай знаходить там мільйон. Каузальна оцінює вибір за тим, що він у світі змінює: вміст B уже не зміниться, тож скринька A лише додає $1 000. У задачі Ньюкомба ці підходи дають різні відповіді."}}, {"@type": "Question", "name": "Як парадокс Ньюкомба пов'язаний з дилемою в'язня?", "acceptedAnswer": {"@type": "Answer", "text": "Девід Льюїс 1979 року показав, що дилема в'язня, зіграна проти власної копії, і є задачею Ньюкомба. Зрадити вигідніше за будь-якого ходу суперника, як узяти обидві скриньки вигідніше за будь-якого вмісту B. Але копія думає так само, як ви, тож ваш вибір свідчить про її вибір, як про вміст скриньки."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the other problem pages. Two boxes, one transparent and one sealed, under the predictor's eye are this problem's signature object. */
+:root {
+  --tint: #E3ECF7;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --gold: #DB9500;
+  --hit-soft: #FFF1CF;
+  --one: #2A3DD1;
+  --two: #B8611A;
+  --cash: #157F51;
+  --other: #9AA0B0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--c, var(--ink)); }
+.odd > span { font-size: .82rem; color: var(--muted); }
+.hero-vis { display: grid; gap: 10px; }
+.hero-vis .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 3.9em; }
+#hero-svg { width: 100%; height: auto; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+#hero-svg text { font-family: var(--f-mono); }
+/* the predictor scans, then the lid of B comes down; with reduced motion the lid simply stays shut */
+#hero-svg .beam { opacity: 0; animation: beam 6s ease-in-out infinite; }
+#hero-svg .pupil { animation: look 6s ease-in-out infinite; }
+#hero-svg .lid { animation: lid 6s ease-in-out infinite; }
+#hero-svg .seal { animation: seal 6s ease-in-out infinite; }
+@keyframes beam { 0%, 8% { opacity: 0; } 15%, 45% { opacity: .55; } 55%, 100% { opacity: 0; } }
+@keyframes look { 0%, 12% { transform: translateX(0); } 22% { transform: translateX(-7px); } 34% { transform: translateX(7px); } 46%, 100% { transform: translateX(0); } }
+@keyframes lid { 0%, 48% { transform: translateY(-34px) rotate(-8deg); } 62%, 100% { transform: none; } }
+@keyframes seal { 0%, 62% { opacity: 0; } 70%, 100% { opacity: 1; } }
+#hero-svg .lid { transform-box: fill-box; transform-origin: 0% 100%; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl select { font: inherit; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.ctl input[type=range] { width: 280px; max-width: 100%; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.legend > span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend > span.ln::before { height: 3px; border-radius: 0; }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.choice { border: 2px solid var(--line); background: var(--surface); border-radius: 14px; padding: 16px 14px; cursor: pointer; text-align: left; display: grid; gap: 6px; align-content: start; min-height: 128px; }
+.choice b { font-family: var(--f-display); font-size: 1.15rem; line-height: 1.2; color: var(--c); }
+.choice small { color: var(--muted); font-size: .84rem; line-height: 1.35; }
+.choice svg { width: 64px; height: 34px; }
+.choice[aria-pressed="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 9%, var(--surface)); }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.poll { display: grid; gap: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
+.poll .h { display: flex; justify-content: space-between; gap: 10px; font-size: .86rem; }
+.poll .h span { color: var(--muted); font-family: var(--f-mono); font-size: .78rem; text-align: right; }
+.stack { display: flex; height: 22px; border-radius: 7px; overflow: hidden; background: var(--paper); }
+.stack i { display: flex; align-items: center; justify-content: center; font-style: normal; font-family: var(--f-mono); font-size: .74rem; color: #fff; background: var(--c); white-space: nowrap; overflow: hidden; transition: width .6s ease; }
+.stack i.o { color: var(--ink); }
+
+/* ---------- the game ---------- */
+.room { display: grid; grid-template-columns: 1.45fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 14px; }
+#g-svg { width: 100%; height: auto; background: var(--paper); border-radius: 12px; }
+#g-svg text { font-family: var(--f-mono); }
+.msg { min-height: 3em; font-weight: 500; }
+.log { display: flex; flex-wrap: wrap; gap: 4px; min-height: 26px; }
+.log span { width: 22px; height: 22px; border-radius: 6px; font-family: var(--f-mono); font-size: .7rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; color: #fff; background: var(--c); }
+.log span.miss { background: var(--surface); color: var(--c); box-shadow: inset 0 0 0 2px var(--c); }
+.log span.todo { background: none; box-shadow: inset 0 0 0 1px var(--line); }
+.tally { display: grid; gap: 10px; }
+.tally .r { display: flex; justify-content: space-between; gap: 12px; font-size: .92rem; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.tally .r:last-child { border-bottom: 0; }
+.tally .r span { color: var(--muted); }
+.tally .r b { color: var(--c, var(--ink)); text-align: right; }
+
+/* ---------- simulation ---------- */
+.sim2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.sim2 > div { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.sim2 h3 { font-size: .95rem; }
+#h-ev { height: 280px; background: var(--surface); border-radius: 10px; }
+.same { display: grid; gap: 14px; }
+.same .full { display: grid; gap: 6px; }
+.same .full .stack { height: 40px; }
+.same .full .stack i { font-size: .9rem; font-weight: 600; }
+.pair { display: grid; grid-template-columns: 1fr auto auto; gap: 4px 12px; font-size: .88rem; align-items: baseline; padding-top: 10px; border-top: 1px solid var(--line); }
+.pair .k { color: var(--muted); }
+.pair b { font-family: var(--f-mono); font-weight: 600; text-align: right; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.45rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); overflow-wrap: anywhere; }
+.tile .s { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); }
+.prog { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
+.two-col > div { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.two-col h4 { margin: 0; font-size: .95rem; color: var(--c); }
+.two-col p { color: var(--muted); font-size: .95rem; }
+.geo { width: 100%; height: auto; }
+.geo text { font-family: var(--f-mono); font-size: 12px; fill: var(--ink); font-weight: 600; }
+.geo .mut { fill: var(--muted); font-weight: 400; }
+.pay td.num { font-size: .95rem; }
+.pay th.num { white-space: normal; }
+.pay .best { font-weight: 700; }
+.pay .diag { background: var(--tint); }
+
+/* ---------- going further ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.result-row { display: flex; gap: 22px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.result-row b { font-size: clamp(1.25rem, 3.4vw, 1.6rem); }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+#esc-cv { height: 220px; background: var(--surface); border-radius: 10px; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim2, .why-grid, .esc-block, .two-col { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .choices { gap: 8px; }
+  .choice { padding: 12px 10px; min-height: 112px; }
+  .choice b { font-size: 1rem; }
+  td, th { padding: 8px 6px; }
+  .tile .v { font-size: 1.15rem; }
+  .pay td.num { font-size: .8rem; }
+  .pay td, .pay th { padding: 8px 4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=0d81c530">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+  <nav class="mp-nav" aria-label="Розділи" data-t="{&quot;cont&quot;: &quot;Продовжити&quot;, &quot;course&quot;: &quot;Продовжити курс&quot;}" data-slug="newcomb-paradox" data-me="{&quot;s&quot;: &quot;newcomb-paradox&quot;, &quot;n&quot;: {&quot;uk&quot;: &quot;Парадокс Ньюкомба&quot;, &quot;en&quot;: &quot;Newcomb&#x27;s paradox&quot;}, &quot;u&quot;: {&quot;uk&quot;: &quot;https://mathparadoxes.com/newcomb-paradox/&quot;, &quot;en&quot;: &quot;https://mathparadoxes.com/newcomb-paradox/en/&quot;}}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Меню"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Продовжити: <b></b></a><a href="https://mathparadoxes.com/#all" aria-current="page">Задачі</a><a href="https://mathparadoxes.com/courses/">Курси</a><a href="https://mathparadoxes.com/glossary/">Словник</a></div></nav>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/newcomb-paradox/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/newcomb-paradox/en/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <div class="mp-meta"><span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span>Шкільна математика</button><span class="mp-level-hint" hidden>Дроби, відсотки, проста ймовірність, степені<a href="https://mathparadoxes.com/?l=2#all">Усі задачі цього рівня →</a></span></span></div>
+    <h1 class="uk"><span class="kw">Парадокс Ньюкомба</span> Провидець уже вирішив, що лежить у скриньці <span class="vl">B</span>. <span class="q sp-before">Що ви візьмете?</span><span class="q sp-after">Обидві відповіді чесні, але на різні питання.</span></h1>
+    
+    <p class="lead uk sp-before">Прозора скринька <span class="vl">A</span>: у ній $1&nbsp;000. Закрита скринька <span class="vl">B</span>: учора програма-провидець, яка вгадала 990 виборів із 1000, поклала туди $1&nbsp;000&nbsp;000, якщо передбачила, що ви візьмете лише <span class="vl">B</span>, і лишила її порожньою, якщо передбачила, що візьмете обидві. Тепер уміст уже не зміниться. Зафіксуйте свій вибір, а потім зіграйте з провидцем і подивіться на 100&nbsp;000 ігор.</p>
+    <p class="lead uk sp-after">Хто бере лише <span class="vl">B</span>, той у середньому виносить $990&nbsp;000, а хто бере обидві, лише $11&nbsp;000: провидець рідко помиляється. Але гроші на столі вже або лежать, або ні, і хоч би що було в <span class="vl">B</span>, скринька <span class="vl">A</span> додає ще $1&nbsp;000. Обидва розрахунки правильні. Перший питає, що ваш вибір каже про вміст скриньки, другий питає, що ваш вибір у ній змінює. Тому люди й діляться майже навпіл: у великому опитуванні The Guardian 53,5% проти 46,5%.</p>
+    
+    
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Зробити вибір</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd" style="--c:var(--one)"><b><span class="uk">$990&nbsp;000</span></b><span><span class="uk">лише <span class="vl">B</span>, у середньому</span></span></div>
+      <div class="odd" style="--c:var(--two)"><b><span class="uk">$11&nbsp;000</span></b><span><span class="uk">обидві, у середньому</span></span></div>
+      <div class="odd" style="--c:var(--two)"><b><span class="uk">+$1&nbsp;000</span></b><span><span class="uk">обидві до тих самих скриньок</span></span></div>
+    </div>
+  </div>
+  <div class="hero-vis" aria-hidden="true">
+    <svg id="hero-svg" viewBox="0 0 360 270">
+      <!-- the predictor: a small screen with an eye -->
+      <rect x="120" y="14" width="120" height="58" rx="10" fill="var(--ink)"/>
+      <rect x="170" y="72" width="20" height="10" fill="var(--ink)"/>
+      <ellipse cx="180" cy="40" rx="30" ry="15" fill="var(--day-ink)"/>
+      <g class="pupil"><circle cx="180" cy="40" r="9" fill="var(--one)"/><circle cx="183" cy="37" r="2.5" fill="var(--day-ink)"/></g>
+      <text x="180" y="66" text-anchor="middle" font-size="8" fill="var(--day-ink)" letter-spacing="2" class="uk">ПРОВИДЕЦЬ</text>
+      
+      <polygon class="beam" points="168,82 192,82 330,150 200,150" fill="var(--gold)"/>
+      <!-- the table -->
+      <rect x="10" y="238" width="340" height="8" rx="4" fill="var(--line)"/>
+      <!-- box A: transparent, $1 000 visible -->
+      <rect x="30" y="140" width="130" height="98" rx="10" fill="var(--tint)" fill-opacity=".7" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <rect x="55" y="174" width="80" height="36" rx="5" fill="var(--cash)" opacity=".9"/>
+      <rect x="60" y="179" width="70" height="26" rx="3" fill="none" stroke="#fff" stroke-opacity=".5"/>
+      <text x="95" y="197" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" class="uk">$1 000</text>
+      
+      <text x="95" y="262" text-anchor="middle" font-size="13" font-weight="700" fill="var(--muted)">A</text>
+      <!-- box B: closed -->
+      <rect x="200" y="150" width="130" height="88" rx="10" fill="var(--one)"/>
+      <text x="265" y="212" text-anchor="middle" font-size="44" font-weight="800" fill="var(--day-ink)">?</text>
+      <g class="lid"><rect x="194" y="138" width="142" height="16" rx="5" fill="#1D2BA0"/></g>
+      <g class="seal"><circle cx="265" cy="146" r="9" fill="var(--loss)"/><circle cx="265" cy="146" r="5" fill="none" stroke="#fff" stroke-opacity=".7"/></g>
+      <text x="265" y="262" text-anchor="middle" font-size="13" font-weight="700" fill="var(--muted)">B</text>
+    </svg>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span></span>
+    <h2><span class="uk">Дві скриньки і провидець</span></h2>
+    <p class="lead uk">Цю задачу придумав фізик Вільям Ньюкомб, а першим розібрав філософ Роберт Нозік. Відтоді вона ділить філософів, економістів і просто читачів на два табори, і кожен табір певен, що відповідь очевидна.</p>
+    
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Провидець</span></h3>
+        <p class="uk">Це програма, яка вже зіграла в цю гру з 1000 людьми і правильно передбачила вибір 990 з них, тобто в 99% випадків. Як саме вона це робить, неважливо: вона просто дуже добре знає людей.</p>
+        </div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Дві скриньки</span></h3>
+        <p class="uk">Скринька <span class="vl">A</span> прозора, у ній лежить $1&nbsp;000. Скринька <span class="vl">B</span> закрита, і що в ній, не видно.</p>
+        </div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Учорашній прогноз</span></h3>
+        <p class="uk">Учора, ще до вашого приходу, провидець передбачив ваш вибір. Якщо він вирішив, що ви візьмете лише <span class="vl">B</span>, то поклав у неї $1&nbsp;000&nbsp;000. Якщо вирішив, що візьмете обидві, лишив <span class="vl">B</span> порожньою.</p>
+        </div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Ваш вибір</span></h3>
+        <p class="uk">Тепер уміст скриньок уже не зміниться. Ви можете взяти або лише скриньку <span class="vl">B</span>, або обидві, <span class="vl">A</span> і <span class="vl">B</span>. Що ви візьмете?</p>
+        </div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span></span>
+        <p class="q"><span class="uk">«Тут же все очевидно»</span></p>
+        <p class="uk sp-before">Більшість людей знає відповідь одразу і дивується, як можна думати інакше. Зверніть увагу, яка відповідь здається очевидною вам, і чому.</p>
+        
+        <p class="uk sp-after">Роберт Нозік помітив дивну річ: майже кожному відповідь здається очевидною, але люди діляться майже навпіл, і кожна половина вважає, що друга просто не подумала. Насправді обидві «очевидні» відповіді спираються на правильний розрахунок, лише на різний.</p>
+        
+      </div>
+      <div class="card">
+        <h3><span class="uk">Що ми припускаємо</span></h3>
+        <ul class="rules uk">
+          <li>Ніхто не шахраює: гроші справжні, і провидець не підкидає мільйон після вашого вибору й не забирає його.</li>
+          <li>Вам важливі лише гроші: більше завжди краще.</li>
+          <li>Провидець не може змінити вміст <span class="vl">B</span>, коли ви вже обрали. Усе вирішено вчора.</li>
+          <li>Підкинути монетку не вийде. Якщо провидець бачить, що ви покладаєтеся на жереб, він лишає <span class="vl">B</span> порожньою. Це класична умова задачі.</li>
+        </ul>
+        
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Ваш вибір</span></span>
+    <h2><span class="uk">Лише <span class="vl">B</span> чи обидві?</span></h2>
+    <p class="lead uk">Підступу в умові немає. Просто вирішіть, як вчинили б ви, коли стоїте перед цими скриньками, і зафіксуйте вибір, перш ніж читати далі.</p>
+    
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:14px;align-content:start">
+      <div class="choices" id="g-opts">
+        <button type="button" class="choice" data-k="one" aria-pressed="false" style="--c:var(--one)">
+          <svg viewBox="0 0 64 34" aria-hidden="true"><rect x="2" y="6" width="26" height="24" rx="4" fill="none" stroke="var(--line)" stroke-width="2" stroke-dasharray="3 3"/><rect x="36" y="6" width="26" height="24" rx="4" fill="var(--one)"/></svg>
+          <b><span class="uk">Лише <span class="vl">B</span></span></b>
+          <small><span class="uk">мільйон або нічого</span></small>
+        </button>
+        <button type="button" class="choice" data-k="two" aria-pressed="false" style="--c:var(--two)">
+          <svg viewBox="0 0 64 34" aria-hidden="true"><rect x="2" y="6" width="26" height="24" rx="4" fill="var(--two)" fill-opacity=".45" stroke="var(--two)" stroke-width="2"/><rect x="36" y="6" width="26" height="24" rx="4" fill="var(--two)"/></svg>
+          <b><span class="uk">Обидві: <span class="vl">A</span> і <span class="vl">B</span></span></b>
+          <small><span class="uk">$1&nbsp;000 плюс те, що в <span class="vl">B</span></span></small>
+        </button>
+      </div>
+      <p class="note"><span class="uk">Відповідь зараховується одразу після кліку. Передумати можна, але в статистику піде перший вибір.</span></p>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться, як обирають інші люди і що каже ваш вибір.</p>
+      
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Підказки</span>
+    <p class="mp-hints-intro">Важко вирішити? Відкривайте підказки по одній: спочатку легка, далі сильніша.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Подивіться на тих, хто вже зіграв: скільки в середньому виносять ті, хто брав лише <span class="vl">B</span>, і скільки ті, хто брав обидві?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>А тепер подивіться на стіл: гроші в скриньці <span class="vl">B</span> уже лежать або не лежать. Чи може ваш вибір щось туди покласти або щось звідти забрати?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>Порахуйте обидва способи для провидця, що вгадує 99%, і подумайте, на яке питання відповідає кожен.</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Показати підказку 1 з 3 · легка&quot;, &quot;Показати підказку 2 з 3 · середня&quot;, &quot;Показати підказку 3 з 3 · сильна&quot;]">Показати підказку 1 з 3 · легка</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "newcomb-paradox";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "newcomb-paradox", RULE = {"right": ["one", "two"]}, MIN = 30, T = {"kicker": "Як відповідають інші", "all": "Відповідей: {n}. Правильних серед них {p}.", "yes": "Ви серед тих, хто впорався.", "no": "Не засмучуйтеся: інтуїція підводить більшість.", "bar": "правильно", "note": "Рахуємо лише першу відповідь з кожного браузера, до того як він побачив розв'язок. Анонімно."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    // "crowd" pages have no right answer: they get the raw counts and draw their own block
+    if (RULE.crowd) { document.dispatchEvent(new CustomEvent("mp-crowd", { detail: { k: data.k || {}, mine: mine } })); return; }
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (n < MIN) return;
+    var p = Math.round(100 * ok / n), html = '<span class="kicker">' + T.kicker + '</span>';
+    html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1" || d.classList.contains("rounds-open")) { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- rounds 2–5 and the facts give the answer away, so they open only after a guess, "go on", or "always show all rounds" -->
+<section class="round sp-gate" id="next">
+  <div class="card gate">
+    <span class="kicker"><span class="uk">Далі розв'язок</span></span>
+    <h3><span class="uk">Далі пояснення, і в ньому спойлери</span></h3>
+    <p class="uk">Наступні раунди показують, чому кожен табір має свою правду: гра зі справжнім провидцем, 100&nbsp;000 ігор і пояснення. Спершу зробити вибір у раунді 1 чи йти далі?</p>
+    
+    <div class="actions"><a class="btn pri" href="#guess"><span class="uk">Обрати в раунді 1</span></a><button type="button" class="btn ghost" data-solve><span class="uk">Йти далі</span></button></div>
+    <button type="button" class="sp-skip" data-rounds="open"><span class="uk">Завжди показувати всі раунди, я не боюся спойлерів</span></button>
+  </div>
+</section>
+
+<div class="sp-rounds">
+<p class="note rounds-on"><span class="uk">Ви обрали завжди показувати всі раунди.</span> <button type="button" class="sp-skip" data-rounds="gate"><span class="uk">Ховати їх до відповіді</span></button></p>
+
+<!-- ROUND 2: play against a pattern predictor -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span></span>
+    <h2><span class="uk">20 ігор зі справжнім провидцем</span></h2>
+    <p class="lead uk">Цей провидець не всевідущий, але й не вгадує навмання. Перед кожною грою він дивиться на ваші попередні вибори: що ви найчастіше обирали після таких самих чотирьох останніх ходів, і ставить на це. Прогноз запечатано в скриньці <span class="vl">B</span> ще до вашого кліку. Спробуйте бути непередбачуваним або, навпаки, послідовним і подивіться, коли виносите більше.</p>
+    
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <svg id="g-svg" viewBox="0 0 340 200" role="img" aria-label="Скриньки A і B"></svg>
+      <p class="msg" id="g-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn pri" id="g-one" style="background:var(--one)"><span class="uk">Лише <span class="vl">B</span></span></button>
+        <button class="btn pri" id="g-two" style="background:var(--two)"><span class="uk">Обидві</span></button>
+        <button class="btn ghost" id="g-new"><span class="uk">Нова серія</span></button>
+      </div>
+      <div class="log" id="g-log" aria-hidden="true"></div>
+      <p class="note"><span class="uk">Кожна клітинка означає гру: синя для «лише <span class="vl">B</span>», руда для «обидві». Заповнена, якщо провидець угадав, порожня, якщо помилився.</span></p>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:14px"><span class="uk">Рахунок серії</span></h3>
+      <div class="tally" id="g-tally"></div>
+      <p class="note" id="g-note" style="margin-top:14px"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span></span>
+    <h2><span class="uk">100&nbsp;000 ігор, два погляди на ті самі гроші</span></h2>
+    <p class="lead uk">Комп'ютер грає 100&nbsp;000 разів. Кожен гравець навмання бере лише <span class="vl">B</span> або обидві, провидець угадує його вибір з точністю p і заповнює скриньку <span class="vl">B</span>. Посуньте повзунок точності. Ліворуч порівнюємо гравців між собою, праворуч порівнюємо два можливі вибори для тих самих скриньок.</p>
+    
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="sim-p"><span><span class="uk">Точність провидця p:</span> <b class="mono" id="sim-p-v"></b></span>
+        <input type="range" id="sim-p" min="50" max="100" step="0.5" value="90">
+      </label>
+      <button class="btn pri" id="sim-run"><span class="uk">Зіграти ще раз</span></button>
+      <span class="prog" id="sim-prog" aria-live="polite"></span>
+    </div>
+    <div class="sim2">
+      <div>
+        <h3><span class="uk">Хто йде додому багатшим</span></h3>
+        <canvas id="h-ev" role="img" aria-label="Середній виграш"></canvas>
+        <div class="legend">
+          <span class="ln" style="--c:var(--one)"><b class="uk">лише <span class="vl">B</span>: p · 1&nbsp;000&nbsp;000</b></span>
+          <span class="ln" style="--c:var(--two)"><b class="uk">обидві: 1&nbsp;000 + (1 − p) · 1&nbsp;000&nbsp;000</b></span>
+        </div>
+      </div>
+      <div>
+        <h3><span class="uk">Та сама скринька, інший вибір</span></h3>
+        <div class="same" id="same"></div>
+      </div>
+    </div>
+    <div class="tiles">
+      <div class="tile" style="--c:var(--one)"><div class="k"><span class="uk">Лише <span class="vl">B</span>, у середньому</span></div><div class="v mono" id="t-one">–</div><div class="s" id="t-one-s"></div></div>
+      <div class="tile" style="--c:var(--two)"><div class="k"><span class="uk">Обидві, у середньому</span></div><div class="v mono" id="t-two">–</div><div class="s" id="t-two-s"></div></div>
+      <div class="tile"><div class="k"><span class="uk">Середні рівні при точності</span></div><div class="v mono"><span class="uk">50,05%</span></div><div class="s"><span class="uk">трохи краще за монетку</span></div></div>
+      <div class="tile" style="--c:var(--two)"><div class="k"><span class="uk">«Обидві» до тих самих скриньок</span></div><div class="v mono" id="t-plus">–</div><div class="s" id="t-plus-s"></div></div>
+    </div>
+    <p class="note" style="margin-top:14px"><span class="uk">Обидві картинки побудовано з тих самих ігор. Ліворуч: що точніший провидець, то більше виносять ті, хто бере лише <span class="vl">B</span>, і то менше ті, хто бере обидві. Лінії перетинаються при p = 50,05%: якщо провидець угадує хоч трохи частіше, ніж монетка, «лише <span class="vl">B</span>» в середньому вигідніша. Праворуч: якщо взяти будь-яку з цих ігор і, не чіпаючи скриньок, поміняти вибір гравця на «обидві», він щоразу отримав би рівно на $1&nbsp;000 більше. Точки ліворуч показують симуляцію по 20&nbsp;000 ігор на кожну точність, кружки показують 100&nbsp;000 ігор для обраної.</span></p>
+  </div>
+  <p class="note mp-code-wait sp-before">Після вашої відповіді тут з'явиться код симуляції, який можна запустити в себе.</p>
+  <details class="card mp-code sp-after">
+    <summary><b>Перевірте самі в коді</b></summary>
+    <p class="note">Та сама симуляція коротко і без бібліотек. JavaScript запускається в консолі браузера (F12) або в Node, Python потребує лише стандартної бібліотеки.</p>
+    <div class="mp-code-file"><div class="mp-code-head"><span>JavaScript</span><button type="button" class="btn ghost mp-code-copy" data-k="js" data-done="Скопійовано">Копіювати</button></div><pre><code>// Парадокс Ньюкомба: 100 000 ігор з провидцем, що вгадує з точністю p
+const N = 100000, A = 1000, M = 1000000;
+
+for (const p of [0.9, 0.5]) {
+  const sum = { one: 0, two: 0 }, cnt = { one: 0, two: 0 };
+  let plus = 0;
+  for (let i = 0; i &lt; N; i++) {
+    const choice = Math.random() &lt; 0.5 ? &#x27;one&#x27; : &#x27;two&#x27;;          // гравець обирає навмання
+    const right = Math.random() &lt; p;                             // провидець угадав?
+    const said = right ? choice : (choice === &#x27;one&#x27; ? &#x27;two&#x27; : &#x27;one&#x27;);
+    const B = said === &#x27;one&#x27; ? M : 0;                            // учора: мільйон у B лише для «лише B»
+    const win = choice === &#x27;one&#x27; ? B : A + B;
+    sum[choice] += win; cnt[choice]++;
+    const gain = (A + B) - B;                                    // ті самі скриньки: «обидві» мінус «лише B»
+    if (gain === A) plus++;
+  }
+  console.log(`p = ${p * 100}%`);
+  console.log(`  лише B:  ${Math.round(sum.one / cnt.one)}   точно ${Math.round(p * M)}`);
+  console.log(`  обидві:   ${Math.round(sum.two / cnt.two)}   точно ${Math.round(A + (1 - p) * M)}`);
+  console.log(`  ігор, де «обидві» дають рівно +1000 до тих самих скриньок: ${(100 * plus / N).toFixed(1)}%`);
+}
+</code></pre></div>
+    <div class="mp-code-file"><div class="mp-code-head"><span>Python</span><button type="button" class="btn ghost mp-code-copy" data-k="py" data-done="Скопійовано">Копіювати</button></div><pre><code># Парадокс Ньюкомба: 100 000 ігор з провидцем, що вгадує з точністю p
+import random
+
+N, A, M = 100_000, 1000, 1_000_000
+
+for p in (0.9, 0.5):
+    total = {&quot;one&quot;: 0, &quot;two&quot;: 0}
+    count = {&quot;one&quot;: 0, &quot;two&quot;: 0}
+    plus = 0
+    for _ in range(N):
+        choice = random.choice((&quot;one&quot;, &quot;two&quot;))                   # гравець обирає навмання
+        right = random.random() &lt; p                              # провидець угадав?
+        said = choice if right else (&quot;two&quot; if choice == &quot;one&quot; else &quot;one&quot;)
+        B = M if said == &quot;one&quot; else 0                            # учора: мільйон у B лише для «лише B»
+        win = B if choice == &quot;one&quot; else A + B
+        total[choice] += win
+        count[choice] += 1
+        if (A + B) - B == A:                                     # ті самі скриньки: «обидві» мінус «лише B»
+            plus += 1
+    print(f&quot;p = {p:.0%}&quot;)
+    print(f&quot;  лише B:  {total[&#x27;one&#x27;] / count[&#x27;one&#x27;]:.0f}   точно {p * M:.0f}&quot;)
+    print(f&quot;  обидві:   {total[&#x27;two&#x27;] / count[&#x27;two&#x27;]:.0f}   точно {A + (1 - p) * M:.0f}&quot;)
+    print(f&quot;  ігор, де «обидві» дають рівно +1000 до тих самих скриньок: {100 * plus / N:.1f}%&quot;)
+</code></pre></div>
+  </details>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "newcomb-paradox", d = document.querySelector(".mp-code");
+  if (!d) return;
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: "mp-code", k: SLUG + "." + k, h: 0 }) }).catch(function () {});
+  }
+  d.addEventListener("toggle", function () { if (d.open) count("open"); });
+  [].forEach.call(d.querySelectorAll(".mp-code-copy"), function (b) {
+    var label = b.textContent;
+    b.addEventListener("click", function () {
+      var el = b.closest(".mp-code-file").querySelector("code");
+      // without clipboard access the code gets selected, ready for Ctrl+C
+      function select() { var r = document.createRange(), s = getSelection(); r.selectNodeContents(el); s.removeAllRanges(); s.addRange(r); }
+      if (navigator.clipboard) navigator.clipboard.writeText(el.textContent).then(function () {
+        b.textContent = b.dataset.done; setTimeout(function () { b.textContent = label; }, 1500);
+      }, select);
+      else select();
+      count("copy." + b.dataset.k);
+    });
+  });
+})();
+</script>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Пояснення</span></span>
+    <h2><span class="uk">Два правильні розрахунки</span></h2>
+    <p class="lead uk">У більшості задач на цьому сайті інтуїція помиляється, а розрахунок її виправляє. Тут розрахунків два, обидва без помилок, і вони дають різні відповіді. Тому суперечка й триває понад пів століття.</p>
+    
+  </div>
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">На пальцях</span><span class="mp-layer-desc">картинки, аналогії, маленькі числа</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «На пальцях» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Коротко</span></span>
+      <h3><span class="uk">Дві чесні відповіді</span></h3>
+      <div class="two-col">
+        <div style="--c:var(--one)">
+          <h4><span class="uk">«Лише <span class="vl">B</span>»: подивіться, хто вже зіграв</span></h4>
+          <p class="uk">Хто брав лише <span class="vl">B</span>, той майже завжди йшов додому з мільйоном. Хто брав обидві, той майже завжди йшов з тисячею: провидець передбачав це і лишав <span class="vl">B</span> порожньою. Хочете піти з мільйоном, робіть як перші.</p>
+          
+        </div>
+        <div style="--c:var(--two)">
+          <h4><span class="uk">«Обидві»: подивіться на стіл зараз</span></h4>
+          <p class="uk">Гроші вже або лежать у <span class="vl">B</span>, або ні. Якщо лежать, обидві скриньки дають $1&nbsp;001&nbsp;000 замість $1&nbsp;000&nbsp;000. Якщо ні, $1&nbsp;000 замість нуля. Хоч так, хоч так, скринька <span class="vl">A</span> додає $1&nbsp;000.</p>
+          
+        </div>
+      </div>
+      <p class="uk">Обидва міркування правильні, бо відповідають на різні питання: «з чим зазвичай ідуть додому такі, як я?» і «що зміниться, якщо я зараз візьму ще й <span class="vl">A</span>?». Це коротка версія. Картки нижче розбирають кожну сторону в найсильнішій формі.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">За дві скриньки</span></span>
+      <h3><span class="uk">Друг бачить усередину</span></h3>
+      <svg class="geo" viewBox="0 0 320 92" role="img" aria-label="Друг дивиться в скриньку B ззаду">
+        <rect x="20" y="20" width="90" height="60" rx="8" fill="var(--tint)" stroke="var(--muted)" stroke-dasharray="4 3"/>
+        <text x="65" y="56" text-anchor="middle" class="uk">$1 000</text>
+        <rect x="140" y="20" width="90" height="60" rx="8" fill="var(--one)"/>
+        <text x="185" y="58" text-anchor="middle" style="fill:var(--day-ink);font-size:22px">?</text>
+        <circle cx="282" cy="34" r="12" fill="var(--gold)"/><rect x="268" y="48" width="28" height="32" rx="10" fill="var(--gold)"/>
+        <path d="M268 40 L236 50" stroke="var(--gold)" stroke-width="2" stroke-dasharray="3 3"/>
+        <text x="282" y="14" text-anchor="middle" class="mut uk">«бери обидві!»</text>
+      </svg>
+      <p class="uk">Уявіть, що задня стінка скриньки <span class="vl">B</span> прозора і за нею стоїть ваш друг. Він бачить, чи є там мільйон, але сказати не може, лише крикнути пораду. Якщо мільйон там, друг крикне «бери обидві!»: вийде $1&nbsp;001&nbsp;000. Якщо там порожньо, він теж крикне «бери обидві!»: краще $1&nbsp;000, ніж нічого.</p>
+      
+      <p class="uk">Друг, який бачить усе, за будь-якого вмісту радить одне й те саме. Чи варто йти проти поради, яку дав би той, хто знає більше за вас? Це найсильніша форма аргументу за дві скриньки: ваш вибір нічого не кладе в <span class="vl">B</span> і нічого звідти не забирає.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">За одну скриньку</span></span>
+      <h3><span class="uk">Що ваш вибір каже про вас</span></h3>
+      <p class="uk">Ваш вибір не рухає грошей. Але вчора провидець дивився саме на вас: на те, як ви думаєте і що обираєте. Якщо зараз вас тягне взяти обидві, то, найімовірніше, саме це він і побачив, і <span class="vl">B</span> порожня. Якщо ви з тих, хто бере лише <span class="vl">B</span>, то, найімовірніше, він побачив і це, і мільйон уже там.</p>
+      
+      <p class="uk">Тож вибір працює як свідчення: він не змінює вмісту скриньки, але дуже добре його передбачає. Із провидцем, що вгадує 99%, ті, хто бере лише <span class="vl">B</span>, у 99 випадках зі 100 знаходять там мільйон. Друг за скринькою бачить одну конкретну гру, а вам треба обрати, яким гравцем бути. Це найсильніша форма аргументу за одну скриньку.</p>
+      
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Строго</span><span class="mp-layer-desc">таблиці, графіки, формули</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Строго» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Таблиця виграшів</span></span>
+      <h3><span class="uk">Чотири можливі результати</span></h3>
+      <div class="tbl-wrap">
+        <table class="pay">
+          <thead><tr><th><span class="uk">Провидець передбачив</span></th><th class="num" style="color:var(--one)"><span class="uk">Ви берете лише <span class="vl">B</span></span></th><th class="num" style="color:var(--two)"><span class="uk">Ви берете обидві</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="uk">«лише <span class="vl">B</span>»: у <span class="vl">B</span> мільйон</span></td><td class="num diag best"><span class="uk">$1&nbsp;000&nbsp;000</span></td><td class="num"><span class="uk">$1&nbsp;001&nbsp;000</span></td></tr>
+            <tr><td><span class="uk">«обидві»: <span class="vl">B</span> порожня</span></td><td class="num">$0</td><td class="num diag"><span class="uk">$1&nbsp;000</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="uk">Подивіться на рядки: у кожному права клітинка більша на $1&nbsp;000. Це аргумент «обидві». А тепер на виділену діагональ: провидець майже завжди потрапляє саме в неї, і на діагоналі ліва верхня клітинка в тисячу разів більша за праву нижню. Це аргумент «лише <span class="vl">B</span>».</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Два розрахунки</span></span>
+      <h3><span class="uk">Свідчення чи причина</span></h3>
+      <p class="uk"><b style="color:var(--one)">Якщо вибір є свідченням.</b> Провидець угадує з імовірністю p. Хто бере лише <span class="vl">B</span>, у частці p ігор знаходить мільйон: у <a href="https://mathparadoxes.com/glossary/median-vs-mean/" class="mp-term" data-term="mean" aria-expanded="false">середньому</a> p · 1&nbsp;000&nbsp;000. Хто бере обидві, отримує 1&nbsp;000 і мільйон лише тоді, коли провидець помилився: 1&nbsp;000 + (1 − p) · 1&nbsp;000&nbsp;000. За p = 99% це 990&nbsp;000 проти 11&nbsp;000.</p>
+      
+      <p class="uk"><b style="color:var(--two)">Якщо вміст уже зафіксовано.</b> Нехай мільйон лежить у <span class="vl">B</span> з якоюсь імовірністю q, і ваш вибір її не змінює. Тоді лише <span class="vl">B</span> дає q · 1&nbsp;000&nbsp;000, а обидві дають q · 1&nbsp;000&nbsp;000 + 1&nbsp;000. Обидві виграють за будь-якого q.</p>
+      
+      <p class="uk">Перший підхід називають евіденційною теорією рішень (evidential decision theory): вибір оцінюють за тим, що він свідчить про світ. Другий називають каузальною (causal decision theory): вибір оцінюють за тим, що він у світі змінює. Задача Ньюкомба є найвідомішим місцем, де вони розходяться.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span></span>
+      <h3><span class="uk">Межа точності і два сподівання</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">A — сума у прозорій скриньці, M — мільйон у закритій, p — імовірність, що провидець угадає. Сподіваний виграш, якщо вибір вважати свідченням:</span></p>
+          <math display="block"><mi>E</mi><mo stretchy="false">[</mo><mtext class="uk">виграш</mtext><mo>∣</mo><mtext class="uk">лише B</mtext><mo stretchy="false">]</mo><mo>=</mo><mi>p</mi><mi>M</mi></math>
+          <math display="block"><mi>E</mi><mo stretchy="false">[</mo><mtext class="uk">виграш</mtext><mo>∣</mo><mtext class="uk">обидві</mtext><mo stretchy="false">]</mo><mo>=</mo><mi>A</mi><mo>+</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false">)</mo><mi>M</mi></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">«Лише B» вигідніша, коли перше більше за друге:</span></p>
+          <math display="block"><mi>p</mi><mi>M</mi><mo>&gt;</mo><mi>A</mi><mo>+</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false">)</mo><mi>M</mi></math>
+          <math display="block"><mo>⟺</mo><mspace width="0.4em"></mspace><mrow class="hl"><mi>p</mi><mo>&gt;</mo><mfrac><mrow><mn>1</mn><mo>+</mo><mi>A</mi><mo>/</mo><mi>M</mi></mrow><mn>2</mn></mfrac><mo>=</mo><mfrac><mn>1,001</mn><mn>2</mn></mfrac><mo>=</mo><mn>50,05</mn><mo>%</mo></mrow></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Якщо вибір на вміст не впливає і мільйон лежить у B з імовірністю q, то за будь-якого q:</span></p>
+          <math display="block"><mi>E</mi><mo stretchy="false">[</mo><mtext class="uk">обидві</mtext><mo stretchy="false">]</mo><mo>−</mo><mi>E</mi><mo stretchy="false">[</mo><mtext class="uk">лише B</mtext><mo stretchy="false">]</mo></math>
+          <math display="block"><mo>=</mo><mo stretchy="false">(</mo><mi>q</mi><mi>M</mi><mo>+</mo><mi>A</mi><mo stretchy="false">)</mo><mo>−</mo><mi>q</mi><mi>M</mi><mo>=</mo><mi>A</mi></math>
+        </div>
+      </div>
+      <p class="uk">Різниця між двома розрахунками в одній деталі. У першому ймовірність мільйона залежить від вашого вибору: p, якщо ви берете лише <span class="vl">B</span>, і 1 − p, якщо обидві. У другому вона та сама q для обох виборів. Обидва записи коректні, суперечка в тому, яку ймовірність слід підставляти, коли обираєш.</p>
+      
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Глибше</span><span class="mp-layer-desc">узагальнення, теорія, історія</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Глибше» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Історія</span></span>
+      <h3><span class="uk">Фізик придумав, філософ надрукував</span></h3>
+      <p class="uk">Задачу придумав фізик Вільям Ньюкомб з Лабораторії Лоуренса в Ліверморі близько 1960 року, але сам про неї нічого не опублікував. 1969 року філософ Роберт Нозік надрукував перший розбір, статтю «Newcomb's Problem and Two Principles of Choice» у збірнику на честь Карла Гемпеля. Два принципи в назві&nbsp;— це якраз два наші розрахунки.</p>
+      
+      <p class="uk">Широкої слави задачі додав Мартін Ґарднер: у липні 1973 року вона вийшла в його колонці в Scientific American, а в березні 1974-го він надрукував Нозіків огляд листів, які надіслали читачі.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Дилема в'язня</span></span>
+      <h3><span class="uk">Гра проти власної копії</span></h3>
+      <p class="uk">1979 року Девід Льюїс у статті в Philosophy &amp; Public Affairs показав, що дилема в'язня є задачею Ньюкомба. Уявіть, що ви граєте не з чужою людиною, а зі своєю точною копією, яка думає так само, як ви. Зрадити вигідніше за будь-якого ходу копії, як узяти обидві скриньки вигідніше за будь-якого вмісту <span class="vl">B</span>. Але якщо ви співпрацюєте, то, найімовірніше, співпрацює і копія, як провидець, що бачить у вас «лише <span class="vl">B</span>».</p>
+      
+      <p class="uk">Як люди й програми грають у повторювану дилему в'язня, видно в <a href="../axelrod-tournament/">турнірі Аксельрода</a>.</p>
+      
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Третя відповідь</span></span>
+      <h3><span class="uk">Обирайте алгоритм, а не дію</span></h3>
+      <p class="uk">2017 року Елієзер Юдковський і Нейт Соарес запропонували функціональну теорію рішень. Провидець передбачає вас, по суті відтворюючи у себе ваш спосіб міркувати. Тож обирайте так, ніби обираєте не одну дію, а сам цей спосіб, а з ним і те, що побачив провидець. Такий агент бере лише <span class="vl">B</span>, хоча й погоджується, що в цій конкретній грі <span class="vl">A</span> додала б $1&nbsp;000.</p>
+      
+    </div>
+
+  </div>
+  </div>
+
+<script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "newcomb-paradox" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+<!-- ROUND 5: going further -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Ускладнюємо</span></span>
+    <h2><span class="uk">Скільки має коштувати скринька <span class="vl">A</span>, щоб передумати?</span></h2>
+    <p class="lead uk">У класичній задачі <span class="vl">A</span> коштує тисячу, а <span class="vl">B</span> мільйон, тож для «лише <span class="vl">B</span>» досить провидця, що вгадує трохи частіше за монетку. Змінюйте суми і точність і дивіться, де проходить межа. А потім від чисел до ідеї, яка за ними стоїть, і до того, де вона трапляється в житті.</p>
+    
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Межа для будь-яких сум</span></h3>
+        <div class="presets" id="esc-pick"></div>
+        <label class="ctl" for="esc-a"><span><span class="uk">У прозорій скриньці <span class="vl">A</span>:</span> <b class="mono" id="esc-a-v"></b></span>
+          <input type="range" id="esc-a" min="0" max="12" step="1" value="0">
+        </label>
+        <label class="ctl" for="esc-m"><span class="uk">У закритій скриньці <span class="vl">B</span> (якщо провидець передбачив «лише <span class="vl">B</span>»)</span>
+          <select id="esc-m"><option value="100000">100 000</option><option value="1000000" selected>1 000 000</option><option value="10000000">10 000 000</option></select>
+        </label>
+        <label class="ctl" for="esc-p"><span><span class="uk">Точність провидця p:</span> <b class="mono" id="esc-p-v"></b></span>
+          <input type="range" id="esc-p" min="50" max="100" step="0.5" value="90">
+        </label>
+        <canvas id="esc-cv" role="img" aria-label="Середній виграш і межа точності"></canvas>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Межа точності</span></span><b class="big mono" id="esc-thr"></b></div>
+          <div><span class="k"><span class="uk">Лише <span class="vl">B</span>, у середньому</span></span><b class="big mono" id="esc-one" style="color:var(--one)"></b></div>
+          <div><span class="k"><span class="uk">Обидві, у середньому</span></span><b class="big mono" id="esc-two" style="color:var(--two)"></b></div>
+        </div>
+        <p class="note" id="esc-note"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Узагальнення</span></span>
+        <h3><span class="uk">Одна межа на всі суми</span></h3>
+        <p class="uk">Лише <span class="vl">B</span> у середньому дає p · M, обидві дають <span class="vl">A</span> + (1 − p) · M. Перше більше, коли p &gt; (1 + A/M)/2. Що дорожча прозора скринька порівняно із закритою, то точнішим має бути провидець, щоб «лише <span class="vl">B</span>» окупилася.</p>
+        
+        <p class="uk">За класичних $1&nbsp;000 проти мільйона межа 50,05%. Якщо в <span class="vl">A</span> лежить $500&nbsp;000, межа вже 75%. Якщо в <span class="vl">A</span> стільки ж, скільки в <span class="vl">B</span>, межа сягає 100%: навіть бездоганний провидець дає лише нічию, і обидві скриньки не гірші. А аргумент «обидві» від сум не залежить зовсім: для тих самих скриньок <span class="vl">A</span> завжди додає рівно <span class="vl">A</span>.</p>
+        
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Логіка</span></span>
+      <h3 style="margin:6px 0 12px"><span class="uk">Вигідно бути тим, хто бере одну</span></h3>
+      <div class="two-col">
+        <div style="--c:var(--ink)">
+          <p class="uk">У цій задачі платять не за вчинок, а за характер, який провидець у вас побачив. Бути людиною, що бере лише <span class="vl">B</span>, вигідно, хоча в момент вибору друга скринька додала б $1&nbsp;000. Це ідея попереднього зобов'язання: прив'язати себе до рішення заздалегідь, поки воно ще може на щось вплинути.</p>
+          
+          <p class="uk">Одіссей звелів прив'язати себе до щогли, щоб пропливти повз сирен. Він знав, що в потрібну мить захоче звернути, і заздалегідь забрав у себе цей вибір.</p>
+          
+        </div>
+        <div style="--c:var(--ink)">
+          <h4><span class="uk">Автостопник Парфіта</span></h4>
+          <p class="uk">Дерек Парфіт у книжці «Reasons and Persons» (1984) описав автостопника, що застряг у пустелі. Водій, який добре читає людей, підвезе його до міста, лише якщо повірить, що там автостопник йому заплатить. У місті платити вже невигідно: він урятований, і гроші нічого не змінять. Але той, хто думає «у місті не заплачу», лишається в пустелі.</p>
+          
+          <p class="uk">Це та сама задача Ньюкомба: водій є провидцем, порятунок є мільйоном, а гроші, які можна не віддати, є скринькою <span class="vl">A</span>.</p>
+          
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="uk">Де це трапляється</span></h3>
+      <p class="note" style="margin:6px 0 12px"><span class="uk">Задачу Ньюкомба легко впізнати: хтось вирішує, як із вами повестися, за прогнозом вашої поведінки, і прогноз цей добрий. Тоді важить не окремий вчинок, а правило, за яким ви дієте. Томас Шеллінг у книжці «The Strategy of Conflict» (1960) описав зобов'язання як стратегічний хід: заздалегідь обмежити себе буває сильніше, ніж зберегти свободу вибору. Перевірити, наскільки ви передбачувані, можна в раунді 2: такий самий оракул Скотта Ааронсона вгадував 70–80% виборів людей, які намагалися його перехитрити.</span></p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Ситуація</span></th><th><span class="uk">Хто тут провидець</span></th><th><span class="uk">Політика «лише <span class="vl">B</span>»</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="uk">Держава і викрадачі заручників</span></td><td><span class="uk">Викрадачі, які зважують, чи заплатять за заручників</span></td><td><span class="uk">«Ми не ведемо переговорів з терористами». Діє, лише якщо в це вірять заздалегідь: тоді викрадати менш вигідно, хоча кожного конкретного заручника врятувати хочеться понад усе.</span></td></tr>
+            <tr><td><span class="uk">Батьки і дитина</span></td><td><span class="uk">Дитина, яка швидко вчиться, чи виконують батьки сказане</span></td><td><span class="uk">Виконувати обіцяне навіть тоді, коли саме сьогодні простіше поступитися. Поступка виграє сьогоднішню тисячу, а програє мільйон довіри.</span></td></tr>
+            <tr><td><span class="uk">Магазин з гарантією «повернемо гроші без питань»</span></td><td><span class="uk">Покупці, які вирішують, чи довіряти гарантії</span></td><td><span class="uk">Повертати гроші й тоді, коли конкретний випадок збитковий: інакше гарантія нічого не варта, і покупці це передбачать.</span></td></tr>
+            <tr><td><span class="uk">Стрічка новин, рекомендації в магазині</span></td><td><span class="uk">Алгоритм, що прогнозує ваші кліки й покупки за минулою поведінкою</span></td><td><span class="uk">Пам'ятати, що вас уже передбачили: вам показують те, на що ви, найімовірніше, клюнете. Що передбачуваніші ваші звички, то точніший прогноз.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="note"><span class="uk">Інші задачі, де розрахунок упирається в те, яке саме питання ставимо: <a href="../sleeping-beauty/">Спляча красуня</a>, <a href="../bertrand-paradox/">парадокс Бертрана</a>, <a href="../two-envelopes/">два конверти</a>. А про те, як раціональність у грі може коштувати грошей обом гравцям, <a href="../travelers-dilemma/">дилема мандрівника</a>.</span></p>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span></span>
+    <h2><span class="uk">Що розповісти друзям</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1969</span>
+        <h3><span class="uk">Парадокс Ньюкомба без Ньюкомба</span></h3>
+        <p class="uk">Вільям Ньюкомб був фізиком у Лабораторії Лоуренса в Ліверморі і задачу так і не опублікував. Надрукував її філософ Роберт Нозік 1969 року, але назвав на честь автора.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1973 → 1974</span>
+        <h3><span class="uk">Друга колонка Ґарднера</span></h3>
+        <p class="uk">Після колонки Мартіна Ґарднера в Scientific American у липні 1973 року прийшло стільки листів, що в березні 1974-го він надрукував другу, де Нозік розібрав відповіді читачів.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">31&nbsp;854</span></span>
+        <h3><span class="uk">Голоси читачів The Guardian</span></h3>
+        <p class="uk">2016 року Алекс Беллос запропонував задачу читачам The Guardian. Проголосували 31&nbsp;854 людини, і 53,5% з них узяли лише <span class="vl">B</span>.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">39 : 31</span>
+        <h3><span class="uk">Філософи беруть обидві</span></h3>
+        <p class="uk">В опитуванні PhilPapers 2020 року філософи, знайомі з задачею, частіше обирали дві скриньки: 39% проти 31%. Серед фахівців з теорії рішень перевага ще більша: 73% проти 21%.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">70–80%</span>
+        <h3><span class="uk">Оракул Ааронсона</span></h3>
+        <p class="uk">Скотт Ааронсон написав просту програму, яка вгадує, яку з двох клавіш людина натисне далі, за її попередніми натисканнями. Вона вгадувала 70–80% натискань людей, які щосили намагалися бути випадковими.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">1979</span>
+        <h3><span class="uk">В'язень і його копія</span></h3>
+        <p class="uk">Девід Льюїс показав, що дилема в'язня, зіграна проти власної копії, є задачею Ньюкомба, тож хто бере обидві скриньки, той мусить і зраджувати свого двійника.</p>
+        
+      </article>
+  </div>
+</section>
+</div>
+
+<section class="mp-books" id="books">
+  <div class="mp-related-head">
+    <span class="eyebrow">Що почитати</span>
+    <h2>Книжки, де є ця задача</h2>
+  </div>
+  <div class="mp-books-grid">
+    <div class="mp-book"><h3>Paradoxes from A to Z</h3><p class="mp-book-author">Майкл Кларк</p><p class="mp-book-meta">2002, англійською</p></div>
+  </div>
+  <a class="mp-related-all" href="https://mathparadoxes.com/books/">Усі книжки →</a>
+</section>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">Ще задачі</span>
+    <h2>Інші парадокси</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/monty-hall/"><h3>Парадокс Монті Голла</h3><p>Ви на телешоу й обрали одні з трьох дверей. Ведучий, який знає, де авто, відчиняє інші двері з козою й пропонує змінити вибір. Змінювати?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/persuadables/"><h3>Кому дати купон</h3><p>Ідеальна модель знаходить 250 найімовірніших покупців, і вони отримують купони на знижку. Скільки покупок це додасть?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/truel/"><h3>Труель</h3><p>Троє стріляють по черзі: Аня влучає в 1 з 3 пострілів, Борис у 2 з 3, Сергій завжди. У кого найбільше шансів лишитися останнім?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/axelrod-tournament/"><h3>Турнір Аксельрода</h3><p>Програми грають дилему в&#x27;язня по 200 раундів кожна з кожною. Хто набере найбільше: вічний зрадник, хитрун, «Око за око» чи монетка?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/lake-escape/"><h3>Втеча через озеро</h3><p>Учень у круглому озері, вихователь на березі бігає вчетверо швидше, ніж учень плаває. Чи може учень утекти?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/travelers-dilemma/"><h3>Дилема мандрівника</h3><p>Дві розбиті вази, кожен власник пише ціну від $2 до $100. Обом платять меншу, з бонусом $2 тому, хто написав меншу. Що написали б ви?</p></a>
+  </div>
+  <p class="mp-related-all"><a href="https://mathparadoxes.com/">Усі задачі →</a> <a href="https://mathparadoxes.com/glossary/">Словник →</a></p>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Обговорення</span>
+    <h2>Що ви думаєте?</h2>
+    <p>Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub.</p>
+    <div class="mp-lvote"><p>Рівень «Шкільна математика» відповідає задачі?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">Ні, складніше</button><button type="button" data-vote="right">Так</button><button type="button" data-vote="easier">Ні, простіше</button></div><p class="mp-lvote-thanks">Дякуємо! Це допоможе точніше ставити рівні.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "newcomb-paradox" + "-lvl", LEVEL = 2, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="newcomb-paradox" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="uk" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Розсилка</span>
+    <h2>Нові задачі, пояснення й обговорення</h2>
+    <p>Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">Форма підписки з'явиться тут найближчим часом.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+<footer>
+  <span class="uk">Задачу придумав фізик Вільям Ньюкомб, перший розбір надрукував Роберт Нозік (1969), широко відомою її зробив Мартін Ґарднер у Scientific American (1973).</span>
+  
+  <span class="mono">p &gt; (1 + A/M)/2</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? s : s.replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => Math.round(n).toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const money = n => '$' + fmt(n);
+const VB = '<span class="vl">B</span>';                    // the build frames B in page text, JS-built text does it by hand
+const ONE = () => L('лише ' + VB, 'only ' + VB), TWO = () => L('обидві', 'both');
+
+/* ---------- the game's rules ---------- */
+const A = 1000, M = 1000000;
+const other = c => c === 'one' ? 'two' : 'one';
+const payoff = (c, said) => (said === 'one' ? M : 0) + (c === 'two' ? A : 0);
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+// short money labels for chart axes
+const short = v => v === 0 ? '0' : v >= 1e6 ? dec(String(v / 1e6)) + L(' млн', 'M') : dec(String(v / 1e3)) + L(' тис.', 'k');
+// two lines over p from 50% to 100%: "only B" = pM, "both" = a + (1 − p)M
+function drawEV(cv, o) {
+  const s = setupCanvas(cv); if (!s) return;
+  const { ctx, W, H } = s, l = 54, rr = 12, t = 14, bo = 26;
+  const x = p => l + (p - .5) / .5 * (W - l - rr), y = v => t + (1 - v / o.ymax) * (H - t - bo);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  o.yt.forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - rr, y(v)); ctx.stroke(); ctx.fillText(short(v), l - 6, y(v)); });
+  ctx.textBaseline = 'top';
+  for (let p = .5; p <= 1.0001; p += .1) { ctx.textAlign = p > .99 ? 'right' : p < .51 ? 'left' : 'center'; ctx.fillText(Math.round(100 * p) + '%', x(p), H - bo + 6); }
+  // threshold
+  if (o.thr <= 1) {
+    ctx.strokeStyle = tok('--gold'); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x(o.thr), t); ctx.lineTo(x(o.thr), H - bo); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = tok('--gold'); ctx.textAlign = o.thr > .8 ? 'right' : 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(L('межа ', 'tie ') + dec(String(+(100 * o.thr).toFixed(3))) + '%', x(o.thr) + (o.thr > .8 ? -5 : 5), t);
+  }
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t - 4, W - l - rr, H - t - bo + 8); ctx.clip();
+  const line = (f, c) => { ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x(.5), y(f(.5))); ctx.lineTo(x(1), y(f(1))); ctx.stroke(); };
+  line(p => p * o.M, tok('--one')); line(p => o.a + (1 - p) * o.M, tok('--two'));
+  (o.dots || []).forEach(d => {
+    ctx.globalAlpha = .9;
+    ctx.fillStyle = tok('--one'); ctx.beginPath(); ctx.arc(x(d.p), y(d.one), 3.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = tok('--two'); ctx.beginPath(); ctx.arc(x(d.p), y(d.two), 3.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+  if (o.cur) {
+    ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x(o.cur.p), t); ctx.lineTo(x(o.cur.p), H - bo); ctx.stroke();
+    [[o.cur.one, '--one'], [o.cur.two, '--two']].forEach(([v, c]) => { if (v === null) return; ctx.strokeStyle = tok(c); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x(o.cur.p), y(v), 7, 0, 2 * Math.PI); ctx.stroke(); });
+  }
+  ctx.restore();
+}
+
+/* ---------- hero ---------- */
+function heroCap() {
+  $('#hero-cap').textContent = window.mpSolved && !mpSolved()
+    ? L('Провидець подивився на вас і запечатав скриньку B. Мільйон там лише якщо він передбачив, що ви візьмете тільки B. Що ви візьмете?', 'The predictor has looked at you and sealed box B. The million is there only if it foresaw you taking B alone. What will you take?')
+    : L('Хоч би що лежало в B, обидві скриньки дають на $1 000 більше. Але мільйон знаходять здебільшого ті, хто бере лише B.', 'Whatever is in B, both boxes give $1,000 more. Yet it is mostly those who take only B who find the million.');
+}
+document.addEventListener('solved', heroCap);
+
+/* ---------- round 1: your choice ---------- */
+let gPick = null;
+// published polls: The Guardian 2016 (31,854 votes), PhilPapers 2020 (philosophers who know the problem; decision theorists)
+const POLLS = [
+  { uk: 'Читачі The Guardian, 2016', en: 'Guardian readers, 2016', n: 31854, one: 53.5, two: 46.5, oth: 0 },
+  { uk: 'Філософи, PhilPapers 2020', en: 'Philosophers, PhilPapers 2020', n: 1429, one: 31, two: 39, oth: 31 },
+  { uk: 'Фахівці з теорії рішень', en: 'Decision theorists', n: 48, one: 21, two: 73, oth: 6 }
+];
+function guessText() {
+  $$('#g-opts .choice').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === gPick));
+  if (gPick === null) return;
+  const verdict = gPick === 'one'
+    ? L('Ви в більшості серед читачів The Guardian. Ваш аргумент: провидець майже не помиляється, тож хто бере лише ' + VB + ', той майже завжди йде з мільйоном, а хто бере обидві, здебільшого з тисячею. Філософи частіше обирають інакше: гроші вже в скриньці, і ваш вибір їх туди не покладе. Обидва аргументи правильні, і далі видно, чому.',
+        'You are with the majority of Guardian readers. Your argument: the predictor almost never errs, so whoever takes only ' + VB + ' nearly always leaves with a million, and whoever takes both mostly leaves with a thousand. Philosophers more often choose otherwise: the money is already in the box, and your choice won\'t put it there. Both arguments are correct, and below you will see why.')
+    : L('Ви з більшістю філософів і особливо фахівців з теорії рішень. Ваш аргумент: прогноз уже зроблено, і хоч би що лежало в ' + VB + ', скринька A додає $1 000. Але серед читачів The Guardian трохи більше тих, хто бере лише ' + VB + ', і з таким провидцем вони здебільшого йдуть з мільйоном, а ті, хто бере обидві, з тисячею. Обидва аргументи правильні, і далі видно, чому.',
+        'You are with most philosophers, and decision theorists above all. Your argument: the prediction is already made, and whatever is in ' + VB + ', box A adds $1,000. But slightly more Guardian readers take only ' + VB + ', and against this predictor they mostly leave with a million, while those who take both leave with a thousand. Both arguments are correct, and below you will see why.');
+  const seg = (v, c, cls) => v ? '<i class="' + (cls || '') + '" style="--c:' + c + ';width:' + v + '%">' + (v >= 9 ? dec(String(v)) + '%' : '') + '</i>' : '';
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Як обирають люди', 'How people choose') + '</span><p class="big mono" style="font-size:clamp(1.6rem,4vw,2.2rem)"><span style="color:var(--one)">' + dec('53.5') + '%</span> · <span style="color:var(--two)">' + dec('46.5') + '%</span></p>' +
+    '<p>' + verdict + '</p>' +
+    POLLS.map(q => '<div class="poll"><div class="h"><b>' + L(q.uk, q.en) + '</b><span>N = ' + fmt(q.n) + '</span></div><div class="stack">' +
+      seg(q.one, 'var(--one)') + seg(q.two, 'var(--two)') + seg(q.oth, 'var(--other)', 'o') + '</div></div>').join('') +
+    '<div class="legend"><span style="--c:var(--one)">' + ONE() + '</span><span style="--c:var(--two)">' + TWO() + '</span><span style="--c:var(--other)">' + L('інші відповіді', 'other answers') + '</span></div>' +
+    '<p class="note">' + L('Обидві відповіді правильні, але на різні питання. Раунди нижче показують обидва аргументи в числах: гра з провидцем, 100\u00a0000 ігор і пояснення.', 'Both answers are right, but to different questions. The rounds below show both arguments in numbers: a game against a predictor, 100,000 games and the explanation.') + '</p>';
+}
+$('#g-opts').addEventListener('click', e => {
+  const b = e.target.closest('.choice'); if (!b) return;
+  gPick = b.dataset.k; guessText(); window.mpSolve && mpSolve(gPick);
+});
+
+/* ---------- round 2: a pattern predictor (in the spirit of Scott Aaronson's oracle) ---------- */
+const GAMES = 20, CTX = 4;
+// predicts the next choice from the history: what followed the same last k choices (k = 4, 3, 2, 1), else the overall majority
+function predict(h) {
+  if (!h.length) return 'one';
+  for (let k = Math.min(CTX, h.length - 1); k >= 1; k--) {
+    const tail = h.slice(-k).join(), cnt = { one: 0, two: 0 };
+    for (let i = k; i < h.length; i++) if (h.slice(i - k, i).join() === tail) cnt[h[i]]++;
+    if (cnt.one !== cnt.two) return cnt.one > cnt.two ? 'one' : 'two';
+  }
+  const n1 = h.filter(c => c === 'one').length;
+  return n1 * 2 >= h.length ? 'one' : 'two';
+}
+const gm = { hist: [], games: [], said: null, open: false, timer: 0 };
+function gmSeal() { gm.said = predict(gm.hist); gm.open = false; }     // the prediction is fixed here, before the click
+function gmReset() { clearTimeout(gm.timer); gm.hist = []; gm.games = []; gmSeal(); gmDraw(); gmText(); }
+function gmChoose(c) {
+  if (gm.open || gm.games.length >= GAMES) return;
+  gm.games.push({ c, said: gm.said, win: payoff(c, gm.said) }); gm.hist.push(c); gm.open = true;
+  gmDraw(); gmText();
+  if (gm.games.length < GAMES) gm.timer = setTimeout(() => { gmSeal(); gmDraw(); gmText(); }, 1300);
+}
+function gmDraw() {
+  const last = gm.games[gm.games.length - 1], open = gm.open && last, full = open ? last.said === 'one' : false;
+  const taken = k => open && (k === 'B' || last.c === 'two');
+  const ring = k => taken(k) ? ' stroke="var(--gold)" stroke-width="4"' : '';
+  let h = '';
+  // predictor panel
+  h += '<rect x="90" y="8" width="160" height="40" rx="9" fill="var(--ink)"/>';
+  h += '<ellipse cx="114" cy="28" rx="13" ry="8" fill="var(--day-ink)"/><circle cx="114" cy="28" r="4.5" fill="var(--one)"/>';
+  const panel = !open ? L('ПРОГНОЗ ЗАПЕЧАТАНО', 'FORECAST SEALED') : L('ПРОГНОЗ: ', 'FORECAST: ') + (last.said === 'one' ? L('ЛИШЕ B', 'ONLY B') : L('ОБИДВІ', 'BOTH'));
+  h += '<text x="136" y="32" font-size="9.5" fill="var(--day-ink)" letter-spacing=".5">' + panel + '</text>';
+  // box A
+  h += '<rect x="28" y="70" width="124" height="96" rx="10" fill="var(--tint)" fill-opacity=".8" stroke="var(--muted)" stroke-dasharray="5 4"/>';
+  if (ring('A')) h += '<rect x="24" y="66" width="132" height="104" rx="13" fill="none"' + ring('A') + '/>';
+  h += '<rect x="50" y="100" width="80" height="36" rx="5" fill="var(--cash)" opacity=".9"/><text x="90" y="123" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">' + money(A) + '</text>';
+  h += '<text x="90" y="190" text-anchor="middle" font-size="12" font-weight="700" fill="var(--muted)">A</text>';
+  // box B
+  if (!open) {
+    h += '<rect x="188" y="70" width="124" height="96" rx="10" fill="var(--one)"/><text x="250" y="132" text-anchor="middle" font-size="40" font-weight="800" fill="var(--day-ink)">?</text>';
+    h += '<circle cx="250" cy="70" r="9" fill="var(--loss)"/><circle cx="250" cy="70" r="5" fill="none" stroke="#fff" stroke-opacity=".7"/>';
+  } else {
+    h += '<rect x="188" y="70" width="124" height="96" rx="10" fill="var(--surface)" stroke="var(--one)" stroke-width="2"/>';
+    if (ring('B')) h += '<rect x="184" y="66" width="132" height="104" rx="13" fill="none"' + ring('B') + '/>';
+    h += full
+      ? '<rect x="206" y="92" width="88" height="22" rx="4" fill="var(--cash)" opacity=".6"/><rect x="206" y="100" width="88" height="22" rx="4" fill="var(--cash)" opacity=".8"/><rect x="206" y="108" width="88" height="36" rx="5" fill="var(--cash)"/><text x="250" y="131" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">' + money(M) + '</text>'
+      : '<text x="250" y="124" text-anchor="middle" font-size="13" fill="var(--muted)">' + L('порожньо', 'empty') + '</text>';
+  }
+  h += '<text x="250" y="190" text-anchor="middle" font-size="12" font-weight="700" fill="var(--muted)">B</text>';
+  $('#g-svg').innerHTML = h;
+  $('#g-svg').setAttribute('aria-label', L('Скриньки A і B', 'Boxes A and B'));
+  $('#g-log').innerHTML = Array.from({ length: GAMES }, (_, i) => {
+    const g = gm.games[i]; if (!g) return '<span class="todo"></span>';
+    return '<span class="' + (g.c === g.said ? '' : 'miss') + '" style="--c:var(' + (g.c === 'one' ? '--one' : '--two') + ')">' + (i + 1) + '</span>';
+  }).join('');
+}
+function gmText() {
+  const G = gm.games, n = G.length, hits = G.filter(g => g.c === g.said).length, tot = G.reduce((s, g) => s + g.win, 0);
+  const by = c => { const x = G.filter(g => g.c === c); return { n: x.length, avg: x.length ? x.reduce((s, g) => s + g.win, 0) / x.length : null }; };
+  const o = by('one'), t = by('two');
+  const done = n >= GAMES;
+  $('#g-one').disabled = $('#g-two').disabled = gm.open || done;
+  let msg;
+  if (!n && !gm.open) msg = L('Провидець уже зробив прогноз і запечатав скриньку B. Що ви візьмете?', 'The predictor has made its prediction and sealed box B. What will you take?');
+  else if (gm.open) {
+    const g = G[n - 1], ok = g.c === g.said;
+    msg = L('Провидець передбачав «' + (g.said === 'one' ? 'лише B' : 'обидві') + '» і ' + (ok ? 'вгадав' : 'помилився') + '. ', 'The predictor foresaw "' + (g.said === 'one' ? 'only B' : 'both') + '" and was ' + (ok ? 'right' : 'wrong') + '. ') +
+      (g.said === 'one' ? L('У B був мільйон. ', 'B held the million. ') : L('B була порожня. ', 'B was empty. ')) +
+      L('Ви взяли ' + (g.c === 'one' ? 'лише B' : 'обидві') + ' і отримали ' + money(g.win) + '.', 'You took ' + (g.c === 'one' ? 'only B' : 'both') + ' and got ' + money(g.win) + '.') +
+      (done ? L(' Серію завершено.', ' The series is over.') : '');
+  } else msg = L('Гра ' + (n + 1) + ' з ' + GAMES + '. Новий прогноз уже запечатано.', 'Game ' + (n + 1) + ' of ' + GAMES + '. A new prediction is already sealed.');
+  $('#g-msg').textContent = msg;
+  const row = (k, v, c) => '<div class="r"' + (c ? ' style="--c:var(' + c + ')"' : '') + '><span>' + k + '</span><b class="mono">' + v + '</b></div>';
+  $('#g-tally').innerHTML =
+    row(L('Ігор', 'Games'), n + ' / ' + GAMES) +
+    row(L('Провидець угадав', 'Predictor right'), n ? hits + ' (' + pct(hits / n, 0) + ')' : '–') +
+    row(L('Ваші гроші', 'Your money'), money(tot)) +
+    row(L('Коли брали лише ', 'When you took only ') + VB + L(', у середньому', ', on average'), o.n ? money(o.avg) + ' · ' + o.n + '×' : '–', '--one') +
+    row(L('Коли брали обидві, у середньому', 'When you took both, on average'), t.n ? money(t.avg) + ' · ' + t.n + '×' : '–', '--two');
+  let note;
+  if (n < 10) note = L('Після 10 ігор тут з\'явиться, що виходить. Спробуйте чергувати вибори, а потім, навпаки, повторювати один і той самий.', 'After 10 games you will see what is happening here. Try alternating your choices, then try repeating the same one.');
+  else if (!o.n || !t.n) note = L('Ви щоразу обирали одне й те саме, і провидець швидко це помітив: він угадав ' + pct(hits / n, 0) + '. Спробуйте змішувати вибори, щоб порівняти середні.', 'You chose the same thing every time, and the predictor soon noticed: it was right ' + pct(hits / n, 0) + ' of the time. Try mixing your choices to compare the averages.');
+  else if (o.avg > t.avg) note = L('Провидець угадав ' + pct(hits / n, 0) + '. У цій серії «лише B» у середньому принесла більше: щоразу, коли провидець угадує, вона дає мільйон, а «обидві» лише тисячу. Програма Скотта Ааронсона на тому самому принципі вгадувала 70–80% виборів людей, які намагалися її перехитрити.', 'The predictor was right ' + pct(hits / n, 0) + ' of the time. In this series "only B" paid more on average: every time the predictor is right it brings a million, while "both" brings a thousand. Scott Aaronson\'s program, built on the same idea, called 70–80% of the choices of people trying to outwit it.');
+  else note = L('Провидець угадав ' + pct(hits / n, 0) + '. У цій серії обидві скриньки в середньому принесли більше: провидець надто часто помилявся і клав мільйон тоді, коли ви брали обидві. Якщо ви для нього непередбачувані, мільйон у B з\'являється незалежно від вашого вибору, і тоді A лише додає тисячу. Провидець перемагає, лише коли ви передбачувані.', 'The predictor was right ' + pct(hits / n, 0) + ' of the time. In this series both boxes paid more on average: the predictor was wrong too often and put the million in when you took both. If you are unpredictable to it, the million turns up in B regardless of your choice, and then A just adds a thousand. The predictor beats you only when you are predictable.');
+  $('#g-note').textContent = note;
+}
+$('#g-one').addEventListener('click', () => gmChoose('one'));
+$('#g-two').addEventListener('click', () => gmChoose('two'));
+$('#g-new').addEventListener('click', gmReset);
+
+/* ---------- round 3: simulation ---------- */
+// players pick at random; the predictor is right with probability p and fills B before the choice
+function simAt(p, N) {
+  const r = { p, N, s: { one: 0, two: 0 }, n: { one: 0, two: 0 }, full: 0, plus: 0 };
+  for (let i = 0; i < N; i++) {
+    const c = Math.random() < .5 ? 'one' : 'two', said = Math.random() < p ? c : other(c), B = said === 'one' ? M : 0;
+    r.s[c] += c === 'one' ? B : A + B; r.n[c]++;
+    if (B) r.full++;
+    if ((A + B) - B === A) r.plus++;                  // same boxes: "both" minus "only B"
+  }
+  r.one = r.n.one ? r.s.one / r.n.one : null; r.two = r.n.two ? r.s.two / r.n.two : null;
+  return r;
+}
+const GRID = Array.from({ length: 11 }, (_, i) => .5 + .05 * i);
+let grid = [], cur = null, simRaf = 0;
+const pNow = () => +$('#sim-p').value / 100;
+function simGrid() { grid = GRID.map(p => simAt(p, 20000)); }
+function simNow() { cur = simAt(pNow(), 100000); simDraw(); simText(); }
+function simDraw() {
+  drawEV($('#h-ev'), { M, a: A, ymax: 1050000, yt: [0, 250000, 500000, 750000, 1000000], thr: (1 + A / M) / 2, dots: grid, cur });
+}
+function simText() {
+  const p = pNow();
+  $('#sim-p-v').textContent = dec(String(+(100 * p).toFixed(1))) + '%';
+  if (!cur) return;
+  $('#t-one').textContent = money(cur.one); $('#t-one-s').textContent = L('точно ', 'exact ') + money(p * M);
+  $('#t-two').textContent = money(cur.two); $('#t-two-s').textContent = L('точно ', 'exact ') + money(A + (1 - p) * M);
+  $('#t-plus').textContent = '+' + money(A); $('#t-plus-s').textContent = L('у ', 'in ') + pct(cur.plus / cur.N, 0) + L(' ігор', ' of games');
+  const emp = cur.N - cur.full;
+  $('#same').innerHTML =
+    '<div class="full"><span class="note">' + L('Скільки додає «обидві» замість «лише ' + VB + '», якщо скриньки не чіпати', 'What "both" adds over "only ' + VB + '" if the boxes stay as they are') + '</span>' +
+    '<div class="stack"><i style="--c:var(--two);width:100%">+' + money(A) + ' · ' + fmt(cur.plus) + L(' з ', ' of ') + fmt(cur.N) + '</i></div></div>' +
+    '<div class="pair"><span class="k">' + L('Мільйон у ' + VB + ': ' + fmt(cur.full) + ' ігор', 'Million in ' + VB + ': ' + fmt(cur.full) + ' games') + '</span><b style="color:var(--one)">' + money(M) + '</b><b style="color:var(--two)">' + money(M + A) + '</b>' +
+    '<span class="k">' + L(VB + ' порожня: ' + fmt(emp) + ' ігор', VB + ' empty: ' + fmt(emp) + ' games') + '</span><b style="color:var(--one)">$0</b><b style="color:var(--two)">' + money(A) + '</b></div>' +
+    '<p class="note">' + L('У кожному рядку ліве число означає «лише ' + VB + '», праве — «обидві» для тих самих скриньок. Друг, який бачить усередину, у всіх ' + fmt(cur.N) + ' іграх порадив би «обидві». А середні ліворуч кажуть протилежне, бо там порівнюють різних гравців, а провидець заповнив їм скриньки по-різному.', 'In each row the left number is "only ' + VB + '", the right one is "both" for the same boxes. A friend who could see inside would say "both" in all ' + fmt(cur.N) + ' games. The averages on the left say the opposite, because there different players are compared, and the predictor filled their boxes differently.') + '</p>';
+  $('#h-ev').setAttribute('aria-label', L('Середній виграш при точності ', 'Average win at accuracy ') + pct(p) + ': ' + money(cur.one) + ' / ' + money(cur.two));
+}
+$('#sim-p').addEventListener('input', () => { cancelAnimationFrame(simRaf); simRaf = requestAnimationFrame(simNow); });
+$('#sim-run').addEventListener('click', () => { simGrid(); simNow(); });
+
+/* ---------- round 5: the threshold for any sums ---------- */
+const AV = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 250000, 500000, 750000, 900000, 1000000];
+const ESC_PRE = [[0, 1000000, 'Класика', 'Classic'], [9, 1000000, 'A = $500 000', 'A = $500,000'], [12, 1000000, 'A = B', 'A = B']];
+function escText() {
+  const a = AV[+$('#esc-a').value], m = +$('#esc-m').value, p = +$('#esc-p').value / 100, thr = (1 + a / m) / 2;
+  $('#esc-pick').innerHTML = ESC_PRE.map(([i, mm, u, e], j) => '<button type="button" data-j="' + j + '" aria-pressed="' + (+$('#esc-a').value === i && m === mm) + '">' + (lang === 'en' ? e : u) + '</button>').join('');
+  $('#esc-a-v').textContent = money(a);
+  $('#esc-p-v').textContent = dec(String(+(100 * p).toFixed(1))) + '%';
+  const tStr = thr > 1 ? L('понад 100%', 'over 100%') : dec(String(+(100 * thr).toFixed(3))) + '%';
+  $('#esc-thr').textContent = tStr;
+  const one = p * m, two = a + (1 - p) * m;
+  $('#esc-one').textContent = money(one); $('#esc-two').textContent = money(two);
+  const diff = Math.abs(one - two) < .5 ? 0 : one > two ? 1 : -1;
+  $('#esc-note').innerHTML = (thr > 1
+    ? L('Тут A більша за мільйон у ' + VB + ': обидві скриньки вигідніші навіть проти бездоганного провидця.', 'Here A is bigger than the prize in ' + VB + ': both boxes pay more even against a flawless predictor.')
+    : thr === 1
+      ? L('Межа 100%: навіть бездоганний провидець дає лише нічию.', 'The threshold is 100%: even a flawless predictor gives only a tie.')
+      : diff > 0 ? L('Точність вища за межу: «лише ' + VB + '» у середньому дає більше на ' + money(one - two) + '.', 'The accuracy is above the threshold: "only ' + VB + '" pays ' + money(one - two) + ' more on average.')
+        : diff < 0 ? L('Точність нижча за межу: обидві скриньки в середньому дають більше на ' + money(two - one) + '.', 'The accuracy is below the threshold: both boxes pay ' + money(two - one) + ' more on average.')
+          : L('Точність рівно на межі: середні однакові.', 'The accuracy is exactly at the threshold: the averages tie.')) +
+    ' ' + L('А для тих самих скриньок «обидві» все одно дають рівно на ' + money(a) + ' більше.', 'And for the same boxes "both" still gives exactly ' + money(a) + ' more.');
+  drawEV($('#esc-cv'), { M: m, a, ymax: Math.max(m, a + m / 2) * 1.05, yt: [0, m / 2, m].concat(a + m / 2 > m * 1.2 ? [a + m / 2] : []), thr, cur: { p, one, two } });
+}
+$('#esc-a').addEventListener('input', escText);
+$('#esc-m').addEventListener('change', escText);
+$('#esc-p').addEventListener('input', escText);
+$('#esc-pick').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const [i, m] = ESC_PRE[+b.dataset.j]; $('#esc-a').value = i; $('#esc-m').value = m; escText();
+});
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Парадокс Ньюкомба', 'Newcomb\'s Paradox');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  $('#esc-cv').setAttribute('aria-label', L('Середній виграш і межа точності', 'Average win and the accuracy threshold'));
+  $$('#esc-m option').forEach(o => { o.textContent = money(+o.value); });
+  heroCap(); guessText(); gmDraw(); gmText(); simDraw(); simText(); escText();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang === 'en' ? 'en' : 'uk'; applyLang(); });
+const redraw = () => { simDraw(); escText(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+document.addEventListener('solved', () => setTimeout(redraw, 0));
+document.addEventListener('rounds', () => setTimeout(redraw, 0));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- opening state: everything filled ---------- */
+gmSeal();
+simGrid();
+cur = simAt(pNow(), 100000);
+applyLang();
+})();
+</script>
+
+<script type="application/json" id="mp-terms">{"mean": {"name": "Середнє", "short": "Сума всіх значень, поділена на їхню кількість: скільки дісталося б кожному, якби поділити порівну.", "hook": "Майже кожна людина має більше ніг, ніж у середньому: середнє трохи менше за дві.", "url": "https://mathparadoxes.com/glossary/median-vs-mean/", "link": "Спробувати на симуляції"}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'uk' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Розділи"><a href="https://mathparadoxes.com/#all" aria-current="page">Задачі</a><a href="https://mathparadoxes.com/courses/">Курси</a><a href="https://mathparadoxes.com/glossary/">Словник</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+</body>
+</html>

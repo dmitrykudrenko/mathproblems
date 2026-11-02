@@ -1,0 +1,1023 @@
+<title>Чекати далі чи піти?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same running order as the bus paradox page. Three queues side by side (a timetable bus, a random bus, a job reply) are this problem's signature object. */
+:root {
+  --tint: #EAE8F7;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --sa: #2A3DD1;
+  --sb: #157F51;
+  --sc: #C47F00;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--c, var(--ink)); }
+.odd > span { font-size: .82rem; color: var(--muted); }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 3.9em; }
+#hero-cv { height: 300px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl select { font: inherit; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.ctl input[type=range] { width: 280px; max-width: 100%; accent-color: var(--day); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend span.ln::before { height: 3px; border-radius: 0; }
+.legend b { font-weight: inherit; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 4px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+.mini-bars { width: 100%; height: auto; margin-top: 4px; }
+.mini-bars text { font-family: var(--f-mono); font-size: 11px; fill: var(--muted); }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.grow { display: grid; gap: 8px; padding-block: 12px; border-bottom: 1px solid var(--line); }
+.grow:first-child { padding-top: 0; }
+.grow > span { font-weight: 600; font-size: .95rem; }
+.grow > span small { display: block; font-weight: 400; color: var(--muted); font-size: .84rem; }
+.pick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.pick button { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 6px; cursor: pointer; font-size: .86rem; line-height: 1.25; }
+.pick button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 170px 1fr 74px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+.crow .bar i.tick { width: 2px; background: var(--ink); border-radius: 0; }
+.vrow { display: grid; gap: 4px; padding-block: 8px; border-top: 1px solid var(--line); font-size: .92rem; }
+.vrow b { font-family: var(--f-mono); }
+.vrow .ok { color: var(--win); font-weight: 600; }
+.vrow .no { color: var(--loss); font-weight: 600; }
+
+/* ---------- waiting room ---------- */
+.room { display: grid; grid-template-columns: 1.45fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+#wait-cv { height: 360px; }
+.msg { min-height: 3em; font-weight: 500; }
+.tally { display: grid; gap: 14px; }
+.lane-st { display: grid; gap: 2px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.lane-st:last-child { border-bottom: 0; }
+.lane-st .h { font-weight: 600; color: var(--c); }
+.lane-st .r { display: flex; justify-content: space-between; gap: 12px; font-size: .9rem; }
+.lane-st .r span { color: var(--muted); }
+
+/* ---------- simulation ---------- */
+.sim2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.sim2 > div { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.sim2 h3 { font-size: .95rem; }
+.sim2 canvas { height: 260px; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); }
+.tile .s { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); }
+.prog { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.geo { width: 100%; height: auto; }
+.geo text { font-family: var(--f-mono); font-size: 12px; fill: var(--ink); font-weight: 600; }
+.geo .mut { fill: var(--muted); font-weight: 400; }
+.mini-tbl { font-family: var(--f-mono); font-size: .86rem; }
+.mini-tbl td, .mini-tbl th { padding: 6px 8px; }
+
+/* ---------- going further ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+.result-row { display: flex; gap: 28px; flex-wrap: wrap; align-items: end; }
+.result-row .k { font-size: .8rem; color: var(--muted); display: block; }
+.result-row b { font-size: 1.6rem; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+#tail-cv { height: 240px; }
+#wait-cv, #tail-cv, .sim2 canvas { background: var(--surface); border-radius: 10px; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim2, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #hero-cv { height: 240px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 104px 1fr 64px; }
+  td, th { padding: 8px 6px; }
+  .tile .v { font-size: 1.3rem; }
+  #wait-cv { height: 330px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+<div class="topbar">
+  <span class="brand">Waited 10 · how much longer?</span>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <h1 class="uk"><span class="kw">Чекати далі чи піти?</span> Ви чекаєте вже 10 хвилин. <span class="q sp-before">Скільки ще?</span><span class="q sp-after">Залежить від того, на що ви чекаєте.</span></h1>
+    <h1 class="en"><span class="kw">Keep waiting or leave?</span> You've waited 10 minutes. <span class="q sp-before">How much longer?</span><span class="q sp-after">It depends on what you're waiting for.</span></h1>
+    <p class="lead uk sp-before">Три очікування, і в кожному з моменту, коли ви почали чекати, в середньому 10: автобус за розкладом, якого ви не знаєте, автобус без розкладу і відповідь на заявку про роботу (у днях). Ви вже прочекали 10, а нічого немає. У якому випадку залишок у середньому скоротився, у якому лишився тим самим, а в якому став довшим? Зафіксуйте відповідь, а потім перевірте її в залі очікування, симуляцією і поясненнями.</p>
+    <p class="lead uk sp-after">Три очікування, і в кожному з моменту, коли ви почали чекати, в середньому 10. Ви прочекали 10. Автобус за розкладом прийде в середньому за 5 хвилин, автобус без розкладу так само за 10, а відповіді на заявку чекати в середньому ще 15 днів. І що довше вона не приходить, то довше лишилося: після 20 днів тиші ще 20. Прочеканий час нічого не повертає, але він каже, на що саме ви чекаєте.</p>
+    <p class="lead en sp-before">Three waits, and in each one the average from the moment you start waiting is 10: a bus on a timetable you don't know, a bus with no timetable, and a reply to a job application (in days). You've already waited 10 and nothing has come. In which case has the expected remaining wait got shorter, in which has it stayed the same, and in which has it got longer? Lock in your answer, then check it in a waiting room, a simulation and the explanations.</p>
+    <p class="lead en sp-after">Three waits, and in each one the average from the moment you start is 10. You've waited 10. The timetable bus comes in 5 minutes on average, the random bus still in 10, and the job reply is still 15 days away on average. And the longer it stays silent, the longer there is to go: after 20 days of silence, another 20. Time already spent buys nothing back, but it tells you what kind of thing you are waiting for.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd" style="--c:var(--sa)"><b><span class="uk">5 хв</span><span class="en">5 min</span></b><span><span class="uk">автобус за розкладом</span><span class="en">timetable bus</span></span></div>
+      <div class="odd" style="--c:var(--sb)"><b><span class="uk">10 хв</span><span class="en">10 min</span></b><span><span class="uk">автобус без розкладу</span><span class="en">random bus</span></span></div>
+      <div class="odd" style="--c:var(--sc)"><b><span class="uk">15 днів</span><span class="en">15 days</span></b><span><span class="uk">відповідь на заявку</span><span class="en">job reply</span></span></div>
+    </div>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span><span class="en">The puzzle</span></span>
+    <h2><span class="uk">Три очікування з однаковим середнім</span><span class="en">Three waits with the same average</span></h2>
+    <p class="lead uk sp-before">Ця задача про те, що каже вже прочеканий час про час, що лишився. У теорії надійності це називають середнім залишковим часом.</p>
+    <p class="lead uk sp-after">Ця задача про те, що каже вже прочеканий час про час, що лишився. У теорії надійності це називають середнім залишковим часом, і залежно від розподілу він може спадати, стояти на місці або рости.</p>
+    <p class="lead en sp-before">This puzzle is about what the time you have already waited says about the time that is left. Reliability theory calls it the mean residual life.</p>
+    <p class="lead en sp-after">This puzzle is about what the time you have already waited says about the time that is left. Reliability theory calls it the mean residual life, and depending on the distribution it can fall, stay put or grow.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n" style="color:var(--sa)">1</span><div><h3><span class="uk">Автобус за розкладом</span><span class="en">A bus on a timetable</span></h3>
+        <p class="uk">Автобус ходить строго раз на 20 хвилин, але розкладу ви не знаєте і приходите в довільний момент. Від вашого приходу до автобуса минає будь-що від 0 до 20 хвилин, у середньому 10.</p>
+        <p class="en">The bus runs strictly every 20 minutes, but you don't know the timetable and turn up at an arbitrary moment. Between your arrival and the bus anything from 0 to 20 minutes passes, 10 on average.</p></div></li>
+      <li><span class="n" style="color:var(--sb)">2</span><div><h3><span class="uk">Автобус без розкладу</span><span class="en">A bus with no timetable</span></h3>
+        <p class="uk">Автобуси приходять незалежно один від одного, у випадкові моменти, в середньому раз на 10 хвилин. Як показує <a href="../inspection-paradox/">парадокс автобуса</a>, якщо прийти в довільний момент, чекати теж у середньому 10 хвилин.</p>
+        <p class="en">Buses come independently of each other, at random moments, every 10 minutes on average. As the <a href="../../inspection-paradox/en/">bus paradox</a> shows, if you turn up at an arbitrary moment, the wait is also 10 minutes on average.</p></div></li>
+      <li><span class="n" style="color:var(--sc)">3</span><div><h3><span class="uk">Відповідь на заявку</span><span class="en">A reply to a job application</span></h3>
+        <p class="uk">Ви подали заявку на роботу. Компанії відповідають у середньому за 10 днів, але дуже по-різному: приблизно половина відповідає за 5 днів, кожна восьма мовчить понад 20 днів, а деякі відповідають через місяці.</p>
+        <p class="en">You've applied for a job. Companies reply in 10 days on average, but very unevenly: about half reply within 5 days, one in eight stays silent for more than 20 days, and some reply months later.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span><span class="en">The question</span></h3>
+        <p class="uk">У кожному випадку ви вже прочекали 10 (хвилин або днів), а нічого немає. Скільки в середньому ще чекати: менше за 10, ті самі 10 чи більше?</p>
+        <p class="en">In each case you've already waited 10 (minutes or days), and nothing yet. How long is left on average: less than 10, the same 10, or more?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція підказує</span><span class="en">Intuition says</span></span>
+        <p class="q"><span class="uk">«Я вже стільки прочекав, тепер точно скоро»</span><span class="en">"I've waited so long, it must be soon now"</span></p>
+        <p class="uk">Це правда лише для автобуса за розкладом: там залишок падає до 5 хвилин. Автобусу без розкладу байдуже, скільки ви чекали, він так само за 10. А відповідь на заявку після 10 днів тиші в середньому прийде лише ще через 15: довга тиша є поганою ознакою.</p>
+        <p class="en">That is true only for the timetable bus: its remainder drops to 5 minutes. The random bus doesn't care how long you've waited; it is still 10 away. And after 10 days of silence the job reply is still 15 days away on average: a long silence is a bad sign.</p>
+      </div>
+      <div class="card">
+        <h3><span class="uk">Що ми припускаємо</span><span class="en">What we assume</span></h3>
+        <ul class="rules uk">
+          <li>На початку в усіх трьох випадках чекати в середньому 10.</li>
+          <li>Крім прочеканого часу, ви нічого не знаєте: немає застосунку з автобусами, листа «ми розглядаємо вашу заявку» тощо.</li>
+          <li>Строки відповіді на заявку тут задано моделлю, а не статистикою ринку праці. Модель передає лише форму: багато швидких відповідей і кілька дуже довгих.</li>
+          <li>Відповідь колись приходить. Що буде, якщо частина компаній не відповідає взагалі, у раунді 5.</li>
+        </ul>
+        <ul class="rules en">
+          <li>At the start, in all three cases, the average wait is 10.</li>
+          <li>Apart from the time already waited, you know nothing: no bus app, no "we are reviewing your application" email, and so on.</li>
+          <li>The reply times here come from a model, not from job-market statistics. The model only captures the shape: many quick replies and a few very long ones.</li>
+          <li>A reply does come eventually. Round 5 looks at what changes when some companies never reply.</li>
+        </ul>
+        <svg class="mini-bars" viewBox="0 0 320 96" role="img" aria-label="Як розподілені очікування">
+          <g fill="var(--sa)"><rect x="6" y="14" width="100" height="10" rx="2"/></g>
+          <g fill="var(--sb)"><rect x="6" y="40" width="60" height="10" rx="2" opacity=".9"/><rect x="66" y="40" width="40" height="10" rx="2" opacity=".55"/><rect x="106" y="40" width="60" height="10" rx="2" opacity=".3"/><rect x="166" y="40" width="40" height="10" rx="2" opacity=".15"/></g>
+          <g fill="var(--sc)"><rect x="6" y="66" width="26" height="10" rx="2"/><rect x="32" y="66" width="74" height="10" rx="2" opacity=".55"/><rect x="106" y="66" width="100" height="10" rx="2" opacity=".25"/><rect x="206" y="66" width="108" height="10" rx="2" opacity=".1"/></g>
+          <text x="6" y="92">0</text><text x="98" y="92">20</text><text x="198" y="92">40</text><text x="292" y="92">60+</text>
+        </svg>
+        <p class="note"><span class="uk">Де закінчується очікування: синій розклад рівно в межах 0–20, зелені випадкові автобуси здебільшого до 20–30, а відповіді на заявку (жовті) мають довгий хвіст.</span><span class="en">Where the waits end: the blue timetable stays strictly within 0–20, the green random buses mostly end by 20–30, and the job replies (yellow) have a long tail.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="uk">Прочекали 10. Скільки ще?</span><span class="en">Waited 10. How much longer?</span></h2>
+    <p class="lead uk">Для кожного очікування оберіть, скільки в середньому лишилося порівняно з 10 на початку. Зафіксуйте відповідь, перш ніж читати далі.</p>
+    <p class="lead en">For each wait, pick how much is left on average compared with the 10 at the start. Lock in your answer before reading on.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <div id="g-rows"></div>
+      <div class="actions"><button class="btn pri" id="guess-go" disabled><span class="uk">Перевірити</span><span class="en">Check</span></button></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться розбір вашої відповіді.</p>
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+</section>
+
+<!-- rounds 2–5 and the facts give the answer away, so they open only after a guess, "go on", or "always show all rounds" -->
+<section class="round sp-gate" id="next">
+  <div class="card gate">
+    <span class="kicker"><span class="uk">Далі розв'язок</span><span class="en">Next: the solution</span></span>
+    <h3><span class="uk">Далі пояснення, і в ньому спойлери</span><span class="en">Next comes the explanation, with spoilers</span></h3>
+    <p class="uk">Наступні раунди показують, скільки лишилося чекати в кожному випадку: зал очікування, симуляція і пояснення. Спершу відповісти в раунді 1 чи йти далі?</p>
+    <p class="en">The next rounds show how long is left in each case: a waiting room, a simulation and the explanation. Answer round 1 first, or go on?</p>
+    <div class="actions"><a class="btn pri" href="#guess"><span class="uk">Відповісти в раунді 1</span><span class="en">Answer round 1</span></a><button type="button" class="btn ghost" data-solve><span class="uk">Йти далі</span><span class="en">Go on</span></button></div>
+    <button type="button" class="sp-skip" data-rounds="open"><span class="uk">Завжди показувати всі раунди, я не боюся спойлерів</span><span class="en">Always show all rounds, I don't mind spoilers</span></button>
+  </div>
+</section>
+
+<div class="sp-rounds">
+<p class="note rounds-on"><span class="uk">Ви обрали завжди показувати всі раунди.</span><span class="en">You chose to always show all rounds.</span> <button type="button" class="sp-skip" data-rounds="gate"><span class="uk">Ховати їх до відповіді</span><span class="en">Hide them until I answer</span></button></p>
+
+<!-- ROUND 2: the waiting room -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Зал очікування</span><span class="en">Round 2 · The waiting room</span></span>
+    <h2><span class="uk">По 100 людей у трьох чергах</span><span class="en">100 people in each of three queues</span></h2>
+    <p class="lead uk">Кожна крапка означає людину, що почала чекати в нульовий момент. Запустіть годинник або посуньте повзунок. Коли автобус чи відповідь приходить, крапка стає порожньою. Праворуч видно, скільки людей ще чекає і скільки їм у середньому лишилося. Тут це не формула, а реальні долі цих 300 людей.</p>
+    <p class="lead en">Each dot is a person who started waiting at time zero. Start the clock or move the slider. When the bus or the reply arrives, the dot turns hollow. On the right you see how many people are still waiting and how long they have left on average. This is not a formula, it is the actual fate of these 300 people.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <label class="ctl" for="w-t"><span><span class="uk">Прочекано:</span><span class="en">Waited so far:</span> <b class="mono" id="w-t-v"></b></span>
+        <input type="range" id="w-t" min="0" max="40" step="1" value="0">
+      </label>
+      <canvas id="wait-cv" role="img" aria-label="Три черги"></canvas>
+      <p class="msg" id="w-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn pri" id="w-play"></button>
+        <button class="btn ghost" id="w-ten"><span class="uk">Перейти до 10</span><span class="en">Jump to 10</span></button>
+        <button class="btn ghost" id="w-new"><span class="uk">Нові люди</span><span class="en">New people</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:14px"><span class="uk">Хто ще чекає</span><span class="en">Who is still waiting</span></h3>
+      <div class="tally" id="w-tally"></div>
+      <p class="note" style="margin-top:14px"><span class="uk">У черзі за відповіддю відтінок крапки показує, наскільки швидка компанія: світлі відповідають за кілька днів, темні тижнями. Посуньте повзунок до 10, а потім до 20 і подивіться, які крапки лишаються.</span><span class="en">In the job-reply queue, the shade of a dot shows how quick the company is: light ones reply within days, dark ones take weeks. Move the slider to 10, then to 20, and watch which dots are left.</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="uk">400 000 очікувань кожного виду</span><span class="en">400,000 waits of each kind</span></h2>
+    <p class="lead uk">Комп'ютер розігрує багато очікувань кожного виду. Для кожного моменту t беремо лише тих, хто ще чекає, і рахуємо, скільки їм у середньому лишилося. Лінії показують точні формули, точки показують симуляцію.</p>
+    <p class="lead en">The computer plays out many waits of each kind. For every moment t we keep only those still waiting and work out how long they have left on average. Lines are the exact formulas, dots are the simulation.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="sim-r"><span class="uk">Очікувань кожного виду</span><span class="en">Waits of each kind</span>
+        <select id="sim-r">
+          <option value="100000">100 000</option>
+          <option value="400000" selected>400 000</option>
+          <option value="1000000">1 000 000</option>
+        </select>
+      </label>
+      <button class="btn pri" id="sim-run"><span class="uk">Запустити ще раз</span><span class="en">Run again</span></button>
+      <span class="prog" id="sim-prog" aria-live="polite"></span>
+    </div>
+    <div class="sim2">
+      <div>
+        <h3><span class="uk">Прочекано t, а скільки лишилося в середньому</span><span class="en">Waited t: how much is left on average</span></h3>
+        <canvas id="h-left"></canvas>
+        <div class="legend">
+          <span class="ln" style="--c:var(--sa)"><b class="uk">розклад: (20 − t)/2</b><b class="en">timetable: (20 − t)/2</b></span>
+          <span class="ln" style="--c:var(--sb)"><b class="uk">без розкладу: 10</b><b class="en">random: 10</b></span>
+          <span class="ln" style="--c:var(--sc)"><b class="uk">заявка: (20 + t)/2</b><b class="en">job reply: (20 + t)/2</b></span>
+        </div>
+      </div>
+      <div>
+        <h3><span class="uk">Яка частка людей ще чекає</span><span class="en">What share of people is still waiting</span></h3>
+        <canvas id="h-surv"></canvas>
+        <div class="legend">
+          <span class="ln" style="--c:var(--sa)"><b class="uk">1 − t/20</b><b class="en">1 − t/20</b></span>
+          <span class="ln" style="--c:var(--sb)"><b>e<sup>−t/10</sup></b></span>
+          <span class="ln" style="--c:var(--sc)"><b>(1 + t/20)<sup>−3</sup></b></span>
+        </div>
+      </div>
+    </div>
+    <div class="tiles">
+      <div class="tile" style="--c:var(--sa)"><div class="k"><span class="uk">Розклад, після 10</span><span class="en">Timetable, after 10</span></div><div class="v mono" id="t-a">–</div><div class="s"><span class="uk">точно 5 хв</span><span class="en">exact 5 min</span></div></div>
+      <div class="tile" style="--c:var(--sb)"><div class="k"><span class="uk">Без розкладу, після 10</span><span class="en">Random, after 10</span></div><div class="v mono" id="t-b">–</div><div class="s"><span class="uk">точно 10 хв</span><span class="en">exact 10 min</span></div></div>
+      <div class="tile" style="--c:var(--sc)"><div class="k"><span class="uk">Заявка, після 10</span><span class="en">Job reply, after 10</span></div><div class="v mono" id="t-c">–</div><div class="s"><span class="uk">точно 15 днів</span><span class="en">exact 15 days</span></div></div>
+      <div class="tile" style="--c:var(--sc)"><div class="k"><span class="uk">Заявка, після 20</span><span class="en">Job reply, after 20</span></div><div class="v mono" id="t-d">–</div><div class="s"><span class="uk">точно 20 днів</span><span class="en">exact 20 days</span></div></div>
+    </div>
+    <p class="note" style="margin-top:14px"><span class="uk">Ліворуч: три прямі виходять з однієї точки, 10 на початку, і розходяться. Розклад спадає до нуля на 20-й хвилині, випадковий автобус тримається на 10, а заявка росте на половину кожного прочеканого дня. Праворуч: частки тих, хто ще чекає. Після 20 у черзі за розкладом не лишається нікого, за випадковим автобусом лишається 13,5%, а за відповіддю 12,5%. Ці дві частки майже однакові, але далі заявка тане значно повільніше: її хвіст довгий. Ліворуч точки черги за відповіддю для t &gt; 30 розкидані сильніше, бо там лишається мало людей.</span><span class="en">Left: three straight lines start at the same point, 10 at the outset, and fan out. The timetable falls to zero at minute 20, the random bus stays at 10, and the job reply grows by half of every day already waited. Right: the shares still waiting. After 20 nobody is left in the timetable queue, 13.5% are left waiting for the random bus and 12.5% for a reply. Those two shares are almost equal, but after that the replies thin out far more slowly: their tail is long. On the left, the job-reply dots beyond t = 30 scatter more because few people are left there.</span></p>
+    <h3 style="margin:24px 0 12px"><span class="uk">Симуляція проти точних значень</span><span class="en">Simulation versus exact values</span></h3>
+    <div class="compare" id="sim-bars"></div>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Пояснення</span><span class="en">Round 4 · Explanations</span></span>
+    <h2><span class="uk">Прочеканий час — це підказка</span><span class="en">Time already waited is a clue</span></h2>
+    <p class="lead uk">Прочеканих хвилин не повернути, тож рішення «чекати далі чи піти» має дивитися лише вперед. Але вперед видно по-різному залежно від того, що прочекане сказало про ваше очікування.</p>
+    <p class="lead en">The minutes already spent can't be refunded, so the decision to stay or leave should only look forward. But what you see ahead depends on what the time already spent has told you about your wait.</p>
+  </div>
+  <div class="mp-layer" data-layer="easy">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Хто досі мовчить</span><span class="en">Who is still silent</span></span>
+      <h3><span class="uk">Швидкі вже відповіли, лишилися повільні</span><span class="en">The quick ones have replied, the slow ones are left</span></h3>
+      <svg class="geo" viewBox="0 0 320 62" role="img" aria-label="75 швидких і 25 повільних компаній">
+        <g id="mix-dots"></g>
+        <text x="0" y="56" class="mut uk">ліворуч: на початку · праворуч: через 10 днів</text><text x="0" y="56" class="mut en">left: at the start · right: after 10 days</text>
+      </svg>
+      <p class="uk">Спростимо модель до двох видів компаній. Ви подаєте 100 заявок: 75 у швидкі компанії, що відповідають у середньому за 5 днів, і 25 у повільні, у середньому за 25 днів. Разом виходить ті самі 10 днів у середньому.</p>
+      <p class="en">Simplify the model to two kinds of companies. You send 100 applications: 75 to quick companies that reply in 5 days on average, and 25 to slow ones that take 25 days on average. Together that is the same 10 days on average.</p>
+      <p class="uk">Минає 10 днів. Зі швидких мовчить лише близько 10 (світлі крапки), з повільних близько 17 (темні). Отже, якщо вам досі не відповіли, то найімовірніше, ви чекаєте на повільну компанію, і чекати ще довго: у цьому прикладі в середньому близько 17 днів.</p>
+      <p class="en">Ten days pass. Only about 10 of the quick companies are still silent (light dots), against about 17 of the slow ones (dark). So if nobody has replied yet, you are most likely waiting on a slow company, and there is a long way to go: about 17 days on average in this example.</p>
+      <p class="uk">Ця картка показує механізм, але не точне число: у моделі сторінки швидкість компаній розподілена плавно, і там після 10 днів лишається 15.</p>
+      <p class="en">This card shows the mechanism, not the exact number: in the page's model the companies' speeds are spread smoothly, and there 15 days are left after 10.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Розклад</span><span class="en">Timetable</span></span>
+      <h3><span class="uk">Кожна хвилина наближає автобус</span><span class="en">Every minute brings the bus closer</span></h3>
+      <svg class="geo" viewBox="0 0 320 76" role="img" aria-label="0–20 хвилин">
+        <rect x="10" y="22" width="300" height="18" rx="3" fill="var(--sa)" opacity=".12"/>
+        <rect x="160" y="22" width="150" height="18" rx="3" fill="var(--sa)" opacity=".35"/>
+        <line x1="160" y1="14" x2="160" y2="48" stroke="var(--ink)" stroke-width="2"/>
+        <text x="10" y="64">0</text><text x="152" y="64">10</text><text x="292" y="64">20</text>
+        <text x="186" y="35" class="mut uk">автобус тут</text><text x="186" y="35" class="mut en">the bus is here</text>
+      </svg>
+      <p class="uk">Автобус ходить кожні 20 хвилин, тож прийде будь-коли від 0 до 20 хвилин після вас. Ви прочекали 10, і його ще немає. Значить, він прийде в другій половині, між 10-ю і 20-ю хвилинами, у середньому посередині: ще за 5 хвилин.</p>
+      <p class="en">The bus runs every 20 minutes, so it comes any time from 0 to 20 minutes after you arrive. You've waited 10 and it isn't here. So it comes in the second half, between minute 10 and minute 20, on average in the middle: 5 more minutes.</p>
+      <p class="uk">Тут прочекане справді працює на вас: у очікування є межа, і кожна хвилина до неї наближає. Після 15 хвилин лишається 2,5, після 19 лише пів хвилини.</p>
+      <p class="en">Here the time spent really does work for you: the wait has a limit, and every minute brings you closer to it. After 15 minutes 2.5 are left, after 19 only half a minute.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Без розкладу</span><span class="en">No timetable</span></span>
+      <h3><span class="uk">Випадковий автобус не пам'ятає</span><span class="en">A random bus has no memory</span></h3>
+      <p class="uk">Автобуси без розкладу приходять незалежно один від одного, тож у кожну хвилину шанс, що автобус прийде, однаковий: близько 1 з 10. Він не залежить від того, скільки ви вже стоїте. Хоч 10 хвилин чекали, хоч 30, попереду все ті самі 10 хвилин у середньому.</p>
+      <p class="en">Buses with no timetable come independently of one another, so in every minute the chance of a bus is the same: about 1 in 10. It doesn't depend on how long you've been standing there. Whether you've waited 10 minutes or 30, the same 10 minutes lie ahead on average.</p>
+      <p class="uk">Так само монета не «мусить» випасти решкою після п'яти орлів поспіль. Прочекане тут нічого не каже ні на користь, ні проти: це чисте невезіння, яке не змінює майбутнього. Докладніше в <a href="../inspection-paradox/">парадоксі автобуса</a>.</p>
+      <p class="en">In the same way, a coin is never "due" for tails after five heads in a row. Here the time spent says nothing either way: it is plain bad luck that doesn't change the future. More in the <a href="../../inspection-paradox/en/">bus paradox</a>.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Безповоротні витрати</span><span class="en">Sunk costs</span></span>
+      <h3><span class="uk">«Шкода йти» і «пора йти»</span><span class="en">"Too late to leave" and "time to leave"</span></h3>
+      <p class="uk">Помилка безповоротних витрат (sunk cost fallacy) звучить так: «Я вже стільки вклав, що піти тепер шкода». Але вкладене не повертається ні в разі, якщо ви лишитеся, ні в разі, якщо підете. Розумне питання одне: скільки ще чекати і чи варте воно того.</p>
+      <p class="en">The sunk cost fallacy goes: "I've already put in so much, it would be a waste to leave now." But what you've put in doesn't come back whether you stay or go. The sensible question is just one: how much longer, and is it worth it.</p>
+      <p class="uk">Ця задача додає важливу деталь: прочеканий час не впливає на рішення як витрата, але впливає як інформація. Якщо в очікування є межа (розклад, таймер на плиті), чекати далі вигідніше з кожною хвилиною. Якщо це суміш швидких і дуже повільних випадків (відповіді, ремонти, проєкти), довга тиша означає, що вам, найімовірніше, трапився повільний, і «шкода йти» стає найгіршим аргументом саме тоді, коли він звучить найсильніше.</p>
+      <p class="en">This puzzle adds an important detail: the time already waited doesn't enter the decision as a cost, but it does enter as information. If the wait has a limit (a timetable, a kitchen timer), staying gets more worthwhile with every minute. If it is a mix of quick and very slow cases (replies, repairs, projects), a long silence means you have most likely drawn a slow one, and "it would be a waste to leave" is the worst argument exactly when it feels strongest.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+  <div class="why-grid">
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Числа</span><span class="en">The numbers</span></span>
+      <h3><span class="uk">Скільки лишилося після t</span><span class="en">How much is left after t</span></h3>
+      <div class="tbl-wrap">
+        <table class="mini-tbl">
+          <thead><tr><th><span class="uk">Прочекано</span><span class="en">Waited</span></th><th class="num" style="color:var(--sa)"><span class="uk">Розклад</span><span class="en">Timetable</span></th><th class="num" style="color:var(--sb)"><span class="uk">Без розкладу</span><span class="en">Random</span></th><th class="num" style="color:var(--sc)"><span class="uk">Заявка</span><span class="en">Job reply</span></th><th class="num"><span class="uk">Ще чекають на заявку</span><span class="en">Still waiting for a reply</span></th></tr></thead>
+          <tbody>
+            <tr><td>0</td><td class="num">10</td><td class="num">10</td><td class="num">10</td><td class="num">100%</td></tr>
+            <tr><td>5</td><td class="num"><span class="uk">7,5</span><span class="en">7.5</span></td><td class="num">10</td><td class="num"><span class="uk">12,5</span><span class="en">12.5</span></td><td class="num"><span class="uk">51,2%</span><span class="en">51.2%</span></td></tr>
+            <tr><td>10</td><td class="num">5</td><td class="num">10</td><td class="num">15</td><td class="num"><span class="uk">29,6%</span><span class="en">29.6%</span></td></tr>
+            <tr><td>20</td><td class="num">–</td><td class="num">10</td><td class="num">20</td><td class="num"><span class="uk">12,5% (1 з 8)</span><span class="en">12.5% (1 in 8)</span></td></tr>
+            <tr><td>40</td><td class="num">–</td><td class="num">10</td><td class="num">30</td><td class="num"><span class="uk">3,7% (1 з 27)</span><span class="en">3.7% (1 in 27)</span></td></tr>
+            <tr><td>60</td><td class="num">–</td><td class="num">10</td><td class="num">40</td><td class="num"><span class="uk">1,6% (1 з 64)</span><span class="en">1.6% (1 in 64)</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="uk">Після 20 хвилин автобус за розкладом уже точно прийшов, тому там прочерк. На заявку після 20 днів чекає кожен восьмий, і цим людям лишається ще в середньому 20 днів, тобто стільки, скільки вони вже прочекали. Після 60 днів чекає один з 64, і йому лишається ще 40.</p>
+      <p class="en">After 20 minutes the timetable bus has surely come, hence the dash. One in eight is still waiting for a reply after 20 days, and those people have 20 more days to go on average, as long as they have already waited. After 60 days one in 64 is still waiting, with 40 more to go.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span><span class="en">For formula lovers</span></span>
+      <h3><span class="uk">Середній залишковий час</span><span class="en">Mean residual life</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">X означає повний час очікування, S(x) — частку тих, хто чекає довше за x. Середній залишок після t рахуємо лише серед тих, хто ще чекає.</span><span class="en">X is the full wait, S(x) is the share of people who wait longer than x. The mean remainder after t is taken only over those still waiting.</span></p>
+          <math display="block"><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mi>E</mi><mo stretchy="false">[</mo><mi>X</mi><mo>−</mo><mi>t</mi><mo>∣</mo><mi>X</mi><mo>&gt;</mo><mi>t</mi><mo stretchy="false">]</mo><mo>=</mo><mrow class="hl"><mfrac><mrow><msubsup><mo>∫</mo><mi>t</mi><mo>∞</mo></msubsup><mi>S</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo><mspace width="0.2em"></mspace><mi>d</mi><mi>x</mi></mrow><mrow><mi>S</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></mfrac></mrow></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Розклад: рівномірно від 0 до 20.</span><span class="en">Timetable: uniform from 0 to 20.</span></p>
+          <math display="block"><mi>S</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mi>x</mi><mn>20</mn></mfrac><mo>→</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mrow><mn>20</mn><mo>−</mo><mi>t</mi></mrow><mn>2</mn></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Без розкладу: експоненційний розподіл із середнім 10, єдиний неперервний без пам'яті.</span><span class="en">No timetable: the exponential distribution with mean 10, the only continuous one with no memory.</span></p>
+          <math display="block"><mi>S</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo><mo>=</mo><msup><mi>e</mi><mrow><mo>−</mo><mi>x</mi><mo>/</mo><mn>10</mn></mrow></msup><mo>→</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mn>10</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Заявка: розподіл Ломакса (Парето другого роду) з α = 3 і λ = 20. Середнє λ/(α − 1) = 10, медіана 20(2<sup>1/3</sup> − 1) ≈ 5,2.</span><span class="en">Job reply: the Lomax distribution (Pareto type II) with α = 3 and λ = 20. Mean λ/(α − 1) = 10, median 20(2<sup>1/3</sup> − 1) ≈ 5.2.</span></p>
+          <math display="block"><mi>S</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo><mo>=</mo><msup><mrow><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mfrac><mi>x</mi><mn>20</mn></mfrac><mo stretchy="false">)</mo></mrow><mrow><mo>−</mo><mn>3</mn></mrow></msup><mo>→</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mrow><mn>20</mn><mo>+</mo><mi>t</mi></mrow><mn>2</mn></mfrac></math>
+          <math display="block"><mtext class="lbl uk">загалом</mtext><mtext class="lbl en">in general</mtext><mspace width="0.6em"></mspace><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mrow><mi>λ</mi><mo>+</mo><mi>t</mi></mrow><mrow><mi>α</mi><mo>−</mo><mn>1</mn></mrow></mfrac></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Звідки береться довгий хвіст: кожна компанія відповідає «без пам'яті», але зі своєю швидкістю r, а швидкості різні (гамма-розподіл). Суміш експоненційних і дає розподіл Ломакса.</span><span class="en">Where the long tail comes from: each company replies "without memory" but at its own rate r, and the rates differ (a gamma distribution). The mixture of exponentials is exactly the Lomax distribution.</span></p>
+          <math display="block"><mi>r</mi><mo>∼</mo><mtext>Gamma</mtext><mo stretchy="false">(</mo><mn>3</mn><mo>,</mo><mspace width="0.2em"></mspace><mn>20</mn><mo stretchy="false">)</mo><mo>:</mo><mspace width="0.6em"></mspace><mi>E</mi><mo stretchy="false">[</mo><msup><mi>e</mi><mrow><mo>−</mo><mi>r</mi><mi>x</mi></mrow></msup><mo stretchy="false">]</mo><mo>=</mo><msup><mrow><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mfrac><mi>x</mi><mn>20</mn></mfrac><mo stretchy="false">)</mo></mrow><mrow><mo>−</mo><mn>3</mn></mrow></msup></math>
+        </div>
+      </div>
+      <p class="uk">Різницю між трьома випадками зручно описати швидкістю завершення (інтенсивністю відмов) h(t) = f(t)/S(t): який шанс, що очікування закінчиться в найближчу хвилину, якщо воно досі не закінчилося. У розкладу вона росте: 1/(20 − t). У випадкового автобуса стала: 1/10. У заявки спадає: 3/(20 + t). Коли h(t) росте, залишок скорочується, коли спадає, росте.</p>
+      <p class="en">A handy way to describe the difference between the three cases is the completion rate (hazard rate) h(t) = f(t)/S(t): the chance that the wait ends in the next minute, given that it hasn't ended yet. For the timetable it rises: 1/(20 − t). For the random bus it is constant: 1/10. For the job reply it falls: 3/(20 + t). When h(t) rises the remainder shrinks; when it falls the remainder grows.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Ефект Лінді</span><span class="en">The Lindy effect</span></span>
+      <h3><span class="uk">Що довше існує, то довше існуватиме</span><span class="en">The longer it has lasted, the longer it will last</span></h3>
+      <p class="uk">Бенуа Мандельброт у книжці «The Fractal Geometry of Nature» (1982) описав це правило на прикладі кар'єр: скільки б уже не тривав доробок людини, в середньому він триватиме ще стільки ж. Це саме лінія m(t) ≈ t, як у заявки для великих t. Нассім Талеб у «Antifragile» (2012) назвав так правило для книжок, ідей і технологій: книжка, яку друкують 40 років, найімовірніше, протримається ще десятиліття.</p>
+      <p class="en">In "The Fractal Geometry of Nature" (1982) Benoit Mandelbrot described the rule using careers: however long a person's body of work has already run, on average it will run as long again. That is exactly the line m(t) ≈ t, like the job reply for large t. In "Antifragile" (2012) Nassim Taleb used the name for books, ideas and technologies: a book that has been in print for 40 years will most likely last decades more.</p>
+      <p class="uk">Ефект Лінді працює лише для того, що не старіє. Людина чи автомобіль зношуються, і для них середній залишок з віком падає, як у розкладу.</p>
+      <p class="en">The Lindy effect only holds for things that don't age. People and cars wear out, and for them the mean remainder falls with age, as with the timetable.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Теорія надійності</span><span class="en">Reliability theory</span></span>
+      <h3><span class="uk">Усі три форми в житті одного приладу</span><span class="en">All three shapes in one device's life</span></h3>
+      <p class="uk">Інженери малюють інтенсивність відмов у вигляді «ванни» (bathtub curve). Спочатку вона спадає: деякі прилади мають заводський брак і ламаються одразу, а той, що пропрацював тиждень, найімовірніше, без браку. Це наша заявка. Потім вона довго стала: відмови випадкові, як автобуси без розкладу. Наприкінці росте: прилад зношується, як автобус за розкладом, що неминуче наближається.</p>
+      <p class="en">Engineers draw the failure rate as a "bathtub curve". At first it falls: some units have factory defects and fail right away, and one that has run for a week most likely has none. That is our job reply. Then it stays flat for a long time: failures are random, like buses with no timetable. At the end it rises: the unit wears out, like the timetable bus that inevitably draws closer.</p>
+      <p class="uk">Тому нову техніку часто «проганяють» кілька днів перед відправкою (burn-in): ті, що пережили початок, далі служать надійніше.</p>
+      <p class="en">That is why new hardware is often run for a few days before shipping (burn-in): the units that survive the start are more reliable afterwards.</p>
+    </div>
+
+  </div>
+  </div>
+
+</section>
+
+<!-- ROUND 5: going further -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Ускладнюємо</span><span class="en">Round 5 · Going further</span></span>
+    <h2><span class="uk">Що важчий хвіст, то гірша довга тиша</span><span class="en">The heavier the tail, the worse a long silence</span></h2>
+    <p class="lead uk">Відповідь на заявку є лише однією точкою на шкалі. Можна плавно перейти від випадкового автобуса до хвостів, де очікування тягнеться без кінця, і подивитися, коли варто піти.</p>
+    <p class="lead en">The job reply is just one point on a scale. You can slide smoothly from the random bus to tails where the wait drags on without end, and see when it is worth leaving.</p>
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Наскільки важкий хвіст?</span><span class="en">How heavy is the tail?</span></h3>
+        <div class="presets" id="tail-pick"></div>
+        <label class="ctl" for="tail-a"><span><span class="uk">Параметр хвоста:</span><span class="en">Tail parameter:</span> <b class="mono" id="tail-a-v"></b></span>
+          <input type="range" id="tail-a" min="0" max="7" step="1" value="3">
+        </label>
+        <canvas id="tail-cv" aria-label="m(t) = 10 + t/(α − 1)"></canvas>
+        <div class="result-row">
+          <div><span class="k"><span class="uk">Після 20, точно</span><span class="en">After 20, exact</span></span><b class="big mono" id="tail-e" style="color:var(--sc)"></b></div>
+          <div><span class="k"><span class="uk">Симуляція, 200 000</span><span class="en">Simulation, 200,000</span></span><b class="big mono" id="tail-s"></b></div>
+          <div><span class="k"><span class="uk">Чекають понад 60</span><span class="en">Waiting over 60</span></span><b class="big mono" id="tail-p"></b></div>
+        </div>
+        <p class="note" id="tail-note"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Узагальнення</span><span class="en">Generalising</span></span>
+        <h3><span class="uk">Одна формула на всю шкалу</span><span class="en">One formula for the whole scale</span></h3>
+        <p class="uk">Середнє скрізь те саме, 10. Змінюється параметр хвоста α розподілу Ломакса, а λ = 10(α − 1) підбираємо так, щоб середнє не змінилося. Тоді лишається m(t) = 10 + t/(α − 1): кожен прочеканий день додає 1/(α − 1) дня до прогнозу.</p>
+        <p class="en">The mean is 10 everywhere. What changes is the Lomax tail parameter α, with λ = 10(α − 1) chosen to keep the mean fixed. Then m(t) = 10 + t/(α − 1): every day already waited adds 1/(α − 1) of a day to the forecast.</p>
+        <p class="uk">Коли α росте, хвіст коротшає, і на межі α → ∞ виходить випадковий автобус: пряма на висоті 10. Коли α прямує до 2, кожен прочеканий день додає майже цілий день, як в ефекті Лінді. При α ≤ 2 розкид стає нескінченним: симуляція скаче від запуску до запуску, бо все вирішують кілька рідкісних дуже довгих очікувань. При α ≤ 1 нескінченним стає навіть середнє.</p>
+        <p class="en">As α grows the tail shortens, and in the limit α → ∞ you get the random bus: a flat line at 10. As α approaches 2, every day waited adds almost a whole day, as in the Lindy effect. At α ≤ 2 the variance becomes infinite: the simulation jumps from run to run, because a few rare, very long waits decide everything. At α ≤ 1 even the mean becomes infinite.</p>
+        <p class="uk">А якщо частина компаній не відповідає ніколи, ефект ще сильніший. Нехай кожна п'ята компанія мовчить завжди. Тоді після 10 днів тиші частка «мовчунів» серед тих, кому ще не відповіли, зростає з 20% до 46%, а після 20 днів до 67%. Тиша дедалі частіше означає «ніколи».</p>
+        <p class="en">And if some companies never reply, the effect is stronger still. Say one company in five stays silent for good. Then after 10 days of silence the share of these among the unanswered rises from 20% to 46%, and after 20 days to 67%. Silence more and more often means "never".</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="uk">Де це трапляється</span><span class="en">Where this shows up</span></h3>
+      <p class="note" style="margin:6px 0 12px"><span class="uk">Перед тим як сказати «вже скоро», спитайте себе, на який з трьох випадків схоже ваше очікування: чи є в нього межа, чи воно «без пам'яті», чи це суміш швидких і дуже повільних.</span><span class="en">Before saying "it must be soon", ask which of the three cases your wait resembles: does it have a limit, is it memoryless, or is it a mix of quick and very slow ones.</span></p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Ситуація</span><span class="en">Situation</span></th><th><span class="uk">Тип</span><span class="en">Type</span></th><th><span class="uk">Що каже прочекане</span><span class="en">What the time waited says</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="uk">Таймер на плиті, автобус за розкладом, лекція, що закінчиться за розкладом</span><span class="en">A kitchen timer, a timetable bus, a lecture that ends on schedule</span></td><td style="color:var(--sa)"><span class="uk">Є межа</span><span class="en">Has a limit</span></td><td><span class="uk">Що довше чекали, то менше лишилося. Тут «вже скоро» правда.</span><span class="en">The longer you've waited, the less is left. Here "soon now" is true.</span></td></tr>
+            <tr><td><span class="uk">Розпад радіоактивного атома, автобуси без розкладу, дзвінки в кол-центр у спокійну годину</span><span class="en">A radioactive atom decaying, buses with no timetable, calls to a call centre in a quiet hour</span></td><td style="color:var(--sb)"><span class="uk">Без пам'яті</span><span class="en">Memoryless</span></td><td><span class="uk">Нічого. Атом, що прожив тисячу років, має ті самі шанси розпастися, що й новий.</span><span class="en">Nothing. An atom that has lasted a thousand years has the same chance to decay as a new one.</span></td></tr>
+            <tr><td><span class="uk">Відповідь на заявку, ремонт «на пару днів», проєкт, що вже запізнюється</span><span class="en">A job reply, a repair "for a couple of days", a project that is already late</span></td><td style="color:var(--sc)"><span class="uk">Суміш, важкий хвіст</span><span class="en">A mix, heavy tail</span></td><td><span class="uk">Що довше тиша, то більше лишилося. Варто заздалегідь назначити собі строк і після нього діяти: розсилати інші заявки, шукати іншого майстра.</span><span class="en">The longer the silence, the more is left. It pays to set yourself a deadline in advance and act once it passes: send other applications, find another repairer.</span></td></tr>
+            <tr><td><span class="uk">Людське життя</span><span class="en">A human life</span></td><td style="color:var(--sa)"><span class="uk">Старіння</span><span class="en">Ageing</span></td><td><span class="uk">Що старша людина, то менше їй у середньому лишилося, хоча вік, до якого вона в середньому доживе, росте: ті, хто дожив до 80, вже пережили ризики молодості.</span><span class="en">The older a person, the less time is left on average, even though the age they can expect to reach goes up: those who made it to 80 have already survived the risks of youth.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="uk">Що розповісти друзям</span><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1964</span>
+        <h3><span class="uk">Закон кулінарії Лінді</span><span class="en">The law of Lindy's deli</span></h3>
+        <p class="uk">Назва «Lindy's Law» з'явилася в есеї Альберта Голдмана в журналі The New Republic. Lindy's — нью-йоркська кулінарія, де збиралися коміки й обговорювали шоу-бізнес. У Голдмана закон був про те, що в коміка обмежений запас матеріалу, тож що частіше він виступає, то швидше вичерпається.</p>
+        <p class="en">The name "Lindy's Law" first appeared in an essay by Albert Goldman in The New Republic. Lindy's was a New York deli where comedians met to talk show business. In Goldman's version the law said a comedian has a limited stock of material, so the more often he appears, the sooner he runs out.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1982</span>
+        <h3><span class="uk">Мандельброт перевернув закон</span><span class="en">Mandelbrot turned the law around</span></h3>
+        <p class="uk">Бенуа Мандельброт узяв назву для «The Fractal Geometry of Nature», але зробив з неї протилежне: що довший уже доробок, то довшим він буде в майбутньому, в середньому ще стільки ж. Він додав, що коли робота все-таки обривається, то в середньому на половині обіцяного. Тобі Орд пізніше зауважив, що Голдман і Мандельброт, можливо, описували зовсім різні закони.</p>
+        <p class="en">Benoit Mandelbrot took the name for "The Fractal Geometry of Nature" but made it mean the opposite: the longer a body of work has already run, the longer it will run, on average as long again. He added that when it does stop, it breaks off on average at half of its promise. Toby Ord later noted that Goldman and Mandelbrot may have been describing quite different laws.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1969 → 1989</span>
+        <h3><span class="uk">Прогноз для Берлінського муру</span><span class="en">A forecast for the Berlin Wall</span></h3>
+        <p class="uk">Астрофізик Річард Ґотт побачив Берлінський мур 1969 року, коли тому було 8 років. Він міркував, що прийшов у випадковий момент його існування, і дав 50% шансів, що мур простоїть ще від 2⅔ до 24 років. Мур упав за 20 років. 1993 року Ґотт описав цей «принцип Коперника» для прогнозів у журналі Nature.</p>
+        <p class="en">The astrophysicist Richard Gott saw the Berlin Wall in 1969, when it was 8 years old. He reasoned that he had come at a random moment in its existence and gave a 50% chance that it would stand another 2⅔ to 24 years. The Wall fell 20 years later. In 1993 Gott described this "Copernican principle" for forecasts in Nature.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1976</span>
+        <h3><span class="uk">Помилка «Конкорда»</span><span class="en">The Concorde fallacy</span></h3>
+        <p class="uk">Річард Докінз і Тамсін Карлайл у статті в Nature назвали помилку безповоротних витрат на честь надзвукового літака «Конкорд», у який британський і французький уряди продовжували вкладати гроші, хоча вигоди вже не було видно. Вони показали, що ця сама помилка спокушає й теоретиків поведінки тварин, коли ті пояснюють піклування батьків про потомство.</p>
+        <p class="en">In a paper in Nature, Richard Dawkins and Tamsin Carlisle named the sunk cost fallacy after the supersonic Concorde, which the British and French governments kept funding long after any payoff was in sight. They showed that the same fallacy tempts theorists of animal behaviour when they explain parental care.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">4,11 і 3,3</span><span class="en">4.11 vs 3.3</span></span>
+        <h3><span class="uk">Абонементи в театр</span><span class="en">Theatre season tickets</span></h3>
+        <p class="uk">Гел Аркс і Кетрін Блумер (1985) продали абонементи театру Університету Огайо на сезон 1982–1983 за трьома цінами: повною і зі знижками в 2 і 7 доларів. За першу половину сезону ті, хто заплатив повну ціну, сходили в середньому на 4,11 вистави, а ті, хто отримав знижку, приблизно на 3,3. У другій половині різниці майже не було. Пізніші дослідники вважають ефект слабшим, ніж здавалося.</p>
+        <p class="en">Hal Arkes and Catherine Blumer (1985) sold Ohio University Theater season tickets for 1982–83 at three prices: full price, or with a $2 or $7 discount. In the first half of the season the full-price buyers went to 4.11 shows on average, the discount buyers to about 3.3. In the second half there was hardly any difference. Later researchers think the effect is weaker than it looked.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">Без віку</span><span class="en">Ageless</span></span>
+        <h3><span class="uk">Атоми не старіють</span><span class="en">Atoms don't age</span></h3>
+        <p class="uk">Розпад радіоактивного атома є найчистішим прикладом очікування без пам'яті. Тому в атома є період напіврозпаду, але немає віку: атом урану, що пролежав у породі мільярд років, має ті самі шанси розпастися наступної секунди, що й щойно утворений.</p>
+        <p class="en">Radioactive decay is the purest example of a memoryless wait. That is why an atom has a half-life but no age: a uranium atom that has sat in rock for a billion years has the same chance of decaying in the next second as one formed just now.</p>
+      </article>
+  </div>
+</section>
+</div>
+
+<footer>
+  <span class="uk">Середній залишковий час (mean residual life) є класичним поняттям теорії надійності. Ефект Лінді описав Бенуа Мандельброт у «The Fractal Geometry of Nature» (1982), назву поширив Нассім Талеб в «Antifragile» (2012).</span>
+  <span class="en">The mean residual life is a classic notion of reliability theory. Benoit Mandelbrot described the Lindy effect in "The Fractal Geometry of Nature" (1982), and Nassim Taleb spread the name in "Antifragile" (2012).</span>
+  <span class="mono">m(t) = E[X − t | X &gt; t]</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? s : s.replace('.', ',');
+const pct = (p, d = 1) => dec((100 * p).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const num = (x, d = 1) => dec(x.toFixed(d));
+const plural = (k, one, few, many) => {
+  const a = k % 10, b = k % 100;
+  if (a === 1 && b !== 11) return one;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+  return many;
+};
+// minutes for the buses, days for the job reply
+const unit = (s, x, d = 1) => {
+  const v = num(x, d);
+  if (s.days) return v + ' ' + (lang === 'en' ? (x === 1 ? 'day' : 'days') : (d === 0 && Number.isInteger(x) ? plural(x, 'день', 'дні', 'днів') : 'дня'));
+  return v + L(' хв', ' min');
+};
+
+/* ---------- maths ---------- */
+const expR = m => -m * Math.log(1 - Math.random());
+// three waits with the same mean 10: uniform 0–20, exponential, Lomax α = 3, λ = 20
+const SIT = [
+  { k: 'a', col: '--sa', uk: 'Автобус за розкладом', en: 'Timetable bus', ukS: 'кожні 20 хв, розкладу ви не знаєте', enS: 'every 20 min, you don\'t know when',
+    draw: () => 20 * Math.random(), S: t => t < 20 ? 1 - t / 20 : 0, m: t => t < 20 ? (20 - t) / 2 : null },
+  { k: 'b', col: '--sb', uk: 'Автобус без розкладу', en: 'Random bus', ukS: 'у середньому раз на 10 хв', enS: 'every 10 min on average',
+    draw: () => expR(10), S: t => Math.exp(-t / 10), m: () => 10 },
+  { k: 'c', col: '--sc', uk: 'Відповідь на заявку', en: 'Job reply', ukS: 'у середньому 10 днів, буває місяцями', enS: '10 days on average, sometimes months', days: true,
+    draw: () => 20 * (Math.pow(1 - Math.random(), -1 / 3) - 1), S: t => Math.pow(1 + t / 20, -3), m: t => (20 + t) / 2 }
+];
+// a company's reply rate: Gamma(3) with rate 20 is the sum of three Exp(1) over 20, and a reply at that rate is Exp(1)/r, so X is Lomax
+const firm = () => { const r = (expR(1) + expR(1) + expR(1)) / 20; return { x: expR(1) / r, mean: 1 / r }; };
+const people = (s, n) => Array.from({ length: n }, () => s.k === 'c' ? firm() : { x: s.draw() });
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) return null;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W, H };
+}
+// the shade of a company: light for quick ones (mean 2 days or less), dark for slow ones (40 days or more)
+const slowness = mean => Math.min(1, Math.max(0, Math.log(mean / 2) / Math.log(20)));
+// three queues of dots; served people turn hollow
+function drawQueues(cv, groups, t, o) {
+  const s = setupCanvas(cv); if (!s) return;
+  const { ctx, W, H } = s, ink = tok('--ink'), muted = tok('--muted'), line = tok('--line');
+  const lh = H / 3, cols = o.cols, rows = Math.ceil(groups[0].length / cols);
+  const head = 22, gapX = (W - 16) / cols, gapY = Math.min(gapX, (lh - head - 10) / rows), r = Math.max(2, Math.min(5.5, gapY * .36));
+  groups.forEach((g, li) => {
+    const sit = SIT[li], col = tok(sit.col), y0 = li * lh;
+    if (li) { ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, y0); ctx.lineTo(W, y0); ctx.stroke(); }
+    const left = g.filter(p => p.x > t).length;
+    ctx.fillStyle = col; ctx.font = '600 12px ' + tok('--f-body'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(L(sit.uk, sit.en), 8, y0 + 6);
+    ctx.fillStyle = muted; ctx.font = '11px ' + tok('--f-mono'); ctx.textAlign = 'right';
+    ctx.fillText(L('чекають: ', 'waiting: ') + left, W - 8, y0 + 7);
+    g.forEach((p, i) => {
+      const cx = 8 + gapX * (i % cols + .5), cy = y0 + head + gapY * (Math.floor(i / cols) + .5);
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+      if (p.x > t) {
+        ctx.fillStyle = col;
+        ctx.globalAlpha = o.shade && p.mean ? .25 + .75 * slowness(p.mean) : 1;
+        ctx.fill(); ctx.globalAlpha = 1;
+      } else { ctx.strokeStyle = muted; ctx.globalAlpha = .4; ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1; }
+    });
+  });
+  if (o.clock) { ctx.fillStyle = ink; ctx.font = '600 12px ' + tok('--f-mono'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(o.clock, W - 8, H - 4); }
+}
+const leftStats = (g, t) => { const w = g.filter(p => p.x > t); return { n: w.length, avg: w.length ? w.reduce((a, p) => a + p.x - t, 0) / w.length : null }; };
+
+/* ---------- hero: three queues melt away ---------- */
+const hero = { g: [], t: 0, raf: 0, prev: 0, hold: 0 };
+const HT = 30;                                      // the hero clock runs to 30, then starts over
+function heroInit() { hero.g = SIT.map(s => people(s, 40)); hero.t = 0; hero.hold = 0; }
+function heroDraw() {
+  drawQueues($('#hero-cv'), hero.g, hero.t, { cols: 20, clock: L('прочекано ', 'waited ') + Math.floor(hero.t) });
+  heroCap();
+}
+function heroCap() {
+  if (window.mpSolved && !mpSolved()) { $('#hero-cap').textContent = L('Кожна крапка означає людину, що чекає: на автобус за розкладом, на автобус без розкладу, на відповідь щодо роботи. Скільки лишилося тим, хто ще чекає?', 'Each dot is a person waiting: for a timetable bus, for a random bus, for a job reply. How long is left for those still waiting?'); return; }
+  if (hero.t < 1) { $('#hero-cap').textContent = L('Усі почали чекати разом. В середньому кожному чекати 10.', 'Everyone started waiting together. Each has 10 to wait on average.'); return; }
+  const t = Math.floor(hero.t), m = SIT.map(s => s.m(t));
+  $('#hero-cap').textContent = L('Прочекано ' + t + '. Тим, хто ще чекає, лишилося в середньому: розклад ' + (m[0] === null ? '0' : num(m[0])) + ' хв, без розкладу 10 хв, заявка ' + num(m[2]) + ' дня.',
+    'Waited ' + t + '. Those still waiting have, on average: timetable ' + (m[0] === null ? '0' : num(m[0])) + ' min, random 10 min, job reply ' + num(m[2]) + ' days.');
+}
+function heroFrame(ts) {
+  const dt = hero.prev ? Math.min(.1, (ts - hero.prev) / 1000) : 0; hero.prev = ts;
+  if (hero.t >= HT) { hero.hold += dt; if (hero.hold > 2.5) heroInit(); }
+  else hero.t = Math.min(HT, hero.t + dt * 3);     // 3 units of waiting per second
+  heroDraw();
+  hero.raf = requestAnimationFrame(heroFrame);
+}
+function heroStart() {
+  cancelAnimationFrame(hero.raf); heroInit();
+  if (reduce()) { hero.t = 10; heroDraw(); return; }
+  hero.prev = 0; hero.raf = requestAnimationFrame(heroFrame);
+}
+
+/* ---------- round 1: guess ---------- */
+const G_OPTS = [['less', 'Менше 10', 'Less than 10'], ['same', 'Ті самі 10', 'The same 10'], ['more', 'Більше 10', 'More than 10']];
+const RIGHT = ['less', 'same', 'more'];
+const gPick = [null, null, null];
+let guessed = false;
+function guessRows() {
+  $('#g-rows').innerHTML = SIT.map((s, i) => '<div class="grow"><span style="color:var(' + s.col + ')">' + L(s.uk, s.en) + '<small>' + L(s.ukS, s.enS) + '</small></span><div class="pick" data-i="' + i + '">' +
+    G_OPTS.map(o => '<button type="button" data-k="' + o[0] + '" aria-pressed="' + (gPick[i] === o[0]) + '">' + L(o[1], o[2]) + '</button>').join('') + '</div></div>').join('');
+  $('#guess-go').disabled = gPick.some(p => p === null);
+}
+$('#g-rows').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  gPick[+b.closest('.pick').dataset.i] = b.dataset.k; guessRows();
+});
+$('#guess-go').addEventListener('click', () => { guessed = true; guessText(); window.mpSolve && mpSolve(gPick.join('|')); });
+document.addEventListener('solved', heroCap);
+function guessText() {
+  if (!guessed) return;
+  const ok = gPick.filter((p, i) => p === RIGHT[i]).length;
+  const why = [
+    L('Автобус ходить кожні 20 хвилин. Якщо за 10 його не було, він прийде в наступні 10, у середньому за 5.', 'The bus runs every 20 minutes. If it hasn\'t come in 10, it comes in the next 10, on average in 5.'),
+    L('Випадкові автобуси не пам\'ятають, скільки ви чекали: у кожну хвилину шанс той самий, і попереду ті самі 10.', 'Random buses don\'t remember how long you\'ve waited: the chance is the same every minute, and the same 10 lie ahead.'),
+    L('Швидкі компанії здебільшого вже відповіли. Хто мовчить 10 днів, найімовірніше, повільний, і чекати на нього в середньому ще 15 днів.', 'The quick companies have mostly replied already. Whoever is silent after 10 days is most likely slow, and you wait another 15 days on average.')
+  ];
+  const head = ok === 3 ? L('Усі три влучно. Найчастіше помиляються з відповіддю на заявку: здається, що після довгої тиші вона вже на підході.', 'All three right. The job reply is where most people slip: after a long silence it feels like it must be on its way.')
+    : ok === 2 ? L('Два з трьох.', 'Two out of three.') : ok === 1 ? L('Один з трьох.', 'One out of three.') : L('Жодного влучання, і це звична пастка: інтуїція вважає, що прочекане завжди наближає кінець.', 'None right, and it is a common trap: intuition assumes that time spent always brings the end closer.');
+  const name = k => L(G_OPTS.find(o => o[0] === k)[1], G_OPTS.find(o => o[0] === k)[2]).toLowerCase();
+  const rows = SIT.map((s, i) => [L(s.uk, s.en), s.m(10), 'var(' + s.col + ')', unit(s, s.m(10), 0)]);
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Після 10 лишилося', 'Left after 10') + '</span><p class="big mono" style="font-size:clamp(1.6rem,4vw,2.2rem)"><span style="color:var(--sa)">5</span> · <span style="color:var(--sb)">10</span> · <span style="color:var(--sc)">15</span></p>' +
+    '<p>' + head + '</p>' +
+    SIT.map((s, i) => '<div class="vrow"><span><b style="color:var(' + s.col + ')">' + L(s.uk, s.en) + '</b>: ' + L('ваша відповідь «', 'your answer "') + name(gPick[i]) + L('»', '"') + ' <span class="' + (gPick[i] === RIGHT[i] ? 'ok">✓' : 'no">✗') + '</span></span><span class="note">' + why[i] + '</span></div>').join('') +
+    '<div class="compare">' + rows.map(r => '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1] / 20) + '%"></i><i class="tick" style="left:calc(50% - 1px)"></i></div><span class="mono">' + r[3] + '</span></div>').join('') + '</div>' +
+    '<p class="note">' + L('Риска показує 10, середнє на початку. Чому так, показують раунди 2–4.', 'The tick marks 10, the average at the start. Rounds 2–4 show why.') + '</p>';
+}
+
+/* ---------- round 2: the waiting room ---------- */
+const room = { g: [], t: 0, raf: 0, prev: 0 };
+function roomNew() { room.g = SIT.map(s => people(s, 100)); }
+function roomDraw() { drawQueues($('#wait-cv'), room.g, room.t, { cols: 25, shade: true }); }
+function roomText() {
+  const t = Math.round(room.t);
+  $('#w-t-v').textContent = t + ' ' + L('(хв або днів)', '(min or days)');
+  $('#w-tally').innerHTML = room.g.map((g, i) => {
+    const s = SIT[i], st = leftStats(g, room.t), m = s.m(room.t);
+    return '<div class="lane-st" style="--c:var(' + s.col + ')"><span class="h">' + L(s.uk, s.en) + '</span>' +
+      '<div class="r"><span>' + L('Ще чекають', 'Still waiting') + '</span><b class="mono">' + st.n + ' / 100</b></div>' +
+      '<div class="r"><span>' + L('Лишилося їм у середньому', 'Left for them on average') + '</span><b class="mono">' + (st.avg === null ? '–' : unit(s, st.avg)) + '</b></div>' +
+      '<div class="r"><span>' + L('Точно за формулою', 'Exact by formula') + '</span><b class="mono">' + (m === null ? '–' : unit(s, m)) + '</b></div></div>';
+  }).join('');
+  const c = leftStats(room.g[2], room.t);
+  let msg;
+  if (t === 0) msg = L('Усі 300 людей щойно почали чекати. Кожному в середньому чекати 10.', 'All 300 people have just started waiting. Each has 10 to wait on average.');
+  else if (t < 5) msg = L('Прочекано ' + t + '. Першими відходять ті, кому пощастило: автобус приходить, швидкі компанії відповідають.', 'Waited ' + t + '. The lucky ones leave first: buses arrive, quick companies reply.');
+  else if (t < 20) msg = L('Прочекано ' + t + '. Тим, хто ще чекає на автобус за розкладом, лишилося менше, ніж на початку. Тим, хто чекає на відповідь, лишилося більше: з ' + c.n + ' таких більшість темні, тобто повільні компанії.',
+    'Waited ' + t + '. Those still waiting for the timetable bus have less left than at the start. Those waiting for a reply have more: of the ' + c.n + ' left, most are dark, that is, slow companies.');
+  else msg = L('Прочекано ' + t + '. Автобус за розкладом прийшов до всіх. Хто чекає на випадковий автобус, і далі має попереду близько 10 хвилин. На відповідь ще чекають ' + c.n + ' з 100, майже всі на повільні компанії.',
+    'Waited ' + t + '. The timetable bus has come for everyone. Those waiting for a random bus still have about 10 minutes ahead. ' + c.n + ' of 100 are still waiting for a reply, nearly all of them on slow companies.');
+  $('#w-msg').textContent = msg;
+  $('#w-play').textContent = room.raf ? L('Зупинити', 'Pause') : L('Запустити годинник', 'Start the clock');
+}
+function roomSet(t) { room.t = t; $('#w-t').value = Math.round(t); roomDraw(); roomText(); }
+function roomStop() { cancelAnimationFrame(room.raf); room.raf = 0; }
+function roomFrame(ts) {
+  const dt = room.prev ? Math.min(.1, (ts - room.prev) / 1000) : 0; room.prev = ts;
+  const t = Math.min(40, room.t + dt * 4);
+  if (t >= 40) { roomStop(); roomSet(40); return; }
+  room.t = t; $('#w-t').value = Math.round(t); roomDraw(); roomText();
+  room.raf = requestAnimationFrame(roomFrame);
+}
+$('#w-play').addEventListener('click', () => {
+  if (room.raf) { roomStop(); roomText(); return; }
+  if (room.t >= 40) room.t = 0;
+  if (reduce()) { roomSet(room.t >= 20 ? 40 : room.t >= 10 ? 20 : 10); return; }
+  room.prev = 0; room.raf = requestAnimationFrame(roomFrame); roomText();
+});
+$('#w-t').addEventListener('input', e => { roomStop(); roomSet(+e.target.value); });
+$('#w-ten').addEventListener('click', () => { roomStop(); roomSet(10); });
+$('#w-new').addEventListener('click', () => { roomNew(); roomDraw(); roomText(); });
+
+/* ---------- round 3: simulation ---------- */
+const TG = Array.from({ length: 21 }, (_, i) => 2 * i);   // t = 0, 2, …, 40
+let sim = null, simJob = 0;
+function simRun() {
+  const N = +$('#sim-r').value, job = ++simJob;
+  const r = { N, done: 0, sum: SIT.map(() => new Float64Array(TG.length)), cnt: SIT.map(() => new Float64Array(TG.length)) };
+  $('#sim-run').disabled = true;
+  const CH = 50000;
+  const chunk = () => {
+    if (job !== simJob) return;
+    const end = Math.min(N, r.done + CH);
+    for (let i = r.done; i < end; i++) {
+      for (let k = 0; k < 3; k++) {
+        const x = SIT[k].draw(), sm = r.sum[k], cn = r.cnt[k];
+        for (let j = 0; j < TG.length && TG[j] < x; j++) { sm[j] += x - TG[j]; cn[j]++; }
+      }
+    }
+    r.done = end;
+    $('#sim-prog').textContent = r.done < N ? L('рахуємо: ', 'running: ') + pct(r.done / N, 0) : '';
+    if (r.done < N) { setTimeout(chunk, 0); return; }
+    sim = r; $('#sim-run').disabled = false; simDraw(); simText();
+  };
+  chunk();
+}
+const simLeft = (k, j) => sim.cnt[k][j] ? sim.sum[k][j] / sim.cnt[k][j] : null;
+// a chart over t from 0 to 40: exact lines and simulated dots
+function drawChart(cv, o) {
+  const s = setupCanvas(cv); if (!s) return;
+  const { ctx, W, H } = s, l = 40, rr = 10, t = 12, bo = 26;
+  const x = v => l + v / 40 * (W - l - rr), y = v => t + (1 - Math.min(v, o.ymax) / o.ymax) * (H - t - bo);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  o.yt.forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - rr, y(v)); ctx.stroke(); ctx.fillText(o.ylab(v), l - 6, y(v)); });
+  ctx.textBaseline = 'top';
+  for (let v = 0; v <= 40; v += 10) { ctx.textAlign = v === 40 ? 'right' : 'center'; ctx.fillText(v === 40 ? '40 = t' : v, v === 40 ? W - rr : x(v), H - bo + 6); }
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t - 4, W - l - rr, H - t - bo + 4); ctx.clip();
+  o.series.forEach(se => {
+    ctx.strokeStyle = se.c; ctx.lineWidth = 2; ctx.beginPath(); let on = false;
+    for (let i = 0; i <= 200; i++) { const v = i / 5, f = se.f(v); if (f === null) { on = false; continue; } on ? ctx.lineTo(x(v), y(f)) : ctx.moveTo(x(v), y(f)); on = true; }
+    ctx.stroke();
+    (se.dots || []).forEach(([v, d]) => { if (d === null) return; ctx.fillStyle = se.c; ctx.globalAlpha = .85; ctx.beginPath(); ctx.arc(x(v), y(d), 3.5, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1; });
+  });
+  ctx.restore();
+}
+function simDraw() {
+  const dots = (k, f) => sim ? TG.map((v, j) => [v, f(k, j)]) : [];
+  drawChart($('#h-left'), { ymax: 32, yt: [0, 10, 20, 30], ylab: v => v,
+    series: SIT.map((s, k) => ({ f: s.m, c: tok(s.col), dots: dots(k, simLeft) })) });
+  drawChart($('#h-surv'), { ymax: 1, yt: [0, .25, .5, .75, 1], ylab: v => Math.round(100 * v) + '%',
+    series: SIT.map((s, k) => ({ f: s.S, c: tok(s.col), dots: dots(k, (kk, j) => sim.cnt[kk][j] / sim.N) })) });
+}
+function simText() {
+  if (!sim) return;
+  const v = [simLeft(0, 5), simLeft(1, 5), simLeft(2, 5), simLeft(2, 10)];
+  $('#t-a').textContent = unit(SIT[0], v[0], 2); $('#t-b').textContent = unit(SIT[1], v[1], 2); $('#t-c').textContent = unit(SIT[2], v[2], 2); $('#t-d').textContent = unit(SIT[2], v[3], 2);
+  const rows = [[L('Розклад, після 10', 'Timetable, after 10'), v[0], 5, '--sa'], [L('Без розкладу, після 10', 'Random, after 10'), v[1], 10, '--sb'], [L('Заявка, після 10', 'Job reply, after 10'), v[2], 15, '--sc'], [L('Заявка, після 20', 'Job reply, after 20'), v[3], 20, '--sc']];
+  $('#sim-bars').innerHTML = rows.map(q => '<div class="crow"><span>' + q[0] + '</span><div class="bar"><i style="--c:var(' + q[3] + ');width:' + (100 * q[1] / 25) + '%"></i><i class="tick" style="left:calc(' + (100 * q[2] / 25) + '% - 1px)"></i></div><span class="mono">' + num(q[1], 2) + '</span></div>').join('') +
+    '<p class="note">' + L('Смуга показує симуляцію ' + fmt(sim.N) + ' очікувань кожного виду, риска показує точне значення: 5, 10, 15 і 20. Шкала від 0 до 25.', 'The bar is the simulation of ' + fmt(sim.N) + ' waits of each kind, the tick is the exact value: 5, 10, 15 and 20. Scale from 0 to 25.') + '</p>';
+}
+$('#sim-run').addEventListener('click', simRun);
+$('#sim-r').addEventListener('change', simRun);
+
+/* ---------- round 4: quick and slow companies ---------- */
+// 75 quick and 25 slow companies; after 10 days about 10 quick and 17 slow are still silent (75·e^−2 ≈ 10.2, 25·e^−0.4 ≈ 16.8)
+function mixDraw() {
+  const g = $('#mix-dots'); if (!g) return;
+  let h = '';
+  const dot = (i, x0, fill, op, hollow) => { const cx = x0 + 7 * (i % 20) + 4, cy = 8 + 7 * Math.floor(i / 20); return hollow ? '<circle cx="' + cx + '" cy="' + cy + '" r="2.4" fill="none" stroke="var(--muted)" stroke-opacity=".45"/>' : '<circle cx="' + cx + '" cy="' + cy + '" r="2.8" fill="' + fill + '" fill-opacity="' + op + '"/>'; };
+  for (let i = 0; i < 100; i++) h += dot(i, 0, 'var(--sc)', i < 75 ? .3 : 1, false);
+  for (let i = 0; i < 100; i++) { const fast = i < 75, silent = fast ? i < 10 : i < 75 + 17; h += dot(i, 168, 'var(--sc)', fast ? .3 : 1, !silent); }
+  g.innerHTML = h;
+}
+
+/* ---------- round 5: the tail ---------- */
+const AS = [1.5, 2, 2.5, 3, 4, 6, 10, Infinity];
+const TAIL_PRE = [[3, L('Заявка, α = 3', 'Job reply, α = 3')], [1, L('Лінді, α = 2', 'Lindy, α = 2')], [7, L('Без пам\'яті', 'Memoryless')]];
+const tail = { i: 3, sim: null };
+const mTail = (a, t) => a === Infinity ? 10 : 10 + t / (a - 1);
+const sTail = (a, t) => a === Infinity ? Math.exp(-t / 10) : Math.pow(1 + t / (10 * (a - 1)), -a);
+function tailRun() {
+  const a = AS[tail.i], lam = 10 * (a - 1), N = 200000; let s = 0, n = 0;
+  for (let i = 0; i < N; i++) {
+    const x = a === Infinity ? expR(10) : lam * (Math.pow(1 - Math.random(), -1 / a) - 1);
+    if (x > 20) { s += x - 20; n++; }
+  }
+  tail.sim = n ? s / n : null;
+}
+function tailDraw() {
+  const s = setupCanvas($('#tail-cv')); if (!s) return;
+  const { ctx, W, H } = s, l = 40, rr = 12, t = 12, bo = 28, x = v => l + v / 40 * (W - l - rr), y = v => t + (1 - Math.min(v, 50) / 50) * (H - t - bo);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [0, 10, 20, 30, 40, 50].forEach(v => { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(W - rr, y(v)); ctx.stroke(); ctx.fillText(v, l - 6, y(v)); });
+  ctx.textBaseline = 'top';
+  for (let v = 0; v <= 40; v += 10) { ctx.textAlign = v === 40 ? 'right' : 'center'; ctx.fillText(v === 40 ? '40 = t' : v, v === 40 ? W - rr : x(v), H - bo + 6); }
+  ctx.textAlign = 'left'; ctx.fillText(L('лишилося в середньому', 'left on average'), l + 4, t);
+  AS.forEach((a, j) => {
+    ctx.strokeStyle = j === tail.i ? tok('--sc') : tok('--line'); ctx.lineWidth = j === tail.i ? 3 : 1.5;
+    ctx.beginPath(); ctx.moveTo(x(0), y(mTail(a, 0))); ctx.lineTo(x(40), y(mTail(a, 40))); ctx.stroke();
+  });
+  if (tail.sim !== null) { ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x(20), y(Math.min(50, tail.sim)), 7, 0, 2 * Math.PI); ctx.stroke(); }
+}
+function tailText() {
+  const a = AS[tail.i], u = SIT[2];
+  $('#tail-pick').innerHTML = TAIL_PRE.map(([i, t]) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === tail.i) + '">' + t + '</button>').join('');
+  $('#tail-a-v').textContent = 'α = ' + (a === Infinity ? '∞' : dec(String(a))) + (a === Infinity ? L(' · експоненційний', ' · exponential') : ', λ = ' + dec(String(10 * (a - 1))));
+  $('#tail-e').textContent = unit(u, mTail(a, 20));
+  $('#tail-s').textContent = tail.sim === null ? '–' : unit(u, tail.sim);
+  const p = sTail(a, 60);
+  $('#tail-p').textContent = p < .001 ? dec((100 * p).toFixed(2)) + '%' : pct(p);
+  $('#tail-note').textContent = a === Infinity
+    ? L('Без хвоста: очікування без пам\'яті, прочекане нічого не змінює, лінія лежить на 10. Коло показує симуляцію для t = 20.', 'No tail: a memoryless wait, the time spent changes nothing, the line lies flat at 10. The circle is the simulation at t = 20.')
+    : a <= 2
+      ? L('При α ≤ 2 розкид нескінченний. Перемикайтеся сюди кілька разів: симуляція щоразу інша і здебільшого нижча за точне значення, бо його тягнуть угору рідкісні дуже довгі очікування, які в 200 000 спроб трапляються не завжди.', 'At α ≤ 2 the variance is infinite. Switch here a few times: the simulation differs every time and is mostly below the exact value, because that value is pulled up by rare, very long waits that 200,000 draws don\'t always catch.')
+      : L('Кожен прочеканий день додає до прогнозу ' + num(1 / (a - 1), 2) + ' дня. Коло показує симуляцію для t = 20, а сірі лінії інші значення α.', 'Every day waited adds ' + num(1 / (a - 1), 2) + ' of a day to the forecast. The circle is the simulation at t = 20, the grey lines are other values of α.');
+}
+function tailSet(i) { tail.i = i; $('#tail-a').value = i; tailRun(); tailDraw(); tailText(); }
+$('#tail-a').addEventListener('input', e => tailSet(+e.target.value));
+$('#tail-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (b) tailSet(+b.dataset.i); });
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Чекати далі чи піти?', 'Keep Waiting or Leave?');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  $('.mini-bars').setAttribute('aria-label', L('Як розподілені очікування', 'How the waits are spread'));
+  $('#wait-cv').setAttribute('aria-label', L('Три черги', 'Three queues'));
+  $('#mix-dots').closest('svg').setAttribute('aria-label', L('75 швидких і 25 повільних компаній', '75 quick and 25 slow companies'));
+  $$('#sim-r option').forEach(o => { o.textContent = fmt(+o.value); });
+  TAIL_PRE[0][1] = L('Заявка, α = 3', 'Job reply, α = 3'); TAIL_PRE[1][1] = L('Лінді, α = 2', 'Lindy, α = 2'); TAIL_PRE[2][1] = L('Без пам\'яті', 'Memoryless');
+  guessRows(); heroDraw(); guessText(); roomDraw(); roomText(); simDraw(); simText(); tailDraw(); tailText();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang === 'en' ? 'en' : 'uk'; applyLang(); });
+const redraw = () => { heroDraw(); roomDraw(); simDraw(); tailDraw(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+document.addEventListener('solved', () => setTimeout(redraw, 0));
+document.addEventListener('rounds', () => setTimeout(redraw, 0));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+
+/* ---------- opening state: everything filled ---------- */
+heroInit();
+roomNew();
+tailRun();
+mixDraw();
+applyLang();
+heroStart();
+simRun();
+})();
+</script>
