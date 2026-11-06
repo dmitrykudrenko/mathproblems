@@ -1398,6 +1398,306 @@ NAV_SCRIPT = """<script>
 </script>"""
 
 
+# ---------- search ----------
+# A search button in the top bar of every page opens a palette over the page ("/" or Ctrl/⌘K, or ?q=… in the URL)
+# that finds puzzles, courses, their chapters and glossary articles. The index, docs/search.json and
+# docs/en/search.json, loads on the first hover or open. It holds only spoiler-free text: the card title, the
+# `share` question, tags and topics, never the description or the answer. Each item also carries the other
+# language's name, so "Monty Hall" finds the puzzle on the Ukrainian site too. Matching forgives word endings,
+# one typo, apostrophes and і/и/ї/й, е/є; every word of the query must match something.
+SEARCH_TEXT = {
+    "uk": {"btn": "Пошук", "ph": "Задача, курс або термін", "all": "Усе", "p": "Задачі", "c": "Курси", "g": "Словник",
+           "recent": "Нещодавно відкриті", "try": "Спробуйте", "none": "Нічого не знайшлося. Спробуйте інше слово або",
+           "every": "подивіться всі задачі", "keys": "↑↓ вибрати · Enter відкрити · Esc закрити", "solved": "розв'язано",
+           "load": "Завантаження…", "fail": "Не вдалося завантажити пошук. Перевірте з'єднання.", "close": "Закрити",
+           "course": "Курс", "chapter": "розділ %d з %d", "glossary": "Словник",
+           "ideas": ["ймовірність", "A/B-тест", "Монті Голл", "медіана", "співбесіда", "аукціон"]},
+    "en": {"btn": "Search", "ph": "A puzzle, course or term", "all": "All", "p": "Puzzles", "c": "Courses", "g": "Glossary",
+           "recent": "Recently opened", "try": "Try", "none": "Nothing found. Try another word or",
+           "every": "browse all puzzles", "keys": "↑↓ choose · Enter open · Esc close", "solved": "solved",
+           "load": "Loading…", "fail": "Couldn't load the search. Check your connection.", "close": "Close",
+           "course": "Course", "chapter": "chapter %d of %d", "glossary": "Glossary",
+           "ideas": ["probability", "A/B test", "Monty Hall", "median", "interview", "auction"]},
+}
+SEARCH_ICON = ('<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/>'
+               '<path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>')
+
+
+def search_index(lang, metas, base):
+    """Items of docs/<lang>/search.json. t: p puzzle, c course, h course chapter, g glossary article; n name,
+    d the line under it (a glossary article shows its first term's definition: the article
+    description may hint at a puzzle's answer), k keywords, x related words (weaker), lv level, tint, s the localStorage key part."""
+    other = "en" if lang == "uk" else "uk"
+    tint = lambda f: (re.search(r"--tint:\s*(#[0-9A-Fa-f]{6})", f.read_text(encoding="utf-8")) or [None, ""])[1]
+    terms, pages, _ = load_glossary()
+    names = {s: m[lang]["card"]["title"] for s, m in metas}
+    related = {s: [] for s, _ in metas}  # glossary articles and courses that link a puzzle
+    for page, gm in pages.items():
+        for s in gm["problems"]:
+            related[s].append(gm[lang]["name"])
+    for c, cm in COURSE_LIST:
+        for s in course_slugs(cm):
+            related[s].append(cm[lang]["name"])
+    items = []
+    for s, m in metas:
+        ml = m[lang]
+        items.append({"t": "p", "s": s, "u": base + s + "/" + LANG_PATH[lang], "n": ml["card"]["title"],
+                      "d": ml["share"]["description"], "lv": m["level"], "tint": tint(PROBLEMS / s / "page.html"),
+                      "k": " ".join(ml["card"].get("tags", []) + [TOPICS[t][lang] for t in m["topics"]]
+                                    + [m[other]["card"]["title"], m.get("about", {}).get("name", ""), LEVELS[m["level"]][lang][0]]),
+                      "x": " ".join(related[s])})
+    t = COURSE_TEXT[lang]
+    for c, cm in COURSE_LIST:
+        ml, u, chs = cm[lang], course_url(base, lang, c), cm["chapters"]
+        ct = tint(COURSES / c / "page.html")
+        items.append({"t": "c", "s": c, "u": u, "n": ml["name"], "d": ml["card"]["text"], "lv": cm["level"], "tint": ct,
+                      "k": " ".join([cm["audience"][lang], cm[other]["name"], t["course"]])})
+        for i, ch in enumerate(chs):
+            items.append({"t": "h", "s": c, "u": u + "#" + ch["id"], "n": ch[lang], "tint": ct,
+                          "d": f'{t["course"]} «{ml["name"]}» · {t["chapter"] % (i + 1, len(chs))}',
+                          "k": ch[other], "x": " ".join(names[p] for p in ch.get("problems", []))})
+    for page, gm in pages.items():
+        own = [x for x in terms if x["page"] == page]
+        items.append({"t": "g", "s": page, "u": glossary_url(base, lang, page), "n": gm[lang]["name"], "d": own[0][lang]["short"],
+                      "k": " ".join([gm[other]["name"]] + [x[l]["name"] for x in own for l in LANGS]),
+                      "x": " ".join(f for x in own for f in x[lang]["forms"])})
+    return items
+
+
+def build_search(metas, base):
+    for lang in LANGS:
+        path = DOCS / LANG_PATH[lang] / "search.json"
+        path.write_text(json.dumps({"items": search_index(lang, metas, base)}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        print(f"{path.relative_to(DOCS)}  {path.stat().st_size // 1024} KB")
+
+
+def search_button(lang, base):
+    t = SEARCH_TEXT[lang]
+    words = e(json.dumps(t, ensure_ascii=False))
+    return (f'<button type="button" class="mp-sx-btn" aria-haspopup="dialog" aria-label="{t["btn"]}" '
+            f'data-src="{base}{LANG_PATH[lang]}search.json" data-t="{words}">{SEARCH_ICON}'
+            f'<span class="mp-sx-lbl">{t["btn"]}</span><kbd>/</kbd></button>')
+
+
+SEARCH_SCRIPT = """<script>
+(function () {
+  var btn = document.querySelector(".mp-sx-btn");
+  if (!btn) return;
+  var T = JSON.parse(btn.dataset.t), lang = document.documentElement.dataset.lang === "en" ? "en" : "uk";
+  var data = null, loading = null, box = null, input, list, tabs, foot, tab = "", act = 0, opts = [], back = null;
+  var W = { n: 3, k: 2, d: 1, x: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
+  // small words that may match nothing without dropping the result ("задача про монети")
+  var STOP = ["и", "та", "в", "у", "на", "з", "из", "до", "для", "про", "як", "що", "the", "a", "an", "of", "in", "on", "and", "to", "for", "how", "what"];
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  btn.querySelector("kbd").textContent = mac ? "⌘K" : "Ctrl K";
+
+  function norm(s) {
+    return String(s).toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/[’'ʼ`ъ]/g, "")
+      .replace(/[іыий]/g, "и").replace(/[єэё]/g, "е").replace(/ґ/g, "г");
+  }
+  function words(s) { return norm(s).split(/[^0-9a-zа-я]+/).filter(Boolean); }
+  // one edit apart: a letter swapped, missing, extra or two letters transposed
+  function near(a, b) {
+    var la = a.length, lb = b.length, i = 0;
+    if (Math.abs(la - lb) > 1) return false;
+    while (i < la && i < lb && a[i] === b[i]) i++;
+    if (la === lb) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+    return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+  }
+  // how well a query word q fits a word w of the text: whole word, its start, the same stem (Ukrainian endings), a typo
+  function hit(q, w) {
+    if (w === q) return 1;
+    if (w.lastIndexOf(q, 0) === 0) return 0.85;
+    if (q.length >= 4) {
+      if (q.length >= 5 && w.lastIndexOf(q.slice(0, Math.max(4, q.length - 2)), 0) === 0) return 0.6;
+      for (var d = -1; d <= 1; d++) if (near(q, w.slice(0, q.length + d))) return 0.45;
+    }
+    return q.length >= 3 && w.indexOf(q) > 0 ? 0.35 : 0;
+  }
+  // the score of an item, and in it.low the weakest word match (a typo or a piece of a word is weak)
+  function score(it, qs, phrase) {
+    var total = 0;
+    it.low = 1;
+    for (var i = 0; i < qs.length; i++) {
+      var best = 0, bestF;
+      for (var f in W) {
+        var ws = it.w[f];
+        for (var j = 0; j < ws.length; j++) { var h = hit(qs[i], ws[j]) * W[f]; if (h > best) { best = h; bestF = f; } }
+      }
+      if (!best && STOP.indexOf(qs[i]) === -1) return 0;
+      if (best) it.low = Math.min(it.low, best / W[bestF]);
+      total += best;
+    }
+    var name = it.w.nn;
+    if (name.lastIndexOf(phrase, 0) === 0) total += 2; else if (name.indexOf(phrase) !== -1) total += 1;
+    return total + (it.t === "p" ? 0.2 : it.t === "h" ? -0.2 : 0);
+  }
+  function load() {
+    if (!loading) loading = fetch(btn.dataset.src).then(function (r) { return r.json(); }).then(function (j) {
+      data = j.items;
+      // a chapter's line under the name is only its course and number, so "парадокси" does not find all 21 chapters
+      data.forEach(function (it) { it.w = { n: words(it.n), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), nn: words(it.n).join(" ") }; });
+    });
+    return loading;
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done(it) {
+    if (it.t === "p") return !!get("mp-solved:" + it.s);
+    if (it.t !== "c") return false;
+    var d = []; try { d = JSON.parse(get("mp-course:" + it.s) || "[]"); } catch (e) {}
+    return d.length > 0;
+  }
+  function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+  // the text with the words that match the query in <mark>
+  function marked(text, qs) {
+    var out = document.createDocumentFragment(), parts = String(text).split(/([0-9A-Za-zА-Яа-яЄєІіЇїҐґЁё’'ʼ]+)/);
+    parts.forEach(function (p, i) {
+      if (!p) return;
+      var w = i % 2 && words(p), on = w && qs.length && w.some(function (x) { return qs.some(function (q) { return hit(q, x) >= 0.45; }); });
+      out.appendChild(on ? el("mark", null, p) : document.createTextNode(p));
+    });
+    return out;
+  }
+  function icon(it) {
+    var s = el("span", "mp-sx-ic mp-sx-" + it.t);
+    s.style.setProperty("--tint", it.tint || "var(--soft)");  // not the page's own --tint
+    if (it.t === "p") { var b = s.appendChild(el("span", "mp-bars")); for (var i = 1; i <= 3; i++) b.appendChild(el("i", i <= it.lv ? "on" : "")); }
+    else s.textContent = it.t === "g" ? "Aa" : it.t === "c" ? "≡" : "§";
+    return s;
+  }
+  function row(it, qs) {
+    var a = el("a", "mp-sx-it"); a.href = it.u; a.setAttribute("role", "option"); a.id = "mp-sx-o" + opts.length;
+    var tx = el("span", "mp-sx-tx"), n = el("b"), d = el("span");
+    n.appendChild(marked(it.n, qs)); d.appendChild(marked(it.d || "", qs)); tx.append(n, d);
+    a.append(icon(it), tx);
+    if (done(it)) { var ok = el("span", "mp-sx-ok", "✓"); ok.title = T.solved; a.appendChild(ok); }
+    opts.push(a);
+    return a;
+  }
+  function head(text) { return el("li", "mp-sx-h", text); }
+  function wrap(a) { var li = el("li"); li.setAttribute("role", "presentation"); li.appendChild(a); return li; }
+  function render() {
+    var q = input.value.trim(), qs = words(q), phrase = qs.join(" ");
+    list.textContent = ""; opts = []; act = 0;
+    tabs.hidden = !qs.length;
+    if (!qs.length) {
+      var recent = []; try { recent = JSON.parse(get("mp-recent") || "[]"); } catch (e) {}
+      recent = recent.slice(0, 5).map(function (r) {
+        var it = data && data.filter(function (x) { return (x.t === "p" && x.s === r.s) || (x.t === "c" && "course:" + x.s === r.s); })[0];
+        return it || { t: r.c ? "c" : "p", s: r.s, n: r.n[lang], u: r.u[lang] };
+      });
+      if (recent.length) { list.appendChild(head(T.recent)); recent.forEach(function (it) { list.appendChild(wrap(row(it, []))); }); }
+      var li = el("li", "mp-sx-try"); li.appendChild(el("span", null, T.try + ": "));
+      T.ideas.forEach(function (w, i) {
+        var b = el("button", null, w); b.type = "button";
+        b.addEventListener("click", function () { input.value = w; render(); input.focus(); });
+        if (i) li.appendChild(document.createTextNode(" · "));
+        li.appendChild(b);
+      });
+      list.appendChild(li);
+      return mark();
+    }
+    if (!data) { list.appendChild(el("li", "mp-sx-msg", T.load)); return; }
+    var found = data.map(function (it) { return { it: it, s: score(it, qs, phrase) }; }).filter(function (r) { return r.s > 0; });
+    // typos and pieces of words count only when nothing matches by whole words, their starts or stems
+    if (found.some(function (r) { return r.it.low >= 0.6; })) found = found.filter(function (r) { return r.it.low >= 0.6; });
+    found.sort(function (a, b) { return b.s - a.s; });
+    var count = { "": found.length, p: 0, c: 0, g: 0 };
+    found.forEach(function (r) { count[GROUP[r.it.t]]++; });
+    [].forEach.call(tabs.children, function (b) {
+      b.lastChild.textContent = count[b.dataset.k] ? " " + count[b.dataset.k] : "";
+      b.setAttribute("aria-pressed", b.dataset.k === tab);
+      b.disabled = !count[b.dataset.k] && b.dataset.k !== tab;
+    });
+    if (tab) found = found.filter(function (r) { return GROUP[r.it.t] === tab; });
+    if (!found.length) {
+      var m = el("li", "mp-sx-msg", T.none + " "), a = el("a", null, T.every);
+      a.href = document.querySelector(".mp-nav-list a:not(.mp-cont)").href; m.appendChild(a); list.appendChild(m);
+      return mark();
+    }
+    // groups in the order of their best match; with no tab chosen each shows its first 6
+    var order = [], by = {};
+    found.forEach(function (r) { var g = GROUP[r.it.t]; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(r.it); });
+    order.forEach(function (g) {
+      if (!tab) list.appendChild(head(T[g]));
+      var items = tab ? by[g] : by[g].slice(0, 6);
+      items.forEach(function (it) { list.appendChild(wrap(row(it, qs))); });
+      if (!tab && by[g].length > 6) {
+        var more = el("button", "mp-sx-more", "+" + (by[g].length - 6) + " →"); more.type = "button";
+        more.addEventListener("click", function () { tab = g; render(); input.focus(); });
+        var li = el("li"); li.appendChild(more); list.appendChild(li);
+      }
+    });
+    mark();
+  }
+  function mark() {
+    opts.forEach(function (o, i) { o.setAttribute("aria-selected", i === act); });
+    if (opts[act]) { input.setAttribute("aria-activedescendant", opts[act].id); opts[act].scrollIntoView({ block: "nearest" }); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function build() {
+    box = el("div", "mp-sx"); box.hidden = true;
+    box.innerHTML = '<div class="mp-sx-box" role="dialog" aria-modal="true"><div class="mp-sx-head">' + btn.querySelector("svg").outerHTML +
+      '<input type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="mp-sx-list" aria-autocomplete="list">' +
+      '<button type="button" class="mp-sx-x"></button></div><div class="mp-sx-tabs"></div><ul class="mp-sx-list" id="mp-sx-list" role="listbox"></ul>' +
+      '<div class="mp-sx-foot"></div></div>';
+    document.body.appendChild(box);
+    input = box.querySelector("input"); list = box.querySelector("ul"); tabs = box.querySelector(".mp-sx-tabs"); foot = box.querySelector(".mp-sx-foot");
+    box.firstChild.setAttribute("aria-label", T.btn); input.placeholder = T.ph; input.setAttribute("aria-label", T.btn);
+    var x = box.querySelector(".mp-sx-x"); x.textContent = "Esc"; x.setAttribute("aria-label", T.close);
+    foot.textContent = T.keys;
+    [["", T.all], ["p", T.p], ["c", T.c], ["g", T.g]].forEach(function (k) {
+      var b = el("button", null, k[1]); b.type = "button"; b.dataset.k = k[0]; b.appendChild(el("span"));
+      b.addEventListener("click", function () { tab = k[0]; render(); input.focus(); });
+      tabs.appendChild(b);
+    });
+    input.addEventListener("input", function () { tab = ""; render(); });
+    box.addEventListener("click", function (e) { if (e.target === box || e.target === x) close(); });
+    box.addEventListener("mousemove", function (e) {
+      var o = e.target.closest(".mp-sx-it"), i = opts.indexOf(o);
+      if (i !== -1 && i !== act) { act = i; mark(); }
+    });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (opts.length) { act = (act + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length; mark(); }
+      } else if (e.key === "Enter" && opts[act]) { e.preventDefault(); opts[act].click(); }
+    });
+  }
+  function open(q) {
+    if (!box) build();
+    if (!box.hidden) return input.focus();
+    back = document.activeElement; box.hidden = false; document.documentElement.classList.add("mp-sx-on");
+    if (q != null) input.value = q;
+    input.focus(); input.select(); render();
+    load().then(render, function () { list.textContent = ""; list.appendChild(el("li", "mp-sx-msg", T.fail)); loading = null; });
+  }
+  function close() {
+    if (!box || box.hidden) return;
+    box.hidden = true; document.documentElement.classList.remove("mp-sx-on");
+    if (back && back.focus) back.focus();
+  }
+  btn.addEventListener("click", function () { open(); });
+  btn.addEventListener("pointerenter", load, { once: true });
+  btn.addEventListener("focus", load, { once: true });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target, typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box && !box.hidden ? close() : open(); }
+    else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); open(); }
+    else if (e.key === "Escape" && box && !box.hidden) { e.preventDefault(); close(); }
+    else if (e.key === "Tab" && box && !box.hidden) {
+      // keep the focus inside the palette
+      var f = [].slice.call(box.querySelectorAll("input, button:not([disabled]), a[href]"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+    }
+  });
+  var q = new URLSearchParams(location.search).get("q");
+  if (q) open(q);
+})();
+</script>"""
+
+
 def with_site_nav(doc, lang, path):
     """The menu in the top bar and the links at the bottom of the page (see SITE_NAV)."""
     base, t = SITE_NAV["base"], NAV_TEXT[lang]
@@ -1414,11 +1714,12 @@ def with_site_nav(doc, lang, path):
     data = f' data-slug="{me["s"]}" data-me="{e(json.dumps(me, ensure_ascii=False))}"' if me else ""
     nav = (f'<nav class="mp-nav" aria-label="{t["nav"]}" data-t="{words}"{data}>'
            f'<button type="button" class="mp-burger" aria-expanded="false" aria-label="{t["menu"]}"><i></i><i></i><i></i></button>'
-           f'<div class="mp-nav-list"><a class="mp-cont" href="#" hidden>{t["continue"]}: <b></b></a>{items}</div></nav>\n  ')
+           f'<div class="mp-nav-list"><a class="mp-cont" href="#" hidden>{t["continue"]}: <b></b></a>{items}</div>'
+           f'{search_button(lang, base)}</nav>\n  ')
     doc, n = re.subn(r'(<div class="topbar">.*?)(<nav\b[^>]*\bid="lang")', lambda m: m.group(1) + nav + m.group(2), doc, count=1, flags=re.S)
     if not n:
         return doc
-    foot = f'<nav class="mp-fnav" aria-label="{t["nav"]}">{items}</nav>\n{NAV_SCRIPT}\n'
+    foot = f'<nav class="mp-fnav" aria-label="{t["nav"]}">{items}</nav>\n{NAV_SCRIPT}\n{SEARCH_SCRIPT}\n'
     i = doc.rindex("</body>")
     return doc[:i] + foot + doc[i:]
 
@@ -1593,7 +1894,9 @@ def build_hub(problems, base):
         ld = {"@context": "https://schema.org", "@graph": [
             {"@type": "WebSite", "@id": urls[lang] + "#site", "name": SITE_NAME[lang], "url": urls[lang],
              "inLanguage": lang, "description": m["description"], "author": {"@id": base + "#author"},
-             "creator": {"@id": base + "#author"}},
+             "creator": {"@id": base + "#author"},
+             "potentialAction": {"@type": "SearchAction", "target": urls[lang] + "?q={search_term_string}",
+                                 "query-input": "required name=search_term_string"}},
             author_ld(lang, base),
             {"@type": "CollectionPage", "@id": urls[lang] + "#page", "url": urls[lang], "name": m["title"],
              "description": m["description"], "inLanguage": lang, "isPartOf": {"@id": urls[lang] + "#site"},
@@ -2477,6 +2780,7 @@ def build(base, out=None):
     glossary = build_glossary(problems, base)
     courses = build_courses(problems, base)
     build_feeds(metas, base)
+    build_search(metas, base)
 
     today = date.today().isoformat()
     entries = []
