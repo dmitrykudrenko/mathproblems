@@ -1,6 +1,6 @@
 # mathproblems
 
-**English.** The source of https://mathparadoxes.com/en/: interactive explainers of maths puzzles where intuition gives the wrong answer, in English and Ukrainian. There are 60 puzzles (the 100 prisoners, the German tank problem, the bus paradox, Monty Hall…), a glossary of 22 terms and 6 themed courses.
+**English.** The source of https://mathparadoxes.com/en/: interactive explainers of maths puzzles where intuition gives the wrong answer, in English and Ukrainian. There are 63 puzzles (the 100 prisoners, the German tank problem, the bus paradox, Monty Hall…), a glossary of 22 terms and 6 themed courses.
 
 Every puzzle page follows the same path: you lock in a guess first (the answer stays hidden until you do), play a small version by hand, run thousands of simulations in the browser, then read why in layers: plain words, then tables, charts and formulas, then some theory and history. Harder variants come last. Some pages also offer the simulation as a short JavaScript and Python snippet to run yourself.
 
