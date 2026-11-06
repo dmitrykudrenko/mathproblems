@@ -1402,8 +1402,9 @@ NAV_SCRIPT = """<script>
 # A search button in the top bar of every page opens a palette over the page ("/" or Ctrl/⌘K, or ?q=… in the URL)
 # that finds puzzles, courses, their chapters and glossary articles. The index, docs/search.json and
 # docs/en/search.json, loads on the first hover or open. It holds only spoiler-free text: the card title, the
-# `share` question, tags and topics, never the description or the answer. Each item also carries the other
-# language's name, so "Monty Hall" finds the puzzle on the Ukrainian site too. Matching forgives word endings,
+# `share` question, tags and topics, never the description or the answer. Each item also carries all of these in
+# the other language, so a query in either language finds it ("Monty Hall" on the Ukrainian site, "медіана" on
+# the English one), and the result shows in the page's language. Matching forgives word endings,
 # one typo, apostrophes and і/и/ї/й, е/є; every word of the query must match something.
 SEARCH_TEXT = {
     "uk": {"btn": "Пошук", "ph": "Задача, курс або термін", "all": "Усе", "p": "Задачі", "c": "Курси", "g": "Словник",
@@ -1426,8 +1427,8 @@ SEARCH_ICON = ('<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy
 def search_index(lang, metas, base):
     """Items of docs/<lang>/search.json. t: p puzzle, c course, h course chapter, g glossary article; n name,
     d the line under it (a glossary article shows its first term's definition: the article
-    description may hint at a puzzle's answer), k keywords, x related words (weaker), lv level, tint, s the localStorage key part."""
-    other = "en" if lang == "uk" else "uk"
+    description may hint at a puzzle's answer), k keywords, x related words (weaker), lv level, tint, s the localStorage key part.
+    Only this language's words: build_search adds the other language's ones."""
     tint = lambda f: (re.search(r"--tint:\s*(#[0-9A-Fa-f]{6})", f.read_text(encoding="utf-8")) or [None, ""])[1]
     terms, pages, _ = load_glossary()
     names = {s: m[lang]["card"]["title"] for s, m in metas}
@@ -1444,30 +1445,37 @@ def search_index(lang, metas, base):
         items.append({"t": "p", "s": s, "u": base + s + "/" + LANG_PATH[lang], "n": ml["card"]["title"],
                       "d": ml["share"]["description"], "lv": m["level"], "tint": tint(PROBLEMS / s / "page.html"),
                       "k": " ".join(ml["card"].get("tags", []) + [TOPICS[t][lang] for t in m["topics"]]
-                                    + [m[other]["card"]["title"], m.get("about", {}).get("name", ""), LEVELS[m["level"]][lang][0]]),
+                                    + [m.get("about", {}).get("name", ""), LEVELS[m["level"]][lang][0]]),
                       "x": " ".join(related[s])})
     t = COURSE_TEXT[lang]
     for c, cm in COURSE_LIST:
         ml, u, chs = cm[lang], course_url(base, lang, c), cm["chapters"]
         ct = tint(COURSES / c / "page.html")
         items.append({"t": "c", "s": c, "u": u, "n": ml["name"], "d": ml["card"]["text"], "lv": cm["level"], "tint": ct,
-                      "k": " ".join([cm["audience"][lang], cm[other]["name"], t["course"]])})
+                      "k": " ".join([cm["audience"][lang], t["course"]])})
         for i, ch in enumerate(chs):
             items.append({"t": "h", "s": c, "u": u + "#" + ch["id"], "n": ch[lang], "tint": ct,
                           "d": f'{t["course"]} «{ml["name"]}» · {t["chapter"] % (i + 1, len(chs))}',
-                          "k": ch[other], "x": " ".join(names[p] for p in ch.get("problems", []))})
+                          "x": " ".join(names[p] for p in ch.get("problems", []))})
     for page, gm in pages.items():
         own = [x for x in terms if x["page"] == page]
         items.append({"t": "g", "s": page, "u": glossary_url(base, lang, page), "n": gm[lang]["name"], "d": own[0][lang]["short"],
-                      "k": " ".join([gm[other]["name"]] + [x[l]["name"] for x in own for l in LANGS]),
+                      "k": " ".join(x[lang]["name"] for x in own),
                       "x": " ".join(f for x in own for f in x[lang]["forms"])})
     return items
 
 
 def build_search(metas, base):
+    """A query in either language finds the item, shown in the page's language: each item also carries the other
+    language's name (on) and its other words (o). Both lists come out of search_index in the same order."""
+    items = {l: search_index(l, metas, base) for l in LANGS}
     for lang in LANGS:
+        for it, ot in zip(items[lang], items["en" if lang == "uk" else "uk"]):
+            assert (it["t"], it["s"]) == (ot["t"], ot["s"]), it["u"]
+            it["on"] = ot["n"]
+            it["o"] = " ".join(ot.get(f, "") for f in ("k", "x") + (() if ot["t"] == "h" else ("d",)))
         path = DOCS / LANG_PATH[lang] / "search.json"
-        path.write_text(json.dumps({"items": search_index(lang, metas, base)}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        path.write_text(json.dumps({"items": items[lang]}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         print(f"{path.relative_to(DOCS)}  {path.stat().st_size // 1024} KB")
 
 
@@ -1485,7 +1493,7 @@ SEARCH_SCRIPT = """<script>
   if (!btn) return;
   var T = JSON.parse(btn.dataset.t), lang = document.documentElement.dataset.lang === "en" ? "en" : "uk";
   var data = null, loading = null, box = null, input, list, tabs, foot, tab = "", act = 0, opts = [], back = null;
-  var W = { n: 3, k: 2, d: 1, x: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
+  var W = { n: 3, on: 2.5, k: 2, d: 1, x: 0.8, o: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
   // small words that may match nothing without dropping the result ("задача про монети")
   var STOP = ["и", "та", "в", "у", "на", "з", "из", "до", "для", "про", "як", "що", "the", "a", "an", "of", "in", "on", "and", "to", "for", "how", "what"];
   var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
@@ -1528,15 +1536,19 @@ SEARCH_SCRIPT = """<script>
       if (best) it.low = Math.min(it.low, best / W[bestF]);
       total += best;
     }
-    var name = it.w.nn;
-    if (name.lastIndexOf(phrase, 0) === 0) total += 2; else if (name.indexOf(phrase) !== -1) total += 1;
+    var name = it.w.nn, alt = it.w.no;
+    if (name.lastIndexOf(phrase, 0) === 0 || alt.lastIndexOf(phrase, 0) === 0) total += 2;
+    else if (name.indexOf(phrase) !== -1 || alt.indexOf(phrase) !== -1) total += 1;
     return total + (it.t === "p" ? 0.2 : it.t === "h" ? -0.2 : 0);
   }
   function load() {
     if (!loading) loading = fetch(btn.dataset.src).then(function (r) { return r.json(); }).then(function (j) {
       data = j.items;
       // a chapter's line under the name is only its course and number, so "парадокси" does not find all 21 chapters
-      data.forEach(function (it) { it.w = { n: words(it.n), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), nn: words(it.n).join(" ") }; });
+      data.forEach(function (it) {
+        it.w = { n: words(it.n), on: words(it.on || ""), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), o: words(it.o || ""),
+                 nn: words(it.n).join(" "), no: words(it.on || "").join(" ") };
+      });
     });
     return loading;
   }
