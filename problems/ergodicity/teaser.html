@@ -1,0 +1,61 @@
+<div class="tz-text">
+  <span class="eyebrow"><span class="uk">Ризик · середнє і час</span><span class="en">Risk · averages and time</span></span>
+  <h2><a href="{{URL}}"><span class="uk">Монетка +50 / −40</span><span class="en">The +50 / −40 coin</span></a></h2>
+  <p class="tz-q uk">Орел додає 50% до ваших грошей, решка забирає 40%. 10 000 людей, у кожного $100, грають по 100 раундів. Яка частка з них розбагатіє?</p>
+  <p class="tz-q en">Heads adds 50% to your money, tails takes away 40%. 10,000 people, each with $100, play 100 rounds. What share of them get richer?</p>
+  <button type="button" class="tz-reveal sp-before" data-solve><span><span class="uk">Інтуїція і відповідь</span><span class="en">Intuition and answer</span></span><b><span class="uk">Показати відповідь</span><span class="en">Show the answer</span></b></button>
+  <div class="tz-ans sp-after">
+    <div><span><span class="uk">Інтуїція</span><span class="en">Intuition</span></span><b><span class="uk">половина чи більше</span><span class="en">half or more</span></b></div>
+    <div class="r"><span><span class="uk">Насправді</span><span class="en">Actually</span></span><b><span class="uk">13,6%</span><span class="en">13.6%</span></b></div>
+  </div>
+  <p class="tz-d uk">Гра Оле Петерса з Nature Physics: власна гра з монеткою, 10 000 гравців, ергодичність, критерій Келлі і чому вигідно складатися в спільний котел.</p>
+  <p class="tz-d en">Ole Peters's game from Nature Physics: your own game with the coin, 10,000 players, ergodicity, the Kelly criterion and why pooling into a common pot pays.</p>
+  <a class="tz-cta" href="{{URL}}"><span class="uk">Підкинути монетку</span><span class="en">Toss the coin</span> →</a>
+</div>
+<div class="tz-stage" id="tz-ergodicity">
+  <span class="tz-try"><span class="uk">Спробуйте тут</span><span class="en">Try it here</span></span>
+  <svg viewBox="0 0 360 150" role="img" aria-label="Ваші гроші раунд за раундом" style="display:block;width:100%;max-width:440px;height:auto;background:var(--paper);border-radius:18px"></svg>
+  <p class="tz-msg" aria-live="polite"></p>
+  <div class="tz-acts"><button type="button" class="tz-btn" data-k="1"></button><button type="button" class="tz-btn" data-k="10"></button></div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById('tz-ergodicity');
+  if (!root) return;
+  const en = () => document.documentElement.dataset.lang === 'en';
+  const L = (uk, e) => en() ? e : uk;
+  const svg = root.querySelector('svg'), msg = root.querySelector('.tz-msg'), bs = [...root.querySelectorAll('.tz-btn')];
+  const card = root.closest('[data-spoil]'), solved = () => !!card && card.classList.contains('solved');
+  const money = v => v < 0.005 ? L('менше 1¢', 'under 1¢') : v < 10 ? '$' + (en() ? v.toFixed(2) : v.toFixed(2).replace('.', ',')) : '$' + Math.round(v).toLocaleString(en() ? 'en-US' : 'uk-UA');
+  // one player's money on a log scale, from $0.01 to $100,000; nothing is drawn until the first toss
+  const T = 100;
+  let path = [100];
+  const y = v => 130 - (Math.log10(Math.max(v, 1e-3)) + 2) / 7 * 116;
+  function draw() {
+    let h = '<line x1="20" x2="344" y1="' + y(100) + '" y2="' + y(100) + '" stroke="#9AA0B0" stroke-dasharray="4 4"/>' +
+      '<text x="22" y="' + (y(100) - 5) + '" font-size="10" fill="#586079" font-family="ui-monospace, monospace">$100</text>';
+    if (path.length > 1) {
+      const pts = path.map((v, t) => (20 + t / T * 324).toFixed(1) + ',' + Math.max(8, Math.min(140, y(v))).toFixed(1)).join(' ');
+      h += '<polyline points="' + pts + '" fill="none" stroke="#2A3DD1" stroke-width="2.5" stroke-linejoin="round"/>';
+    }
+    svg.innerHTML = h;
+  }
+  function text() {
+    svg.setAttribute('aria-label', L('Ваші гроші раунд за раундом', 'Your money round by round'));
+    const t = path.length - 1, done = t >= T;
+    bs[0].textContent = done ? L('Ще раз', 'Again') : L('Підкинути', 'Toss');
+    bs[1].textContent = L('10 раундів', '10 rounds'); bs[1].hidden = done;
+    if (!t) { msg.textContent = L('У вас $100. Орел +50%, решка −40%. Підкидайте.', 'You have $100. Heads +50%, tails −40%. Start tossing.'); return; }
+    msg.textContent = L('Раунд ' + t + ' зі 100: у вас ' + money(path[t]) + '.', 'Round ' + t + ' of 100: you have ' + money(path[t]) + '.') +
+      (done ? (solved() ? L(' Більше за $100 після 100 раундів мають лише 13,6% гравців.', ' Only 13.6% of players have more than $100 after 100 rounds.') : L(' Скільки гравців розбагатіє, дивіться у відповіді вище.', ' How many players get richer: see the answer above.')) : '');
+  }
+  bs.forEach(b => b.addEventListener('click', () => {
+    if (path.length > T) { path = [100]; draw(); text(); return; }
+    for (let i = 0; i < +b.dataset.k && path.length <= T; i++) path.push(path[path.length - 1] * (Math.random() < 0.5 ? 1.5 : 0.6));
+    draw(); text();
+  }));
+  document.addEventListener('langchange', () => { draw(); text(); });
+  if (card) new MutationObserver(text).observe(card, { attributes: true, attributeFilter: ['class'] });
+  draw(); text();
+})();
+</script>
