@@ -2134,12 +2134,17 @@ def link_terms(html, lang, terms, base, done, used, card):
 def with_terms(body, lang, terms, base):
     """Link the first mention of each term in rounds 4 and 5 to its article; a click opens the term card instead."""
     done, used = set(), {}
-    for sec in ("why", "scale"):
-        i = body.find(f'id="{sec}"')
+    # round 5 has no fixed id (scale, more, beyond, harder…): it is the section right after round 4
+    i = body.find('id="why"')
+    for _ in range(2):
         if i == -1:
-            continue
+            break
         j = body.index("</section>", i)
-        body = body[:i] + link_terms(body[i:j], lang, terms, base, done, used, card=True) + body[j:]
+        linked = link_terms(body[i:j], lang, terms, base, done, used, card=True)
+        body = body[:i] + linked + body[j:]
+        i = body.find("<section", i + len(linked))
+        if i != -1 and 'id="facts"' in body[i:body.index(">", i)]:
+            break
     if not used:
         return body
     data = {k: {"name": t[lang]["name"], "short": t[lang]["short"], "hook": t[lang]["hook"],
