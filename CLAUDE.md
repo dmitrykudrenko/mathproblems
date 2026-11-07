@@ -23,6 +23,8 @@ Bilingual (uk/en) interactive explainers of math puzzles where intuition is wron
 
 Optional `sim.js` + `sim.py` in a problem folder (always both): the round-3 simulation in a few lines with no libraries, comments and printed words as `⟨uk|en⟩`; the build adds a folded "Check it yourself in code" block (sp-after) to round 3. Run both language versions in node and python before shipping (README «Код симуляції для розробників»).
 
+Optional `work.json`: 2–3 real cases from marketing, analytics, product or business ("At work" section before the fun facts, README «У роботі»). Real data, known research or plain arithmetic with realistic numbers only, each with a source where there is one; skip the file when the link to work is weak.
+
 ## Glossary
 
 `glossary/` is a sub-site of terms (see README «Словник»): `terms.json` (word forms per language, one-line definition, a hook that is a small paradox, never a site puzzle's answer) and one article per `glossary/<page>/` with a simulation in the same spirit as the problems. The build underlines the first mention of each term in rounds 4–5 of every problem page. New terms need all word forms (Ukrainian cases) and verified maths like any problem.

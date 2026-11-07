@@ -629,6 +629,60 @@ def with_code(body, lang, slug):
     return body[:i] + block + body[i:]
 
 
+# "At work" before the fun facts: problems/<slug>/work.json lists real cases from marketing, analytics, product and
+# business where the puzzle's maths decides something. Each case is {"role", "title", "situation", "trap", "plan",
+# "source"?}, every value {"uk": …, "en": …} (inline HTML allowed). Only real data, known research or plain
+# arithmetic with realistic numbers: no invented stories and no case pulled in by force. It sits among the rounds
+# after the gate, so it may state the answer. The first time it scrolls into view the stats worker counts
+# "<slug>-work" with the key "seen".
+WORK_TEXT = {
+    "uk": ("Бонус · У роботі", "Де це трапляється в роботі",
+           "Реальні ситуації з маркетингу, аналітики, продукту й бізнесу, де працює та сама математика. "
+           "Лише відомі дані, дослідження і прості розрахунки, які можна перевірити.",
+           ("Ситуація", "Де пастка", "Як врахувати"), "Джерело"),
+    "en": ("Bonus · At work", "Where this shows up at work",
+           "Real situations from marketing, analytics, product and business where the same maths applies. "
+           "Only known data, research and plain calculations you can check.",
+           ("The situation", "The trap", "How to plan for it"), "Source"),
+}
+WORK_SCRIPT = """<script>
+(function () {
+  var API = %s, SLUG = %s + "-work", s = document.querySelector(".mp-work");
+  if (!s || !API || !("IntersectionObserver" in window)) return;
+  var io = new IntersectionObserver(function (es) {
+    if (!es.some(function (x) { return x.isIntersecting; })) return;
+    io.disconnect();
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!off && window.fetch) fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: "seen", h: 0 }) }).catch(function () {});
+  }, { threshold: 0.3 });
+  io.observe(s);
+})();
+</script>"""
+
+
+def with_work(body, lang, slug):
+    """Put the "at work" section from work.json before the fun facts (or at the end of the rounds)."""
+    f = PROBLEMS / slug / "work.json"
+    if not f.exists():
+        return body
+    cases = json.loads(f.read_text(encoding="utf-8"))["cases"]
+    eyebrow, title, lead, parts, src = WORK_TEXT[lang]
+    cards = []
+    for c in cases:
+        rows = "".join(f'<div><dt>{p}</dt><dd>{c[k][lang]}</dd></div>' for p, k in zip(parts, ("situation", "trap", "plan")))
+        source = f'<p class="mp-work-src"><b>{src}:</b> {c["source"][lang]}</p>' if "source" in c else ""
+        cards.append(f'    <article class="mp-work-case"><span class="kicker">{c["role"][lang]}</span>'
+                     f'<h3>{c["title"][lang]}</h3><dl>{rows}</dl>{source}</article>')
+    block = (f'<section class="round mp-work" id="work">\n  <div class="round-head">\n'
+             f'    <span class="eyebrow">{eyebrow}</span>\n    <h2>{title}</h2>\n    <p class="lead">{lead}</p>\n  </div>\n'
+             f'  <div class="mp-work-list">\n' + "\n".join(cards) + '\n  </div>\n</section>\n'
+             f'{WORK_SCRIPT % (json.dumps(STATS_API), json.dumps(slug))}\n\n')
+    i = body.find('<section class="round" id="facts">')
+    if i == -1:
+        raise SystemExit(f"problems/{slug}: work.json needs a section id=\"facts\" to stand before")
+    return body[:i] + block + body[i:]
+
+
 # Round 4 in three layers, simplest first: the page wraps its explanation cards in
 #     <div class="mp-layer" data-layer="easy|strict|deep"> ... </div>
 # and the build adds each layer's heading with a "hide on all puzzles" button and a one-line stub that brings it
@@ -1812,7 +1866,7 @@ def build_problem(slug, base, metas, books, related):
             h += '\n<link rel="preconnect" href="https://i.ytimg.com">'
         if "<mp-guess" in body:
             h += "\n" + GUESS_SCRIPT
-        body = with_code(with_layers(body, lang, slug), lang, slug)
+        body = with_work(with_code(with_layers(body, lang, slug), lang, slug), lang, slug)
         body = with_discuss(with_subscribe(with_poll(with_hints(body, lang, slug, meta.get("hints")), lang, slug, meta.get("poll")), lang), lang, slug, meta["level"])
         items = []
         for s in related:
