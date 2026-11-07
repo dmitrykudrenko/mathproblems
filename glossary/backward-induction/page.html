@@ -1,0 +1,434 @@
+<style>
+/* Layout: glossary article in three layers: the centipede game solved from the end, what real players do and a race to 21
+   against a bot (plain words), how the method works, how much trust beats logic and where it works or breaks (rigorous),
+   the key-number rule, the 1/127 threshold and Aumann's theorem with its paradox (deeper). */
+:root { --tint: #F3EBDF; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul, ol { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+.ex { font-variant-numeric: tabular-nums; background: var(--paper); border-radius: 10px; padding: 10px 12px; font-size: .95rem; overflow-wrap: anywhere; }
+.gl-stat b { font-variant-numeric: tabular-nums; }
+.choice { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice button { font: inherit; font-size: .92rem; font-weight: 600; background: var(--paper); color: var(--ink); border: 1.5px solid var(--line); border-radius: 999px; padding: 9px 16px; cursor: pointer; }
+.choice button:hover:not(:disabled) { border-color: var(--ink); }
+.choice button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.choice button:disabled { cursor: default; }
+/* centipede: one card per move, the end card last */
+.cent { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.cent li { background: var(--paper); border: 1.5px solid var(--line); border-radius: 12px; padding: 10px; display: grid; gap: 4px; align-content: start; font-size: .85rem; font-variant-numeric: tabular-nums; transition: border-color .2s, background .2s; min-width: 0; }
+.cent .who { font-weight: 800; font-size: .95rem; }
+.cent .pile { color: var(--muted); }
+.cent .pay { font-weight: 600; }
+.cent .why { color: var(--muted); font-size: .8rem; min-height: 2.4em; }
+.cent li.take { border-color: var(--signal); background: var(--signal-soft); }
+.cent li.take .why { color: var(--ink); }
+.cent li.cut { opacity: .45; }
+.cent li.now { border-color: var(--ink); }
+@media (max-width: 860px) { .cent { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cent li:last-child { grid-column: 1 / -1; } }
+/* what people did: horizontal bars */
+.bars { display: grid; gap: 12px; }
+.bar-row { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) 3.4rem; gap: 12px; align-items: center; font-size: .9rem; }
+.bar-row small { display: block; color: var(--muted); font-size: .8rem; }
+.bar-track { height: 14px; background: var(--paper); border-radius: 999px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--ink); border-radius: 999px; }
+.bar-row.logic .bar-fill { background: var(--signal); }
+.bar-row b { font-variant-numeric: tabular-nums; text-align: right; }
+@media (max-width: 600px) { .bar-row { grid-template-columns: minmax(0, 1fr) 3.4rem; } .bar-row .bar-track { grid-column: 1 / -1; grid-row: 2; } }
+/* race to 21: the numbers said so far */
+.race { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.race div { aspect-ratio: 1; display: grid; place-items: center; border-radius: 10px; background: var(--paper); border: 1.5px solid var(--line); font-weight: 700; font-variant-numeric: tabular-nums; font-size: .95rem; position: relative; transition: background .2s, border-color .2s; }
+.race div.you { background: var(--ink); color: #fff; border-color: var(--ink); }
+.race div.bot { background: var(--line); border-color: var(--line); }
+.race div.key { border-color: var(--signal); box-shadow: inset 0 0 0 2px var(--signal); }
+.race div.key:not(.you):not(.bot) { background: var(--signal-soft); }
+.race div.win { color: var(--muted); }
+.race div.lose-mark { opacity: .35; }
+.race-moves { display: flex; gap: 8px; flex-wrap: wrap; }
+.race-moves .btn { min-width: 64px; }
+.steps { list-style: none; padding: 0; display: grid; gap: 10px; counter-reset: st; }
+.steps li { counter-increment: st; display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start; }
+.steps li::before { content: counter(st); font-weight: 800; font-size: 1.1rem; line-height: 1.5; }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="{{HOME}}">{{BRAND}}</a>
+    <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="{{GLOSSARY}}"><span class="uk">Словник</span><span class="en">Glossary</span></a> / <span class="uk">Зворотна індукція</span><span class="en">Backward induction</span></p>
+
+  <header class="gl-head">
+    <span class="eyebrow"><span class="uk">Словник · зворотна індукція</span><span class="en">Glossary · backward induction</span></span>
+    <h1><span class="uk">Забрати копійки на першому ж ході?</span><span class="en">Grab the pennies on the very first move?</span></h1>
+    <p class="lead uk">На столі 50 центів. Двоє по черзі вирішують: забрати купку, і тоді собі 80%, а суперникові 20%, або передати хід, і купка подвоїться. Після шести передач гра закінчується: перший отримує 25,60 $, другий 6,40 $. Бездоганна логіка каже, що перший має забрати 40 центів одразу. Живі люди так майже не роблять і йдуть додому з більшими грошима. Хто тут помиляється?</p>
+    <p class="lead en">There are 50 cents on the table. Two players take turns deciding: grab the pile, keeping 80% and giving the other 20%, or pass, and the pile doubles. After six passes the game ends: the first player gets $25.60, the second $6.40. Flawless logic says the first player should take the 40 cents at once. Real people almost never do, and go home with more money. Who is getting it wrong?</p>
+  </header>
+
+  <section class="gl-layers">
+  <div class="mp-layer" data-layer="easy">
+  <section class="gl-sec" id="centipede">
+    <h2><span class="uk">Гра-стоніжка</span><span class="en">The centipede game</span></h2>
+    <p class="uk">Ці правила й суми взято з лабораторного експерименту 1992 року. Ходи 1, 3 і 5 належать гравцеві <span class="vl">А</span>, ходи 2, 4 і 6 гравцеві <span class="vl">Б</span>. Обидва хочуть отримати якомога більше для себе, обидва бачать усю гру наперед і знають, що суперник теж рахує. Як, на вашу думку, має зіграти <span class="vl">А</span> на першому ході?</p>
+    <p class="en">These rules and amounts come from a 1992 lab experiment. Moves 1, 3 and 5 belong to player A, moves 2, 4 and 6 to player B. Both want as much as possible for themselves, both see the whole game in advance and know the other one calculates too. How do you think A should play on the first move?</p>
+    <div class="gl-panel">
+      <div class="choice" role="group" aria-label="Ваш здогад" data-aria-en="Your guess">
+        <button type="button" data-g="0" aria-pressed="false"><span class="uk">Забрати одразу</span><span class="en">Take at once</span></button>
+        <button type="button" data-g="1" aria-pressed="false"><span class="uk">Передати кілька разів, потім забрати</span><span class="en">Pass a few times, then take</span></button>
+        <button type="button" data-g="2" aria-pressed="false"><span class="uk">Передавати до кінця</span><span class="en">Pass all the way</span></button>
+      </div>
+      <ol class="cent" id="cent" aria-label="Ходи гри" data-aria-en="The moves of the game"></ol>
+      <div class="gl-btns">
+        <button type="button" class="btn ghost" id="c-solve" disabled><span class="uk">Розв'язати з кінця</span><span class="en">Solve from the end</span></button>
+        <button type="button" class="btn ghost" id="c-reset"><span class="uk">Почати знову</span><span class="en">Start over</span></button>
+      </div>
+      <p id="c-msg" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="gl-sec" id="people">
+    <h2><span class="uk">Що роблять живі люди</span><span class="en">What real people do</span></h2>
+    <p class="uk">Гру вигадав економіст Роберт Розенталь 1981 року, а 1992 року Річард Маккелві й Томас Палфрі зіграли її зі студентами на справжні гроші. Логіка обіцяла, що всі ігри закінчаться на першому ході. Так закінчилося близько 5%. Потім дослідники взялися за шахістів, які заробляють на розрахунку варіантів наперед, і отримали два протилежні результати.</p>
+    <p class="en">The economist Robert Rosenthal invented the game in 1981, and in 1992 Richard McKelvey and Thomas Palfrey played it with students for real money. Logic promised that every game would end on the first move. About 5% did. Then researchers turned to chess players, who make a living by calculating ahead, and got two opposite results.</p>
+    <div class="gl-panel">
+      <div class="bars">
+        <div class="bar-row logic"><span><span class="uk">Що каже логіка</span><span class="en">What logic says</span></span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><b>100%</b></div>
+        <div class="bar-row"><span><span class="uk">Студенти</span><span class="en">Students</span><small><span class="uk">Маккелві й Палфрі, 1992</span><span class="en">McKelvey and Palfrey, 1992</span></small></span><div class="bar-track"><div class="bar-fill" style="width:5%"></div></div><b>≈ 5%</b></div>
+        <div class="bar-row"><span><span class="uk">Шахісти проти шахістів</span><span class="en">Chess players vs chess players</span><small><span class="uk">Паласіос-Уерта й Воліж, 2009</span><span class="en">Palacios-Huerta and Volij, 2009</span></small></span><div class="bar-track"><div class="bar-fill" style="width:69%"></div></div><b>69%</b></div>
+        <div class="bar-row"><span><span class="uk">Гросмейстери там само</span><span class="en">Grandmasters, same study</span><small><span class="uk">26 з 26</span><span class="en">26 of 26</span></small></span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><b>100%</b></div>
+        <div class="bar-row"><span><span class="uk">Шахісти проти шахістів</span><span class="en">Chess players vs chess players</span><small><span class="uk">Левітт, Ліст і Садофф, 2011</span><span class="en">Levitt, List and Sadoff, 2011</span></small></span><div class="bar-track"><div class="bar-fill" style="width:3.9%"></div></div><b><span class="uk">3,9%</span><span class="en">3.9%</span></b></div>
+        <div class="bar-row"><span><span class="uk">Гросмейстери там само</span><span class="en">Grandmasters, same study</span><small><span class="uk">0 з 16</span><span class="en">0 of 16</span></small></span><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div><b>0%</b></div>
+      </div>
+      <p class="gl-note"><span class="uk">Частка ігор (або гравців), які забрали гроші на першому ж ході. Дослідження грали схожі, але не однакові версії гри.</span><span class="en">The share of games (or players) that took the money on the very first move. The studies played similar but not identical versions of the game.</span></p>
+    </div>
+    <p class="uk">Найцікавіше в останньому дослідженні. Ті самі шахісти грали ще й «гонку до 100»: по черзі додають числа, хто скаже рівно 100, той виграв. Там зворотна індукція дає просту виграшну стратегію, і частина гравців розв'язала гру бездоганно. Але жоден із цих бездоганних логіків не забрав гроші на першому ході стоніжки. Рахувати з кінця вони вміли. Вони просто не вірили, що суперник рахуватиме так само.</p>
+    <p class="en">The most interesting part is in the last study. The same chess players also played a "race to 100": take turns adding numbers, and whoever says exactly 100 wins. There backward induction gives a simple winning strategy, and some players solved the game perfectly. Yet not one of these perfect logicians took the money on the first move of the centipede. They could reason from the end. They just didn't believe the opponent would reason the same way.</p>
+  </section>
+
+  <section class="gl-sec" id="race">
+    <h2><span class="uk">Гра, де логіка не підводить</span><span class="en">A game where logic never fails</span></h2>
+    <p class="uk">Гонка до 21. Рахунок починається з нуля. Ви з ботом по черзі додаєте 1, 2 або 3, хто скаже рівно 21, той виграв. Тут немає довіри й жалю: один виграє, другий програє. Бот рахує з кінця. Як гадаєте, чи важливо, хто ходить першим?</p>
+    <p class="en">Race to 21. The count starts at zero. You and a bot take turns adding 1, 2 or 3, and whoever says exactly 21 wins. There is no trust or pity here: one wins, the other loses. The bot reasons from the end. Do you think it matters who goes first?</p>
+    <div class="gl-panel">
+      <div class="choice" id="r-who" role="group" aria-label="Хто починає" data-aria-en="Who starts">
+        <button type="button" data-first="you" aria-pressed="false"><span class="uk">Я ходжу першим</span><span class="en">I go first</span></button>
+        <button type="button" data-first="bot" aria-pressed="false"><span class="uk">Нехай першим ходить бот</span><span class="en">Let the bot go first</span></button>
+      </div>
+      <div class="race" id="r-line" aria-label="Числа від 1 до 21" data-aria-en="Numbers from 1 to 21"></div>
+      <div class="race-moves" role="group" aria-label="Ваш хід" data-aria-en="Your move">
+        <button type="button" class="btn" data-add="1" disabled>+1</button>
+        <button type="button" class="btn" data-add="2" disabled>+2</button>
+        <button type="button" class="btn" data-add="3" disabled>+3</button>
+      </div>
+      <div class="gl-two">
+        <div class="gl-stat"><span><span class="uk">Ваші перемоги</span><span class="en">Your wins</span></span><b id="r-you">0</b></div>
+        <div class="gl-stat"><span><span class="uk">Перемоги бота</span><span class="en">Bot's wins</span></span><b id="r-bot">0</b></div>
+      </div>
+      <p id="r-msg" aria-live="polite"></p>
+      <div class="gl-btns">
+        <button type="button" class="btn ghost" id="r-solve"><span class="uk">Показати розв'язок з кінця</span><span class="en">Show the solution from the end</span></button>
+      </div>
+      <p id="r-sol" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Що таке зворотна індукція</span><span class="en">What backward induction is</span></h2>
+    <p class="uk">Це спосіб розв'язати гру з кінця. Спершу дивимося на останній хід: там вибір очевидний, бо далі нічого немає. Знаючи це, вирішуємо передостанній хід, потім попередній, і так до першого. Ланцюжок дає єдину відповідь, і вона бездоганна, якщо гра має кінець, усі бачать усе, і кожен певен, що інші теж дорахують до кінця.</p>
+    <p class="en">It is a way to solve a game from the end. First look at the last move: the choice there is obvious, because nothing comes after it. Knowing that, decide the move before it, then the one before that, and so on back to the first. The chain gives a single answer, and it is flawless if the game has an end, everyone sees everything, and everyone is sure the others will also reason all the way to the end.</p>
+    <p class="uk">Остання умова і є слабкою ланкою. У гонці до 21 вона не потрібна: кожна позиція виграшна або програшна, хоч що думає суперник. У стоніжці від неї залежить усе: досить засумніватися в логіці суперника на одному з шести ходів, і ланцюжок розсипається.</p>
+    <p class="en">That last condition is the weak link. The race to 21 doesn't need it: each position is a win or a loss whatever the opponent thinks. In the centipede everything depends on it: doubt the opponent's logic on any one of the six moves, and the chain falls apart.</p>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="strict">
+  <section class="gl-sec">
+    <h2><span class="uk">Рецепт у чотири кроки</span><span class="en">A four-step recipe</span></h2>
+    <ol class="steps">
+      <li><span><span class="uk">Намалюйте гру як дерево: кожен вузол — чийсь хід, кожне листя — підсумок з виграшами всіх гравців.</span><span class="en">Draw the game as a tree: each node is someone's move, each leaf is an outcome with every player's payoff.</span></span></li>
+      <li><span><span class="uk">Візьміть вузли, після яких ідуть лише листя. Гравець, що там ходить, вибере те листя, де виграє найбільше він сам.</span><span class="en">Take the nodes followed only by leaves. The player who moves there will pick the leaf where he himself wins most.</span></span></li>
+      <li><span><span class="uk">Замініть кожен такий вузол цим листям: тепер дерево коротше на один хід.</span><span class="en">Replace each such node with that leaf: the tree is now one move shorter.</span></span></li>
+      <li><span><span class="uk">Повторюйте, доки не дійдете до кореня. Вибори, зроблені по дорозі, і є розв'язком гри, причому в кожній ситуації, навіть у тих, до яких гра ніколи не дійде.</span><span class="en">Repeat until you reach the root. The choices made along the way are the solution of the game, in every situation, even those the game never reaches.</span></span></li>
+    </ol>
+    <p class="uk">Так знаходять те, що тепер називають рівновагою, досконалою за підіграми. Цю вимогу 1965 року запропонував Райнгард Зельтен: стратегії мають бути найкращими не лише у грі, що справді відбудеться, а й у кожній її частині. Через це порожні погрози не діють: якщо в потрібний момент виконувати погрозу невигідно, її ніхто не виконає, і всі це знають.</p>
+    <p class="en">This finds what is now called a subgame perfect equilibrium. Reinhard Selten proposed the requirement in 1965: strategies must be best not only in the game that actually happens but in every part of it. That is why empty threats don't work: if carrying out a threat doesn't pay at the moment it is due, nobody will carry it out, and everyone knows it.</p>
+  </section>
+
+  <section class="gl-sec" id="trust">
+    <h2><span class="uk">Скільки довіри вистачить, щоб логіка програла</span><span class="en">How much trust it takes for logic to lose</span></h2>
+    <p class="uk">Уявіть натовп суперників <span class="vl">Б</span>. Більшість — бездоганні логіки: вони забирають гроші за першої ж нагоди, на другому ході. Але дехто просто довірливий і завжди передає. Ви — гравець <span class="vl">А</span>, і не знаєте, хто вам трапився. Порівняємо дві стратегії: забрати 40 центів одразу або передавати до кінця. Скільки довірливих має бути в натовпі, щоб друга стратегія приносила більше?</p>
+    <p class="en">Imagine a crowd of B opponents. Most are flawless logicians: they take the money at the first chance, on move two. But a few are simply trusting and always pass. You are player A and don't know whom you've met. Compare two strategies: take the 40 cents at once, or pass all the way. How many trusting players must there be in the crowd for the second strategy to earn more?</p>
+    <div class="gl-panel">
+      <label class="gl-note" for="t-q"><span class="uk">Частка довірливих у натовпі</span><span class="en">Share of trusting players in the crowd</span>: <b id="t-qv"></b></label>
+      <input type="range" id="t-q" min="0" max="5" step="0.1" value="2">
+      <canvas class="gl-canvas" id="t-cv" style="height:240px" aria-label="Середній виграш двох стратегій" data-aria-en="Average winnings of the two strategies"></canvas>
+      <div class="gl-btns">
+        <button type="button" class="btn ghost" id="t-go"><span class="uk">Зіграти по 1000 ігор кожною стратегією</span><span class="en">Play 1,000 games with each strategy</span></button>
+      </div>
+      <div class="gl-two">
+        <div class="gl-stat"><span><span class="uk">Забрати одразу · у середньому за гру</span><span class="en">Take at once · average per game</span></span><b id="t-take">–</b></div>
+        <div class="gl-stat"><span><span class="uk">Передавати до кінця · у середньому за гру</span><span class="en">Pass all the way · average per game</span></span><b id="t-pass">–</b></div>
+      </div>
+      <div class="gl-stat"><span><span class="uk">Передавати вигідніше, щойно довірливих більше ніж</span><span class="en">Passing pays more once trusting players exceed</span></span><b class="hit" id="t-thr">1/127</b></div>
+      <p class="gl-note"><span class="uk">Лінії — точне середнє, точки — ваші 1000 ігор. Іграшкова модель: логік завжди забирає на другому ході, довірливий ніколи не забирає.</span><span class="en">The lines are the exact average, the dots are your 1,000 games. A toy model: a logician always takes on move two, a trusting player never takes.</span></p>
+      <p id="t-msg" aria-live="polite"></p>
+    </div>
+    <p class="uk">Відповідь мізерна: досить, щоб довірливим був один суперник зі 127. Бо втрачаєте ви копійки, 20 центів, а виграти можете 25 доларів. Звідси й сила сумніву: щоб зламати ланцюжок, не треба думати, що суперник дурний. Досить не бути цілком певним, що він бездоганний.</p>
+    <p class="en">The answer is tiny: it is enough for one opponent in 127 to be trusting. You risk pennies, 20 cents, and stand to win 25 dollars. Hence the power of doubt: to break the chain you don't have to think the opponent is a fool. It is enough not to be completely sure he is flawless.</p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Де вона працює, а де ламається</span><span class="en">Where it works and where it breaks</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="uk">Хрестики-нулики</span><span class="en">Tic-tac-toe</span></b><span><span class="uk">Усього 5 478 різних позицій і 255 168 можливих партій. Комп'ютер перебирає їх з кінця за мить і бачить: якщо обидва не помиляються, буде нічия.</span><span class="en">There are only 5,478 different positions and 255,168 possible games. A computer goes through them from the end in an instant and sees: if neither side makes a mistake, it is a draw.</span></span></li>
+      <li><b><span class="uk">Шахові закінчення</span><span class="en">Chess endgames</span></b><span><span class="uk">Таблиці закінчень будують саме так: від усіх матових позицій назад. 2012 року в МДУ на суперкомп'ютері «Ломоносов» порахували всі позиції із сімома фігурами й знайшли примусовий мат у 549 ходів.</span><span class="en">Endgame tablebases are built exactly this way: back from every checkmate position. In 2012 at Moscow State University the Lomonosov supercomputer covered every position with seven pieces and found a forced mate in 549 moves.</span></span></li>
+      <li><b><span class="uk">Шахи загалом</span><span class="en">Chess as a whole</span></b><span><span class="uk">1913 року Ернст Цермело написав одну з перших праць з теорії ігор, про шахи. Теорему, названу його іменем, сьогодні доводять зворотною індукцією: у шахах або білі можуть змусити до перемоги, або чорні, або кожна сторона може втримати нічию. Котре з трьох, досі ніхто не знає: дерево надто велике.</span><span class="en">In 1913 Ernst Zermelo wrote one of the first papers on game theory, about chess. The theorem named after him is proved today by backward induction: in chess either White can force a win, or Black can, or each side can secure a draw. Which of the three, nobody knows yet: the tree is far too big.</span></span></li>
+      <li><b><span class="uk">Гра «ультиматум»</span><span class="en">The ultimatum game</span></b><span><span class="uk">Один пропонує, як поділити суму, другий погоджується або відмовляється, і тоді обидва не отримують нічого. З кінця: другому вигідна будь-яка ненульова частка, тож перший має пропонувати мінімум. У перших дослідах Ґюта, Шмітберґера й Шварце 1982 року і в багатьох пізніших люди пропонують 40–50%, а пропозиції у 20% і менше відхиляють приблизно в половині випадків.</span><span class="en">One player proposes how to split a sum, the other accepts or refuses, and then neither gets anything. From the end: any non-zero share pays the responder, so the proposer should offer the minimum. In the first experiments by Güth, Schmittberger and Schwarze in 1982 and many since, people offer 40–50%, and offers of 20% or less are rejected about half the time.</span></span></li>
+      <li><b><span class="uk">Парадокс мережі магазинів</span><span class="en">The chain-store paradox</span></b><span><span class="uk">Райнгард Зельтен, 1978. Мережа має магазини у 20 містах, і в кожне по черзі хоче зайти конкурент. З кінця: в останньому місті цінова війна вже нікого не залякає, тож у ньому мережа поступиться, а значить, і в передостанньому… Зельтен сам написав, що на місці мережі не послухав би цього висновку й таки відлякував би конкурентів.</span><span class="en">Reinhard Selten, 1978. A chain has stores in 20 towns, and a rival wants to enter each in turn. From the end: in the last town a price war no longer scares anyone, so the chain gives way there, and so in the one before… Selten himself wrote that in the chain's place he would ignore this conclusion and fight the rivals off.</span></span></li>
+      <li><b><span class="uk">Дилема в'язня з відомим кінцем</span><span class="en">A prisoner's dilemma with a known end</span></b><span><span class="uk">Якщо обидва знають, скільки буде раундів, в останньому співпрацювати нема сенсу, отже, і в передостанньому… Логіка велить зраджувати з першого ж раунду, хоча постійна співпраця дала б обом більше.</span><span class="en">If both know how many rounds there will be, cooperating in the last one makes no sense, so neither in the one before… Logic says defect from the very first round, though steady cooperation would give both more.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="deep">
+  <section class="gl-sec">
+    <h2><span class="uk">Ключові числа гонки</span><span class="en">The key numbers of the race</span></h2>
+    <div class="gl-panel">
+      <p class="ex"><span class="uk">ціль T, додавати від 1 до k: ключові числа — ті, що дають ту саму остачу від ділення на k + 1, що й T</span><span class="en">target T, add 1 to k: the key numbers are those with the same remainder on division by k + 1 as T</span></p>
+      <p class="uk">Хто сказав ключове число, той виграв: хоч що додасть суперник, від 1 до k, ви доповните його хід до k + 1 і знову станете на ключове число, аж до самої цілі. Для гонки до 21 з кроками 1–3 це 1, 5, 9, 13, 17, 21: перший гравець каже 1 і виграє. Для гонки до 100 з кроками 1–10 це 1, 12, 23, …, 89, 100. У досліді Левітта, Ліста й Садоффа лише 12,6% пар шахістів знайшли правильний перший хід, число 1, а майже дві третини ігор «розв'язалися» лише на числі 78 чи пізніше.</p>
+      <p class="en">Whoever says a key number wins: whatever the opponent adds, from 1 to k, you top his move up to k + 1 and land on a key number again, all the way to the target. For the race to 21 with steps 1–3 they are 1, 5, 9, 13, 17, 21: the first player says 1 and wins. For the race to 100 with steps 1–10 they are 1, 12, 23, …, 89, 100. In the experiment by Levitt, List and Sadoff only 12.6% of chess-player pairs found the right first move, the number 1, and nearly two thirds of the games were only "solved" at 78 or later.</p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Звідки береться 1 зі 127</span><span class="en">Where 1 in 127 comes from</span></h2>
+    <div class="gl-panel">
+      <p class="ex">q · 25,60 + (1 − q) · 0,20 &gt; 0,40 ⇔ q &gt; 0,20 / 25,40 = 1/127 ≈ 0,79%</p>
+      <p class="uk">Якщо забрати одразу, ви маєте 0,40 $ напевно. Якщо передавати, то з імовірністю q трапиться довірливий, і ви дійдете до кінця з 25,60 $, а з імовірністю 1 − q логік забере на другому ході й залишить вам 0,20 $. Межа точна для цієї іграшкової моделі. Маккелві й Палфрі будували тоншу: кожен гравець не знає, чи суперник альтруїст, і тоді навіть логіки на ранніх ходах часом передають. Щоб модель збіглася з їхніми даними, вистачало приблизно 5% альтруїстів.</p>
+      <p class="en">Take at once and you have $0.40 for sure. Pass, and with probability q you meet a trusting player and reach the end with $25.60, while with probability 1 − q a logician takes on move two and leaves you $0.20. The threshold is exact for this toy model. McKelvey and Palfrey built a subtler one: each player doesn't know whether the opponent is an altruist, and then even logicians sometimes pass on early moves. For the model to match their data, about 5% altruists was enough.</p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Теорема Ауманна і її парадокс</span><span class="en">Aumann's theorem and its paradox</span></h2>
+    <p class="uk">1995 року Роберт Ауманн довів: якщо в грі з повною інформацією раціональність гравців є спільним знанням (кожен раціональний, кожен знає, що кожен раціональний, кожен знає, що кожен знає, і так без кінця), то гра закінчиться саме так, як велить зворотна індукція. Тож логіка стоніжки бездоганна. Питання лише в тому, чи бувають такі гравці.</p>
+    <p class="en">In 1995 Robert Aumann proved that if, in a game of perfect information, the players' rationality is common knowledge (everyone is rational, everyone knows that everyone is rational, everyone knows that everyone knows, and so on forever), the game ends exactly as backward induction says. So the logic of the centipede is flawless. The only question is whether such players exist.</p>
+    <p class="uk">А всередині самого міркування сидить пастка, яку 1989 року розібрали філософи Філіп Петтіт і Роберт Сагден. Щоб вирішити, чи брати на першому ході, <span class="vl">А</span> має уявити, що зробить <span class="vl">Б</span> на другому. Але <span class="vl">Б</span> потрапить на другий хід, лише якщо <span class="vl">А</span> передав, тобто зробив те, чого бездоганний логік ніколи не робить. Чому ж тоді <span class="vl">Б</span> має вірити, що далі <span class="vl">А</span> поводитиметься як бездоганний логік? Зворотна індукція спирається на віру в раціональність саме там, де ця віра вже спростована.</p>
+    <p class="en">And inside the reasoning itself sits a trap, taken apart in 1989 by the philosophers Philip Pettit and Robert Sugden. To decide whether to take on move one, A has to imagine what B will do on move two. But B only reaches move two if A passed, that is, did what a flawless logician never does. Why then should B believe that A will behave like a flawless logician from there on? Backward induction relies on belief in rationality exactly where that belief has already been refuted.</p>
+  </section>
+  </div>
+  </section>
+
+  <!--PROBLEMS-->
+
+  <!--TERMS-->
+
+  <footer>
+    <span class="uk">Математичні парадокси · автор <a href="{{HOME}}#author">Дмитро Кудренко</a></span><span class="en">Math paradoxes · by <a href="{{HOME}}#author">Dmytro Kudrenko</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const en = document.documentElement.dataset.lang === 'en', L = (uk, e) => en ? e : uk;
+  const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+  if (en) $$('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn));
+  const css = getComputedStyle(document.documentElement);
+  const C = { ink: css.getPropertyValue('--ink').trim() || '#151515', muted: css.getPropertyValue('--muted').trim() || '#5F5F5F',
+              line: css.getPropertyValue('--line').trim() || '#E4E4E4', hit: css.getPropertyValue('--signal').trim() || '#D9318F' };
+  const nf = (v, d = 2) => v.toLocaleString(en ? 'en-US' : 'uk-UA', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const usd = v => en ? '$' + nf(v) : nf(v) + ' $';
+  const still = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const wait = ms => new Promise(r => setTimeout(r, still() ? 0 : ms));
+  function setup(cv) {
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (!r.width) return null;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.font = '12px Inter, system-ui, sans-serif';
+    return { g, w: r.width, h: r.height };
+  }
+
+  // 1. centipede (McKelvey and Palfrey's six-move game): the pile starts at $0.50 and doubles on every pass;
+  //    the mover who takes gets 80%, the other 20%; after move 6 A gets $25.60 and B $6.40
+  const N = 6, pile = k => 0.5 * 2 ** (k - 1);
+  const take = k => { const p = pile(k); return k % 2 ? [0.8 * p, 0.2 * p] : [0.2 * p, 0.8 * p]; };
+  const END = [0.8 * pile(N + 1), 0.2 * pile(N + 1)];
+  let guess = -1, solving = false;
+  function centCards() {
+    let h = '';
+    for (let k = 1; k <= N; k++) {
+      const [a, b] = take(k);
+      h += `<li data-k="${k}"><span class="who">${L('Хід', 'Move')} ${k} · ${k % 2 ? '<span class="vl">' + L('А', 'A') + '</span>' : '<span class="vl">' + L('Б', 'B') + '</span>'}</span><span class="pile">${L('купка', 'pile')} ${usd(pile(k))}</span>` +
+           `<span class="pay">${L('забрати', 'take')}: ${'<span class="vl">' + L('А', 'A') + '</span>'} ${usd(a)} · ${'<span class="vl">' + L('Б', 'B') + '</span>'} ${usd(b)}</span><span class="why"></span></li>`;
+    }
+    h += `<li data-k="7"><span class="who">${L('Кінець', 'The end')}</span><span class="pile">${L('купка', 'pile')} ${usd(pile(N + 1))}</span>` +
+         `<span class="pay">${'<span class="vl">' + L('А', 'A') + '</span>'} ${usd(END[0])} · ${'<span class="vl">' + L('Б', 'B') + '</span>'} ${usd(END[1])}</span><span class="why"></span></li>`;
+    $('#cent').innerHTML = h;
+  }
+  async function solve() {
+    if (solving || guess < 0) return;
+    solving = true; $('#c-solve').disabled = true; centCards();
+    let v = END; // what the players get if the game reaches the next move
+    $('#c-msg').textContent = L('Починаємо з кінця: з шостого ходу.', 'We start from the end: move six.');
+    for (let k = N; k >= 1; k--) {
+      const li = $(`#cent li[data-k="${k}"]`), m = k % 2 ? 0 : 1, t = take(k);
+      li.classList.add('now'); await wait(500);
+      li.querySelector('.why').innerHTML = L(`<span class="vl">${m ? 'Б' : 'А'}</span>: забрати ${usd(t[m])} більше, ніж ${usd(v[m])} далі`,
+                                                 `<span class="vl">${m ? 'B' : 'A'}</span>: taking ${usd(t[m])} beats ${usd(v[m])} later`);
+      li.classList.remove('now'); li.classList.add('take');
+      if (k === N) { const e = $('#cent li[data-k="7"]'); e.classList.add('cut'); e.querySelector('.why').textContent = L('Сюди логіки не дійдуть', 'Logicians never get here'); }
+      v = t; await wait(500);
+    }
+    $('#c-msg').innerHTML = L(
+      `Ланцюжок дійшов до першого ходу: <span class="vl">А</span> забирає одразу, і гра закінчується з ${usd(0.4)} і ${usd(0.1)}. Якби обидва передавали до кінця, кожен отримав би в 64 рази більше. ` +
+        (guess === 0 ? 'Ви міркували як бездоганний логік. А тепер подивіться, як грають живі люди.' : 'Ви, як і більшість людей, передали б хід. Логіка проти, але погляньте, хто насправді заробляє більше.'),
+      `The chain has reached move one: <span class="vl">A</span> takes at once, and the game ends with ${usd(0.4)} and ${usd(0.1)}. Had both passed all the way, each would have got 64 times more. ` +
+        (guess === 0 ? 'You reasoned like a flawless logician. Now see how real people play.' : 'Like most people, you would pass. Logic disagrees, but look at who actually earns more.'));
+    solving = false;
+  }
+  $$('#centipede [data-g]').forEach(b => b.addEventListener('click', () => {
+    if (solving) return;
+    guess = +b.dataset.g;
+    $$('#centipede [data-g]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    $('#c-solve').disabled = false;
+    $('#c-msg').textContent = L('Тепер перевірте здогад: розв\'яжіть гру з кінця, хід за ходом.', 'Now check your guess: solve the game from the end, move by move.');
+  }));
+  $('#c-solve').onclick = solve;
+  $('#c-reset').onclick = () => {
+    if (solving) return;
+    guess = -1; centCards(); $('#c-solve').disabled = true;
+    $$('#centipede [data-g]').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    $('#c-msg').textContent = L('Виберіть свій здогад.', 'Pick your guess.');
+  };
+  centCards(); $('#c-msg').textContent = L('Виберіть свій здогад.', 'Pick your guess.');
+
+  // 2. race to 21 with steps 1–3; key numbers are 1, 5, 9, 13, 17, 21 (remainder 1 mod 4)
+  const T = 21, K = 3, isKey = n => n % (K + 1) === T % (K + 1);
+  let total = 0, turn = '', over = true, owner = {}, score = { you: 0, bot: 0 }, botBusy = false, solShown = false;
+  function raceDraw(showKeys) {
+    let h = '';
+    for (let n = 1; n <= T; n++) {
+      const cls = [owner[n] || '', showKeys && isKey(n) ? 'key' : ''].join(' ').trim();
+      h += `<div class="${cls}">${n}</div>`;
+    }
+    $('#r-line').innerHTML = h;
+  }
+  function moveBtns() { $$('[data-add]').forEach(b => { b.disabled = over || turn !== 'you' || botBusy || total + +b.dataset.add > T; }); }
+  function said(who, add) {
+    for (let n = total + 1; n <= total + add; n++) owner[n] = who;
+    total += add; raceDraw(solShown);
+    if (total === T) {
+      over = true; score[who]++;
+      $('#r-you').textContent = score.you; $('#r-bot').textContent = score.bot;
+      $('#r-msg').textContent = who === 'you'
+        ? L('Ви сказали 21 і виграли! Схоже, ви теж рахували з кінця. Спробуйте ще раз, з іншим порядком ходів.', 'You said 21 and won! It looks like you reasoned from the end too. Try again with the other order.')
+        : L('Бот сказав 21. Зіграйте ще: спробуйте ходити першим і подумайте, яке число треба сказати перед 21, щоб бот не міг до нього дотягнутися.',
+            'The bot said 21. Play again: try going first and think about which number you must say before 21 so that the bot can\'t reach it.');
+      $$('#r-who button').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    }
+    moveBtns();
+  }
+  async function botMove() {
+    botBusy = true; moveBtns();
+    $('#r-msg').textContent = L('Бот думає…', 'The bot is thinking…');
+    await wait(600);
+    let add = 0;
+    for (let a = 1; a <= K; a++) if (total + a <= T && isKey(total + a)) add = a;
+    if (!add) add = 1 + Math.floor(Math.random() * Math.min(K, T - total));
+    botBusy = false;
+    said('bot', add);
+    if (!over) { turn = 'you'; $('#r-msg').textContent = L(`Бот додав ${add}, тепер ${total}. Ваш хід.`, `The bot added ${add}, now it's ${total}. Your move.`); moveBtns(); }
+  }
+  $$('#r-who button').forEach(b => b.addEventListener('click', () => {
+    if (botBusy) return;
+    $$('#r-who button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    total = 0; owner = {}; over = false; raceDraw(solShown);
+    if (b.dataset.first === 'you') { turn = 'you'; $('#r-msg').textContent = L('Рахунок 0. Ваш хід: додайте 1, 2 або 3.', 'The count is 0. Your move: add 1, 2 or 3.'); moveBtns(); }
+    else { turn = 'bot'; botMove(); }
+  }));
+  $$('[data-add]').forEach(b => b.addEventListener('click', () => {
+    if (over || turn !== 'you' || botBusy) return;
+    said('you', +b.dataset.add);
+    if (!over) { turn = 'bot'; botMove(); }
+  }));
+  $('#r-solve').onclick = async () => {
+    if (solShown) return;
+    solShown = true; $('#r-solve').disabled = true;
+    const steps = [21, 17, 13, 9, 5, 1];
+    for (const n of steps) {
+      $$('#r-line div')[n - 1].classList.add('key');
+      $('#r-sol').textContent = n === 21
+        ? L('21 — ціль. Хто її сказав, той виграв.', '21 is the target. Whoever says it wins.')
+        : L(`${n}: звідси суперник додасть 1, 2 або 3 і потрапить на ${n + 1}–${n + 3}, а ви доповните до ${n + 4}. Отже, ${n} теж виграшне.`,
+            `${n}: from here the opponent adds 1, 2 or 3 and lands on ${n + 1}–${n + 3}, and you top it up to ${n + 4}. So ${n} wins too.`);
+      await wait(900);
+    }
+    $('#r-sol').textContent = L('Ключові числа 1, 5, 9, 13, 17, 21: кожне на 4 більше за попереднє. Перший гравець каже 1, а потім щоразу доповнює хід суперника до 4. Гра вирішена ще до першого ходу: хто починає й не помиляється, той виграє.',
+                                'The key numbers are 1, 5, 9, 13, 17, 21: each is 4 more than the last. The first player says 1 and then always tops the opponent\'s move up to 4. The game is decided before the first move: whoever starts and makes no mistake wins.');
+  };
+  raceDraw(false); moveBtns();
+  $('#r-msg').textContent = L('Виберіть, хто ходить першим.', 'Choose who goes first.');
+
+  // 3. trust: a crowd of B players, share q always passes, the rest take on move two
+  let sim = null;
+  const exactPass = q => q * END[0] + (1 - q) * take(2)[0];
+  function drawTrust() {
+    const q = +$('#t-q').value / 100;
+    $('#t-qv').textContent = nf(100 * q, 1) + '%';
+    const s = setup($('#t-cv')); if (!s) return;
+    const { g, w, h } = s, pl = 44, pr = 12, pt = 16, pb = 30, qMax = 0.05, yMax = 1.6;
+    const X = v => pl + v / qMax * (w - pl - pr), Y = v => h - pb - v / yMax * (h - pt - pb);
+    g.clearRect(0, 0, w, h);
+    g.strokeStyle = C.line; g.fillStyle = C.muted; g.lineWidth = 1;
+    g.textAlign = 'right';
+    [0, 0.4, 0.8, 1.2, 1.6].forEach(v => { g.beginPath(); g.moveTo(pl, Y(v)); g.lineTo(w - pr, Y(v)); g.stroke(); g.fillText(usd(v), pl - 6, Y(v) + 4); });
+    g.textAlign = 'center';
+    [0, 1, 2, 3, 4, 5].forEach(v => g.fillText(v + '%', X(v / 100), h - 10));
+    // the two strategies
+    g.lineWidth = 2.5; g.strokeStyle = C.ink; g.beginPath(); g.moveTo(X(0), Y(0.4)); g.lineTo(X(qMax), Y(0.4)); g.stroke();
+    g.strokeStyle = C.hit; g.beginPath(); g.moveTo(X(0), Y(exactPass(0))); g.lineTo(X(qMax), Y(exactPass(qMax))); g.stroke();
+    g.lineWidth = 1;
+    const qs = 1 / 127;
+    g.setLineDash([4, 4]); g.strokeStyle = C.muted; g.beginPath(); g.moveTo(X(qs), pt); g.lineTo(X(qs), h - pb); g.stroke(); g.setLineDash([]);
+    g.textAlign = 'left'; g.fillStyle = C.ink; g.fillText(L('забрати одразу', 'take at once'), X(0.028), Y(0.4) + 16);
+    g.textAlign = 'right'; g.fillStyle = C.hit; g.fillText(L('передавати до кінця', 'pass all the way'), X(0.035) - 6, Y(exactPass(0.035)) - 8); g.textAlign = 'left';
+    g.fillStyle = C.muted; g.fillText('1/127', X(qs) + 4, pt + 10);
+    // current q
+    g.strokeStyle = C.ink; g.beginPath(); g.moveTo(X(q), h - pb); g.lineTo(X(q), h - pb + 5); g.stroke();
+    if (sim && Math.abs(sim.q - q) < 1e-9) {
+      [[sim.take, C.ink], [sim.pass, C.hit]].forEach(([v, c]) => { g.fillStyle = c; g.beginPath(); g.arc(X(q), Y(Math.min(v, yMax)), 5, 0, 7); g.fill(); });
+    }
+  }
+  function showTrust() {
+    const q = +$('#t-q').value / 100, on = sim && Math.abs(sim.q - q) < 1e-9;
+    $('#t-take').textContent = on ? usd(sim.take) : '–';
+    $('#t-pass').textContent = on ? usd(sim.pass) : '–';
+    $('#t-msg').textContent = !on
+      ? L(`Точне середнє при цій частці: забрати одразу ${usd(0.4)}, передавати до кінця ${usd(exactPass(q))}. Зіграйте 1000 ігор, щоб перевірити.`,
+          `The exact average at this share: take at once ${usd(0.4)}, pass all the way ${usd(exactPass(q))}. Play 1,000 games to check.`)
+      : L(`Із 1000 суперників довірливих трапилося ${sim.met}. ` + (sim.pass > sim.take ? `Логік, що забирав одразу, заробив у середньому ${usd(sim.take)} за гру, а той, хто передавав, ${usd(sim.pass)}.` : `Тут логіка виграла: довірливих надто мало.`),
+          `Out of 1,000 opponents, ${sim.met} were trusting. ` + (sim.pass > sim.take ? `The logician who took at once averaged ${usd(sim.take)} a game, the one who passed ${usd(sim.pass)}.` : `Here logic won: there are too few trusting players.`));
+  }
+  $('#t-q').addEventListener('input', () => { drawTrust(); showTrust(); });
+  $('#t-go').onclick = () => {
+    const q = +$('#t-q').value / 100; let met = 0, sum = 0;
+    for (let i = 0; i < 1000; i++) { const trusting = Math.random() < q; if (trusting) met++; sum += trusting ? END[0] : take(2)[0]; }
+    sim = { q, met, take: take(1)[0], pass: sum / 1000 };
+    drawTrust(); showTrust();
+  };
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawTrust, 100); });
+  $('#t-thr').textContent = L('1 з 127 ≈ 0,8%', '1 in 127 ≈ 0.8%');
+  drawTrust(); showTrust();
+})();
+</script>

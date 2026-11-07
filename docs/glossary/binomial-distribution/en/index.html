@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/glossary/binomial-distribution/", "en": "/glossary/binomial-distribution/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = null;
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  // the gate card sits after round 1; once it hides, the browser would keep the bottom of the page in view, so jump to round 2
+  function toRounds(b) {
+    var r = b.closest(".sp-gate") && document.querySelector(".sp-rounds");
+    if (r) requestAnimationFrame(function () { r.scrollIntoView({ block: "start" }); });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+    if (on) toRounds(b);
+  });
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else { window.mpSolve(); toRounds(b); }
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+
+<title>The Binomial Distribution Explained: 50 Heads in 100 Is Rare</title>
+<meta name="description" content="Exactly 50 heads in 100 tosses is the most likely result, yet it comes up only 8% of the time. Toss thousands of coins and roll Newton and Pepys&#x27;s dice.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/glossary/binomial-distribution/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/glossary/binomial-distribution/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/glossary/binomial-distribution/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/glossary/binomial-distribution/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="The Binomial Distribution Explained: 50 Heads in 100 Is Rare">
+<meta property="og:description" content="Exactly 50 heads in 100 tosses is the most likely result, yet it comes up only 8% of the time. Toss thousands of coins and roll Newton and Pepys&#x27;s dice.">
+<meta property="og:url" content="https://mathparadoxes.com/glossary/binomial-distribution/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Binomial distribution: how often do 100 coin tosses give exactly 50 heads?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Binomial Distribution Explained: 50 Heads in 100 Is Rare">
+<meta name="twitter:description" content="Exactly 50 heads in 100 tosses is the most likely result, yet it comes up only 8% of the time. Toss thousands of coins and roll Newton and Pepys&#x27;s dice.">
+<meta name="twitter:image" content="https://mathparadoxes.com/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/glossary/binomial-distribution/en/#page", "url": "https://mathparadoxes.com/glossary/binomial-distribution/en/", "name": "The Binomial Distribution Explained: 50 Heads in 100 Is Rare", "description": "Exactly 50 heads in 100 tosses is the most likely result, yet it comes up only 8% of the time. Toss thousands of coins and roll Newton and Pepys's dice.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "explanation"], "about": [{"@type": "DefinedTerm", "name": "Binomial distribution", "description": "How many successes you get in n independent tries when each has the same chance p.", "inDefinedTermSet": "https://mathparadoxes.com/glossary/en/"}], "datePublished": "2026-11-06", "dateModified": "2026-11-06", "author": {"@id": "https://mathparadoxes.com/#author"}, "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "Glossary", "item": "https://mathparadoxes.com/glossary/en/"}, {"@type": "ListItem", "position": 3, "name": "Binomial distribution", "item": "https://mathparadoxes.com/glossary/binomial-distribution/en/"}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: glossary article in three layers: guess how often 100 tosses give exactly 50 heads, then toss series
+   of 100 coins, and "exactly half" against "roughly half" as the number of coins grows (plain words);
+   the definition on four coins, the formula, the Newton–Pepys dice and small traps (rigorous);
+   why the peak falls like 0.8/√n, de Moivre's bell, the Poisson limit and a little history (deeper). */
+:root { --tint: #E6F0EC; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+.ex { font-variant-numeric: tabular-nums; background: var(--paper); border-radius: 10px; padding: 10px 12px; font-size: .95rem; overflow-wrap: anywhere; }
+.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.gl-stat b { font-variant-numeric: tabular-nums; }
+.gl-stat small { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
+.seg-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg-btns button { font: inherit; font-size: .9rem; font-weight: 600; background: var(--paper); color: var(--ink); border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.seg-btns button:hover { border-color: var(--ink); }
+.seg-btns button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.seg-btns button.right { background: var(--signal); color: #fff; border-color: var(--signal); }
+.ways { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.ways div { background: var(--paper); border-radius: 10px; padding: 10px; display: grid; gap: 2px; font-size: .88rem; text-align: center; }
+.ways b { font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.ways code { font-family: inherit; font-size: .78rem; color: var(--muted); letter-spacing: .04em; overflow-wrap: anywhere; }
+table.tb { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .92rem; background: var(--paper); border-radius: 10px; overflow: hidden; }
+table.tb th, table.tb td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); }
+table.tb th:first-child, table.tb td:first-child { text-align: left; }
+table.tb th { color: var(--muted); font-weight: 700; font-size: .8rem; }
+@media (max-width: 860px) { .three { grid-template-columns: 1fr; } .ways { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; } .ways div { padding: 8px 2px; } }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=8bb1829b">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="https://mathparadoxes.com/en/"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+    <nav class="mp-nav" aria-label="Sections" data-t="{&quot;cont&quot;: &quot;Continue&quot;, &quot;course&quot;: &quot;Continue the course&quot;}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Menu"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Continue: <b></b></a><a href="https://mathparadoxes.com/en/#all">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/" aria-current="page">Glossary</a></div><button type="button" class="mp-sx-btn" aria-haspopup="dialog" aria-label="Search" data-src="https://mathparadoxes.com/en/search.json" data-t="{&quot;btn&quot;: &quot;Search&quot;, &quot;ph&quot;: &quot;A puzzle, course or term&quot;, &quot;all&quot;: &quot;All&quot;, &quot;p&quot;: &quot;Puzzles&quot;, &quot;c&quot;: &quot;Courses&quot;, &quot;g&quot;: &quot;Glossary&quot;, &quot;recent&quot;: &quot;Recently opened&quot;, &quot;try&quot;: &quot;Try&quot;, &quot;none&quot;: &quot;Nothing found. Try another word or&quot;, &quot;every&quot;: &quot;browse all puzzles&quot;, &quot;keys&quot;: &quot;↑↓ choose · Enter open · Esc close&quot;, &quot;solved&quot;: &quot;solved&quot;, &quot;load&quot;: &quot;Loading…&quot;, &quot;fail&quot;: &quot;Couldn&#x27;t load the search. Check your connection.&quot;, &quot;close&quot;: &quot;Close&quot;, &quot;course&quot;: &quot;Course&quot;, &quot;chapter&quot;: &quot;chapter %d of %d&quot;, &quot;glossary&quot;: &quot;Glossary&quot;, &quot;ideas&quot;: [&quot;probability&quot;, &quot;A/B test&quot;, &quot;Monty Hall&quot;, &quot;median&quot;, &quot;interview&quot;, &quot;auction&quot;]}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="mp-sx-lbl">Search</span><kbd>/</kbd></button></nav>
+  <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="https://mathparadoxes.com/glossary/binomial-distribution/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="https://mathparadoxes.com/glossary/binomial-distribution/en/" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="https://mathparadoxes.com/glossary/en/"><span class="en">Glossary</span></a> / <span class="en">Binomial distribution</span></p>
+
+  <header class="gl-head">
+    <span class="eyebrow"><span class="en">Glossary · binomial distribution</span></span>
+    <h1><span class="en">How often do 100 tosses give exactly 50 heads?</span></h1>
+    
+    <p class="lead en">The coin is fair, so half heads is what everyone expects. And exactly 50 really does come up more often than any other number: more often than 49, 51 or 60. But does "most likely" mean it usually happens? Guess first, then toss a few thousand coins.</p>
+  </header>
+
+  <section class="gl-layers">
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">In plain words</span><span class="mp-layer-desc">pictures, analogies, small numbers</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“In plain words” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec" id="fifty">
+    <h2><span class="en">The fifty heads paradox</span></h2>
+    
+    <p class="en">Someone tosses a coin 100 times and counts the heads. Then another 100 times, and again. In what share of these series will there be exactly 50 heads?</p>
+    <div class="gl-panel">
+      <div class="seg-btns" role="group" id="h-guess" aria-label="Ваша здогадка" data-aria-en="Your guess">
+        <button type="button" data-g="0"><span class="en">Almost always, over 80%</span></button>
+        <button type="button" data-g="1"><span class="en">About half the time</span></button>
+        <button type="button" data-g="2"><span class="en">About a quarter</span></button>
+        <button type="button" data-g="3"><span class="en">About one in twelve</span></button>
+        <button type="button" data-g="4"><span class="en">Almost never, under 1%</span></button>
+      </div>
+      <p id="h-ans" aria-live="polite"><span class="en">Pick an answer and the coins will fly.</span></p>
+      <div id="h-sim" hidden>
+        <div style="display:grid;gap:16px">
+          <canvas class="gl-canvas" id="h-cv" style="height:260px" aria-label="Скільки орлів випало в серіях по 100 кидків" data-aria-en="How many heads came up in series of 100 tosses"></canvas>
+          <div class="gl-btns">
+            <button type="button" class="btn ghost" id="h-1"><span class="en">One more series of 100 tosses</span></button>
+            <button type="button" class="btn ghost" id="h-1000"><span class="en">1,000 more series</span></button>
+            <button type="button" class="btn ghost" id="h-reset"><span class="en">Start again</span></button>
+          </div>
+          <div class="three">
+            <div class="gl-stat"><span><span class="en">Series of 100 tosses</span></span><b id="h-n">0</b></div>
+            <div class="gl-stat"><span><span class="en">Most frequent count</span></span><b id="h-mode">–</b></div>
+            <div class="gl-stat"><span><span class="en">Exactly 50 heads</span></span><b class="hit" id="h-50">–</b><small id="h-50n"></small></div>
+          </div>
+          <p class="gl-note"><span class="en">Each bar is how many series gave exactly that many heads. Shown from 30 to 70: about one series in 31,000 falls outside these limits.</span></p>
+          <p id="h-msg" aria-live="polite"></p>
+        </div>
+      </div>
+    </div>
+  <script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "glossary-binomial-distribution" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+  <section class="gl-sec">
+    <h2><span class="en">Why: the peak has many neighbours</span></h2>
+    
+    <p class="en">Picture 101 baskets, from "0 heads" to "100 heads", and series landing in them. The "50" basket gets the most, but not by much: 49 and 51 come up almost as often (7.8% each against 8.0%), 48 and 52 a little less, and so on. All these neighbours together take the rest. The most likely result is only slightly better than a dozen close rivals, so on its own it is rare.</p>
+    
+    <p class="en">That is the plain-words explanation, with no formulas. The exact numbers and where exactly 8% comes from are below, in the strict layer.</p>
+  </section>
+
+  <section class="gl-sec" id="half">
+    <h2><span class="en">Exactly half gets rarer, roughly half gets more certain</span></h2>
+    
+    <p class="en">The more coins, the harder it is to hit exactly half: there are more possible results, and each one becomes rarer. But landing "roughly at half", between 40% and 60% heads, gets easier and easier. Move the number-of-coins slider.</p>
+    <div class="gl-panel">
+      <label class="gl-note" for="n-s"><span class="en">Coins in a series</span>: <b id="n-v"></b></label>
+      <input type="range" id="n-s" min="0" max="9" step="1" value="3">
+      <canvas class="gl-canvas" id="n-cv" style="height:220px" aria-label="Імовірності кожної кількості орлів" data-aria-en="Probability of each number of heads"></canvas>
+      <div class="gl-two">
+        <div class="gl-stat"><span><span class="en">Exactly half heads</span></span><b class="hit" id="n-exact">–</b></div>
+        <div class="gl-stat"><span><span class="en">Between 40% and 60% heads</span></span><b id="n-band">–</b></div>
+      </div>
+      <p class="gl-note"><span class="en">Exact probabilities, not a simulation. Horizontally, the share of heads; the grey band is 40% to 60%. Each chart is scaled to its own peak.</span></p>
+      <p id="n-msg" aria-live="polite"></p>
+    </div>
+    
+    <p class="en">Both facts are true at once, and there is no contradiction. The share of heads presses ever closer to half: that is the <a href="https://mathparadoxes.com/glossary/law-of-large-numbers/en/" class="gl-term">law of large numbers</a>. But the number of heads spreads ever wider, by about √n either way, so hitting one particular number gets harder.</p>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Rigorous</span><span class="mp-layer-desc">tables, charts, formulas</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Rigorous” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec">
+    <h2><span class="en">What the binomial distribution is</span></h2>
+    
+    <p class="en">Take n identical tries. Each succeeds with the same chance p, and the tries do not affect one another. Count how many succeed. The binomial distribution says how likely each possible number of successes is, from 0 to n. A coin, a die, a visitor who buys or doesn't, a part that is sound or faulty — it is all the same.</p>
+    
+    <p class="en">It is easiest to see with four coins. There are 2 · 2 · 2 · 2 = 16 different sequences of heads (H) and tails (T), all equally likely. Group them by the number of heads:</p>
+    <div class="ways">
+      <div><b>1/16</b><span class="en">0 heads</span><code class="en">TTTT</code></div>
+      <div><b>4/16</b><span class="en">1 head</span><code class="en">HTTT …</code></div>
+      <div><b>6/16</b><span class="en">2 heads</span><code class="en">HHTT …</code></div>
+      <div><b>4/16</b><span class="en">3 heads</span><code class="en">HHHT …</code></div>
+      <div><b>1/16</b><span class="en">4 heads</span><code class="en">HHHH</code></div>
+    </div>
+    
+    <p class="en">The numbers 1, 4, 6, 4, 1 are a row of Pascal's triangle: the number of ways to choose which coins land heads. The middle wins because the most paths lead there. Yet even here "exactly half" happens in only 6 cases out of 16, that is 37.5%.</p>
+    <div class="gl-panel">
+      <p class="ex">P(k) = C(n, k) · p<sup>k</sup> · (1 − p)<sup>n − k</sup></p>
+      
+      <p class="en">C(n, k) is the number of ways to choose which k of the n tries succeed, and p<sup>k</sup>(1 − p)<sup>n − k</sup> is the probability of each such way. The <a href="https://mathparadoxes.com/glossary/median-vs-mean/en/" class="gl-term">average</a> number of successes is np, the <a href="https://mathparadoxes.com/glossary/variance/en/" class="gl-term">standard deviation</a> √(np(1 − p)). For 100 coins: mean 50, standard deviation 5, and P(50) = C(100, 50) / 2<sup>100</sup> ≈ 0.0796.</p>
+    </div>
+  </section>
+
+  <section class="gl-sec" id="pepys">
+    <h2><span class="en">The question Pepys sent to Newton</span></h2>
+    
+    <p class="en">In 1693 the English official and famous diarist Samuel Pepys wrote to Isaac Newton with a question about dice. Which bet has the best chance?</p>
+    <div class="gl-panel">
+      <ul class="gl-when">
+        <li><b><span class="vl">A</span></b><span><span class="en">Roll 6 dice and get at least one six</span></span></li>
+        <li><b><span class="vl">B</span></b><span><span class="en">Roll 12 dice and get at least two sixes</span></span></li>
+        <li><b><span class="vl">C</span></b><span><span class="en">Roll 18 dice and get at least three sixes</span></span></li>
+      </ul>
+      <div class="seg-btns" role="group" id="p-guess" aria-label="Ваша здогадка" data-aria-en="Your guess">
+        <button type="button" data-g="0"><span class="vl">A</span></button>
+        <button type="button" data-g="1"><span class="vl">B</span></button>
+        <button type="button" data-g="2"><span class="vl">C</span></button>
+        <button type="button" data-g="3"><span class="en">All the same</span></button>
+      </div>
+      <p id="p-ans" aria-live="polite"><span class="en">Pick a bet and the dice will roll.</span></p>
+      <div id="p-sim" hidden>
+        <div style="display:grid;gap:16px">
+          <div class="gl-btns">
+            <button type="button" class="btn ghost" id="p-1000"><span class="en">Play each bet 1,000 more times</span></button>
+            <button type="button" class="btn ghost" id="p-reset"><span class="en">Start again</span></button>
+          </div>
+          <div class="three">
+            <div class="gl-stat"><span><span class="en"><span class="vl">A</span> · 6 dice, ≥ 1 six</span></span><b class="hit" id="p-0">–</b><small id="p-0n"></small></div>
+            <div class="gl-stat"><span><span class="en"><span class="vl">B</span> · 12 dice, ≥ 2 sixes</span></span><b id="p-1">–</b><small id="p-1n"></small></div>
+            <div class="gl-stat"><span><span class="en"><span class="vl">C</span> · 18 dice, ≥ 3 sixes</span></span><b id="p-2">–</b><small id="p-2n"></small></div>
+          </div>
+          <p id="p-msg" aria-live="polite"></p>
+        </div>
+      </div>
+    </div>
+    <div id="p-why" hidden>
+      
+      <p class="en">Pepys was betting on the third: more dice, more chances. Newton replied that the first is best and gave exact numbers. The bets look equal: in all three, on average exactly as many sixes come up as needed (6/6 = 1, 12/6 = 2, 18/6 = 3). But this is the same effect as with the coins: "exactly the average" gets rarer with more dice, and the chance of "at least the average" slides down towards one half. For 600 dice and at least 100 sixes it is already about 51.7%.</p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">A few more traps</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="en">Two and two is not the most common</span></b><span><span class="en">A family has four children. If boys and girls are equally likely, "two and two" happens in 6 families out of 16 (37.5%), while "three and one" either way happens in 8 out of 16 (50%). The single most likely split loses to the pair of less even ones.</span></span></li>
+      <li><b><span class="en">Expecting one six</span></b><span><span class="en">In 6 rolls of a die one six comes up on average. But exactly one happens only 40.2% of the time, and none at all 33.5%. A third of attempts fall short of even the average.</span></span></li>
+      <li><b><span class="en">One in a thousand, a thousand tries</span></b><span><span class="en">It feels like it should then happen "for sure". In fact it never happens 36.8% of the time. That is almost exactly 1/e, and this is how the binomial distribution for rare events turns into the Poisson distribution.</span></span></li>
+      <li><b><span class="en">A good free-throw shooter</span></b><span><span class="en">A player makes 70% of free throws. Out of 10 shots, 7 is the most likely number, but exactly 7 happens in only 26.7% of series. A coach drawing conclusions after 5 or 9 makes should remember that.</span></span></li>
+    </ul>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">When to count successes the binomial way</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="en">Buyers on a website</span></b><span><span class="en">Each of 1,000 visitors buys with the same chance. The number of purchases is binomial, so two identical pages give different numbers by pure chance. A/B tests are built on this.</span></span></li>
+      <li><b><span class="en">Defects in production</span></b><span><span class="en">How many faulty parts will a batch of 500 have if the defect rate is 1%? The binomial distribution tells you when 9 faulty parts is still ordinary chance and when it is a reason to stop the line.</span></span></li>
+      <li><b><span class="en">Polls</span></b><span><span class="en">Each person polled says "yes" with probability equal to the share of supporters. That gives the poll's margin of error: for 1,000 people and half supporters, ±3 percentage points.</span></span></li>
+      <li><b><span class="en">When it is not binomial</span></b><span><span class="en">If the tries depend on one another (a sick person infects a neighbour, a buyer recommends to a friend), the chance changes from try to try, or you draw without replacement from a small urn, the formula gives wrong numbers. Usually the spread is then wider than it promises.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Deeper</span><span class="mp-layer-desc">generalisations, theory, history</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Deeper” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec">
+    <h2><span class="en">Why the peak falls like 0.8 / √n</span></h2>
+    <div class="gl-panel">
+      <p class="ex">P(<span class="en">exactly n/2 heads</span>) = C(n, n/2) / 2<sup>n</sup> ≈ √(2 / (πn)) ≈ 0,8 / √n</p>
+      
+      <p class="en">The approximation comes from Stirling's formula for factorials. The meaning is simple: the number of heads spreads by √n / 2, so all the probability is smeared over about √n neighbouring numbers, and each gets a share of order 1/√n. To halve the chance of exactly half you need four times as many coins.</p>
+      <table class="tb">
+        <thead><tr><th><span class="en">Coins n</span></th><th><span class="en">Exact</span></th><th>√(2 / (πn))</th></tr></thead>
+        <tbody>
+          <tr><td>10</td><td>24,61%</td><td>25,23%</td></tr>
+          <tr><td>100</td><td>7,959%</td><td>7,979%</td></tr>
+          <tr><td>1&nbsp;000</td><td>2,523%</td><td>2,523%</td></tr>
+          <tr><td>10&nbsp;000</td><td>0,7979%</td><td>0,7979%</td></tr>
+        </tbody>
+      </table>
+      
+      <p class="en" id="d-sim-en">Toss some series of coins above, and your result for 100 tosses will appear here.</p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">From coins to the bell</span></h2>
+    
+    <p class="en">In 1733 Abraham de Moivre was looking for a quick way to add up binomial probabilities for large n, since multiplying giant factorials by hand is impossible. He noticed that the bars of a binomial distribution with mean np and standard deviation √(np(1 − p)) lie on one and the same smooth curve. It was later named the <a href="https://mathparadoxes.com/glossary/normal-distribution/en/" class="gl-term">normal distribution</a>. That is why for large n all the slider charts above look like the same bell, only narrower.</p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">Rare events: the Poisson limit</span></h2>
+    <div class="gl-panel">
+      <p class="ex">n → ∞, p → 0, np = λ: &nbsp; C(n, k) p<sup>k</sup> (1 − p)<sup>n − k</sup> → e<sup>−λ</sup> λ<sup>k</sup> / k!</p>
+      
+      <p class="en">When there are very many tries and each has a tiny chance, only the average number of successes λ matters. A thousand tries with chance 1/1000: no success with probability 0.999<sup>1000</sup> ≈ 0.3677, and <a href="https://mathparadoxes.com/glossary/poisson-process/en/" class="gl-term">Poisson</a>'s formula gives e<sup>−1</sup> ≈ 0.3679. Exactly one success: 0.3681 against 0.3679. Siméon Denis Poisson derived this limit in 1837 in a book on the probability of court verdicts. Rare events scattered at random in time are counted the same way, as a Poisson process: calls to a help line, accidents, decaying atoms.</p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">A little history</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="en">Pascal and the triangle</span></b><span><span class="en">In the 17th century Blaise Pascal tabulated the numbers of ways to choose k out of n. For a coin that is the binomial distribution itself, just without dividing by 2<sup>n</sup>.</span></span></li>
+      <li><b><span class="en">Jacob Bernoulli</span></b><span><span class="en">He derived the distribution for any chance p and proved the first law of large numbers. His book "Ars Conjectandi" came out in 1713, after the author's death. That is why a single such try is still called a Bernoulli trial.</span></span></li>
+      <li><b><span class="en">Newton calculated right, explained wrong</span></b><span><span class="en">In 2006 the historian of statistics Stephen Stigler showed that Newton's numbers for Pepys's problem were flawless but his short verbal explanation was wrong: it would equally "prove" the answer for loaded dice, where the answer is different.</span></span></li>
+    </ul>
+  </section>
+  </div>
+  </section>
+
+  <section class="gl-sec"><h2>Where it shows up</h2>
+    <div class="mp-related-grid">
+      <a class="mp-related-card" href="https://mathparadoxes.com/ab-test/en/"><h3>The A/A test: two identical pages</h3><p>The same page is shown as &quot;<span class="vl">A</span>&quot; and as &quot;<span class="vl">B</span>&quot;, converting at 5%, with 1,000 visitors each. How often will one of two identical pages &quot;win&quot; by 20% or more?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/ab-test-peeking/en/"><h3>Peeking at an A/B test</h3><p>Two identical pages, a 30-day test, a check every evening and a stop at the first &quot;95%&quot;. How often is one of the identical pages declared the winner?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/multi-armed-bandit/en/"><h3>The multi-armed bandit</h3><p>One slot machine wins 60% of the time, the other 50%. You test each one 10 times. How often do you pick the worse one?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/ergodicity/en/"><h3>The +50 / −40 coin</h3><p>Each of 10,000 players has $100 and stakes it all on a fair coin 100 times: heads +50%, tails −40%. What share of players finish richer than they started?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/coin-streaks/en/"><h3>Coin streaks</h3><p>How long is the longest run of one side when you flip a fair coin 100 times?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/small-numbers/en/"><h3>The most dangerous equation</h3><p>Disease is rarest in quiet rural counties. Clean air? Or something else?</p></a>
+    </div></section>
+
+  <section class="gl-sec"><h2>More on “Probability”</h2>
+    <ul class="gl-cards">
+      <li class="gl-card" id="combinatorics"><a href="https://mathparadoxes.com/glossary/combinatorics/en/"><h3>Combinatorics</h3><p>Counting how many ways things can be ordered or chosen: permutations n!, combinations C(n, k).</p><p class="gl-hook">A well-shuffled deck is almost certainly in an order nobody has ever seen.</p></a></li>
+      <li class="gl-card" id="conditional-probability"><a href="https://mathparadoxes.com/glossary/conditional-probability/en/"><h3>Conditional probability</h3><p>The chance of an event given that something else is already known.</p><p class="gl-hook">Almost all NBA players are tall, but almost all tall people are not NBA players.</p></a></li>
+      <li class="gl-card" id="independence"><a href="https://mathparadoxes.com/glossary/independence/en/"><h3>Independence</h3><p>Events are independent if knowing about one doesn&#x27;t change the chances of the other.</p><p class="gl-hook">After five heads in a row tails is no more likely: the coin remembers nothing.</p></a></li>
+      <li class="gl-card" id="bayes-theorem"><a href="https://mathparadoxes.com/glossary/bayes-theorem/en/"><h3>Bayes&#x27; theorem</h3><p>The rule for updating confidence when new evidence arrives: prior odds × strength of the evidence.</p><p class="gl-hook">Two weak pieces of evidence together can be strong, while one striking piece means little if the claim was unlikely.</p></a></li>
+    </ul>
+    <p class="gl-all"><a href="https://mathparadoxes.com/glossary/en/#probability">All terms →</a></p></section>
+
+  <footer>
+    <span class="en">Math paradoxes · by <a href="https://mathparadoxes.com/en/#author">Dmytro Kudrenko</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const en = document.documentElement.dataset.lang === 'en', L = (uk, e) => en ? e : uk;
+  const $ = s => document.querySelector(s);
+  if (en) document.querySelectorAll('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn));
+  const css = getComputedStyle(document.documentElement);
+  const C = { ink: css.getPropertyValue('--ink').trim() || '#151515', muted: css.getPropertyValue('--muted').trim() || '#5F5F5F',
+              line: css.getPropertyValue('--line').trim() || '#E4E4E4', hit: css.getPropertyValue('--signal').trim() || '#D9318F' };
+  const nf = (v, d = 1) => v.toLocaleString(en ? 'en-US' : 'uk-UA', { maximumFractionDigits: d, minimumFractionDigits: d });
+  const int = v => Math.round(v).toLocaleString(en ? 'en-US' : 'uk-UA');
+  const pct = (v, d = 1) => nf(100 * v, d) + '%';
+  const still = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const setText = (id, html) => { const el = $('#' + id + (en ? '-en' : '-uk')); if (el) el.innerHTML = html; };
+  function setup(cv) {
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (!r.width) return null;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.font = '12px Inter, system-ui, sans-serif';
+    return { g, w: r.width, h: r.height };
+  }
+  // exact binomial pmf in log space (works up to n = 10,000)
+  const LF = [0]; for (let i = 1; i <= 10000; i++) LF[i] = LF[i - 1] + Math.log(i);
+  const pmf = (n, k, p) => Math.exp(LF[n] - LF[k] - LF[n - k] + k * Math.log(p) + (n - k) * Math.log(1 - p));
+  const P50 = pmf(100, 50, 0.5);
+
+  // 1. guess, then series of 100 tosses
+  const cnt = new Array(101).fill(0); let series = 0, raf = 0, queue = 0;
+  const heads100 = () => { let h = 0; for (let i = 0; i < 100; i++) if (Math.random() < 0.5) h++; return h; };
+  function drawHeads() {
+    const s = setup($('#h-cv')); if (!s) return;
+    const { g, w, h } = s, lo = 30, hi = 70, pad = 10, bw = (w - 2 * pad) / (hi - lo + 1), top = 20, base = h - 22;
+    g.clearRect(0, 0, w, h);
+    let mx = 1; for (let k = lo; k <= hi; k++) mx = Math.max(mx, cnt[k]);
+    const expMax = series * P50; mx = Math.max(mx, expMax);
+    for (let k = lo; k <= hi; k++) {
+      const bh = cnt[k] / mx * (base - top);
+      g.fillStyle = k === 50 ? C.hit : C.ink; g.globalAlpha = k === 50 ? 0.95 : 0.55;
+      g.fillRect(pad + (k - lo) * bw + 1, base - bh, Math.max(1, bw - 2), bh);
+    }
+    g.globalAlpha = 1;
+    if (series >= 50) { // the exact binomial expectation as dots
+      g.fillStyle = C.muted;
+      for (let k = lo; k <= hi; k++) { const y = base - series * pmf(100, k, 0.5) / mx * (base - top); g.beginPath(); g.arc(pad + (k - lo + 0.5) * bw, y, 2, 0, 7); g.fill(); }
+    }
+    g.strokeStyle = C.line; g.beginPath(); g.moveTo(pad, base + 0.5); g.lineTo(w - pad, base + 0.5); g.stroke();
+    g.fillStyle = C.muted; g.textAlign = 'center';
+    for (let k = lo; k <= hi; k += 5) g.fillText(k, pad + (k - lo + 0.5) * bw, h - 6);
+    g.textAlign = 'left';
+    if (series >= 50) g.fillText(L('точки — точний розрахунок', 'dots: exact calculation'), pad, 12);
+  }
+  function showHeads() {
+    let mode = -1, mc = 0; for (let k = 0; k <= 100; k++) if (cnt[k] > mc) { mc = cnt[k]; mode = k; }
+    $('#h-n').textContent = int(series);
+    $('#h-mode').textContent = series ? (cnt.filter(c => c === mc).length > 1 ? L('нічия', 'a tie') : int(mode)) : '–';
+    $('#h-50').textContent = series ? pct(cnt[50] / series) : '–';
+    $('#h-50n').textContent = series ? int(cnt[50]) + L(' з ', ' of ') + int(series) : '';
+    $('#h-msg').textContent = !series ? '' : series < 200
+      ? L('Поки серій мало, стовпчики скачуть. Додайте ще тисячу.', 'With few series the bars jump around. Add another thousand.')
+      : L(`Стовпчики від 48 до 52 майже однакові: 50 серед них найвищий лише в теорії (сірі точки), і то ненабагато, а в живій симуляції його легко обганяє сусід. Рівно 50 орлів вийшло в ${pct(cnt[50] / series)} серій, теорія каже 7,96%. У решти більш ніж 90% серій орлів трохи більше або трохи менше.`,
+          `The bars from 48 to 52 are nearly equal: 50 is the tallest only in theory (the grey dots), and only just, so in a live simulation a neighbour easily overtakes it. Exactly 50 heads came up in ${pct(cnt[50] / series)} of series; theory says 7.96%. In the remaining 90%-plus of series there are slightly more or slightly fewer heads.`);
+    if (series) setText('d-sim', L('У ваших ', 'In your ') + int(series) + L(' серіях рівно 50 орлів вийшло ', ' series exactly 50 heads came up ') + int(cnt[50]) + L(' разів, тобто ', ' times, that is ') + '<b>' + pct(cnt[50] / series, 2) + '</b>' + L('. Точно: 7,96%.', '. Exact: 7.96%.'));
+  }
+  function toss(k) {
+    queue += k;
+    if (raf) return;
+    const tick = () => {
+      const step = still() ? queue : Math.max(1, Math.ceil(queue / 12));
+      for (let i = 0; i < step; i++) { cnt[heads100()]++; series++; }
+      queue -= step;
+      drawHeads(); showHeads();
+      raf = queue > 0 ? setTimeout(tick, 16) : 0;
+    };
+    raf = setTimeout(tick, 0);
+  }
+  const GUESS_MSG = [
+    L('Ні, набагато рідше.', 'No, far less often.'),
+    L('Ні, набагато рідше.', 'No, far less often.'),
+    L('Ближче, але все одно втричі рідше.', 'Closer, but still three times less often.'),
+    L('Так! Близько 8%, приблизно одна серія з дванадцяти.', 'Yes! About 8%, roughly one series in twelve.'),
+    L('Ні, частіше: це не так уже й рідко.', 'No, more often than that: it is not quite that rare.')];
+  document.querySelectorAll('#h-guess button').forEach(b => b.addEventListener('click', () => {
+    const gi = +b.dataset.g, first = $('#h-sim').hidden;
+    document.querySelectorAll('#h-guess button').forEach(x => { x.setAttribute('aria-pressed', x === b); x.classList.toggle('right', x.dataset.g === '3'); });
+    $('#h-ans').textContent = GUESS_MSG[gi] + L(' Рівно 50 орлів зі 100 випадає приблизно у 8 серіях зі 100. Перевірте самі.', ' Exactly 50 heads in 100 comes up in about 8 series out of 100. Check it yourself.');
+    $('#h-sim').hidden = false;
+    if (first) toss(1000); else drawHeads();
+  }));
+  $('#h-1').onclick = () => toss(1);
+  $('#h-1000').onclick = () => toss(1000);
+  $('#h-reset').onclick = () => { queue = 0; cnt.fill(0); series = 0; drawHeads(); showHeads(); setText('d-sim', L('Підкиньте серії монет угорі, і тут з\'явиться ваш результат для 100 кидків.', 'Toss some series of coins above, and your result for 100 tosses will appear here.')); };
+
+  // 2. exactly half against roughly half, exact pmf
+  const NS = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000];
+  function drawHalf() {
+    const n = NS[+$('#n-s').value], p = [];
+    let band = 0;
+    for (let k = 0; k <= n; k++) { p[k] = pmf(n, k, 0.5); if (k >= 0.4 * n && k <= 0.6 * n) band += p[k]; }
+    const ex = p[n / 2];
+    $('#n-v').textContent = int(n);
+    $('#n-exact').textContent = pct(ex, ex < 0.01 ? 2 : 1);
+    $('#n-band').textContent = band > 0.99995 ? L('99,99%+', '99.99%+') : pct(band, 1);
+    $('#n-msg').textContent = n <= 20
+      ? L(`При ${int(n)} монетах рівно половина ще трапляється часто, а от у межі 40–60% потрапляє лише ${pct(band, 0)} серій.`, `With ${int(n)} coins exactly half is still common, but only ${pct(band, 0)} of series land within 40–60%.`)
+      : L(`При ${int(n)} монетах рівно ${int(n / 2)} орлів випадає лише в ${pct(ex, ex < 0.01 ? 2 : 1)} серій, а частка орлів між 40% і 60% — майже завжди. Рівно навпіл рідшає, приблизно навпіл стає майже певним.`,
+          `With ${int(n)} coins exactly ${int(n / 2)} heads comes up in only ${pct(ex, ex < 0.01 ? 2 : 1)} of series, while a share of heads between 40% and 60% is nearly certain. Exactly half gets rarer, roughly half becomes almost sure.`);
+    const s = setup($('#n-cv')); if (!s) return;
+    const { g, w, h } = s, pad = 14, top = 14, base = h - 22, X = x => pad + x * (w - 2 * pad);
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = C.line; g.globalAlpha = 0.6; g.fillRect(X(0.4), top, X(0.6) - X(0.4), base - top); g.globalAlpha = 1;
+    const mx = ex, Y = v => base - v / mx * (base - top - 8);
+    if (n <= 100) {
+      const bw = Math.max(1, (w - 2 * pad) / (n + 1) - 1);
+      for (let k = 0; k <= n; k++) { g.fillStyle = k === n / 2 ? C.hit : C.ink; g.globalAlpha = k === n / 2 ? 1 : 0.6; g.fillRect(X(k / n) - bw / 2, Y(p[k]), bw, base - Y(p[k])); }
+      g.globalAlpha = 1;
+    } else {
+      g.fillStyle = C.ink; g.globalAlpha = 0.6; g.beginPath(); g.moveTo(X(0), base);
+      for (let k = 0; k <= n; k++) g.lineTo(X(k / n), Y(p[k]));
+      g.lineTo(X(1), base); g.closePath(); g.fill(); g.globalAlpha = 1;
+      g.strokeStyle = C.hit; g.lineWidth = 2; g.beginPath(); g.moveTo(X(0.5), base); g.lineTo(X(0.5), Y(ex)); g.stroke(); g.lineWidth = 1;
+    }
+    g.fillStyle = C.muted; g.textAlign = 'center';
+    (w < 520 ? [0, 0.2, 0.4, 0.6, 0.8, 1] : [0, 0.2, 0.4, 0.5, 0.6, 0.8, 1]).forEach(t => g.fillText(Math.round(t * 100) + '%', Math.max(pad + 10, Math.min(w - pad - 14, X(t))), h - 6));
+  }
+  $('#n-s').addEventListener('input', drawHalf);
+
+  // 3. Newton–Pepys: A = 6 dice ≥ 1 six, B = 12 dice ≥ 2, C = 18 dice ≥ 3
+  const PEP = [[6, 1], [12, 2], [18, 3]], won = [0, 0, 0]; let played = 0;
+  const sixes = n => { let s = 0; for (let i = 0; i < n; i++) if (Math.random() * 6 < 1) s++; return s; };
+  function play(k) {
+    for (let r = 0; r < k; r++) PEP.forEach(([n, need], i) => { if (sixes(n) >= need) won[i]++; });
+    played += k;
+    PEP.forEach((_, i) => { $('#p-' + i).textContent = pct(won[i] / played); $('#p-' + i + 'n').textContent = int(won[i]) + L(' з ', ' of ') + int(played); });
+    $('#p-msg').textContent = L(`Точно: A — 66,5%, B — 61,9%, C — 59,7%. Що більше кісток, то гірше, хоча вимога зростає рівно пропорційно.`,
+      `Exact: A 66.5%, B 61.9%, C 59.7%. The more dice, the worse, even though the requirement grows in exact proportion.`);
+  }
+  const PG = [L('Так, перша ставка найкраща.', 'Yes, the first bet is the best.'), L('Ні, друга посередині.', 'No, the second is in the middle.'),
+              L('Ні, і саме так думав Піпс. Третя найгірша.', 'No, and that is exactly what Pepys thought. The third is the worst.'), L('Ні, вони різні, хоча вимога зростає пропорційно.', 'No, they differ, even though the requirement grows in proportion.')];
+  document.querySelectorAll('#p-guess button').forEach(b => b.addEventListener('click', () => {
+    const first = $('#p-sim').hidden;
+    document.querySelectorAll('#p-guess button').forEach(x => { x.setAttribute('aria-pressed', x === b); x.classList.toggle('right', x.dataset.g === '0'); });
+    $('#p-ans').textContent = PG[+b.dataset.g];
+    $('#p-sim').hidden = false; $('#p-why').hidden = false;
+    if (first) play(1000);
+  }));
+  $('#p-1000').onclick = () => play(1000);
+  $('#p-reset').onclick = () => { won.fill(0); played = 0; PEP.forEach((_, i) => { $('#p-' + i).textContent = '–'; $('#p-' + i + 'n').textContent = ''; }); $('#p-msg').textContent = ''; };
+
+  const redraw = () => { drawHeads(); drawHalf(); };
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+  showHeads(); redraw();
+})();
+</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Sections"><a href="https://mathparadoxes.com/en/#all">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/" aria-current="page">Glossary</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+<script>
+(function () {
+  var btn = document.querySelector(".mp-sx-btn");
+  if (!btn) return;
+  var T = JSON.parse(btn.dataset.t), lang = document.documentElement.dataset.lang === "en" ? "en" : "uk";
+  var data = null, loading = null, box = null, input, list, tabs, foot, tab = "", act = 0, opts = [], back = null;
+  var W = { n: 3, on: 2.5, k: 2, d: 1, x: 0.8, o: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
+  // small words that may match nothing without dropping the result ("задача про монети")
+  var STOP = ["и", "та", "в", "у", "на", "з", "из", "до", "для", "про", "як", "що", "the", "a", "an", "of", "in", "on", "and", "to", "for", "how", "what"];
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  btn.querySelector("kbd").textContent = mac ? "⌘K" : "Ctrl K";
+
+  function norm(s) {
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’'ʼ`ъ]/g, "")
+      .replace(/[іыий]/g, "и").replace(/[єэё]/g, "е").replace(/ґ/g, "г");
+  }
+  function words(s) { return norm(s).split(/[^0-9a-zа-я]+/).filter(Boolean); }
+  // one edit apart: a letter swapped, missing, extra or two letters transposed
+  function near(a, b) {
+    var la = a.length, lb = b.length, i = 0;
+    if (Math.abs(la - lb) > 1) return false;
+    while (i < la && i < lb && a[i] === b[i]) i++;
+    if (la === lb) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+    return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+  }
+  // how well a query word q fits a word w of the text: whole word, its start, the same stem (Ukrainian endings), a typo
+  function hit(q, w) {
+    if (w === q) return 1;
+    if (w.lastIndexOf(q, 0) === 0) return 0.85;
+    if (q.length >= 4) {
+      if (q.length >= 5 && w.lastIndexOf(q.slice(0, Math.max(4, q.length - 2)), 0) === 0) return 0.6;
+      for (var d = -1; d <= 1; d++) if (near(q, w.slice(0, q.length + d))) return 0.45;
+    }
+    return q.length >= 3 && w.indexOf(q) > 0 ? 0.35 : 0;
+  }
+  // the score of an item, and in it.low the weakest word match (a typo or a piece of a word is weak)
+  function score(it, qs, phrase) {
+    var total = 0;
+    it.low = 1;
+    for (var i = 0; i < qs.length; i++) {
+      var best = 0, bestF;
+      for (var f in W) {
+        var ws = it.w[f];
+        for (var j = 0; j < ws.length; j++) { var h = hit(qs[i], ws[j]) * W[f]; if (h > best) { best = h; bestF = f; } }
+      }
+      if (!best && STOP.indexOf(qs[i]) === -1) return 0;
+      if (best) it.low = Math.min(it.low, best / W[bestF]);
+      total += best;
+    }
+    var name = it.w.nn, alt = it.w.no;
+    if (name.lastIndexOf(phrase, 0) === 0 || alt.lastIndexOf(phrase, 0) === 0) total += 2;
+    else if (name.indexOf(phrase) !== -1 || alt.indexOf(phrase) !== -1) total += 1;
+    return total + (it.t === "p" ? 0.2 : it.t === "h" ? -0.2 : 0);
+  }
+  function load() {
+    if (!loading) loading = fetch(btn.dataset.src).then(function (r) { return r.json(); }).then(function (j) {
+      data = j.items;
+      // a chapter's line under the name is only its course and number, so "парадокси" does not find all 21 chapters
+      data.forEach(function (it) {
+        it.w = { n: words(it.n), on: words(it.on || ""), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), o: words(it.o || ""),
+                 nn: words(it.n).join(" "), no: words(it.on || "").join(" ") };
+      });
+    });
+    return loading;
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done(it) {
+    if (it.t === "p") return !!get("mp-solved:" + it.s);
+    if (it.t !== "c") return false;
+    var d = []; try { d = JSON.parse(get("mp-course:" + it.s) || "[]"); } catch (e) {}
+    return d.length > 0;
+  }
+  function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+  // the text with the words that match the query in <mark>
+  function marked(text, qs) {
+    var out = document.createDocumentFragment(), parts = String(text).split(/([0-9A-Za-zА-Яа-яЄєІіЇїҐґЁё’'ʼ]+)/);
+    parts.forEach(function (p, i) {
+      if (!p) return;
+      var w = i % 2 && words(p), on = w && qs.length && w.some(function (x) { return qs.some(function (q) { return hit(q, x) >= 0.45; }); });
+      out.appendChild(on ? el("mark", null, p) : document.createTextNode(p));
+    });
+    return out;
+  }
+  function icon(it) {
+    var s = el("span", "mp-sx-ic mp-sx-" + it.t);
+    s.style.setProperty("--tint", it.tint || "var(--soft)");  // not the page's own --tint
+    if (it.t === "p") { var b = s.appendChild(el("span", "mp-bars")); for (var i = 1; i <= 3; i++) b.appendChild(el("i", i <= it.lv ? "on" : "")); }
+    else s.textContent = it.t === "g" ? "Aa" : it.t === "c" ? "≡" : "§";
+    return s;
+  }
+  function row(it, qs) {
+    var a = el("a", "mp-sx-it"); a.href = it.u; a.setAttribute("role", "option"); a.id = "mp-sx-o" + opts.length;
+    var tx = el("span", "mp-sx-tx"), n = el("b"), d = el("span");
+    n.appendChild(marked(it.n, qs)); d.appendChild(marked(it.d || "", qs)); tx.append(n, d);
+    a.append(icon(it), tx);
+    if (done(it)) { var ok = el("span", "mp-sx-ok", "✓"); ok.title = T.solved; a.appendChild(ok); }
+    opts.push(a);
+    return a;
+  }
+  function head(text) { return el("li", "mp-sx-h", text); }
+  function wrap(a) { var li = el("li"); li.setAttribute("role", "presentation"); li.appendChild(a); return li; }
+  function render() {
+    var q = input.value.trim(), qs = words(q), phrase = qs.join(" ");
+    list.textContent = ""; opts = []; act = 0;
+    tabs.hidden = !qs.length;
+    if (!qs.length) {
+      var recent = []; try { recent = JSON.parse(get("mp-recent") || "[]"); } catch (e) {}
+      recent = recent.slice(0, 5).map(function (r) {
+        var it = data && data.filter(function (x) { return (x.t === "p" && x.s === r.s) || (x.t === "c" && "course:" + x.s === r.s); })[0];
+        return it || { t: r.c ? "c" : "p", s: r.s, n: r.n[lang], u: r.u[lang] };
+      });
+      if (recent.length) { list.appendChild(head(T.recent)); recent.forEach(function (it) { list.appendChild(wrap(row(it, []))); }); }
+      var li = el("li", "mp-sx-try"); li.appendChild(el("span", null, T.try + ": "));
+      T.ideas.forEach(function (w, i) {
+        var b = el("button", null, w); b.type = "button";
+        b.addEventListener("click", function () { input.value = w; render(); input.focus(); });
+        if (i) li.appendChild(document.createTextNode(" · "));
+        li.appendChild(b);
+      });
+      list.appendChild(li);
+      return mark();
+    }
+    if (!data) { list.appendChild(el("li", "mp-sx-msg", T.load)); return; }
+    var found = data.map(function (it) { return { it: it, s: score(it, qs, phrase) }; }).filter(function (r) { return r.s > 0; });
+    // typos and pieces of words count only when nothing matches by whole words, their starts or stems
+    if (found.some(function (r) { return r.it.low >= 0.6; })) found = found.filter(function (r) { return r.it.low >= 0.6; });
+    found.sort(function (a, b) { return b.s - a.s; });
+    var count = { "": found.length, p: 0, c: 0, g: 0 };
+    found.forEach(function (r) { count[GROUP[r.it.t]]++; });
+    [].forEach.call(tabs.children, function (b) {
+      b.lastChild.textContent = count[b.dataset.k] ? " " + count[b.dataset.k] : "";
+      b.setAttribute("aria-pressed", b.dataset.k === tab);
+      b.disabled = !count[b.dataset.k] && b.dataset.k !== tab;
+    });
+    if (tab) found = found.filter(function (r) { return GROUP[r.it.t] === tab; });
+    if (!found.length) {
+      var m = el("li", "mp-sx-msg", T.none + " "), a = el("a", null, T.every);
+      a.href = document.querySelector(".mp-nav-list a:not(.mp-cont)").href; m.appendChild(a); list.appendChild(m);
+      return mark();
+    }
+    // groups in the order of their best match; with no tab chosen each shows its first 6
+    var order = [], by = {};
+    found.forEach(function (r) { var g = GROUP[r.it.t]; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(r.it); });
+    order.forEach(function (g) {
+      if (!tab) list.appendChild(head(T[g]));
+      var items = tab ? by[g] : by[g].slice(0, 6);
+      items.forEach(function (it) { list.appendChild(wrap(row(it, qs))); });
+      if (!tab && by[g].length > 6) {
+        var more = el("button", "mp-sx-more", "+" + (by[g].length - 6) + " →"); more.type = "button";
+        more.addEventListener("click", function () { tab = g; render(); input.focus(); });
+        var li = el("li"); li.appendChild(more); list.appendChild(li);
+      }
+    });
+    mark();
+  }
+  function mark() {
+    opts.forEach(function (o, i) { o.setAttribute("aria-selected", i === act); });
+    if (opts[act]) { input.setAttribute("aria-activedescendant", opts[act].id); opts[act].scrollIntoView({ block: "nearest" }); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function build() {
+    box = el("div", "mp-sx"); box.hidden = true;
+    box.innerHTML = '<div class="mp-sx-box" role="dialog" aria-modal="true"><div class="mp-sx-head">' + btn.querySelector("svg").outerHTML +
+      '<input type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="mp-sx-list" aria-autocomplete="list">' +
+      '<button type="button" class="mp-sx-x"></button></div><div class="mp-sx-tabs"></div><ul class="mp-sx-list" id="mp-sx-list" role="listbox"></ul>' +
+      '<div class="mp-sx-foot"></div></div>';
+    document.body.appendChild(box);
+    input = box.querySelector("input"); list = box.querySelector("ul"); tabs = box.querySelector(".mp-sx-tabs"); foot = box.querySelector(".mp-sx-foot");
+    box.firstChild.setAttribute("aria-label", T.btn); input.placeholder = T.ph; input.setAttribute("aria-label", T.btn);
+    var x = box.querySelector(".mp-sx-x"); x.textContent = "Esc"; x.setAttribute("aria-label", T.close);
+    foot.textContent = T.keys;
+    [["", T.all], ["p", T.p], ["c", T.c], ["g", T.g]].forEach(function (k) {
+      var b = el("button", null, k[1]); b.type = "button"; b.dataset.k = k[0]; b.appendChild(el("span"));
+      b.addEventListener("click", function () { tab = k[0]; render(); input.focus(); });
+      tabs.appendChild(b);
+    });
+    input.addEventListener("input", function () { tab = ""; render(); });
+    box.addEventListener("click", function (e) { if (e.target === box || e.target === x) close(); });
+    box.addEventListener("mousemove", function (e) {
+      var o = e.target.closest(".mp-sx-it"), i = opts.indexOf(o);
+      if (i !== -1 && i !== act) { act = i; mark(); }
+    });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (opts.length) { act = (act + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length; mark(); }
+      } else if (e.key === "Enter" && opts[act]) { e.preventDefault(); opts[act].click(); }
+    });
+  }
+  function open(q) {
+    if (!box) build();
+    if (!box.hidden) return input.focus();
+    back = document.activeElement; box.hidden = false; document.documentElement.classList.add("mp-sx-on");
+    if (q != null) input.value = q;
+    input.focus(); input.select(); render();
+    load().then(render, function () { list.textContent = ""; list.appendChild(el("li", "mp-sx-msg", T.fail)); loading = null; });
+  }
+  function close() {
+    if (!box || box.hidden) return;
+    box.hidden = true; document.documentElement.classList.remove("mp-sx-on");
+    if (back && back.focus) back.focus();
+  }
+  btn.addEventListener("click", function () { open(); });
+  btn.addEventListener("pointerenter", load, { once: true });
+  btn.addEventListener("focus", load, { once: true });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target, typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box && !box.hidden ? close() : open(); }
+    else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); open(); }
+    else if (e.key === "Escape" && box && !box.hidden) { e.preventDefault(); close(); }
+    else if (e.key === "Tab" && box && !box.hidden) {
+      // keep the focus inside the palette
+      var f = [].slice.call(box.querySelectorAll("input, button:not([disabled]), a[href]"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+    }
+  });
+  var q = new URLSearchParams(location.search).get("q");
+  if (q) open(q);
+})();
+</script>
+</body>
+</html>
