@@ -1,6 +1,6 @@
 # mathproblems
 
-**English.** The source of https://mathparadoxes.com/en/: interactive explainers of maths puzzles where intuition gives the wrong answer, in English and Ukrainian. There are 63 puzzles (the 100 prisoners, the German tank problem, the bus paradox, Monty Hall…), a glossary of 22 terms and 6 themed courses.
+**English.** The source of https://mathparadoxes.com/en/: interactive explainers of maths puzzles where intuition gives the wrong answer, in English and Ukrainian. There are 72 puzzles (the 100 prisoners, the German tank problem, the bus paradox, Monty Hall…), a glossary of 22 terms and 6 themed courses.
 
 Every puzzle page follows the same path: you lock in a guess first (the answer stays hidden until you do), play a small version by hand, run thousands of simulations in the browser, then read why in layers: plain words, then tables, charts and formulas, then some theory and history. Harder variants come last. Some pages also offer the simulation as a short JavaScript and Python snippet to run yourself.
 
@@ -163,6 +163,10 @@ python3 tools/check.py
 - Збірка додає блок «Курси» під списком задач на головній, сторінку `/courses/` (`courses/index.html`, `index.json`), посилання «Курси» в підвалі, плашку «Курс «…» · розділ k з N» на сторінках задач курсу, JSON-LD `Course` і записи в sitemap. Спільні стилі `.cs-*` і `.mp-course*` лежать у `site.css`.
 - Картинку для соцмереж малює `tools/og.py` (ключ `course-<name>`), вона лягає в `courses/<name>/assets/`.
 
+### Пошук
+
+Кнопка «Пошук» у верхньому меню кожної сторінки (а також `/` чи Ctrl/⌘K, або `?q=…` в адресі) відкриває палітру над сторінкою: задачі, курси, окремі розділи курсів і статті словника, з вкладками «Усе / Задачі / Курси / Словник», підсвіченими словами й позначкою ✓ для розв'язаного. Без запиту палітра показує нещодавно відкриті сторінки. Індекс `docs/search.json` і `docs/en/search.json` збірка складає сама (`search_index` у `build.py`) і вантажить при першому наведенні на кнопку. У ньому лише текст без спойлерів: назва з `card.title`, питання з `share`, теги, теми, рівень і `about.name`, і все це ще й іншою мовою: запит будь-якою мовою знаходить сторінку, а показує її мовою сайту («Monty Hall» на українській версії, «медіана» на англійській); `description` і відповіді туди не потрапляють. Пошук прощає закінчення, одну помилку, апостроф, і/и/ї/й та е/є; одруківки й шматки слів враховує лише тоді, коли точніших збігів немає. Головна має JSON-LD `SearchAction` з адресою `?q=`.
+
 ### Шари в 4-му раунді
 
 Пояснення 4-го раунду можна розкласти на три шари, від простого до складного: `<div class="mp-layer" data-layer="easy">` («На пальцях»: картинки, аналогії, маленькі числа), `strict` («Строго»: таблиці, графіки, формули), `deep` («Глибше»: узагальнення, теорія, історія), саме в такому порядку, кожен зі своїм `<div class="why-grid">` усередині. Усі шари видно одразу; заголовки, кнопку «Сховати на всіх задачах» і рядок «Шар … приховано · Показати» додає збірка. Приховані шари пам'ятаються в `mp-layers-hidden` для всіх сторінок, а кожне «сховати» і «показати» рахує той самий воркер як задачу `<slug>-layer` з ключем `hide.<шар>` або `show.<шар>`:
@@ -174,6 +178,10 @@ python3 tools/check.py
 Якщо в папці задачі є `sim.js` і `sim.py` (лише парою), збірка додає в кінець 3-го раунду (`id="sim"`) згорнутий блок «Перевірте самі в коді» з обома файлами й кнопками «Копіювати». Код короткий, без бібліотек: JavaScript для консолі браузера чи Node, Python лише зі стандартною бібліотекою; він повторює симуляцію сторінки й друкує результат поряд із точним значенням. Коментарі й надруковані слова пишуться як `⟨українською|англійською⟩`, збірка лишає одну мову. Блок має `sp-after`, бо код друкує відповідь; до відповіді на його місці один рядок, що код з'явиться. Числа, які друкує код, перевіряються так само, як математика задачі: запустіть обидві мовні версії в node і python. Відкриття блоку й копіювання рахує воркер як задачу `mp-code` з ключами `<slug>.open`, `<slug>.copy.js`, `<slug>.copy.py`:
   `npx wrangler d1 execute mathparadoxes-stats --remote --command "SELECT k, SUM(n) AS n FROM votes WHERE slug = 'mp-code' GROUP BY k ORDER BY k"`
 Зараз код є в задачах про 100 в'язнів, німецькі танки й парадокс автобуса.
+
+### У роботі
+
+Якщо в папці задачі є `work.json`, збірка ставить перед «Цікавими фактами» секцію «Бонус · У роботі»: дві-три картки про те, де математика задачі вирішує щось у маркетингу, аналітиці, продукті чи бізнесі. Кожна картка — `{"role", "title", "situation", "trap", "plan", "source"?}`, кожне значення `{"uk": …, "en": …}` (можна inline HTML); на сторінці це «Ситуація → Де пастка → Як врахувати» і джерело. Лише реальні дані, відомі дослідження або простий розрахунок з реалістичними числами: жодних вигаданих історій і жодних натягнутих прикладів. Якщо зв'язок із роботою слабкий, `work.json` не робимо. Числа перевіряються, як і вся математика. Секція стоїть серед раундів після відповіді, тож може називати відповідь. Перший показ секції на екрані воркер рахує як `<slug>-work` з ключем `seen`. Зараз блок є в задачах про ряску, берегову лінію, парадокс Сімпсона, регресію до середнього, прокляття переможця, помилку тих, хто вижив, хибнопозитивний результат, закон Бенфорда, парадокс дружби, парадокс інспекції й розорення гравця.
 
 Розгортання (одноразово, потрібен акаунт Cloudflare):
 

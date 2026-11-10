@@ -1,0 +1,1205 @@
+<title>Парадокс Кондорсе</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same running order as the other pages. Three flatmates' ballots and the agenda of pairwise votes are this problem's signature object. */
+:root {
+  --tint: #F0E6E9;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #DB9500;
+  --hit-soft: #FFF1CF;
+  --d0: #D2553A;
+  --d1: #2F6FD6;
+  --d2: #2E9A5A;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--c, var(--ink)); }
+.odd.sig b { color: var(--signal, #D9318F); }
+.odd > span { font-size: .82rem; color: var(--muted); }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 3.9em; }
+#hero-cv { height: 330px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: end; margin-bottom: 18px; }
+.ctl { display: grid; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 500; }
+.ctl select { font: inherit; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.sig { color: var(--signal, #D9318F); }
+canvas { display: block; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.legend > span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend > span.ln::before { height: 3px; border-radius: 0; }
+.legend b { font-weight: inherit; }
+
+/* ---------- dishes and ballots ---------- */
+.dish { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-weight: 600; font-size: .9rem; background: color-mix(in srgb, var(--c) 14%, var(--surface)); color: var(--ink); border: 1.5px solid var(--c); white-space: nowrap; }
+.dish::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+.ballots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ballot { border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.ballot b { font-size: .92rem; }
+.ballot ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.ballot li { display: flex; gap: 6px; align-items: center; font-size: .8rem; color: var(--muted); min-width: 0; }
+.ballot li .dish { font-size: .8rem; padding: 2px 8px; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.15rem; line-height: 1.25; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.choices { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.choice { border: 2px solid var(--line); background: var(--surface); border-radius: 14px; padding: 14px; cursor: pointer; text-align: left; display: grid; gap: 6px; align-content: start; }
+.choice b { font-family: var(--f-display); font-size: 1rem; line-height: 1.25; }
+.choice small { color: var(--muted); font-size: .84rem; line-height: 1.35; }
+.choice .lt { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.choice[aria-pressed="true"] { border-color: var(--day); background: color-mix(in srgb, var(--day) 8%, var(--surface)); }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.vrow { display: grid; gap: 4px; padding-block: 8px; border-top: 1px solid var(--line); font-size: .92rem; }
+.vrow .ok { color: var(--win); font-weight: 600; }
+.vrow .no { color: var(--loss); font-weight: 600; }
+
+/* ---------- play ---------- */
+.room { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 14px; align-content: start; grid-template-columns: minmax(0, 1fr); }
+.agendas { display: grid; gap: 8px; }
+.agendas button { border: 1.5px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 12px; cursor: pointer; text-align: left; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .9rem; }
+.agendas button[aria-pressed="true"] { border-color: var(--day); background: color-mix(in srgb, var(--day) 7%, var(--surface)); }
+.agendas button .dish { font-size: .8rem; padding: 2px 8px; }
+.duel { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.duel .side-v { display: grid; gap: 6px; justify-items: start; min-width: 0; }
+.duel .side-v:last-child { justify-items: end; text-align: right; }
+.duel .dish { white-space: normal; max-width: 100%; }
+.duel .side-v.lost { opacity: .45; }
+.duel .names { font-size: .8rem; color: var(--muted); }
+.duel .score { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; align-self: center; white-space: nowrap; }
+.duel-h { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-bottom: -6px; }
+.final { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-weight: 600; }
+.msg { min-height: 3em; font-weight: 500; }
+.tally { display: grid; gap: 10px; }
+.trow { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: .92rem; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.trow:last-child { border-bottom: 0; }
+.trow span { color: var(--muted); display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.trow b { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+.trow b.ok { color: var(--win); }
+.trow b.sig { color: var(--signal, #D9318F); }
+.build { margin-top: 28px; display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: start; }
+.build > * { min-width: 0; }
+.vlist { display: grid; gap: 8px; }
+.vline { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; align-items: center; font-size: .9rem; }
+.vline select { font: inherit; font-size: .88rem; color: var(--ink); padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); min-width: 0; width: 100%; }
+
+/* ---------- simulation ---------- */
+.sim2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.sim2 > div { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.sim2 h3 { font-size: .95rem; }
+#nbar-cv, #mbar-cv { height: 240px; background: var(--surface); border-radius: 10px; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.35rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); overflow-wrap: anywhere; }
+.tile .s { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); overflow-wrap: anywhere; }
+.prog { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; font-family: var(--f-mono); }
+.presets button[aria-pressed="true"] { border-color: var(--day); background: var(--day); color: var(--day-ink); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.geo { width: 100%; height: auto; max-width: 420px; }
+.geo text { font-family: var(--f-mono); font-size: 12px; fill: var(--ink); font-weight: 600; }
+.geo .mut { fill: var(--muted); font-weight: 400; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+.mini-tbl { font-family: var(--f-mono); font-size: .86rem; }
+.mini-tbl td, .mini-tbl th { padding: 6px 8px; }
+
+/* ---------- going further ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+.trow .dish, .agendas .dish { white-space: normal; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+#tour-svg { width: 100%; max-width: 360px; height: auto; background: var(--paper); border-radius: 10px; justify-self: center; touch-action: manipulation; }
+#tour-svg text { font-family: var(--f-mono); font-size: 13px; font-weight: 600; }
+#tour-svg g[data-i] { cursor: pointer; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .build, .sim2, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #hero-cv { height: 290px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .ballots { gap: 6px; }
+  .ballot { padding: 8px 6px; }
+  .ballot li .dish { padding: 2px 6px; font-size: .74rem; }
+  td, th { padding: 8px 6px; }
+  .tile .v { font-size: 1.1rem; }
+  .vline { grid-template-columns: 58px minmax(0, 1fr); }
+  .duel { padding: 10px; gap: 6px; }
+  #hero-cv { height: 260px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+<div class="topbar">
+  <span class="brand">3 friends · 3 dishes · 2 votes</span>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <h1 class="uk"><span class="kw">Парадокс Кондорсе</span> Троє друзів голосують парами. <span class="q sp-before">Чи важить порядок?</span><span class="q sp-after">Перемагає те, що голова притримав до кінця.</span></h1>
+    <h1 class="en"><span class="kw">Condorcet's paradox</span> Three friends vote in pairs. <span class="q sp-before">Does the order matter?</span><span class="q sp-after">Whatever the chair holds back to the end wins.</span></h1>
+    <p class="lead uk sp-before">Оля, Марко й Ірина винаймають квартиру разом і обирають, що замовити на вечерю: піцу, суші чи вареники. Вирішують чесно, більшістю голосів, парами: дві страви змагаються, а переможниця виходить у фінал проти третьої. Ви головуєте й вирішуєте лише одне: які дві страви йдуть першими. Скількох із трьох страв ви можете зробити переможницею самим лише порядком голосувань?</p>
+    <p class="lead en sp-before">Olya, Marko and Iryna share a flat and are choosing what to order for dinner: pizza, sushi or dumplings. They decide fairly, by majority vote, in pairs: two dishes face off, and the winner goes to a final against the third. You chair the meeting and decide just one thing: which two dishes go first. How many of the three dishes can you make the winner just by choosing the order of the votes?</p>
+    <p class="lead uk sp-after">Усі три. Більшість ставить піцу вище за суші, суші вище за вареники, а вареники вище за піцу. Це коло, як у грі «камінь, ножиці, папір»: кожна страва програє якійсь іншій. Хоч яку пару пустити першою, переможницю першого раунду б'є страва, яка чекала. Тож голова обирає переможця, коли вирішує, кого притримати до фіналу.</p>
+    <p class="lead en sp-after">All three. A majority prefers pizza to sushi, sushi to dumplings, and dumplings to pizza. It is a loop, like rock, paper, scissors: every dish loses to some other one. Whichever pair goes first, the winner of round one is beaten by the dish that waited. So the chair picks the winner by deciding which dish to hold back for the final.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd sig"><b><span class="uk">3 з 3</span><span class="en">3 of 3</span></b><span><span class="uk">страви, які може обрати голова</span><span class="en">dishes the chair can pick</span></span></div>
+      <div class="odd"><b>12 / 216</b><span><span class="uk">компаній із трьох, де є таке коло</span><span class="en">groups of three with such a loop</span></span></div>
+      <div class="odd"><b><span class="uk">≈ 8,8%</span><span class="en">≈ 8.8%</span></b><span><span class="uk">великих випадкових виборів без переможця</span><span class="en">large random elections with no winner</span></span></div>
+    </div>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <canvas id="hero-cv"></canvas>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span><span class="en">The puzzle</span></span>
+    <h2><span class="uk">Троє друзів, три страви, двоє голосувань</span><span class="en">Three friends, three dishes, two votes</span></h2>
+    <p class="lead uk">Цю задачу описав маркіз де Кондорсе 1785 року, коли шукав, як збори можуть ухвалювати рішення справедливо. Нижче вона в найменшому вигляді: троє людей і три варіанти.</p>
+    <p class="lead en">The Marquis de Condorcet described this problem in 1785, while looking for a way assemblies could reach fair decisions. Below it is in its smallest form: three people and three options.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Смаки</span><span class="en">Tastes</span></h3>
+        <p class="uk">Кожен упорядкував три страви від найбажанішої до найменш бажаної. Ці списки праворуч, і впродовж вечора вони не змінюються.</p>
+        <p class="en">Each of them has ranked the three dishes from most to least wanted. The lists are on the right, and they don't change during the evening.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Правило</span><span class="en">The rule</span></h3>
+        <p class="uk">Голосують парами. Дві страви змагаються, і кожен голосує за ту, яка в його списку вище. Перемагає та, за яку щонайменше двоє з трьох. Переможниця виходить у фінал проти третьої страви, і переможниця фіналу їде до них на вечерю.</p>
+        <p class="en">They vote in pairs. Two dishes face off, and each person votes for the one higher on their list. The dish with at least two of the three votes wins. It then meets the third dish in a final, and the winner of the final is what they order.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Ви голова</span><span class="en">You are the chair</span></h3>
+        <p class="uk">Ви не голосуєте й не вмовляєте. Ви лише оголошуєте, які дві страви змагаються першими, а яка чекає фіналу.</p>
+        <p class="en">You don't vote and you don't persuade anyone. You only announce which two dishes go first and which one waits for the final.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span><span class="en">The question</span></h3>
+        <p class="uk">Скількох із трьох страв ви можете зробити переможницею, обираючи лише порядок голосувань?</p>
+        <p class="en">How many of the three dishes can you make the winner by choosing only the order of the votes?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card">
+        <h3 style="margin-bottom:12px"><span class="uk">Списки друзів</span><span class="en">The friends' lists</span></h3>
+        <div class="ballots" id="pz-ballots"></div>
+        <p class="note" style="margin-top:10px"><span class="uk">Згори найбажаніша страва, знизу найменш бажана.</span><span class="en">Most wanted at the top, least wanted at the bottom.</span></p>
+      </div>
+      <div class="card ask">
+        <span class="kicker"><span class="uk">Інтуїція каже</span><span class="en">Intuition says</span></span>
+        <p class="q"><span class="uk">«Голосують чесно й більшістю. Від порядку нічого не залежить»</span><span class="en">"They vote honestly, by majority. The order can't change anything"</span></p>
+        <p class="uk">Більшість — найпростіше й найчесніше правило. Але чи завжди вона знає, чого хоче?</p>
+        <p class="en">Majority is the simplest and fairest rule there is. But does it always know what it wants?</p>
+      </div>
+      <div class="card">
+        <h3><span class="uk">Що ми припускаємо</span><span class="en">What we assume</span></h3>
+        <ul class="rules uk">
+          <li>Кожен голосує чесно, за свій список, і не хитрує.</li>
+          <li>Списки не змінюються між голосуваннями.</li>
+          <li>Нічиїх немає: голосів троє.</li>
+        </ul>
+        <ul class="rules en">
+          <li>Everyone votes honestly, by their own list, with no tactics.</li>
+          <li>The lists don't change between votes.</li>
+          <li>There are no ties: there are three votes.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="uk">Скільки страв у вашій владі?</span><span class="en">How many dishes are in your hands?</span></h2>
+    <p class="lead uk">Оберіть відповідь. Вона зараховується одразу після кліку.</p>
+    <p class="lead en">Pick an answer. It counts as soon as you click.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:14px;align-content:start">
+      <div class="choices" id="g-opts">
+        <button type="button" class="choice" data-k="1" aria-pressed="false">
+          <span class="lt"><span class="uk"><span class="vl">А</span></span><span class="en">A</span></span>
+          <b><span class="uk">Лише одну</span><span class="en">Just one</span></b>
+          <small><span class="uk">порядок нічого не змінює, переможе та сама страва</span><span class="en">the order changes nothing; the same dish wins</span></small>
+        </button>
+        <button type="button" class="choice" data-k="2" aria-pressed="false">
+          <span class="lt"><span class="uk"><span class="vl">Б</span></span><span class="en">B</span></span>
+          <b><span class="uk">Дві з трьох</span><span class="en">Two of the three</span></b>
+          <small><span class="uk">порядок трохи важить, але одна страва не має шансів</span><span class="en">the order matters a bit, but one dish has no chance</span></small>
+        </button>
+        <button type="button" class="choice" data-k="3" aria-pressed="false">
+          <span class="lt"><span class="uk"><span class="vl">В</span></span><span class="en">C</span></span>
+          <b><span class="uk">Будь-яку з трьох</span><span class="en">Any of the three</span></b>
+          <small><span class="uk">порядок вирішує все</span><span class="en">the order decides everything</span></small>
+        </button>
+      </div>
+      <p class="note"><span class="uk">Передумати можна, але в статистику піде перший вибір.</span><span class="en">You can change your mind, but the first choice goes into the stats.</span></p>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться розбір вашої відповіді.</p>
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+</section>
+
+<!-- rounds 2–5 and the facts give the answer away, so they open only after a guess, "go on", or "always show all rounds" -->
+<section class="round sp-gate" id="next">
+  <div class="card gate">
+    <span class="kicker"><span class="uk">Далі розв'язок</span><span class="en">Next: the solution</span></span>
+    <h3><span class="uk">Далі пояснення, і в ньому спойлери</span><span class="en">Next comes the explanation, with spoilers</span></h3>
+    <p class="uk">Наступні раунди показують, як порядок голосувань обирає переможця: голосування, яке можна провести самому, свої компанії друзів, тисячі випадкових виборів і пояснення. Спершу відповісти в раунді 1 чи йти далі?</p>
+    <p class="en">The next rounds show how the order of votes picks the winner: a vote you can run yourself, your own groups of friends, thousands of random elections and the explanation. Answer round 1 first, or go on?</p>
+    <div class="actions"><a class="btn pri" href="#guess"><span class="uk">Відповісти в раунді 1</span><span class="en">Answer round 1</span></a><button type="button" class="btn ghost" data-solve><span class="uk">Йти далі</span><span class="en">Go on</span></button></div>
+    <button type="button" class="sp-skip" data-rounds="open"><span class="uk">Завжди показувати всі раунди, я не боюся спойлерів</span><span class="en">Always show all rounds, I don't mind spoilers</span></button>
+  </div>
+</section>
+
+<div class="sp-rounds">
+<p class="note rounds-on"><span class="uk">Ви обрали завжди показувати всі раунди.</span><span class="en">You chose to always show all rounds.</span> <button type="button" class="sp-skip" data-rounds="gate"><span class="uk">Ховати їх до відповіді</span><span class="en">Hide them until I answer</span></button></p>
+
+<!-- ROUND 2: play -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Спробуйте самі</span><span class="en">Round 2 · Try it yourself</span></span>
+    <h2><span class="uk">Проведіть голосування</span><span class="en">Run the vote</span></h2>
+    <p class="lead uk">Оберіть, яка страва чекає фіналу, і подивіться, хто за кого голосує. Спробуйте зробити переможницею кожну з трьох. А нижче складіть свою компанію з 3, 5 чи 7 людей і перевірте, чи є в неї коло.</p>
+    <p class="lead en">Choose which dish waits for the final and watch who votes for what. Try to make each of the three the winner. Further down, put together your own group of 3, 5 or 7 people and check whether it has a loop.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <h3><span class="uk">Порядок голосувань</span><span class="en">The order of votes</span></h3>
+      <div class="agendas" id="ag-pick"></div>
+      <div id="ag-out" style="display:grid;gap:12px"></div>
+      <p class="msg" id="ag-msg" aria-live="polite"></p>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:14px"><span class="uk">Кого вже вдалося обрати</span><span class="en">Winners you've produced</span></h3>
+      <div class="tally" id="ag-tally"></div>
+      <h3 style="margin:22px 0 12px"><span class="uk">Голосування один на один</span><span class="en">Head to head</span></h3>
+      <div class="tally" id="ag-pairs"></div>
+    </div>
+  </div>
+
+  <div class="build">
+    <div class="card stage" style="display:grid;gap:14px">
+      <h3><span class="uk">Ваша компанія</span><span class="en">Your own group</span></h3>
+      <div class="controls" style="margin-bottom:0">
+        <div class="ctl"><span class="uk">Людей</span><span class="en">People</span><div class="presets" id="bd-n"></div></div>
+        <div class="ctl"><span class="uk">Заповнити</span><span class="en">Fill in</span><div class="presets" id="bd-pre"></div></div>
+      </div>
+      <div class="vlist" id="bd-list"></div>
+      <p class="note"><span class="uk">Людей непарна кількість, тож у парі нічиїх не буває. Список кожного можна змінити.</span><span class="en">The number of people is odd, so a pair can never tie. Anyone's list can be changed.</span></p>
+    </div>
+    <div class="card" style="display:grid;gap:12px;align-content:start">
+      <h3><span class="uk">Що вирішує більшість</span><span class="en">What the majority decides</span></h3>
+      <div class="tally" id="bd-pairs"></div>
+      <p class="msg" id="bd-verdict" aria-live="polite"></p>
+      <div class="tally" id="bd-agendas"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="uk">Тисячі випадкових компаній</span><span class="en">Thousands of random groups</span></h2>
+    <p class="lead uk">Наша компанія підібрана навмисно. Як часто таке коло трапляється само собою? Комп'ютер дає кожному виборцеві випадковий список, усі шість порядків однаково ймовірні, і рахує, у якій частці виборів немає страви, що перемагає кожну іншу один на один. Саме тоді порядок голосувань може обирати переможця.</p>
+    <p class="lead en">Our group was picked on purpose. How often does such a loop happen by itself? The computer gives each voter a random list, all six orders equally likely, and counts the share of elections with no dish that beats every other one head to head. That is exactly when the order of votes can pick the winner.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <label class="ctl" for="sim-r"><span class="uk">Виборів на кожен стовпчик</span><span class="en">Elections per bar</span>
+        <select id="sim-r">
+          <option value="4000">4000</option>
+          <option value="20000" selected>20000</option>
+        </select>
+      </label>
+      <button class="btn pri" id="sim-run"><span class="uk">Провести ще раз</span><span class="en">Run again</span></button>
+      <span class="prog" id="sim-prog" aria-live="polite"></span>
+    </div>
+    <div class="sim2">
+      <div>
+        <h3><span class="uk">Три страви: частка виборів без переможця</span><span class="en">Three dishes: share of elections with no winner</span></h3>
+        <canvas id="nbar-cv" role="img" aria-label="Частка виборів без переможця залежно від кількості виборців"></canvas>
+        <div class="legend">
+          <span style="--c:var(--d1)"><b class="uk">симуляція</b><b class="en">simulation</b></span>
+          <span class="ln" style="--c:var(--ink)"><b class="uk">точний розрахунок</b><b class="en">exact calculation</b></span>
+          <span class="ln" style="--c:var(--hit)"><b class="uk">межа 8,77%</b><b class="en">limit 8.77%</b></span>
+        </div>
+      </div>
+      <div>
+        <h3><span class="uk">101 виборець: більше варіантів</span><span class="en">101 voters: more options</span></h3>
+        <canvas id="mbar-cv" role="img" aria-label="Частка виборів без переможця залежно від кількості варіантів"></canvas>
+        <div class="legend">
+          <span style="--c:var(--d2)"><b class="uk">симуляція, по 4000 виборів</b><b class="en">simulation, 4000 elections each</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="k"><span class="uk">3 виборці</span><span class="en">3 voters</span></div><div class="v mono" id="t-3">–</div><div class="s"><span class="uk">точно 12/216 ≈ 5,56%</span><span class="en">exactly 12/216 ≈ 5.56%</span></div></div>
+      <div class="tile"><div class="k"><span class="uk">101 виборець</span><span class="en">101 voters</span></div><div class="v mono" id="t-101">–</div><div class="s"><span class="uk">точно ≈ 8,69%</span><span class="en">exactly ≈ 8.69%</span></div></div>
+      <div class="tile" style="--c:var(--hit)"><div class="k"><span class="uk">Безліч виборців</span><span class="en">Endless voters</span></div><div class="v mono"><span class="uk">8,77%</span><span class="en">8.77%</span></div><div class="s"><span class="uk">межа, формула Ґільбо</span><span class="en">the limit, Guilbaud's formula</span></div></div>
+      <div class="tile" style="--c:var(--d2)"><div class="k"><span class="uk">10 варіантів, 101 виборець</span><span class="en">10 options, 101 voters</span></div><div class="v mono" id="t-10">–</div><div class="s"><span class="uk">майже кожні другі вибори</span><span class="en">almost every other election</span></div></div>
+    </div>
+    <p class="note" style="margin-top:14px" id="sim-note"></p>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Пояснення</span><span class="en">Round 4 · Explanations</span></span>
+    <h2><span class="uk">Більшість, яка ходить по колу</span><span class="en">A majority that goes round in circles</span></h2>
+    <p class="lead uk">Кожен із трьох друзів знає, чого хоче: його список послідовний. А от «більшість» — це щоразу інші двоє людей, і разом їхні рішення замикаються в коло.</p>
+    <p class="lead en">Each of the three friends knows what they want: their list is consistent. But "the majority" is a different pair of people each time, and together their decisions close into a loop.</p>
+  </div>
+  <div class="mp-layer" data-layer="easy">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Камінь, ножиці, папір</span><span class="en">Rock, paper, scissors</span></span>
+      <h3><span class="uk">Кожна страва програє якійсь іншій</span><span class="en">Every dish loses to another one</span></h3>
+      <svg class="geo" id="geo-rps" viewBox="0 0 320 230" role="img" aria-label="Коло більшостей між трьома стравами"></svg>
+      <p class="uk">Стрілка веде від переможця до переможеного. Піцу вище за суші ставлять Оля й Ірина, суші вище за вареники — Оля й Марко, вареники вище за піцу — Марко й Ірина. Кожна з трьох більшостей чесна, але це три різні пари людей, і разом вони дають коло.</p>
+      <p class="en">Each arrow points from winner to loser. Olya and Iryna put pizza above sushi, Olya and Marko put sushi above dumplings, Marko and Iryna put dumplings above pizza. Each of the three majorities is fair, but they are three different pairs of people, and together they make a loop.</p>
+      <p class="uk">Ця картка пояснює головне, але ще не все: чому саме голова обирає переможця, розповідає наступна.</p>
+      <p class="en">This card explains the core but not everything: why it is the chair who picks the winner is the next card.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Фінал</span><span class="en">The final</span></span>
+      <h3><span class="uk">Хто чекає, той і перемагає</span><span class="en">Whoever waits, wins</span></h3>
+      <p class="uk">Нехай вареники чекають, а першими йдуть піца й суші. Піца перемагає суші. Але піцу в колі б'є саме та страва, що чекала: вареники. І так з будь-якою парою: переможниця першого раунду — це завжди та страва, яку б'є третя.</p>
+      <p class="en">Say dumplings wait and pizza and sushi go first. Pizza beats sushi. But in the loop, pizza is beaten by exactly the dish that waited: dumplings. It works with any pair: the winner of round one is always the dish the third one beats.</p>
+      <div class="tbl-wrap">
+        <table class="mini-tbl">
+          <thead><tr><th><span class="uk">Чекає фіналу</span><span class="en">Waits for the final</span></th><th><span class="uk">Перший раунд</span><span class="en">Round one</span></th><th><span class="uk">Переможець</span><span class="en">Winner</span></th></tr></thead>
+          <tbody id="why-ag"></tbody>
+        </table>
+      </div>
+      <p class="uk">Отже, голова не вгадує й не вмовляє. Він просто обирає, кого притримати до кінця.</p>
+      <p class="en">So the chair doesn't guess or persuade. They simply choose whom to hold back until the end.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Окремо й разом</span><span class="en">Alone and together</span></span>
+      <h3><span class="uk">Кожен послідовний, а група ні</span><span class="en">Each person is consistent, the group isn't</span></h3>
+      <p class="uk">Якщо Оля любить піцу більше за суші, а суші більше за вареники, то й піцу вона любить більше за вареники. Так влаштована кожна людина. Здається, що й «воля більшості» має так поводитися. Але більшість — не людина: у кожній парі її складають інші люди. Кондорсе помітив, що навіть коли кожен голосує зв'язно, загальний результат може виявитися незв'язним.</p>
+      <p class="en">If Olya likes pizza more than sushi and sushi more than dumplings, she likes pizza more than dumplings too. That is how each person works. It seems "the will of the majority" should behave the same way. But a majority isn't a person: in each pair it is made up of different people. Condorcet noticed that even when every voter is consistent, the collective result can be inconsistent.</p>
+      <p class="uk">Буває й інакше. Якщо одна страва перемагає кожну іншу один на один, її називають переможцем Кондорсе. Тоді порядок не важить: вона виграє будь-яке голосування, хоч першою, хоч останньою. Влада голови з'являється лише там, де такого переможця немає.</p>
+      <p class="en">It can also go differently. If one dish beats every other one head to head, it is called the Condorcet winner. Then the order doesn't matter: it wins every vote, whether it goes first or last. The chair gains power only where there is no such winner.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Порахуйте</span><span class="en">Count</span></span>
+      <h3><span class="uk">12 компаній з 216</span><span class="en">12 groups out of 216</span></h3>
+      <p class="uk">Список з трьох страв можна скласти 3 · 2 · 1 = 6 способами. Троє людей дають 6 · 6 · 6 = 216 різних компаній. Коло буває лише тоді, коли кожна страва стоїть у когось першою, у когось другою й у когось третьою, і списки йдуть «по колу», як у наших друзів.</p>
+      <p class="en">A list of three dishes can be written in 3 · 2 · 1 = 6 ways. Three people give 6 · 6 · 6 = 216 different groups. A loop happens only when each dish is first for someone, second for someone and third for someone, and the lists go "round the circle" as our friends' do.</p>
+      <p class="uk">Напрямків кола два: піца → суші → вареники → піца або навпаки. У кожному три списки, які можна роздати трьом людям 3 · 2 · 1 = 6 способами. Разом 2 · 6 = 12 компаній з колом, тобто 12/216 = 1/18 ≈ 5,6%. В інших 204 є переможець Кондорсе.</p>
+      <p class="en">The loop can run two ways: pizza → sushi → dumplings → pizza, or the reverse. Each has three lists, which can be handed to three people in 3 · 2 · 1 = 6 ways. That makes 2 · 6 = 12 groups with a loop, so 12/216 = 1/18 ≈ 5.6%. The other 204 have a Condorcet winner.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Більше людей</span><span class="en">More people</span></span>
+      <h3><span class="uk">Що більша компанія, то частіше коло</span><span class="en">The bigger the group, the more often a loop</span></h3>
+      <div class="tbl-wrap">
+        <table class="mini-tbl">
+          <thead><tr><th><span class="uk">людей</span><span class="en">people</span></th><th class="num"><span class="uk">компаній</span><span class="en">groups</span></th><th class="num"><span class="uk">з колом</span><span class="en">with a loop</span></th><th class="num"><span class="uk">частка</span><span class="en">share</span></th></tr></thead>
+          <tbody>
+            <tr><td>3</td><td class="num">216</td><td class="num">12</td><td class="num"><span class="uk">5,56%</span><span class="en">5.56%</span></td></tr>
+            <tr><td>5</td><td class="num">7776</td><td class="num">540</td><td class="num"><span class="uk">6,94%</span><span class="en">6.94%</span></td></tr>
+            <tr><td>7</td><td class="num">279 936</td><td class="num">21 000</td><td class="num"><span class="uk">7,50%</span><span class="en">7.50%</span></td></tr>
+            <tr><td>9</td><td class="num">10 077 696</td><td class="num">785 820</td><td class="num"><span class="uk">7,80%</span><span class="en">7.80%</span></td></tr>
+            <tr><td>101</td><td class="num">6<sup>101</sup></td><td class="num">–</td><td class="num"><span class="uk">8,69%</span><span class="en">8.69%</span></td></tr>
+            <tr><td><span class="uk">безліч</span><span class="en">endless</span></td><td class="num">–</td><td class="num">–</td><td class="num"><span class="uk">8,77%</span><span class="en">8.77%</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="uk">Кожен рядок пораховано точно: перебрано всі компанії, де кожен із шести списків однаково ймовірний. Частка росте повільно й упирається в 8,77%. Отже, навіть у великих виборах з трьома варіантами приблизно одні з одинадцяти не мають переможця Кондорсе.</p>
+      <p class="en">Every row is counted exactly: all groups are enumerated, with each of the six lists equally likely. The share grows slowly and levels off at 8.77%. So even in large elections with three options, about one in eleven has no Condorcet winner.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span><span class="en">For formula lovers</span></span>
+      <h3><span class="uk">Фінал, підрахунок і межа</span><span class="en">The final, the count and the limit</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Коло: x перемагає y, y перемагає z, z перемагає x. Перший раунд між x і y виграє x, а x програє z. Переможець порядку голосувань — завжди той, хто чекав.</span><span class="en">The loop: x beats y, y beats z, z beats x. Round one between x and y goes to x, and x loses to z. The winner of the agenda is always the one who waited.</span></p>
+          <math display="block"><mi>x</mi><mo>≻</mo><mi>y</mi><mo>≻</mo><mi>z</mi><mo>≻</mo><mi>x</mi><mspace width="1em"></mspace><mo>⇒</mo><mspace width="1em"></mspace><mo>(</mo><mi>x</mi><mo>:</mo><mi>y</mi><mo>)</mo><mo>→</mo><mi>x</mi><mo>,</mo><mspace width="0.6em"></mspace><mo>(</mo><mi>x</mi><mo>:</mo><mi>z</mi><mo>)</mo><mo>→</mo><mrow class="hl"><mi>z</mi></mrow></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Троє виборців, три варіанти: два напрямки кола, шість способів роздати три списки.</span><span class="en">Three voters, three options: two directions of the loop, six ways to hand out three lists.</span></p>
+          <math display="block"><mi>P</mi><mo>=</mo><mfrac><mrow><mn>2</mn><mo>·</mo><mn>3</mn><mo>!</mo></mrow><msup><mn>6</mn><mn>3</mn></msup></mfrac><mo>=</mo><mfrac><mn>12</mn><mn>216</mn></mfrac><mo>=</mo><mrow class="hl"><mfrac><mn>1</mn><mn>18</mn></mfrac></mrow></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Межа для безлічі виборців (Ґільбо, 1952). Кожна з трьох пар — це майже нормальна величина, а дві пари з однією спільною стравою корелюють з коефіцієнтом −1/3.</span><span class="en">The limit for endlessly many voters (Guilbaud, 1952). Each of the three pairs is nearly a normal variable, and two pairs sharing a dish are correlated with coefficient −1/3.</span></p>
+          <math display="block"><msub><mi>P</mi><mi>∞</mi></msub><mo>=</mo><mfrac><mn>1</mn><mn>4</mn></mfrac><mo>−</mo><mfrac><mn>3</mn><mrow><mn>2</mn><mi>π</mi></mrow></mfrac><mo>arcsin</mo><mfrac><mn>1</mn><mn>3</mn></mfrac><mo>≈</mo><mrow class="hl"><mn>0.0877</mn></mrow></math>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Теорема Ерроу</span><span class="en">Arrow's theorem</span></span>
+      <h3><span class="uk">Ідеального правила немає</span><span class="en">There is no perfect rule</span></h3>
+      <p class="uk">Може, винна саме парна схема, і треба просто взяти інше правило? Кеннет Ерроу 1951 року довів, що ні. Нехай правило перетворює списки виборців на спільний список і виконує три вимоги: якщо всі ставлять x вище за y, то й група теж; порядок x і y в спільному списку залежить лише від того, як люди ставлять x і y; немає диктатора, чий список завжди стає спільним. Для трьох і більше варіантів такого правила не існує.</p>
+      <p class="en">Maybe the pairwise scheme is to blame, and another rule would do? Kenneth Arrow proved in 1951 that it wouldn't. Let a rule turn voters' lists into a joint list and meet three demands: if everyone puts x above y, so does the group; the order of x and y in the joint list depends only on how people rank x and y; and there is no dictator whose list always becomes the joint one. With three or more options no such rule exists.</p>
+      <p class="uk">Парадокс Кондорсе — найменший приклад того, що ламається: парна більшість задовольняє всі три вимоги, але не завжди дає список, бо ходить по колу.</p>
+      <p class="en">Condorcet's paradox is the smallest example of what breaks: pairwise majority meets all three demands, but doesn't always produce a list, because it goes round in a circle.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Одна вісь</span><span class="en">One axis</span></span>
+      <h3><span class="uk">Коли кола не буває</span><span class="en">When there can be no loop</span></h3>
+      <p class="uk">Дункан Блек 1948 року знайшов важливий виняток. Нехай варіанти можна розставити на одній осі, скажімо, податок від низького до високого, і кожен виборець має на ній улюблену точку, а що далі від неї, то гірше. Тоді кола не буває, а переможцем Кондорсе стає улюблений варіант медіанного виборця. На цьому стоїть і <a href="../hotelling-beach/">задача про морозиво на пляжі</a>.</p>
+      <p class="en">Duncan Black found an important exception in 1948. Suppose the options can be placed on a single axis, say a tax from low to high, and each voter has a favourite point on it, liking options less the further they are from it. Then there is no loop, and the Condorcet winner is the median voter's favourite. <a href="../../hotelling-beach/en/">The ice cream sellers on the beach</a> rests on the same idea.</p>
+      <p class="uk">Наші страви на одну вісь не ставляться: кожна з них у когось остання. Хоч яку страву поставити посередині, хтось ставить її на останнє місце, тобто любить обидва краї більше за середину.</p>
+      <p class="en">Our dishes don't fit on one axis: each of them is last for someone. Whichever dish you put in the middle, someone ranks it last, so they like both ends more than the middle.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Історія</span><span class="en">History</span></span>
+      <h3><span class="uk">Від Льюля до Ерроу</span><span class="en">From Llull to Arrow</span></h3>
+      <p class="uk">Ще в XIII столітті філософ Рамон Льюль описував вибори для монастирів через порівняння кандидатів попарно. Маркіз де Кондорсе 1785 року в «Есеї про застосування аналізу до ймовірності рішень, ухвалених більшістю голосів» запропонував обирати того, хто перемагає кожного суперника один на один, і сам показав, що такого кандидата може не бути. Чарлз Доджсон, відомий як Льюїс Керролл, 1876 року в брошурі про голосування для оксфордського коледжу розбирав такі кола й пропонував, якщо вони не зникають, не обирати нікого. Його брошури забули майже на століття, доки їх не передрукував Дункан Блек. А Кеннет Ерроу перетворив це спостереження на теорему і 1972 року отримав Нобелівську премію з економіки разом із Джоном Гіксом.</p>
+      <p class="en">As early as the 13th century the philosopher Ramon Llull described elections for monasteries by comparing candidates in pairs. In 1785 the Marquis de Condorcet, in his "Essay on the Application of Analysis to the Probability of Majority Decisions", proposed choosing whoever beats every rival head to head, and himself showed that there may be no such candidate. Charles Dodgson, better known as Lewis Carroll, analysed such loops in an 1876 pamphlet on voting for an Oxford college and proposed electing no one if they did not go away. His pamphlets were forgotten for almost a century until Duncan Black reprinted them. And Kenneth Arrow turned the observation into a theorem and in 1972 shared the Nobel Prize in Economics with John Hicks.</p>
+    </div>
+
+  </div>
+  </div>
+
+</section>
+
+<!-- ROUND 5: going further -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Ускладнюємо</span><span class="en">Round 5 · Going further</span></span>
+    <h2><span class="uk">Більше варіантів, інші правила, справжній парламент</span><span class="en">More options, other rules, a real parliament</span></h2>
+    <p class="lead uk">З кожним новим варіантом коло трапляється частіше. Інші правила підрахунку не рятують. А порядок голосувань у парламентах колись уже поховав закон, який мав більшість.</p>
+    <p class="lead en">Each new option makes a loop more likely. Other counting rules don't save the day. And the order of votes in a parliament has already buried a bill that had a majority.</p>
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Турнір більшостей</span><span class="en">A tournament of majorities</span></h3>
+        <div class="presets" id="tr-m"></div>
+        <svg id="tour-svg" viewBox="0 0 320 300" role="img" aria-label="Хто кого перемагає один на один"></svg>
+        <div class="actions"><button class="btn pri" id="tr-new"><span class="uk">Нові 25 виборців</span><span class="en">25 new voters</span></button><button class="btn ghost" id="tr-loop"><span class="uk">Шукати вибори з колом</span><span class="en">Find an election with a loop</span></button></div>
+        <p class="note" id="tr-msg" aria-live="polite"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Математика</span><span class="en">The maths</span></span>
+        <h3><span class="uk">Голова обирає серед верхнього кола</span><span class="en">The chair picks from the top cycle</span></h3>
+        <p class="uk">Коли варіантів більше, голова ставить їх у чергу: перші двоє змагаються, переможець виходить проти наступного, і так до кінця. Натисніть на варіант на схемі, і сторінка знайде чергу, яка робить його переможцем, або скаже, що такої немає.</p>
+        <p class="en">With more options the chair puts them in a queue: the first two face off, the winner meets the next one, and so on to the end. Tap an option in the diagram and the page will find a queue that makes it win, or tell you there is none.</p>
+        <p class="uk">Переможцем можна зробити рівно ті варіанти, що входять у «верхнє коло»: найменшу групу, кожен член якої перемагає всіх поза нею. Якщо є переможець Кондорсе, ця група складається з нього одного. У симуляції з 1001 виборцем і випадковими списками переможця Кондорсе немає приблизно у 17,5% виборів з 4 варіантами, у 25% з 5, у 31% з 6 і в 49% з 10.</p>
+        <p class="en">The options that can be made to win are exactly those in the "top cycle": the smallest group whose every member beats everyone outside it. If there is a Condorcet winner, the group is just that one option. In a simulation with 1001 voters and random lists, there is no Condorcet winner in about 17.5% of elections with 4 options, 25% with 5, 31% with 6 and 49% with 10.</p>
+        <p class="uk">Коли варіантів безліч, наприклад податок і бюджет водночас, а переможця Кондорсе немає, Річард Маккелві 1976 року довів більше: ланцюжком чесних голосувань «більшістю» голова може довести збори від будь-якого варіанта до будь-якого іншого.</p>
+        <p class="en">When the options form a continuum in several dimensions, say a tax and a budget at once, and there is no Condorcet winner, Richard McKelvey proved more in 1976: with a chain of honest majority votes the chair can lead an assembly from any option to any other.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Дев'ять друзів обирають поїздку</span><span class="en">Nine friends choose a trip</span></h3>
+        <div class="tally" id="ru-prof"></div>
+        <div class="presets" id="ru-pick"></div>
+        <p class="final" id="ru-win"></p>
+        <p class="note" id="ru-msg" aria-live="polite"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Логіка</span><span class="en">The logic</span></span>
+        <h3><span class="uk">«Перемагає» не означає «кращий»</span><span class="en">"Beats" doesn't mean "better"</span></h3>
+        <p class="uk">Ми звикли, що «вище за» діє ланцюжком: якщо x вище за y, а y вище за z, то x вище за z. Для зросту, ваги чи одного списку смаків так і є. Але «більшість віддає перевагу» складається з різних людей у різних парах, і ланцюжок рветься. Так само рветься «виграє в» у грі «камінь, ножиці, папір», у <a href="../intransitive-dice/">нетранзитивних кубиках</a> чи в <a href="../penney-game/">грі Пенні</a>, де на кожну трійку монет є сильніша.</p>
+        <p class="en">We are used to "above" working in a chain: if x is above y and y above z, then x is above z. For height, weight or one person's tastes, it is. But "a majority prefers" is made of different people in different pairs, and the chain breaks. In the same way "beats" breaks in rock, paper, scissors, in <a href="../../intransitive-dice/en/">intransitive dice</a> and in <a href="../../penney-game/en/">Penney's game</a>, where every coin triple has a stronger rival.</p>
+        <p class="uk">Тому в групі немає «справжнього» переможця, якого правило мало б лише знайти. Три чесні правила ліворуч дають на тих самих бюлетенях три різні поїздки, а парні дуелі не дають жодної: Одеса б'є Карпати, Львів б'є Одесу, а Карпати б'ють Львів. Обираючи правило, група вже обирає результат.</p>
+        <p class="en">So a group has no "true" winner that a rule merely needs to find. The three fair rules on the left give three different trips from the same ballots, and head-to-head duels give none: Odesa beats the Carpathians, Lviv beats Odesa, and the Carpathians beat Lviv. Choosing the rule is already choosing the result.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Палата представників США, 5 липня 1956</span><span class="en">US House of Representatives, 5 July 1956</span></h3>
+        <div class="tally" id="pw-blocs"></div>
+        <div class="agendas" id="pw-pick"></div>
+        <div id="pw-out" style="display:grid;gap:12px"></div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Практика</span><span class="en">In practice</span></span>
+        <h3><span class="uk">Поправка, яка вбила закон</span><span class="en">The amendment that killed the bill</span></h3>
+        <p class="uk">У Палаті представників США поправки голосують раніше за сам закон: спершу закон з поправкою проти закону без неї, потім переможець проти «нічого не ухвалювати». Порядок задають правила, а не голова, але працює він так само, як у нашій задачі.</p>
+        <p class="en">In the US House of Representatives amendments are voted before the bill itself: first the bill with the amendment against the bill without it, then the winner against "pass nothing". The order is set by the rules, not a chair, but it works just as in our puzzle.</p>
+        <p class="uk">1956 року Палата розглядала закон про федеральні гроші на будівництво шкіл. Конгресмен Адам Клейтон Павелл запропонував поправку: не давати грошей штатам, які не виконують рішень Верховного суду про скасування сегрегації в школах. Поправку прийняли 225 голосами проти 192, а потім увесь закон провалили 224 голосами проти 194. Перевірити можна в записах поіменних голосувань 84-го Конгресу.</p>
+        <p class="en">In 1956 the House was debating a bill on federal money for building schools. Congressman Adam Clayton Powell proposed an amendment: no money for states that fail to comply with the Supreme Court's school desegregation rulings. The amendment passed 225 to 192, and then the whole bill failed 224 to 194. You can check this in the roll-call records of the 84th Congress.</p>
+        <p class="uk">Політолог Вільям Райкер 1958 року пояснив це колом трьох блоків, як на схемі ліворуч: кожен блок менший за половину палати, а будь-які два разом мають більшість. Його пояснення досі сперечаються: частина республіканців могла голосувати за поправку навмисно, щоб потопити закон, а Джеррі Макі в книжці «Democracy Defended» (2003) доводить, що справжнього кола не було. Але сама пастка реальна: поправку, яка робить закон неприйнятним для частини його прихильників, називають «поправкою-вбивцею».</p>
+        <p class="en">The political scientist William Riker explained it in 1958 with a loop of three blocs, as in the diagram on the left: each bloc is less than half the House, while any two together have a majority. His explanation is still debated: some Republicans may have backed the amendment on purpose to sink the bill, and Gerry Mackie argues in "Democracy Defended" (2003) that there was no true loop. But the trap itself is real: an amendment that makes a bill unacceptable to part of its supporters is called a "killer amendment".</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="uk">Де ще порядок вирішує</span><span class="en">Where else the order decides</span></h3>
+      <p class="note" style="margin:6px 0 12px"><span class="uk">Усюди, де рішення складають з попарних порівнянь, а переможця Кондорсе може не бути.</span><span class="en">Wherever a decision is built from pairwise comparisons and there may be no Condorcet winner.</span></p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Де</span><span class="en">Where</span></th><th><span class="uk">Що порівнюють парами</span><span class="en">What is compared in pairs</span></th><th><span class="uk">Що вирішує порядок</span><span class="en">What the order decides</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="uk">Комітети й парламенти</span><span class="en">Committees and parliaments</span></td><td><span class="uk">поправки, закон і «нічого»</span><span class="en">amendments, the bill and "nothing"</span></td><td><span class="uk">порядок поправок і те, коли голосувати сам закон</span><span class="en">the order of amendments and when the bill itself is put</span></td></tr>
+            <tr><td><span class="uk">Турніри на вибування</span><span class="en">Knockout tournaments</span></td><td><span class="uk">команди в матчах</span><span class="en">teams in matches</span></td><td><span class="uk">сітка: якщо команди б'ють одна одну по колу, той, хто складає сітку, може вплинути на чемпіона</span><span class="en">the bracket: if teams beat each other in a loop, whoever draws the bracket can shape the champion</span></td></tr>
+            <tr><td><span class="uk">Вибори з рейтинговими бюлетенями</span><span class="en">Ranked-ballot elections</span></td><td><span class="uk">кандидати за бюлетенями</span><span class="en">candidates on the ballots</span></td><td><span class="uk">у виборах шкільного директора в окрузі 4 Окленда 2022 року переможця Кондорсе не було, і результат залежав від правила підрахунку</span><span class="en">in the 2022 Oakland District 4 school director race there was no Condorcet winner, and the result depended on the counting rule</span></td></tr>
+            <tr><td><span class="uk">Розподіл місць</span><span class="en">Seat apportionment</span></td><td><span class="uk">штати чи партії</span><span class="en">states or parties</span></td><td><span class="uk">інший парадокс справедливого правила: <a href="../alabama-paradox/">парадокс Алабами</a>, де більший парламент забирає місце в штату</span><span class="en">another paradox of a fair rule: <a href="../../alabama-paradox/en/">the Alabama paradox</a>, where a bigger house takes a seat away from a state</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note" style="margin-top:12px"><span class="uk">Інші задачі, де розумні окремі рішення складаються в несподіваний спільний результат: <a href="../braess-paradox/">парадокс Браєса</a>, де нова дорога сповільнює всіх, і <a href="../guess-two-thirds/">вгадай 2/3 середнього</a>, де кожен мусить передбачити інших.</span><span class="en">Other puzzles where sensible individual choices add up to a surprising joint result: <a href="../../braess-paradox/en/">Braess's paradox</a>, where a new road slows everyone down, and <a href="../../guess-two-thirds/en/">guess 2/3 of the average</a>, where everyone has to predict the others.</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="uk">Що розповісти друзям</span><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1785</span>
+        <h3><span class="uk">Маркіз з калькулятором</span><span class="en">A marquis with a calculator</span></h3>
+        <p class="uk">Ніколя де Кондорсе, математик і секретар Паризької академії наук, видав «Есей» про ймовірність рішень більшості за чотири роки до Французької революції. Звідти і назва парадоксу, і «переможець Кондорсе».</p>
+        <p class="en">Nicolas de Condorcet, a mathematician and secretary of the Paris Academy of Sciences, published his "Essay" on the probability of majority decisions four years before the French Revolution. Both the paradox and the "Condorcet winner" are named after it.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1876</span>
+        <h3><span class="uk">Аліса голосує</span><span class="en">Alice votes</span></h3>
+        <p class="uk">Чарлз Доджсон, автор «Аліси в Країні чудес», надрукував брошуру «A Method of Taking Votes on More than Two Issues» для зборів свого коледжу Крайст-Черч в Оксфорді. Якщо більшості ходили по колу, він радив не обирати нікого.</p>
+        <p class="en">Charles Dodgson, the author of "Alice in Wonderland", printed a pamphlet, "A Method of Taking Votes on More than Two Issues", for the meetings of his college, Christ Church, Oxford. If the majorities went round in a loop, he advised electing no one.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1951</span>
+        <h3><span class="uk">Дисертація на Нобеля</span><span class="en">A thesis worth a Nobel</span></h3>
+        <p class="uk">Кеннет Ерроу виклав теорему неможливості в книжці «Social Choice and Individual Values», що виросла з його дисертації. 1972 року він став наймолодшим на той час лауреатом Нобелівської премії з економіки.</p>
+        <p class="en">Kenneth Arrow set out his impossibility theorem in the book "Social Choice and Individual Values", which grew out of his doctoral thesis. In 1972 he became the youngest winner of the Nobel Prize in Economics up to that time.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n uk">8,77%</span><span class="fact-n en">8.77%</span>
+        <h3><span class="uk">Формула з арксинусом</span><span class="en">A formula with an arcsine</span></h3>
+        <p class="uk">Жорж-Теодюль Ґільбо 1952 року обчислив, як часто в дуже великих виборах із трьома варіантами й випадковими смаками немає переможця Кондорсе: 1/4 − (3/2π)·arcsin(1/3), трохи менше за кожні одинадцяті вибори.</p>
+        <p class="en">Georges-Théodule Guilbaud worked out in 1952 how often a very large election with three options and random tastes has no Condorcet winner: 1/4 − (3/2π)·arcsin(1/3), a little under one election in eleven.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">225 → 194</span>
+        <h3><span class="uk">Один день у Конгресі</span><span class="en">One day in Congress</span></h3>
+        <p class="uk">5 липня 1956 року Палата представників США спершу прийняла поправку Павелла до закону про будівництво шкіл (225 проти 192), а потім відхилила сам закон: за нього проголосували лише 194, проти 224.</p>
+        <p class="en">On 5 July 1956 the US House first adopted the Powell amendment to the school construction bill (225 to 192), then rejected the bill itself: only 194 voted for it, 224 against.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2022</span>
+        <h3><span class="uk">Коло в реальних виборах</span><span class="en">A loop in a real election</span></h3>
+        <p class="uk">На виборах шкільного директора в окрузі 4 Окленда (Каліфорнія) переможця Кондорсе не було, показав математик Девід Маккюн. Ті вибори ще й спершу порахували з помилкою, і переможця остаточно визначив суд 2023 року.</p>
+        <p class="en">In the school director race in Oakland's District 4, California, there was no Condorcet winner, as the mathematician David McCune showed. That election was also first counted with an error, and the winner was finally settled in court in 2023.</p>
+      </article>
+  </div>
+</section>
+</div>
+
+<footer>
+  <span class="uk">Парадокс описав Кондорсе в «Есеї» 1785 року. Теорему неможливості довів Кеннет Ерроу 1951 року, межу 8,77% для трьох варіантів обчислив Жорж-Теодюль Ґільбо 1952 року.</span>
+  <span class="en">The paradox was described by Condorcet in his 1785 "Essay". Kenneth Arrow proved the impossibility theorem in 1951, and Georges-Théodule Guilbaud computed the 8.77% limit for three options in 1952.</span>
+  <span class="mono">A ≻ B ≻ C ≻ A</span>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const SIG = () => tok('--signal') || '#D9318F';
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? String(s) : String(s).replace('.', ',');
+const pct = (x, d = 1) => dec((100 * x).toFixed(d)) + '%';
+
+/* ---------- dishes, people, lists ---------- */
+// three dishes with the Ukrainian cases the sentences need
+const D = [
+  { c: '--d0', uk: 'піца', gen: 'піци', acc: 'піцу', en: 'pizza' },
+  { c: '--d1', uk: 'суші', gen: 'суші', acc: 'суші', en: 'sushi' },
+  { c: '--d2', uk: 'вареники', gen: 'вареників', acc: 'вареники', en: 'dumplings', pl: true }
+];
+const dn = i => L(D[i].uk, D[i].en);
+const chip = i => '<span class="dish" style="--c:var(' + D[i].c + ')">' + dn(i) + '</span>';
+const waits = i => chip(i) + ' ' + L(D[i].pl ? 'чекають' : 'чекає', D[i].pl ? 'wait' : 'waits');
+const NAMES = [['Оля', 'Olya'], ['Марко', 'Marko'], ['Ірина', 'Iryna'], ['Тарас', 'Taras'], ['Соня', 'Sonya'], ['Богдан', 'Bohdan'], ['Віка', 'Vika']];
+const nm = i => L(NAMES[i][0], NAMES[i][1]);
+const ORDERS = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
+const FRIENDS = [[0, 1, 2], [1, 2, 0], [2, 0, 1]];           // the loop: pizza > sushi > dumplings > pizza by majority
+const prefers = (r, a, b) => r.indexOf(a) < r.indexOf(b);
+// a head-to-head vote: who votes for a, who for b, the winner
+function duel(prof, a, b) {
+  const fa = [], fb = [];
+  prof.forEach((r, i) => (prefers(r, a, b) ? fa : fb).push(i));
+  return { a, b, fa, fb, w: fa.length > fb.length ? a : b };
+}
+// the dish h waits; the other two go first; the winner meets h
+function agenda(prof, h) {
+  const [a, b] = [0, 1, 2].filter(x => x !== h);
+  const r1 = duel(prof, a, b), r2 = duel(prof, r1.w, h);
+  return { h, r1, r2, w: r2.w };
+}
+function condorcet(prof) {
+  for (let x = 0; x < 3; x++) if ([0, 1, 2].every(y => y === x || duel(prof, x, y).w === x)) return x;
+  return -1;
+}
+const names = list => list.map(nm).join(', ') || '–';
+
+/* ---------- canvas helpers ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, Wd = c.clientWidth, H = c.clientHeight;
+  if (!Wd || !H) return null;
+  c.width = Math.round(Wd * dpr); c.height = Math.round(H * dpr);
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, Wd, H);
+  ctx.font = '11px ' + tok('--f-mono');
+  return { ctx, W: Wd, H };
+}
+function rrect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function dishPill(ctx, x, y, w, h, i, strong) {
+  rrect(ctx, x, y, w, h, h / 2);
+  ctx.fillStyle = tok(D[i].c); ctx.globalAlpha = strong ? .95 : .18; ctx.fill(); ctx.globalAlpha = 1;
+  ctx.strokeStyle = tok(D[i].c); ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = strong ? '#fff' : tok('--ink'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(dn(i), x + w / 2, y + h / 2 + 1);
+}
+
+/* ---------- hero: three ballots and a queue of votes with "?" ---------- */
+const hero = { k: 0, t: 0, raf: 0, prev: 0 };
+function heroDraw() {
+  const s = setupCanvas($('#hero-cv')); if (!s) return;
+  const { ctx, W: Wd, H } = s, pad = 14, colW = (Wd - 2 * pad) / 3, pw = Math.min(colW - 14, 104), ph = 24;
+  ctx.font = '600 12px ' + tok('--f-body');
+  FRIENDS.forEach((r, v) => {
+    const cx = pad + colW * v + colW / 2;
+    ctx.fillStyle = tok('--ink'); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.font = '600 13px ' + tok('--f-body'); ctx.fillText(nm(v), cx, 30);
+    ctx.font = '600 11px ' + tok('--f-body');
+    r.forEach((d, j) => {
+      ctx.fillStyle = tok('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      dishPill(ctx, cx - pw / 2, 42 + j * (ph + 8), pw, ph, d, j === 0);
+    });
+  });
+  // the queue: which two go first changes; the winner is always "?"
+  const h = hero.k % 3, [a, b] = [0, 1, 2].filter(x => x !== h);
+  const y0 = 42 + 3 * (ph + 8) + 18;
+  ctx.strokeStyle = tok('--line'); ctx.beginPath(); ctx.moveTo(pad, y0 - 8); ctx.lineTo(Wd - pad, y0 - 8); ctx.stroke();
+  const rowH = Math.min(40, (H - y0 - 10) / 3), qw = Math.min(96, (Wd - 2 * pad - 120) / 2);
+  const lab = (t, y) => { ctx.fillStyle = tok('--muted'); ctx.font = '600 11px ' + tok('--f-mono'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(t, pad, y); };
+  const appear = reduce() ? 1 : Math.min(1, hero.t / .35);
+  ctx.globalAlpha = appear;
+  ctx.font = '600 11px ' + tok('--f-body');
+  const x1 = pad + 78;
+  lab(L('1-ше', '1st'), y0 + rowH / 2);
+  dishPill(ctx, x1, y0 + rowH / 2 - 12, qw, 24, a, false);
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.fillText(L('проти', 'vs'), x1 + qw + 16, y0 + rowH / 2);
+  dishPill(ctx, x1 + qw + 32, y0 + rowH / 2 - 12, qw, 24, b, false);
+  lab(L('фінал', 'final'), y0 + rowH * 1.5);
+  ctx.fillStyle = tok('--ink'); ctx.textAlign = 'left'; ctx.font = '600 12px ' + tok('--f-body');
+  ctx.fillText(L('переможець', 'winner'), x1, y0 + rowH * 1.5);
+  ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.font = '600 11px ' + tok('--f-body'); ctx.fillText(L('проти', 'vs'), x1 + qw + 16, y0 + rowH * 1.5);
+  dishPill(ctx, x1 + qw + 32, y0 + rowH * 1.5 - 12, qw, 24, h, false);
+  lab(L('обрали', 'chosen'), y0 + rowH * 2.5);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = SIG(); ctx.font = '800 22px ' + tok('--f-display'); ctx.textAlign = 'left'; ctx.fillText('?', x1 + 4, y0 + rowH * 2.5 + 1);
+}
+function heroCap() {
+  const h = hero.k % 3, [a, b] = [0, 1, 2].filter(x => x !== h);
+  $('#hero-cap').textContent = L('Першими змагаються ' + dn(a) + ' і ' + dn(b) + ', ' + dn(h) + (D[h].pl ? ' чекають' : ' чекає') + ' фіналу. Що замовлять? А якщо голова змінить порядок?',
+    dn(a)[0].toUpperCase() + dn(a).slice(1) + ' and ' + dn(b) + ' go first, ' + dn(h) + ' wait' + (h === 2 ? '' : 's') + ' for the final. What gets ordered? And if the chair changes the order?');
+}
+function heroFrame(ts) {
+  const dt = hero.prev ? Math.min(.1, (ts - hero.prev) / 1000) : 0; hero.prev = ts;
+  hero.t += dt / 3.2;
+  if (hero.t >= 1) { hero.t = 0; hero.k++; heroCap(); }
+  heroDraw();
+  hero.raf = requestAnimationFrame(heroFrame);
+}
+function heroStart() {
+  cancelAnimationFrame(hero.raf); hero.t = 0; hero.k = 0;
+  heroDraw(); heroCap();
+  if (!reduce()) { hero.prev = 0; hero.raf = requestAnimationFrame(heroFrame); }
+}
+
+/* ---------- ballots (puzzle) ---------- */
+const ballotsHtml = prof => prof.map((r, v) => '<div class="ballot"><b>' + nm(v) + '</b><ol>' + r.map((d, j) => '<li>' + (j + 1) + chip(d) + '</li>').join('') + '</ol></div>').join('');
+
+/* ---------- round 1: guess ---------- */
+const RIGHT = '3';
+let gPick = null;
+function agRowsHtml() {
+  return [2, 0, 1].map(h => { const g = agenda(FRIENDS, h); return '<tr><td>' + chip(h) + '</td><td>' + chip(g.r1.a) + ' : ' + chip(g.r1.b) + ' → ' + chip(g.r1.w) + '</td><td>' + chip(g.w) + '</td></tr>'; }).join('');
+}
+function guessText() {
+  $$('#g-opts .choice').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === gPick));
+  if (gPick === null) return;
+  const why = {
+    '1': L('Ні. Порядок вирішує все: у цій компанії кожна страва програє якійсь іншій більшістю два проти одного, тож жодна не тримається за будь-якого порядку. Переможе та, яку голова притримає до фіналу.', 'No. The order decides everything: in this group every dish loses to some other one two votes to one, so none of them survives every order. The winner is whichever the chair holds back for the final.'),
+    '2': L('Голова може більше. Немає страви, якій порядок не допоможе: кожна перемагає, якщо чекає фіналу, бо переможниця першого раунду — саме та страва, яку вона б\'є.', 'The chair can do more. No dish is beyond help: each one wins if it waits for the final, because the winner of round one is exactly the dish it beats.'),
+    '3': L('Так. Більшість ставить піцу вище за суші (Оля й Ірина), суші вище за вареники (Оля й Марко), а вареники вище за піцу (Марко й Ірина). Це коло, як камінь, ножиці, папір. Хоч яку пару пустити першою, переможницю першого раунду б\'є страва, яка чекала.', 'Yes. A majority puts pizza above sushi (Olya and Iryna), sushi above dumplings (Olya and Marko), and dumplings above pizza (Marko and Iryna). It is a loop, like rock, paper, scissors. Whichever pair goes first, the winner of round one is beaten by the dish that waited.')
+  };
+  const ok = gPick === RIGHT;
+  const vl = k => lang === 'en' ? { '1': 'A', '2': 'B', '3': 'C' }[k] : '<span class="vl">' + { '1': 'А', '2': 'Б', '3': 'В' }[k] + '</span>';
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Відповідь', 'The answer') + '</span>' +
+    '<p class="big" style="font-size:clamp(1.3rem,3.4vw,1.8rem);color:' + SIG() + '">' + vl('3') + ' · ' + L('будь-яку з трьох', 'any of the three') + '</p>' +
+    '<div class="vrow"><span>' + L('Ваша відповідь ', 'Your answer ') + vl(gPick) + ' <span class="' + (ok ? 'ok">✓' : 'no">✗') + '</span></span><span class="note">' + why[gPick] + '</span></div>' +
+    (ok ? '' : '<div class="vrow"><span>' + L('Правильно ', 'Correct ') + vl('3') + '</span><span class="note">' + why['3'] + '</span></div>') +
+    '<div class="tbl-wrap"><table class="mini-tbl"><thead><tr><th>' + L('Чекає фіналу', 'Waits') + '</th><th>' + L('Перший раунд', 'Round one') + '</th><th>' + L('Переможець', 'Winner') + '</th></tr></thead><tbody>' + agRowsHtml() + '</tbody></table></div>' +
+    '<p class="note">' + L('Раунд 2 дає провести ці голосування самому й скласти свою компанію.', 'Round 2 lets you run these votes yourself and build your own group.') + '</p>';
+}
+$('#g-opts').addEventListener('click', e => {
+  const b = e.target.closest('.choice'); if (!b) return;
+  gPick = b.dataset.k; guessText(); window.mpSolve && mpSolve(gPick);
+});
+
+/* ---------- round 2: run the vote ---------- */
+let agH = 2;
+const agSeen = new Set([2]);
+function duelHtml(d, title) {
+  const side = (x, who, lost) => '<div class="side-v' + (lost ? ' lost' : '') + '">' + chip(x) + '<span class="names">' + names(who) + '</span></div>';
+  return '<div class="duel-h">' + title + '</div><div class="duel">' + side(d.a, d.fa, d.w !== d.a) + '<span class="score">' + d.fa.length + ' : ' + d.fb.length + '</span>' + side(d.b, d.fb, d.w !== d.b) + '</div>';
+}
+function agText() {
+  $('#ag-pick').innerHTML = [2, 0, 1].map(h => { const [a, b] = [0, 1, 2].filter(x => x !== h); return '<button type="button" data-h="' + h + '" aria-pressed="' + (h === agH) + '">' + L('Спершу', 'First') + ' ' + chip(a) + ' ' + L('проти', 'vs') + ' ' + chip(b) + ' · ' + waits(h) + '</button>'; }).join('');
+  const g = agenda(FRIENDS, agH);
+  $('#ag-out').innerHTML = duelHtml(g.r1, L('Перший раунд', 'Round one')) + duelHtml(g.r2, L('Фінал', 'Final')) +
+    '<p class="final">' + L('Замовляють:', 'They order:') + ' ' + chip(g.w) + '</p>';
+  const left = [0, 1, 2].filter(x => !agSeen.has(x));
+  $('#ag-msg').textContent = left.length
+    ? L('Переможниця фіналу — та страва, що чекала. Ще не перемагали: ', 'The winner of the final is the dish that waited. Not yet a winner: ') + left.map(dn).join(L(' і ', ' and ')) + '.'
+    : L('Усі три страви перемагали, і жоден друг не змінив свого списку. Обирав порядок, тобто голова.', 'All three dishes have won, and none of the friends changed their list. The order chose, and the order is the chair.');
+  $('#ag-tally').innerHTML = [0, 1, 2].map(x => '<div class="trow"><span>' + chip(x) + '</span><b' + (agSeen.has(x) ? ' class="ok">✓' : '>–') + '</b></div>').join('');
+  $('#ag-pairs').innerHTML = [[0, 1], [1, 2], [2, 0]].map(([a, b]) => { const d = duel(FRIENDS, a, b); const w = d.w, l = w === a ? b : a, who = w === a ? d.fa : d.fb; return '<div class="trow"><span>' + chip(w) + ' › ' + chip(l) + '</span><b>' + names(who) + '</b></div>'; }).join('');
+}
+$('#ag-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; agH = +b.dataset.h; agSeen.add(agH); agText(); });
+
+/* ---------- round 2: your own group ---------- */
+const PRE_WIN = [[0, 1, 2], [1, 0, 2], [2, 0, 1], [0, 2, 1], [1, 2, 0], [0, 1, 2], [2, 1, 0]];   // pizza beats everyone
+let bdProf = FRIENDS.map(r => r.slice()), bdPre = 'loop';
+function bdFill(kind, n) {
+  bdPre = kind;
+  if (kind === 'loop') bdProf = Array.from({ length: n }, (_, i) => FRIENDS[i % 3].slice());
+  else if (kind === 'win') bdProf = PRE_WIN.slice(0, n).map(r => r.slice());
+  else bdProf = Array.from({ length: n }, () => ORDERS[Math.floor(Math.random() * 6)].slice());
+}
+function bdText() {
+  const n = bdProf.length;
+  $('#bd-n').innerHTML = [3, 5, 7].map(k => '<button type="button" data-n="' + k + '" aria-pressed="' + (k === n) + '">' + k + '</button>').join('');
+  $('#bd-pre').innerHTML = [['loop', 'коло', 'loop'], ['win', 'є переможець', 'a winner'], ['rnd', 'випадково', 'random']].map(([k, u, e]) => '<button type="button" data-p="' + k + '" aria-pressed="' + (k === bdPre) + '">' + L(u, e) + '</button>').join('');
+  const opt = r => ORDERS.map((o, i) => '<option value="' + i + '"' + (o.join() === r.join() ? ' selected' : '') + '>' + o.map(dn).join(' › ') + '</option>').join('');
+  $('#bd-list').innerHTML = bdProf.map((r, v) => '<label class="vline"><span>' + nm(v) + '</span><select data-v="' + v + '" aria-label="' + L('Список: ', 'List: ') + nm(v) + '">' + opt(r) + '</select></label>').join('');
+  bdOut();
+}
+function bdOut() {
+  const n = bdProf.length;
+  $('#bd-pairs').innerHTML = [[0, 1], [1, 2], [2, 0]].map(([a, b]) => { const d = duel(bdProf, a, b), w = d.w, l = w === a ? b : a; return '<div class="trow"><span>' + chip(w) + ' › ' + chip(l) + '</span><b>' + Math.max(d.fa.length, d.fb.length) + ' : ' + Math.min(d.fa.length, d.fb.length) + '</b></div>'; }).join('');
+  const c = condorcet(bdProf);
+  $('#bd-verdict').innerHTML = c >= 0
+    ? L('Переможець Кондорсе: ', 'Condorcet winner: ') + chip(c) + L('. Він перемагає кожну страву один на один, тож порядок нічого не змінює.', '. It beats every dish head to head, so the order changes nothing.')
+    : L('Переможця Кондорсе немає: більшості йдуть по колу. Голова обирає будь-яку з трьох страв.', 'No Condorcet winner: the majorities go round in a loop. The chair can pick any of the three dishes.');
+  $('#bd-agendas').innerHTML = [0, 1, 2].map(h => { const g = agenda(bdProf, h); return '<div class="trow"><span>' + waits(h) + '</span><span>→ ' + chip(g.w) + '</span></div>'; }).join('');
+  $('#bd-agendas').insertAdjacentHTML('beforeend', '<p class="note">' + L('Компанія з ' + n + ' людей. Таких компаній ' + (6 ** n).toLocaleString('uk-UA') + ', і коло мають ' + { 3: '5,6%', 5: '6,9%', 7: '7,5%' }[n] + ' з них.', 'A group of ' + n + '. There are ' + (6 ** n).toLocaleString('en-US') + ' such groups, and ' + { 3: '5.6%', 5: '6.9%', 7: '7.5%' }[n] + ' of them have a loop.') + '</p>');
+}
+$('#bd-n').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; bdFill(bdPre, +b.dataset.n); bdText(); });
+$('#bd-pre').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; bdFill(b.dataset.p, bdProf.length); bdText(); });
+$('#bd-list').addEventListener('change', e => { const s = e.target.closest('select'); if (!s) return; bdProf[+s.dataset.v] = ORDERS[+s.value].slice(); bdPre = ''; $$('#bd-pre button').forEach(b => b.setAttribute('aria-pressed', 'false')); bdOut(); });
+
+/* ---------- round 3: random elections ---------- */
+// m options, n voters with uniformly random lists; is there an option that beats every other by majority?
+function hasWinner(m, n, W, rank, perm) {
+  W.fill(0);
+  for (let v = 0; v < n; v++) {
+    for (let i = 0; i < m; i++) perm[i] = i;
+    for (let i = m - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)), x = perm[i]; perm[i] = perm[j]; perm[j] = x; }
+    for (let i = 0; i < m; i++) rank[perm[i]] = i;
+    for (let i = 0; i < m; i++) for (let j = 0; j < m; j++) if (rank[i] < rank[j]) W[i * m + j]++;
+  }
+  for (let i = 0; i < m; i++) { let ok = true; for (let j = 0; j < m; j++) if (j !== i && 2 * W[i * m + j] < n) { ok = false; break; } if (ok) return true; }
+  return false;
+}
+const NS = [3, 5, 7, 9, 11, 25, 51, 101];
+const EXACT = { 3: 1 / 18, 5: 5 / 72, 7: 875 / 11664, 9: 65485 / 839808, 11: .07981408, 25: .08431641, 51: .08607359, 101: .08690128 };
+const LIMIT = 1 / 4 - 3 / (2 * Math.PI) * Math.asin(1 / 3);
+const MS = [3, 4, 5, 6, 8, 10], M_T = 4000, M_N = 101;
+let sim = null, simJob = 0;
+function simRun() {
+  const T = +$('#sim-r').value, job = ++simJob;
+  const tasks = NS.map(n => ({ kind: 'n', m: 3, n, T })).concat(MS.map(m => ({ kind: 'm', m, n: M_N, T: M_T })));
+  const r = { n: {}, m: {} };
+  const W = new Int32Array(100), rank = new Int32Array(10), perm = new Int32Array(10);
+  let ti = 0, done = 0, no = 0;
+  $('#sim-run').disabled = true;
+  const total = tasks.reduce((s, t) => s + t.T * t.n * t.m, 0);
+  let work = 0;
+  const chunk = () => {
+    if (job !== simJob) return;
+    const t0 = performance.now();
+    while (ti < tasks.length && performance.now() - t0 < 30) {
+      const t = tasks[ti];
+      const stop = Math.min(t.T, done + 400);
+      for (; done < stop; done++) if (!hasWinner(t.m, t.n, W, rank, perm)) no++;
+      work += 400 * t.n * t.m;
+      if (done >= t.T) { r[t.kind][t.kind === 'n' ? t.n : t.m] = no / t.T; ti++; done = 0; no = 0; sim = r; simDraw(); }
+    }
+    $('#sim-prog').textContent = ti < tasks.length ? L('рахуємо: ', 'counting: ') + Math.min(99, Math.round(100 * work / total)) + '%' : '';
+    if (ti < tasks.length) { setTimeout(chunk, 0); return; }
+    $('#sim-run').disabled = false; simDraw(); simText();
+  };
+  chunk();
+}
+function bars(cv, keys, vals, col, yMax, ref, label) {
+  const s = setupCanvas(cv); if (!s) return;
+  const { ctx, W: Wd, H } = s, l = 40, r = 8, t = 12, b = 34, n = keys.length, bw = (Wd - l - r) / n;
+  const y = v => t + (1 - v / yMax) * (H - t - b);
+  ctx.strokeStyle = tok('--line'); ctx.fillStyle = tok('--muted'); ctx.lineWidth = 1; ctx.font = '11px ' + tok('--f-mono');
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  const step = yMax > .3 ? .1 : .02;
+  for (let v = 0; v <= yMax + 1e-9; v += step) { ctx.beginPath(); ctx.moveTo(l, y(v)); ctx.lineTo(Wd - r, y(v)); ctx.stroke(); ctx.fillText(Math.round(100 * v) + '%', l - 5, y(v)); }
+  keys.forEach((k, i) => {
+    const x = l + i * bw, v = vals[k];
+    if (v != null) { ctx.fillStyle = tok(col); ctx.globalAlpha = .8; ctx.fillRect(x + bw * .18, y(v), bw * .64, y(0) - y(v)); ctx.globalAlpha = 1; }
+    if (ref && ref[k] != null) { ctx.strokeStyle = tok('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x + bw * .08, y(ref[k])); ctx.lineTo(x + bw * .92, y(ref[k])); ctx.stroke(); }
+    ctx.fillStyle = tok('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(k, x + bw / 2, H - b + 6);
+  });
+  ctx.fillText(label, l + (Wd - l - r) / 2, H - 14);
+}
+function simDraw() {
+  const r = sim || { n: {}, m: {} };
+  bars($('#nbar-cv'), NS, r.n, '--d1', .1, EXACT, L('виборців', 'voters'));
+  // limit line on top of the first chart
+  const cv = $('#nbar-cv');
+  if (cv.clientWidth) {
+    const ctx = cv.getContext('2d'), H = cv.clientHeight, Wd = cv.clientWidth, yy = 12 + (1 - LIMIT / .1) * (H - 12 - 34);
+    ctx.setLineDash([5, 4]); ctx.strokeStyle = tok('--hit'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(40, yy); ctx.lineTo(Wd - 8, yy); ctx.stroke(); ctx.setLineDash([]);
+  }
+  bars($('#mbar-cv'), MS, r.m, '--d2', .6, null, L('варіантів', 'options'));
+}
+function simText() {
+  if (!sim) return;
+  $('#t-3').textContent = pct(sim.n[3], 2); $('#t-101').textContent = pct(sim.n[101], 2); $('#t-10').textContent = pct(sim.m[10], 1);
+  const T = +$('#sim-r').value, se = Math.sqrt(LIMIT * (1 - LIMIT) / T);
+  $('#sim-note').textContent = L('Чорні риски — точні частки, пораховані перебором усіх компаній. З ' + T.toLocaleString('uk-UA') + ' виборів на стовпчик симуляція відхиляється від них приблизно на ±' + dec((100 * 2 * se).toFixed(1)) + ' відсоткового пункту. Частка росте з кількістю виборців і впирається в пунктир 8,77%. А з кількістю варіантів вона росте швидко: при 10 варіантах майже половина виборів не має переможця Кондорсе.',
+    'The black ticks are the exact shares, counted by enumerating every group. With ' + T.toLocaleString('en-US') + ' elections per bar the simulation is off from them by about ±' + (100 * 2 * se).toFixed(1) + ' percentage points. The share grows with the number of voters and levels off at the dashed 8.77%. With the number of options it grows fast: with 10 options almost half of all elections have no Condorcet winner.');
+}
+$('#sim-run').addEventListener('click', simRun);
+$('#sim-r').addEventListener('change', simRun);
+
+/* ---------- round 4: the loop picture ---------- */
+function geoDraw() {
+  const P = [[160, 36], [270, 196], [50, 196]];   // pizza top, sushi right, dumplings left
+  let h = '';
+  const arrow = (from, to, who) => {
+    const [x1, y1] = P[from], [x2, y2] = P[to], dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy), ux = dx / d, uy = dy / d, off = 34;
+    const ax = x1 + ux * off, ay = y1 + uy * off, bx = x2 - ux * off, by = y2 - uy * off;
+    h += '<line x1="' + ax + '" y1="' + ay + '" x2="' + bx + '" y2="' + by + '" stroke="var(--ink)" stroke-width="2"/>';
+    h += '<polygon points="' + bx + ',' + by + ' ' + (bx - ux * 10 - uy * 5) + ',' + (by - uy * 10 + ux * 5) + ' ' + (bx - ux * 10 + uy * 5) + ',' + (by - uy * 10 - ux * 5) + '" fill="var(--ink)"/>';
+    const mx = (x1 + x2) / 2 - uy * 16, my = (y1 + y2) / 2 + ux * 16;
+    h += '<text x="' + mx + '" y="' + (my + 4) + '" text-anchor="middle" class="mut" style="font-size:11px">' + who + '</text>';
+  };
+  [[0, 1], [1, 2], [2, 0]].forEach(([a, b]) => { const d = duel(FRIENDS, a, b); arrow(d.w, d.w === a ? b : a, (d.w === a ? d.fa : d.fb).map(nm).join(' + ')); });
+  P.forEach(([x, y], i) => {
+    h += '<circle cx="' + x + '" cy="' + y + '" r="30" fill="var(' + D[i].c + ')" fill-opacity=".2" stroke="var(' + D[i].c + ')" stroke-width="2"/>';
+    h += '<text x="' + x + '" y="' + (y + 4) + '" text-anchor="middle">' + dn(i) + '</text>';
+  });
+  $('#geo-rps').innerHTML = h;
+  $('#why-ag').innerHTML = agRowsHtml();
+}
+
+/* ---------- round 5: a tournament of majorities ---------- */
+let trM = 5, trW = null, trSel = -1;
+function trVoters() {
+  const n = 25, W = Array.from({ length: trM }, () => Array(trM).fill(0));
+  for (let v = 0; v < n; v++) {
+    const p = [...Array(trM).keys()];
+    for (let i = trM - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; }
+    for (let a = 0; a < trM; a++) for (let b = a + 1; b < trM; b++) W[p[a]][p[b]]++;
+  }
+  trW = W; trSel = -1;
+}
+const trBeats = (i, j) => 2 * trW[i][j] > 25;
+// the top cycle: options that reach every other one through a chain of "beats"
+function trTop() {
+  const m = trM, R = Array.from({ length: m }, (_, i) => Array.from({ length: m }, (_, j) => i === j || trBeats(i, j)));
+  for (let k = 0; k < m; k++) for (let i = 0; i < m; i++) for (let j = 0; j < m; j++) if (R[i][k] && R[k][j]) R[i][j] = true;
+  return [...Array(m).keys()].filter(i => R[i].every(Boolean));
+}
+function perms(a) { if (a.length < 2) return [a]; const r = []; a.forEach((x, i) => perms(a.slice(0, i).concat(a.slice(i + 1))).forEach(p => r.push([x, ...p]))); return r; }
+// try every queue: the first two face off, the winner meets the next one
+function trQueue(x) {
+  for (const p of perms([...Array(trM).keys()])) { let c = p[0]; for (let k = 1; k < trM; k++) if (trBeats(p[k], c)) c = p[k]; if (c === x) return p; }
+  return null;
+}
+function trDraw() {
+  const m = trM, top = trTop(), cx = 160, cy = 150, R = 110;
+  const P = [...Array(m).keys()].map(i => [cx + R * Math.sin(2 * Math.PI * i / m), cy - R * Math.cos(2 * Math.PI * i / m)]);
+  let h = '';
+  for (let i = 0; i < m; i++) for (let j = 0; j < m; j++) if (i !== j && trBeats(i, j)) {
+    const [x1, y1] = P[i], [x2, y2] = P[j], dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy), ux = dx / d, uy = dy / d;
+    const ax = x1 + ux * 20, ay = y1 + uy * 20, bx = x2 - ux * 22, by = y2 - uy * 22;
+    const inTop = top.includes(i) && top.includes(j), col = inTop && top.length > 1 ? 'var(--day)' : 'var(--muted)';
+    h += '<line x1="' + ax.toFixed(1) + '" y1="' + ay.toFixed(1) + '" x2="' + bx.toFixed(1) + '" y2="' + by.toFixed(1) + '" stroke="' + col + '" stroke-width="' + (inTop ? 2 : 1.2) + '" stroke-opacity="' + (inTop ? 1 : .55) + '"/>';
+    h += '<polygon points="' + bx.toFixed(1) + ',' + by.toFixed(1) + ' ' + (bx - ux * 9 - uy * 4.5).toFixed(1) + ',' + (by - uy * 9 + ux * 4.5).toFixed(1) + ' ' + (bx - ux * 9 + uy * 4.5).toFixed(1) + ',' + (by - uy * 9 - ux * 4.5).toFixed(1) + '" fill="' + col + '"/>';
+  }
+  P.forEach(([x, y], i) => {
+    const on = top.includes(i), sel = i === trSel;
+    h += '<g data-i="' + i + '" role="button" tabindex="0" aria-label="' + L('Варіант ', 'Option ') + (i + 1) + '"><circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="18" fill="' + (on ? 'var(--day)' : 'var(--surface)') + '" stroke="' + (sel ? 'var(--hit)' : on ? 'var(--day)' : 'var(--muted)') + '" stroke-width="' + (sel ? 4 : 2) + '"/><text x="' + x.toFixed(1) + '" y="' + (y + 5).toFixed(1) + '" text-anchor="middle" fill="' + (on ? 'var(--day-ink)' : 'var(--ink)') + '">' + (i + 1) + '</text></g>';
+  });
+  h += '<text x="8" y="292" fill="var(--muted)" style="font-weight:400;font-size:11px">' + L('стрілка: від переможця до переможеного', 'arrow: from winner to loser') + '</text>';
+  $('#tour-svg').innerHTML = h;
+}
+function trText() {
+  $('#tr-m').innerHTML = [4, 5, 6].map(k => '<button type="button" data-m="' + k + '" aria-pressed="' + (k === trM) + '">' + k + L(k > 4 ? ' варіантів' : ' варіанти', ' options') + '</button>').join('');
+  const top = trTop(), m = trM;
+  let s = top.length === 1
+    ? L('Варіант ' + (top[0] + 1) + ' — переможець Кондорсе: він перемагає кожного один на один і виграє за будь-якого порядку.', 'Option ' + (top[0] + 1) + ' is the Condorcet winner: it beats everyone head to head and wins in any order.')
+    : L('Переможця Кондорсе немає. Верхнє коло (сині): ' + top.map(i => i + 1).join(', ') + '. Голова може зробити переможцем будь-кого з них.', 'No Condorcet winner. The top cycle (blue): ' + top.map(i => i + 1).join(', ') + '. The chair can make any of them win.');
+  if (trSel >= 0) {
+    const q = trQueue(trSel);
+    s += ' ' + (q ? L('Черга для варіанта ' + (trSel + 1) + ': ', 'A queue for option ' + (trSel + 1) + ': ') + q.map(i => i + 1).join(' → ') + L(' (перші двоє змагаються, переможець зустрічає наступного).', ' (the first two face off, the winner meets the next).')
+      : L('Варіант ' + (trSel + 1) + ' не переможе за жодної з ' + perms([...Array(m).keys()]).length + ' черг: його б\'є хтось із верхнього кола, а того не б\'є ніхто поза ним.', 'Option ' + (trSel + 1) + ' wins in none of the ' + perms([...Array(m).keys()]).length + ' queues: someone in the top cycle beats it, and no one outside the cycle beats them.'));
+  } else s += ' ' + L('Натисніть на варіант.', 'Tap an option.');
+  $('#tr-msg').textContent = s;
+}
+function trAll() { trDraw(); trText(); }
+$('#tr-m').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; trM = +b.dataset.m; trVoters(); trAll(); });
+$('#tr-new').addEventListener('click', () => { trVoters(); trAll(); });
+$('#tr-loop').addEventListener('click', () => { for (let k = 0; k < 500; k++) { trVoters(); if (trTop().length > 2) break; } trAll(); });
+const trPick = e => { const g = e.target.closest('g[data-i]'); if (!g) return; trSel = +g.dataset.i; trAll(); };
+$('#tour-svg').addEventListener('click', trPick);
+$('#tour-svg').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); trPick(e); } });
+
+/* ---------- round 5: three rules, three trips ---------- */
+const TRIP = [['Карпати', 'the Carpathians'], ['Одеса', 'Odesa'], ['Львів', 'Lviv']];
+const tn = i => L(TRIP[i][0], TRIP[i][1]);
+const TC = ['--d2', '--d1', '--d0'];
+const tchip = i => '<span class="dish" style="--c:var(' + TC[i] + ')">' + tn(i) + '</span>';
+// 9 friends: 2 × C > L > O, 4 × O > C > L, 2 × L > C > O, 1 × L > O > C
+const TPROF = [[2, [0, 2, 1]], [4, [1, 0, 2]], [2, [2, 0, 1]], [1, [2, 1, 0]]];
+let ruK = 'plur';
+function tripCalc() {
+  const first = [0, 0, 0], borda = [0, 0, 0];
+  TPROF.forEach(([k, r]) => { first[r[0]] += k; r.forEach((x, j) => { borda[x] += k * (2 - j); }); });
+  const pw = (a, b) => TPROF.reduce((s, [k, r]) => s + (r.indexOf(a) < r.indexOf(b) ? k : 0), 0);
+  const plur = first.indexOf(Math.max(...first));
+  const two = [0, 1, 2].sort((a, b) => first[b] - first[a]).slice(0, 2);
+  const run = pw(two[0], two[1]) > 4 ? two[0] : two[1];
+  const bor = borda.indexOf(Math.max(...borda));
+  return { first, borda, pw, plur, two, run, bor };
+}
+function ruText() {
+  const c = tripCalc();
+  $('#ru-prof').innerHTML = TPROF.map(([k, r]) => '<div class="trow"><span>' + r.map(tchip).join(' › ') + '</span><b>× ' + k + '</b></div>').join('');
+  $('#ru-pick').innerHTML = [['plur', 'Хто частіше перший', 'Most first places'], ['run', 'Два тури', 'Two-round runoff'], ['borda', 'Бали Борда', 'Borda points'], ['pair', 'Дуелі один на один', 'Head-to-head duels']]
+    .map(([k, u, e]) => '<button type="button" data-k="' + k + '" aria-pressed="' + (k === ruK) + '">' + L(u, e) + '</button>').join('');
+  let w = -1, msg = '';
+  if (ruK === 'plur') { w = c.plur; msg = L('Перших місць: ', 'First places: ') + [0, 1, 2].map(i => tn(i) + ' ' + c.first[i]).join(', ') + L('. Перемагає той, у кого їх найбільше.', '. The one with the most wins.'); }
+  else if (ruK === 'run') { w = c.run; const [a, b] = c.two; msg = L('У другий тур виходять двоє з найбільшою кількістю перших місць: ' + tn(a) + ' і ' + tn(b) + '. Один на один: ' + tn(a) + ' ' + c.pw(a, b) + ', ' + tn(b) + ' ' + c.pw(b, a) + '.', 'The two with the most first places go to round two: ' + tn(a) + ' and ' + tn(b) + '. Head to head: ' + tn(a) + ' ' + c.pw(a, b) + ', ' + tn(b) + ' ' + c.pw(b, a) + '.'); }
+  else if (ruK === 'borda') { w = c.bor; msg = L('2 бали за перше місце, 1 за друге, 0 за третє. Разом: ', '2 points for first place, 1 for second, 0 for third. Totals: ') + [0, 1, 2].map(i => tn(i) + ' ' + c.borda[i]).join(', ') + '.'; }
+  else msg = [[0, 1], [1, 2], [2, 0]].map(([a, b]) => { const x = c.pw(a, b), y = 9 - x; return (x > y ? tn(a) + ' › ' + tn(b) : tn(b) + ' › ' + tn(a)) + ' ' + Math.max(x, y) + ' : ' + Math.min(x, y); }).join('; ') + L('. Коло: переможця немає, і результат вирішив би порядок.', '. A loop: no winner, and the order would decide.');
+  $('#ru-win').innerHTML = L('Їдуть: ', 'They go to: ') + (w >= 0 ? tchip(w) : '<span>' + L('нікуди, коло', 'nowhere, a loop') + '</span>');
+  $('#ru-msg').textContent = msg;
+}
+$('#ru-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ruK = b.dataset.k; ruText(); });
+
+/* ---------- round 5: the Powell amendment ---------- */
+// Riker's reading: three blocs, each under half the House, any two a majority
+const PW = [['закон з поправкою', 'bill with amendment'], ['закон без поправки', 'bill without amendment'], ['нічого', 'nothing']];
+const pn = i => L(PW[i][0], PW[i][1]);
+const PC = ['--d1', '--d2', '--muted'];
+const pchip = i => '<span class="dish" style="--c:var(' + PC[i] + ')">' + pn(i) + '</span>';
+const BLOCS = [[['Північні демократи', 'Northern Democrats'], [0, 1, 2]], [['Південні демократи', 'Southern Democrats'], [1, 2, 0]], [['Республіканці', 'Republicans'], [2, 0, 1]]];
+let pwK = 'house';
+function pwText() {
+  $('#pw-blocs').innerHTML = BLOCS.map(([n, r]) => '<div class="trow"><span><b style="font-family:inherit;color:var(--ink)">' + L(n[0], n[1]) + '</b></span><span>' + r.map(pchip).join(' › ') + '</span></div>').join('') +
+    '<p class="note">' + L('Порядки за реконструкцією Райкера.', 'The orders as reconstructed by Riker.') + '</p>';
+  $('#pw-pick').innerHTML = [['house', 'За правилами Палати: спершу поправка', 'House rules: the amendment first'], ['none', 'Без поправки: закон проти «нічого»', 'No amendment: the bill against "nothing"']]
+    .map(([k, u, e]) => '<button type="button" data-k="' + k + '" aria-pressed="' + (k === pwK) + '">' + L(u, e) + '</button>').join('');
+  const prof = BLOCS.map(b => b[1]);
+  const bn = list => list.map(i => L(BLOCS[i][0][0], BLOCS[i][0][1])).join(L(' і ', ' and '));
+  const row = (d, title) => '<div class="duel-h">' + title + '</div><div class="duel"><div class="side-v' + (d.w !== d.a ? ' lost' : '') + '">' + pchip(d.a) + '<span class="names">' + bn(d.fa) + '</span></div><span class="score">' + d.fa.length + ' : ' + d.fb.length + '</span><div class="side-v' + (d.w !== d.b ? ' lost' : '') + '">' + pchip(d.b) + '<span class="names">' + bn(d.fb) + '</span></div></div>';
+  let h, w;
+  if (pwK === 'house') { const r1 = duel(prof, 0, 1), r2 = duel(prof, r1.w, 2); w = r2.w; h = row(r1, L('Голосування за поправку', 'Vote on the amendment')) + row(r2, L('Остаточне голосування', 'Final passage')); }
+  else { const r = duel(prof, 1, 2); w = r.w; h = row(r, L('Остаточне голосування', 'Final passage')); }
+  $('#pw-out').innerHTML = h + '<p class="final">' + L('Результат:', 'Result:') + ' ' + pchip(w) + '</p><p class="note">' + (pwK === 'house'
+    ? L('Так і сталося: поправку прийняли 225 : 192, закон провалили 194 : 224. Рахунок у блоках, а не в депутатах.', 'That is what happened: the amendment passed 225 to 192, the bill failed 194 to 224. The score counts blocs, not members.')
+    : L('Закон без поправки має більшість проти «нічого». Поправка, яку теж підтримує більшість, його вбила.', 'The bill without the amendment has a majority over "nothing". An amendment that also had a majority killed it.')) + '</p>';
+}
+$('#pw-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pwK = b.dataset.k; pwText(); });
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Парадокс Кондорсе', 'Condorcet\'s paradox');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  $('#nbar-cv').setAttribute('aria-label', L('Частка виборів без переможця залежно від кількості виборців', 'Share of elections with no winner by number of voters'));
+  $('#mbar-cv').setAttribute('aria-label', L('Частка виборів без переможця залежно від кількості варіантів', 'Share of elections with no winner by number of options'));
+  $('#geo-rps').setAttribute('aria-label', L('Коло більшостей між трьома стравами', 'The loop of majorities among the three dishes'));
+  $('#tour-svg').setAttribute('aria-label', L('Хто кого перемагає один на один', 'Who beats whom head to head'));
+  $('#sim-r').querySelectorAll('option').forEach(o => { o.textContent = (+o.value).toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA'); });
+  $('#pz-ballots').innerHTML = ballotsHtml(FRIENDS);
+  heroDraw(); heroCap(); guessText(); agText(); bdText(); simDraw(); simText(); geoDraw(); trAll(); ruText(); pwText();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang === 'en' ? 'en' : 'uk'; applyLang(); });
+const redraw = () => { heroDraw(); simDraw(); };
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+document.addEventListener('solved', () => setTimeout(redraw, 0));
+document.addEventListener('rounds', () => setTimeout(redraw, 0));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+
+/* ---------- opening state: everything filled ---------- */
+trVoters();
+for (let k = 0; k < 500 && trTop().length < 3; k++) trVoters();
+applyLang();
+heroStart();
+simRun();
+})();
+</script>

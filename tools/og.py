@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-basics": "#EEF2E0", "course-auctions": "#EFE9D2", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "course-feature-impact": "#EFEDE6", "course-feature-impact--trust": "#EFEDE6", "lake-escape": "#D7ECEF", "winners-curse": "#F2E4D9", "small-numbers": "#E4E6EE", "multi-armed-bandit": "#F8E3EC", "will-rogers": "#E6F1EA", "persuadables": "#F4EEDC", "truel": "#F0DCD4", "guess-two-thirds": "#E7DDF0", "dollar-auction": "#DDEADF", "hotelling-beach": "#F6EAD3", "fly-between-trains": "#E6F3F7", "hilbert-hotel": "#DFE4F2", "parrondo-paradox": "#E9DCEC", "axelrod-tournament": "#D6E6F7", "travelers-dilemma": "#E8D9CF", "prosecutors-fallacy": "#F3E8E4", "ant-rubber-rope": "#F5E9DF", "hat-check": "#EDE4D8", "broken-stick": "#F1E9DC", "elevator-paradox": "#F4E9E4", "revenue-equivalence": "#DCE9F0", "keep-waiting": "#EAE8F7", "newcomb-paradox": "#E3ECF7", "zeno-paradox": "#F2EEDB", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-basics": "#EEF2E0", "course-auctions": "#EFE9D2", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "course-feature-impact": "#EFEDE6", "course-feature-impact--trust": "#EFEDE6", "lake-escape": "#D7ECEF", "winners-curse": "#F2E4D9", "small-numbers": "#E4E6EE", "multi-armed-bandit": "#F8E3EC", "will-rogers": "#E6F1EA", "persuadables": "#F4EEDC", "truel": "#F0DCD4", "guess-two-thirds": "#E7DDF0", "dollar-auction": "#DDEADF", "hotelling-beach": "#F6EAD3", "fly-between-trains": "#E6F3F7", "hilbert-hotel": "#DFE4F2", "parrondo-paradox": "#E9DCEC", "axelrod-tournament": "#D6E6F7", "travelers-dilemma": "#E8D9CF", "prosecutors-fallacy": "#F3E8E4", "ant-rubber-rope": "#F5E9DF", "hat-check": "#EDE4D8", "broken-stick": "#F1E9DC", "elevator-paradox": "#F4E9E4", "revenue-equivalence": "#DCE9F0", "keep-waiting": "#EAE8F7", "newcomb-paradox": "#E3ECF7", "zeno-paradox": "#F2EEDB", "missing-square": "#EDF4E4", "ergodicity": "#EEF3D6", "unexpected-hanging": "#DEEFEA", "coin-rotation": "#F7EFD6", "condorcet-paradox": "#F0E6E9", "alabama-paradox": "#E4E9F7", "intransitive-dice": "#E3EEF3", "potato-paradox": "#EEE6D3", "coastline-paradox": "#DAF0EC", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -302,6 +302,42 @@ TEXT = {
     "zeno-paradox": {
         "uk": (["АПОРІЇ", "ЗЕНОНА"], "Нескінченно багато кроків. Чи дійде?"),
         "en": (["ZENO'S", "PARADOXES"], "Infinitely many steps. Will it get there?"),
+    },
+    "missing-square": {
+        "uk": (["ЗНИКЛА", "КЛІТИНКА"], "Ті самі шматки. Звідки дірка?"),
+        "en": (["THE MISSING", "SQUARE"], "Same pieces. Where's the hole from?"),
+    },
+    "ergodicity": {
+        "uk": (["МОНЕТКА", "+50% / −40%"], "10 000 гравців. Хто розбагатіє?"),
+        "en": (["THE COIN", "+50% / −40%"], "10,000 players. Who gets richer?"),
+    },
+    "unexpected-hanging": {
+        "uk": (["НЕСПОДІВАНА", "КОНТРОЛЬНА"], "Чи може вчителька дотримати слова?"),
+        "en": (["THE SURPRISE", "TEST"], "Can the teacher keep her word?"),
+    },
+    "coin-rotation": {
+        "uk": (["МОНЕТА НАВКОЛО", "МОНЕТИ"], "Один обхід. Скільки обертів?"),
+        "en": (["THE COIN", "ROTATION PARADOX"], "One lap. How many turns?"),
+    },
+    "condorcet-paradox": {
+        "uk": (["ПАРАДОКС", "КОНДОРСЕ"], "Чи важить порядок голосувань?"),
+        "en": (["CONDORCET'S", "PARADOX"], "Does the order of votes matter?"),
+    },
+    "alabama-paradox": {
+        "uk": (["ПАРАДОКС", "АЛАБАМИ"], "Місць більше. Хто скільки отримає?"),
+        "en": (["THE ALABAMA", "PARADOX"], "More seats. Who gets how many?"),
+    },
+    "intransitive-dice": {
+        "uk": (["КУБИКИ", "ЕФРОНА"], "Ви обираєте першим. Це перевага?"),
+        "en": (["EFRON'S", "DICE"], "You choose first. Is that an edge?"),
+    },
+    "potato-paradox": {
+        "uk": (["ПАРАДОКС", "КАРТОПЛІ"], "99 % води стало 98 %. Скільки кг?"),
+        "en": (["THE POTATO", "PARADOX"], "99% water becomes 98%. How many kg?"),
+    },
+    "coastline-paradox": {
+        "uk": (["ПАРАДОКС", "БЕРЕГОВОЇ ЛІНІЇ"], "Крок ÷ 2. На скільки довший берег?"),
+        "en": (["THE COASTLINE", "PARADOX"], "Halve the step. How much longer?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -992,7 +1028,7 @@ def extra_visual(kind, x, y, lang="en"):
         out += [f'<circle cx="{x + 30}" cy="{y + 252}" r="13" fill="{INK}" fill-opacity=".55"/>',
                 f'<rect x="{x + 17}" y="{y + 270}" width="26" height="40" rx="9" fill="{INK}" fill-opacity=".55"/>',
                 f'<rect x="{x + 48}" y="{y + 286}" width="26" height="22" rx="4" fill="#fff" stroke="{INK}" stroke-width="3"/>']
-        out.append(f'<text x="{x + 100}" y="{y + 300}" font-family="{FONT}" font-weight="800" font-size="48" fill="{SIGNAL}">?</text>')
+        out.append(f'<text x="{x + 100}" y="{y + 300}" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>')
     elif kind == "parrondo-paradox":
         # two coin games and two average-capital lines going down; the mixed line is the answer, so only "?"
         out.append(f'<rect x="{x + 10}" y="{y + 10}" width="360" height="300" rx="16" fill="#fff"/>')
@@ -1168,6 +1204,121 @@ def extra_visual(kind, x, y, lang="en"):
                 out.append(f'<rect x="{x0 + pos * 80:.1f}" y="{cy - 9}" width="{max(step(n) * 80 - 4, 2):.1f}" height="18" rx="3" fill="{INK}"/>')
                 pos = nxt
             out.append(f'<text x="{x0 + w - 16}" y="{cy + 12}" text-anchor="end" font-family="{FONT}" font-weight="800" font-size="34" fill="{SIGNAL}">?</text>')
+    elif kind == "missing-square":
+        # the two 13x5 figures from the same four pieces, the second with an empty cell and "?"
+        out.append(f'<rect x="{x + 20}" y="{y + 10}" width="350" height="320" rx="18" fill="#fff"/>')
+        u = 22
+        for k, oy in enumerate((y + 40, y + 190)):
+            ox = x + 52
+            for i in range(14):
+                out.append(f'<line x1="{ox + i * u}" y1="{oy}" x2="{ox + i * u}" y2="{oy + 5 * u}" stroke="#E2E2E2" stroke-width="1.5"/>')
+            for j in range(6):
+                out.append(f'<line x1="{ox}" y1="{oy + j * u}" x2="{ox + 13 * u}" y2="{oy + j * u}" stroke="#E2E2E2" stroke-width="1.5"/>')
+            Y = lambda r: oy + (5 - r) * u
+            if k == 0:
+                tri = [((0, 0), (8, 0), (8, 3), "#D64545"), ((8, 3), (13, 3), (13, 5), "#2A3DD1")]
+            else:
+                tri = [((5, 2), (13, 2), (13, 5), "#D64545"), ((0, 0), (5, 0), (5, 2), "#2A3DD1")]
+            for a, b, c, col in tri:
+                out.append(f'<polygon points="{ox + a[0] * u},{Y(a[1])} {ox + b[0] * u},{Y(b[1])} {ox + c[0] * u},{Y(c[1])}" fill="{col}" fill-opacity=".85"/>')
+            out.append(f'<polygon points="{ox},{Y(0)} {ox + 13 * u},{Y(0)} {ox + 13 * u},{Y(5)}" fill="none" stroke="{INK}" stroke-width="3"/>')
+            if k == 1:
+                out += [f'<rect x="{ox + 7 * u}" y="{Y(2)}" width="{u}" height="{u}" fill="#fff" stroke="{SIGNAL}" stroke-width="3" stroke-dasharray="4 3"/>',
+                        f'<text x="{ox + 7.5 * u}" y="{Y(1) - 4}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="20" fill="{SIGNAL}">?</text>']
+    elif kind == "ergodicity":
+        # a coin with the two outcomes and a crowd of players whose fate is "?"
+        out += [f'<rect x="{x + 20}" y="{y + 10}" width="350" height="320" rx="18" fill="#fff"/>',
+                f'<circle cx="{x + 195}" cy="{y + 95}" r="58" fill="#E8C24A" stroke="{INK}" stroke-width="5"/>',
+                f'<text x="{x + 195}" y="{y + 108}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="36" fill="{INK}">$</text>',
+                f'<text x="{x + 70}" y="{y + 105}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="30" fill="#157F51">+50%</text>',
+                f'<text x="{x + 320}" y="{y + 105}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="30" fill="#D64545">−40%</text>']
+        for j in range(30):
+            cx, cy = x + 50 + (j % 10) * 28, y + 186 + (j // 10) * 44
+            out += [f'<circle cx="{cx}" cy="{cy}" r="7" fill="{MUTED}"/>', f'<rect x="{cx - 8}" y="{cy + 9}" width="16" height="16" rx="5" fill="{MUTED}"/>']
+        out.append(f'<text x="{x + 350}" y="{y + 256}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="40" fill="{SIGNAL}">?</text>')
+    elif kind == "unexpected-hanging":
+        # the school week: Friday crossed out by the student's first step, the rest plain, "?" for the test day
+        days = {"uk": ("ПН", "ВТ", "СР", "ЧТ", "ПТ"), "en": ("MON", "TUE", "WED", "THU", "FRI")}[lang]
+        out.append(f'<rect x="{x + 20}" y="{y + 10}" width="350" height="320" rx="18" fill="#fff"/>')
+        for i, d in enumerate(days):
+            cx = x + 40 + i * 64
+            out += [f'<rect x="{cx}" y="{y + 110}" width="54" height="80" rx="10" fill="none" stroke="{INK}" stroke-width="4"/>',
+                    f'<text x="{cx + 27}" y="{y + 160}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="19" fill="{INK}">{d}</text>']
+            if i == 4:
+                out += [f'<line x1="{cx + 6}" y1="{y + 116}" x2="{cx + 48}" y2="{y + 184}" stroke="{MUTED}" stroke-width="5" stroke-linecap="round"/>',
+                        f'<line x1="{cx + 48}" y1="{y + 116}" x2="{cx + 6}" y2="{y + 184}" stroke="{MUTED}" stroke-width="5" stroke-linecap="round"/>']
+        out.append(f'<text x="{x + 195}" y="{y + 270}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="56" fill="{SIGNAL}">?</text>')
+    elif kind == "coin-rotation":
+        # a fixed coin and an equal coin touching it, a dashed path of the lap; the number of turns is "?"
+        cx, cy, r = x + 195, y + 182, 46
+        out += [f'<rect x="{x + 20}" y="{y + 10}" width="350" height="320" rx="18" fill="#fff"/>',
+                f'<circle cx="{cx}" cy="{cy}" r="{2 * r}" fill="none" stroke="{MUTED}" stroke-width="3" stroke-dasharray="8 7"/>',
+                f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="#C9CCD6" stroke="{INK}" stroke-width="5"/>',
+                f'<circle cx="{cx}" cy="{cy - 2 * r}" r="{r}" fill="#E8C24A" stroke="{INK}" stroke-width="5"/>',
+                f'<text x="{cx}" y="{cy - 2 * r + 16}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="48" fill="{SIGNAL}">?</text>']
+    elif kind == "condorcet-paradox":
+        # three friends' ballots (pizza, sushi, dumplings in a loop, favourite filled) and the final slot with "?"
+        cols = ("#D2553A", "#2F6FD6", "#2E9A5A")
+        out.append(f'<rect x="{x + 20}" y="{y + 10}" width="350" height="320" rx="18" fill="#fff"/>')
+        for v, r in enumerate(((0, 1, 2), (1, 2, 0), (2, 0, 1))):
+            bx = x + 44 + v * 106
+            out.append(f'<circle cx="{bx + 45}" cy="{y + 48}" r="13" fill="{MUTED}"/>')
+            for j, d in enumerate(r):
+                out.append(f'<rect x="{bx}" y="{y + 76 + j * 46}" width="90" height="34" rx="17" fill="{cols[d]}" fill-opacity="{1 if j == 0 else .22}" stroke="{cols[d]}" stroke-width="4"/>')
+        out += [f'<rect x="{x + 140}" y="{y + 232}" width="110" height="78" rx="16" fill="#fff" stroke="{SIGNAL}" stroke-width="4" stroke-dasharray="10 8"/>',
+                f'<text x="{x + 195}" y="{y + 290}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="56" fill="{SIGNAL}">?</text>']
+    elif kind == "alabama-paradox":
+        # a council of 10 seats in a semicircle (4 + 4 + 2 by district) and an eleventh seat with "?"; what the small district gets is the question
+        cx, cy = x + 195, y + 255
+        seats = ((-148.5, -21.3), (-136.4, -62.3), (-113.4, -98.2), (-81.1, -126.2), (-42.3, -143.9), (0, -150),
+                 (42.3, -143.9), (81.1, -126.2), (113.4, -98.2), (136.4, -62.3), (148.5, -21.3))
+        fills = (INK,) * 4 + (MUTED,) * 4 + ("#C9A227",) * 2
+        out.append(f'<rect x="{x + 20}" y="{y + 10}" width="350" height="320" rx="18" fill="#fff"/>')
+        for k, (dx, dy) in enumerate(seats):
+            if k < 10:
+                out.append(f'<circle cx="{cx + dx}" cy="{cy + dy}" r="19" fill="{fills[k]}"/>')
+            else:
+                out += [f'<circle cx="{cx + dx}" cy="{cy + dy}" r="19" fill="#fff" stroke="{SIGNAL}" stroke-width="4" stroke-dasharray="6 5"/>',
+                        f'<text x="{cx + dx}" y="{cy + dy + 9}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="26" fill="{SIGNAL}">?</text>']
+        out.append(f'<text x="{cx}" y="{cy - 20}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="40" fill="{INK}">10 → 11</text>')
+        for i, (t, p, c) in enumerate(zip(("А", "Б", "В") if lang == "uk" else ("A", "B", "C"), ("6", "6", "2"), (INK, MUTED, "#C9A227"))):
+            px = x + 85 + i * 110
+            out += [f'<circle cx="{px - 22}" cy="{y + 300}" r="10" fill="{c}"/>',
+                    f'<text x="{px - 4}" y="{y + 309}" font-family="{FONT}" font-weight="700" font-size="24" fill="{MUTED}">{t} {p}</text>']
+    elif kind == "intransitive-dice":
+        # four dice in a square, each showing its six faces; who wins is "?"
+        cols = ["#2F5BD3", "#B07A00", "#168050", "#C9472A"]
+        faces = [[4, 4, 4, 4, 0, 0], [3, 3, 3, 3, 3, 3], [6, 6, 2, 2, 2, 2], [5, 5, 5, 1, 1, 1]]
+        out.append(f'<rect x="{x + 20}" y="{y + 10}" width="350" height="320" rx="18" fill="#fff"/>')
+        for i, (c, f) in enumerate(zip(cols, faces)):
+            dx, dy = x + 50 + (i % 2) * 170, y + 35 + (i // 2) * 150
+            out.append(f'<rect x="{dx}" y="{dy}" width="120" height="120" rx="20" fill="#fff" stroke="{c}" stroke-width="5"/>')
+            out.append(f'<text x="{dx + 14}" y="{dy + 26}" font-family="{FONT}" font-weight="800" font-size="20" fill="{c}">{"ABCD"[i]}</text>')
+            for j, v in enumerate(f):
+                fx, fy = dx + 20 + (j % 3) * 30, dy + 46 + (j // 3) * 34
+                out.append(f'<rect x="{fx}" y="{fy}" width="24" height="26" rx="5" fill="none" stroke="{c}" stroke-width="2"/>'
+                           f'<text x="{fx + 12}" y="{fy + 19}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="16" fill="{c}">{v}</text>')
+        out.append(f'<circle cx="{x + 195}" cy="{y + 170}" r="30" fill="#fff" stroke="{INK}" stroke-width="3"/>')
+        out.append(f'<text x="{x + 195}" y="{y + 188}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="48" fill="{SIGNAL}">?</text>')
+    elif kind == "potato-paradox":
+        # a sack of 100 one-kilo cells: 99 of water, 1 of dry matter (bottom left); the mass after drying is "?"
+        c, gx, gy = 25, x + 70, y + 45
+        out += [f'<rect x="{x + 20}" y="{y + 10}" width="350" height="320" rx="18" fill="#fff"/>']
+        for k in range(100):
+            cx, cy = gx + (k % 10) * c, gy + (9 - k // 10) * c
+            out.append(f'<rect x="{cx}" y="{cy}" width="{c - 4}" height="{c - 4}" rx="3" fill="{"#9A6A32" if k == 0 else "#4C8FE0"}"/>')
+        out += [f'<circle cx="{gx + 5 * c - 2}" cy="{gy + 5 * c - 2}" r="44" fill="#fff" stroke="{SIGNAL}" stroke-width="4"/>',
+                f'<text x="{gx + 5 * c - 2}" y="{gy + 5 * c + 16}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="50" fill="{SIGNAL}">?</text>']
+    elif kind == "coastline-paradox":
+        # a ragged island on a sea-blue map, walked by dividers in 100 km steps; how much longer at 50 km is "?"
+        isl = [318,197,315,202,316,207,311,206,307,211,301,210,297,214,295,209,289,208,291,213,287,218,293,219,295,225,291,229,293,234,287,233,283,238,275,243,266,239,267,249,258,254,249,250,249,240,240,245,232,241,232,251,240,256,232,261,233,271,224,276,225,286,216,282,208,287,197,284,189,291,186,281,176,278,168,285,170,296,159,293,151,300,149,289,156,282,146,278,143,268,132,265,130,254,122,262,111,259,111,243,98,235,111,227,112,212,98,204,98,188,85,195,72,187,85,179,85,164,99,171,112,164,112,148,99,140,112,132,112,117,123,112,132,118,134,107,144,102,154,108,164,103,163,115,173,121,174,110,185,105,175,98,177,86,187,81,188,70,198,76,208,71,219,73,224,83,231,74,242,76,246,86,257,87,251,96,256,107,263,98,274,99,270,89,277,80,288,81,292,92,299,83,310,84,311,96,301,104,312,109,313,122,303,129,304,141,292,136,282,143,293,149,304,142,305,154,316,160,317,172,306,179,317,185]
+        chain = [318,197,292,207,286,234,264,250,237,242,232,269,210,285,183,279,159,293,143,270,116,262,107,236,107,208,83,195,86,167,111,154,111,126,133,110,161,107,179,86,203,72,229,81,256,88,283,82,311,86,313,114,303,140,316,164,315,192]
+        pt = lambda v, i: f"{x + v[i]},{y + v[i + 1]}"
+        out += [f'<rect x="{x + 20}" y="{y + 10}" width="350" height="320" rx="18" fill="#D6E9F2"/>',
+                f'<polygon points="{" ".join(pt(isl, i) for i in range(0, len(isl), 2))}" fill="#EADFC0" stroke="{INK}" stroke-width="3" stroke-linejoin="round"/>',
+                f'<polyline points="{" ".join(pt(chain, i) for i in range(0, len(chain), 2))}" fill="none" stroke="#D2560F" stroke-width="4" stroke-linejoin="round"/>']
+        out += [f'<circle cx="{x + chain[i]}" cy="{y + chain[i + 1]}" r="4.5" fill="#D2560F"/>' for i in range(0, len(chain), 2)]
+        out.append(f'<text x="{x + 195}" y="{y + 200}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="56" fill="{SIGNAL}">?</text>')
     return "".join(out)
 
 
@@ -1204,7 +1355,7 @@ def svg(kind, lang):
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
                   "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin", "berkson-paradox",
                   "ab-test", "ab-test-peeking", "multiple-testing", "course-ab-testing", "course-ab-testing--check", "course-ab-basics", "course-auctions", "course-interview-puzzles", "course-interview-puzzles--trainer", "course-data-traps", "course-feature-impact", "course-feature-impact--trust", "lake-escape",
-                  "winners-curse", "small-numbers", "multi-armed-bandit", "will-rogers", "persuadables", "truel", "guess-two-thirds", "dollar-auction", "hotelling-beach", "fly-between-trains", "hilbert-hotel", "parrondo-paradox", "axelrod-tournament", "travelers-dilemma", "prosecutors-fallacy", "ant-rubber-rope", "hat-check", "broken-stick", "elevator-paradox", "revenue-equivalence", "keep-waiting", "newcomb-paradox", "zeno-paradox"):
+                  "winners-curse", "small-numbers", "multi-armed-bandit", "will-rogers", "persuadables", "truel", "guess-two-thirds", "dollar-auction", "hotelling-beach", "fly-between-trains", "hilbert-hotel", "parrondo-paradox", "axelrod-tournament", "travelers-dilemma", "prosecutors-fallacy", "ant-rubber-rope", "hat-check", "broken-stick", "elevator-paradox", "revenue-equivalence", "keep-waiting", "newcomb-paradox", "zeno-paradox", "missing-square", "ergodicity", "unexpected-hanging", "coin-rotation", "condorcet-paradox", "alabama-paradox", "intransitive-dice", "potato-paradox", "coastline-paradox"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
