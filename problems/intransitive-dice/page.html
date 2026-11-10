@@ -1,0 +1,1034 @@
+<title>Кубики Ефрона</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same running order as the other pages. Four strange dice, each shown with all six faces, are this problem's signature object. */
+:root {
+  --tint: #E3EEF3;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #B86E00;
+  --hit-soft: #FFF1D6;
+  --da: #2F5BD3;
+  --db: #B07A00;
+  --dc: #168050;
+  --dd: #C9472A;
+  --cell: #E1E5F0;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--c, var(--ink)); }
+.odd.sig b { color: var(--signal, #D9318F); }
+.odd > span { font-size: .82rem; color: var(--muted); }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 3.9em; }
+#hero-svg { width: 100%; height: auto; display: block; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+.dsvg text { font-family: var(--f-mono); }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #fff; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px 24px; align-items: center; margin-bottom: 18px; }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.sig { color: var(--signal, #D9318F); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.legend > span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: #fff; }
+.geo { width: 100%; height: auto; display: block; }
+.geo text { font-family: var(--f-mono); font-size: 12px; fill: var(--ink); font-weight: 600; }
+.geo .mut { fill: var(--muted); font-weight: 400; }
+
+/* a die: its letter and all six faces; the rolled face is filled */
+.die { --c: var(--ink); display: grid; gap: 6px; justify-items: center; border: 1.5px solid var(--line); background: var(--surface); border-radius: 12px; padding: 8px 6px; min-width: 0; color: var(--ink); }
+button.die { cursor: pointer; }
+button.die:disabled { cursor: default; }
+.die > b { font-family: var(--f-display); font-size: 1.1rem; color: var(--c); line-height: 1; }
+.die .fc { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
+.die .fc i { font-style: normal; font-family: var(--f-mono); font-weight: 600; font-size: .8rem; width: 20px; height: 20px; border-radius: 5px; display: grid; place-items: center; border: 1.5px solid color-mix(in srgb, var(--c) 45%, var(--surface)); color: var(--c); }
+.die .fc i.on { background: var(--c); color: #fff; border-color: var(--c); }
+.die[aria-pressed="true"] { border-color: var(--c); box-shadow: 0 0 0 2px var(--c); }
+.die.cpu { border-color: var(--c); border-style: dashed; }
+.die.off { opacity: .4; }
+.die .tag { font-size: .66rem; font-family: var(--f-mono); color: var(--muted); letter-spacing: .04em; min-height: 1em; }
+.dice4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.dl { font-family: var(--f-display); font-weight: 800; color: var(--c); font-size: inherit; background: none; padding: 0; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.15rem; line-height: 1.25; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 150px 1fr 52px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+
+/* ---------- play ---------- */
+.room { display: grid; grid-template-columns: 1.45fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.vsrow { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+.vsrow > div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; min-width: 0; }
+.vsrow .k { font-size: .78rem; color: var(--muted); }
+.vsrow b { font-family: var(--f-display); font-size: 1.9rem; line-height: 1.1; color: var(--c, var(--ink)); }
+.vsrow .s { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); }
+.vsrow > span { font-family: var(--f-mono); color: var(--muted); font-size: .85rem; }
+.vsrow > div.won { box-shadow: inset 0 0 0 2px var(--c, var(--ink)); }
+.msg { min-height: 3em; font-weight: 500; }
+.status { display: flex; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.8rem; font-weight: 800; }
+.status .mm b { color: var(--hit); }
+.hist { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+.hist i { width: 12px; height: 12px; border-radius: 3px; background: var(--ink); }
+.hist i.c { background: var(--hit); }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.mx-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table.mx { border-collapse: separate; border-spacing: 4px; width: 100%; min-width: 290px; table-layout: fixed; }
+.mx th { font-family: var(--f-display); font-size: .95rem; font-weight: 800; padding: 2px 0; text-align: center; color: var(--c, var(--muted)); }
+.mx th.rh { width: 44px; }
+.mx th.cap { font-family: var(--f-mono); font-size: .66rem; font-weight: 600; color: var(--muted); letter-spacing: .04em; }
+.mx td { font-family: var(--f-mono); font-size: .86rem; text-align: center; padding: 8px 0; border-radius: 8px; line-height: 1.25; background: color-mix(in srgb, var(--ink) var(--a, 0%), var(--surface)); }
+.mx td.d { background: transparent; color: var(--line); }
+.mx td.best { box-shadow: inset 0 0 0 2px var(--hit); color: var(--hit); font-weight: 600; }
+.mx td small { display: block; font-size: .68rem; color: var(--muted); }
+.mx td.best small { color: var(--hit); }
+.tiles { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.35rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); overflow-wrap: anywhere; }
+.tile .s { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); overflow-wrap: anywhere; }
+.tiles.row3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.duels { display: grid; gap: 10px; }
+.duel { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; font-size: .9rem; }
+.duel b { font-family: var(--f-mono); }
+.duel span { color: var(--muted); font-size: .86rem; }
+.grid6 { border-collapse: separate; border-spacing: 3px; width: 100%; max-width: 420px; table-layout: fixed; }
+.grid6 th { font-family: var(--f-mono); font-size: .8rem; font-weight: 600; padding: 2px 0; text-align: center; color: var(--c, var(--muted)); }
+.grid6 td { height: 30px; border-radius: 5px; text-align: center; font-family: var(--f-mono); font-size: .72rem; color: #fff; font-weight: 600; background: var(--c); padding: 0; }
+.grid6 td.t { background: var(--cell); color: var(--muted); }
+.cnt { display: flex; gap: 18px; flex-wrap: wrap; font-size: .9rem; }
+.cnt b { font-family: var(--f-display); font-size: 1.4rem; color: var(--c); display: block; }
+
+/* ---------- going further ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.chains { display: grid; gap: 14px; }
+.chain { display: grid; gap: 6px; }
+.chain .kk { font-size: .8rem; color: var(--muted); }
+.chain .row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 2px; }
+.chain .nd { font-family: var(--f-mono); font-weight: 600; font-size: .82rem; padding: 3px 8px; border-radius: 999px; background: var(--c); color: #fff; }
+.chain .ar { font-family: var(--f-mono); font-size: .74rem; color: var(--win); padding: 0 3px; white-space: nowrap; }
+.chain .ar.rev { color: var(--loss); font-weight: 600; }
+.chain .sum { font-size: .84rem; font-weight: 600; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+table.mx td, table.mx th, table.grid6 td, table.grid6 th { border-bottom: 0; vertical-align: middle; }
+table.mx td, table.grid6 td { text-align: center; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 104px 1fr 46px; }
+  td, th { padding: 8px 6px; }
+  .tiles.row3 { grid-template-columns: 1fr; }
+  .dice4 { gap: 5px; }
+  .die { padding: 7px 3px; }
+  .die .fc { gap: 2px; }
+  .die .fc i { width: 17px; height: 17px; font-size: .72rem; border-radius: 4px; }
+  .vsrow b { font-size: 1.5rem; }
+  .grid6 td { height: 26px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+<div class="topbar">
+  <span class="brand">4 dice · you pick first · ?</span>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <h1 class="uk"><span class="kw">Кубики Ефрона</span> Чотири дивні кубики, ви обираєте першим. <span class="q sp-before">Це перевага?</span><span class="q sp-after">Ні: ви виграєте лише 1 кидок з 3.</span></h1>
+    <h1 class="en"><span class="kw">Efron's dice</span> Four strange dice, and you choose first. <span class="q sp-before">Is that an advantage?</span><span class="q sp-after">No: you win only 1 roll in 3.</span></h1>
+    <p class="lead uk sp-before">На столі чотири кубики з незвичними числами на гранях. Суперник чемно пропонує: «Обирайте першим, а я візьму один з тих, що лишаться». Кожен кидає свій кубик, виграє більше число. Яким буде ваш шанс, якщо суперник обирає з розумом? Зафіксуйте відповідь, а потім перевірте: зіграйте проти комп'ютера, порахуйте всі пари й прочитайте пояснення.</p>
+    <p class="lead uk sp-after">На столі чотири кубики з незвичними числами на гранях. Здається, що, обираючи першим, ви візьмете найкращий і виграватимете щонайменше половину кидків. Але найкращого кубика тут немає: A б'є B, B б'є C, C б'є <span class="vl">D</span>, а <span class="vl">D</span> б'є A, щоразу з шансом 2/3. Хоч що ви візьмете, суперник знайде кубик, який виграє 2 кидки з 3.</p>
+    <p class="lead en sp-before">There are four dice on the table with unusual numbers on their faces. Your opponent politely offers: "You choose first, and I'll take one of the ones left." Each of you rolls your own die, and the higher number wins. What is your chance if your opponent chooses wisely? Lock in your answer, then check it: play against the computer, count every pair and read the explanation.</p>
+    <p class="lead en sp-after">There are four dice on the table with unusual numbers on their faces. It feels as if, choosing first, you take the best one and win at least half the rolls. But there is no best die here: die A beats B, B beats C, C beats <span class="vl">D</span>, and <span class="vl">D</span> beats A, each with chance 2/3. Whatever you take, your opponent finds a die that wins 2 rolls in 3.</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd sig"><b>1/3</b><span><span class="uk">ваш шанс, коли обираєте першим</span><span class="en">your chance when you choose first</span></span></div>
+      <div class="odd"><b>2/3</b><span><span class="uk">кожна ланка кола</span><span class="en">each link of the cycle</span></span></div>
+      <div class="odd"><b><span class="uk">0 з 4</span><span class="en">0 of 4</span></b><span><span class="uk">кубиків без переможця</span><span class="en">dice nobody beats</span></span></div>
+    </div>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <svg id="hero-svg" class="dsvg" viewBox="0 0 360 310"></svg>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span><span class="en">The puzzle</span></span>
+    <h2><span class="uk">Чотири кубики й чемний суперник</span><span class="en">Four dice and a polite opponent</span></h2>
+    <p class="lead uk">Кубики звичайні, шестигранні й чесні: кожна грань випадає з шансом 1/6. Незвичні лише числа на гранях. Подивіться на них уважно, перш ніж обирати.</p>
+    <p class="lead en">The dice are ordinary, six-sided and fair: each face comes up with chance 1/6. Only the numbers on the faces are unusual. Look at them closely before you choose.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Чотири кубики</span><span class="en">Four dice</span></h3>
+        <p class="uk">На гранях кубика A чотири четвірки й два нулі. На B шість трійок. На C дві шістки й чотири двійки. На <span class="vl">D</span> три п'ятірки й три одиниці.</p>
+        <p class="en">Die A has four 4s and two 0s. Die B has six 3s. Die C has two 6s and four 2s. Die <span class="vl">D</span> has three 5s and three 1s.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Ви обираєте першим</span><span class="en">You choose first</span></h3>
+        <p class="uk">Ви берете будь-який кубик. Суперник бачить ваш вибір і бере один з трьох, що лишилися.</p>
+        <p class="en">You take any die you like. Your opponent sees your choice and takes one of the three that are left.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Кидаєте разом</span><span class="en">You roll together</span></h3>
+        <p class="uk">Кожен кидає свій кубик, і виграє той, у кого випало більше число. Нічиїх із цими кубиками не буває: у різних кубиків немає однакових чисел.</p>
+        <p class="en">Each of you rolls your own die, and whoever gets the higher number wins. These dice never tie: no two dice share a number.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span><span class="en">The question</span></h3>
+        <p class="uk">Суперник знає ці кубики так само добре, як ви, і обирає з розумом. Який ваш шанс виграти кидок?</p>
+        <p class="en">Your opponent knows these dice as well as you do and chooses wisely. What is your chance of winning a roll?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція каже</span><span class="en">Intuition says</span></span>
+        <p class="q"><span class="uk">«Обираю першим, тож візьму найкращий кубик і виграватиму щонайменше половину кидків»</span><span class="en">"I choose first, so I'll take the best die and win at least half the rolls"</span></p>
+        <p class="uk">Насправді найкращого кубика немає. Кожен програє якомусь іншому з шансом 2/3, і суперник завжди бере саме його. Ваш шанс 1/3, хоч що ви оберете.</p>
+        <p class="en">In fact there is no best die. Each one loses to some other die with chance 2/3, and your opponent always takes that one. Your chance is 1/3, whatever you choose.</p>
+      </div>
+      <div class="card">
+        <h3><span class="uk">Кубики на столі</span><span class="en">The dice on the table</span></h3>
+        <div class="dice4" id="setup-dice" style="margin-top:12px"></div>
+        <ul class="rules uk">
+          <li>Кожна грань випадає з шансом 1/6, кидки незалежні.</li>
+          <li>Один кидок кожного, більше число виграє.</li>
+          <li>Суперник обирає після вас, бачачи ваш кубик.</li>
+        </ul>
+        <ul class="rules en">
+          <li>Each face comes up with chance 1/6; rolls are independent.</li>
+          <li>One roll each; the higher number wins.</li>
+          <li>Your opponent chooses after you, seeing your die.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="uk">Який ваш шанс, якщо обираєте першим?</span><span class="en">What is your chance if you choose first?</span></h2>
+    <p class="lead uk">Ви обираєте кубик найкраще, як можете, суперник відповідає найкраще, як може. Яку частку кидків ви виграєте? Оберіть зону кнопкою під повзунком або введіть число.</p>
+    <p class="lead en">You choose a die as well as you can, and your opponent replies as well as they can. What share of the rolls do you win? Pick a zone with a button under the slider or type a number.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <label for="guess-n" class="note"><span class="uk">Ваш шанс виграти кидок</span><span class="en">Your chance of winning a roll</span></label>
+      <mp-guess id="guess-n" min="0" max="100" value="50" unit="%" fine="0.1" zones="24:Менше чверті|Under a quarter;45:Близько третини|About a third;55:Близько половини, як монетка|About half, like a coin;75:Більше половини: я ж обираю першим|Over half: I choose first;100:Майже напевно|Almost certain"></mp-guess>
+      <div class="actions"><button class="btn pri" id="guess-go"><span class="uk">Перевірити</span><span class="en">Check</span></button></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться розбір вашої відповіді.</p>
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+</section>
+
+<!-- rounds 2–5 and the facts give the answer away, so they open only after a guess, "go on", or "always show all rounds" -->
+<section class="round sp-gate" id="next">
+  <div class="card gate">
+    <span class="kicker"><span class="uk">Далі розв'язок</span><span class="en">Next: the solution</span></span>
+    <h3><span class="uk">Далі пояснення, і в ньому спойлери</span><span class="en">Next comes the explanation, with spoilers</span></h3>
+    <p class="uk">Наступні раунди показують ваш шанс: гра проти комп'ютера, усі пари кубиків і пояснення. Спершу відповісти в раунді 1 чи йти далі?</p>
+    <p class="en">The next rounds show your chance: a game against the computer, every pair of dice and the explanation. Answer round 1 first, or go on?</p>
+    <div class="actions"><a class="btn pri" href="#guess"><span class="uk">Відповісти в раунді 1</span><span class="en">Answer round 1</span></a><button type="button" class="btn ghost" data-solve><span class="uk">Йти далі</span><span class="en">Go on</span></button></div>
+    <button type="button" class="sp-skip" data-rounds="open"><span class="uk">Завжди показувати всі раунди, я не боюся спойлерів</span><span class="en">Always show all rounds, I don't mind spoilers</span></button>
+  </div>
+</section>
+
+<div class="sp-rounds">
+<p class="note rounds-on"><span class="uk">Ви обрали завжди показувати всі раунди.</span><span class="en">You chose to always show all rounds.</span> <button type="button" class="sp-skip" data-rounds="gate"><span class="uk">Ховати їх до відповіді</span><span class="en">Hide them until I answer</span></button></p>
+
+<!-- ROUND 2: game -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span><span class="en">Round 2 · Game</span></span>
+    <h2><span class="uk">Зіграйте проти комп'ютера</span><span class="en">Play against the computer</span></h2>
+    <p class="lead uk">Оберіть кубик, і комп'ютер візьме свій. Кидайте по одному разу або одразу по 10 і 100 кидків. Спробуйте всі чотири кубики. Потім поміняйтеся ролями: нехай першим обирає комп'ютер, а ви відповідайте.</p>
+    <p class="lead en">Pick a die and the computer takes its own. Roll once at a time, or 10 or 100 rolls at once. Try all four dice. Then swap roles: let the computer choose first, and you reply.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="presets" id="g-mode"></div>
+      <div>
+        <p class="note" id="g-pick-lab" style="margin-bottom:8px"></p>
+        <div class="dice4" id="g-dice"></div>
+      </div>
+      <div class="vsrow">
+        <div id="g-me-box"><span class="k"><span class="uk">Ви</span><span class="en">You</span></span><b id="g-me">–</b><span class="s" id="g-me-s"></span></div>
+        <span>vs</span>
+        <div id="g-cp-box"><span class="k"><span class="uk">Комп'ютер</span><span class="en">Computer</span></span><b id="g-cp">–</b><span class="s" id="g-cp-s"></span></div>
+      </div>
+      <p class="msg" id="g-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn pri" id="g-roll" type="button"><span class="uk">Кинути</span><span class="en">Roll</span></button>
+        <button class="btn pri" id="g-10" type="button"><span class="uk">10 кидків</span><span class="en">10 rolls</span></button>
+        <button class="btn hit" id="g-100" type="button"><span class="uk">100 кидків</span><span class="en">100 rolls</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="uk">Рахунок</span><span class="en">Score</span></h3>
+      <div class="status" style="margin-top:12px">
+        <div><span class="k"><span class="uk">Кидків</span><span class="en">Rolls</span></span><b class="mono" id="s-n">0</b></div>
+        <div><span class="k"><span class="uk">Ваші перемоги</span><span class="en">Your wins</span></span><b class="mono" id="s-me">0</b></div>
+        <div class="mm"><span class="k"><span class="uk">Комп'ютера</span><span class="en">Computer's</span></span><b class="mono" id="s-cp">0</b></div>
+      </div>
+      <p class="note" id="s-txt" style="margin-top:12px"></p>
+      <div class="hist" id="s-hist" aria-hidden="true"></div>
+      <p class="note" id="s-hint" style="margin-top:14px"></p>
+      <div class="actions" style="margin-top:14px"><button class="btn ghost" id="s-reset" type="button"><span class="uk">Скинути рахунок</span><span class="en">Reset the score</span></button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="uk">Усі 12 пар, по 20 000 кидків</span><span class="en">All 12 match-ups, 20,000 rolls each</span></h2>
+    <p class="lead uk">У рядку ваш кубик, у стовпці кубик суперника. У клітинці шанс, що кубик суперника викине більше: точний дріб і частка в симуляції. Що темніша клітинка, то гірше для вас. Рамкою позначено найкращу відповідь суперника на ваш вибір.</p>
+    <p class="lead en">Each row is your die, each column your opponent's. A cell shows the chance that the opponent's die rolls higher: the exact fraction and the simulated share. The darker the cell, the worse for you. The outline marks your opponent's best reply to your choice.</p>
+  </div>
+  <div class="card">
+    <div class="controls">
+      <button class="btn pri" id="sim-run"><span class="uk">Запустити ще раз</span><span class="en">Run again</span></button>
+      <span class="note" id="sim-prog"></span>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <div class="mx-wrap"><table class="mx" id="mx"></table></div>
+        <p class="note" style="margin-top:10px"><span class="uk">Ваш шанс у кожному рядку дорівнює 1 мінус число в клітинці.</span><span class="en">Your chance in each row is 1 minus the number in the cell.</span></p>
+      </div>
+      <div class="tiles">
+        <div class="tile" style="--c:var(--signal,#D9318F)"><div class="k"><span class="uk">Ваш шанс проти найкращої відповіді</span><span class="en">Your chance against the best reply</span></div><div class="v mono">1/3</div><div class="s" id="sim-me"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Найбільше відхилення симуляції від точного</span><span class="en">Largest gap between simulation and exact</span></div><div class="v mono" id="sim-dev">–</div><div class="s" id="sim-devs"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Кидків зіграно</span><span class="en">Rolls played</span></div><div class="v mono" id="sim-n">–</div><div class="s"><span class="uk">12 пар · 20 000 кидків на пару</span><span class="en">12 pairs · 20,000 rolls per pair</span></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px">
+    <h3><span class="uk">Турнір «кожен з кожним»</span><span class="en">A round-robin tournament</span></h3>
+    <p class="note" style="margin:6px 0 12px"><span class="uk">Нехай кубики зіграють між собою, як команди в лізі: перемога в парі, якщо кубик виграє більше половини кидків, 3 очки за перемогу, 1 за нічию (В–Н–П: перемоги, нічиї, поразки). Таблиця точна, з тих самих дробів.</span><span class="en">Let the dice play each other like teams in a league: a match is won if a die wins more than half the rolls, 3 points for a win and 1 for a draw (W–D–L: won, drawn, lost). The table is exact, from the same fractions.</span></p>
+    <div class="tbl-wrap"><table id="league"></table></div>
+    <p class="note" style="margin-top:12px"><span class="uk">Чемпіон ліги C має найбільше перемог і найбільше середнє число на гранях, проте програє B, на якому завжди лише трійка. Таблиця ліги впорядковує кубики, але кожен з них хтось б'є.</span><span class="en">The league champion, C, has the most wins and the highest average face, yet loses to B, which never rolls anything but a 3. The league table puts the dice in order, but every one of them is beaten by someone.</span></p>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Пояснення</span><span class="en">Round 4 · Explanations</span></span>
+    <h2><span class="uk">«Камінь, ножиці, папір» з чисел</span><span class="en">Rock, paper, scissors made of numbers</span></h2>
+    <p class="lead uk">Інтуїція думає, що кубики можна вишикувати від найкращого до найгіршого, і перший просто бере верхній. Але «виграє частіше» — це не число, яке можна приписати кожному кубику, а стосунок між двома кубиками. І такий стосунок може замкнутися в коло.</p>
+    <p class="lead en">Intuition assumes the dice can be lined up from best to worst, and whoever chooses first just takes the top one. But "wins more often" is not a number you can attach to each die; it is a relation between two dice. And such a relation can close into a circle.</p>
+  </div>
+  <div class="mp-layer" data-layer="easy">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Головне за хвилину</span><span class="en">The core in a minute</span></span>
+      <h3><span class="uk">Кожен кубик когось б'є і комусь програє</span><span class="en">Every die beats one and loses to another</span></h3>
+      <svg class="geo" id="cycle-svg" viewBox="0 0 320 250" role="img" aria-label="Коло перемог кубиків"></svg>
+      <p class="uk">Стрілка веде від переможця до переможеного. A б'є B, B б'є C, C б'є <span class="vl">D</span>, а <span class="vl">D</span> б'є A, щоразу 2 кидки з 3. Як у «камінь, ножиці, папір»: немає найкращого жесту, є лише відповідь на жест суперника. Тому хто обирає другим, завжди бере кубик, що стоїть у колі перед вашим.</p>
+      <p class="en">Each arrow points from the winner to the loser. Die A beats B, B beats C, C beats <span class="vl">D</span>, and <span class="vl">D</span> beats A, 2 rolls in 3 each time. As in rock, paper, scissors, there is no best gesture, only a reply to your opponent's. So whoever chooses second always takes the die that comes before yours in the circle.</p>
+      <p class="uk">Ця картка показує, що відбувається, але ще не чому таке можливо. Наступна картка рахує кожну стрілку на пальцях.</p>
+      <p class="en">This card shows what happens but not yet why it is possible. The next card works out each arrow by hand.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Чотири дуелі</span><span class="en">Four duels</span></span>
+      <h3><span class="uk">Кожна стрілка складається з простих часток</span><span class="en">Each arrow is made of simple fractions</span></h3>
+      <div class="duels">
+        <div class="duel"><b><code class="dl" style="--c:var(--da)">A</code> <span class="uk">проти</span><span class="en">vs</span> <code class="dl" style="--c:var(--db)">B</code> · 2/3</b><span class="uk">На B завжди 3. A виграє, коли випадає 4: це 4 грані з 6.</span><span class="en">B always shows 3, so A wins when it shows 4: 4 faces out of 6.</span></div>
+        <div class="duel"><b><code class="dl" style="--c:var(--db)">B</code> <span class="uk">проти</span><span class="en">vs</span> <code class="dl" style="--c:var(--dc)">C</code> · 2/3</b><span class="uk">Трійка програє лише шістці, а шісток на C дві з шести. Решту 4 з 6 разів випадає 2, і трійка виграє.</span><span class="en">A 3 loses only to a 6, and C has two 6s out of six faces. The other 4 times in 6 it shows 2, and the 3 wins.</span></div>
+        <div class="duel"><b><code class="dl" style="--c:var(--dc)">C</code> <span class="uk">проти</span><span class="en">vs</span> <code class="dl" style="--c:var(--dd)">D</code> · 2/3</b><span class="uk">Шістка на C (шанс 1/3) б'є все. Двійка (шанс 2/3) б'є лише одиницю на <span class="vl">D</span>, тобто половину разів: 2/3 · 1/2 = 1/3. Разом 1/3 + 1/3 = 2/3.</span><span class="en">A 6 on C (chance 1/3) beats everything. A 2 (chance 2/3) beats only a 1 on <span class="vl">D</span>, half the time: 2/3 × 1/2 = 1/3. Together 1/3 + 1/3 = 2/3.</span></div>
+        <div class="duel"><b><code class="dl" style="--c:var(--dd)">D</code> <span class="uk">проти</span><span class="en">vs</span> <code class="dl" style="--c:var(--da)">A</code> · 2/3</b><span class="uk">П'ятірка на <span class="vl">D</span> (половина разів) б'є все на A. Одиниця (теж половина) б'є лише нуль, а нулів на A третина: 1/2 · 1/3 = 1/6. Разом 1/2 + 1/6 = 2/3.</span><span class="en">A 5 on <span class="vl">D</span> (half the time) beats anything A rolls. A 1 (the other half) beats only a 0, and a third of A's faces are 0: 1/2 × 1/3 = 1/6. Together 1/2 + 1/6 = 2/3.</span></div>
+      </div>
+      <p class="uk">Кожен кубик зроблений так, щоб бити сусіда, і платить за це слабкістю проти іншого сусіда. B тримає стабільну трійку: цього досить проти рідкісних шісток C, але замало проти частих четвірок A.</p>
+      <p class="en">Each die is built to beat one neighbour and pays for it with weakness against the other. B holds a steady 3: enough against C's rare 6s, too little against A's frequent 4s.</p>
+    </div>
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Середнє не вирішує</span><span class="en">The average doesn't decide</span></span>
+      <h3><span class="uk">Найбільше середнє в C, а програє він B</span><span class="en">C has the highest average, yet loses to B</span></h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Кубик</span><span class="en">Die</span></th><th><span class="uk">Грані</span><span class="en">Faces</span></th><th class="num"><span class="uk">Середнє</span><span class="en">Average</span></th><th><span class="uk">Б'є з шансом 2/3</span><span class="en">Beats with chance 2/3</span></th><th><span class="uk">Програє з шансом 2/3</span><span class="en">Loses with chance 2/3 to</span></th></tr></thead>
+          <tbody>
+            <tr><td><code class="dl" style="--c:var(--da)">A</code></td><td class="mono">4 4 4 4 0 0</td><td class="num"><span class="uk">2,67</span><span class="en">2.67</span></td><td>B</td><td><span class="vl">D</span></td></tr>
+            <tr><td><code class="dl" style="--c:var(--db)">B</code></td><td class="mono">3 3 3 3 3 3</td><td class="num">3</td><td>C</td><td>A</td></tr>
+            <tr><td><code class="dl" style="--c:var(--dc)">C</code></td><td class="mono">6 6 2 2 2 2</td><td class="num"><span class="uk">3,33</span><span class="en">3.33</span></td><td><span class="vl">D</span></td><td>B</td></tr>
+            <tr><td><code class="dl" style="--c:var(--dd)">D</code></td><td class="mono">5 5 5 1 1 1</td><td class="num">3</td><td>A</td><td>C</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="uk">Середнє число вимірює, скільки очок кубик набере за багато кидків. Але гра питає інше: чиє число більше в одному кидку. Велика шістка в C додає багато до середнього, проте виграє в дуелі так само, як виграла б четвірка: перемога є перемога, хоч на 1, хоч на 4. Тому середні можна вишикувати в ряд (C, потім B і <span class="vl">D</span>, потім A), а дуелі ні.</p>
+      <p class="en">The average measures how many points a die collects over many rolls. But the game asks something else: whose number is higher in a single roll. C's big 6 adds a lot to its average, yet wins a duel just as a 4 would: a win is a win, by 1 or by 4. So the averages can be lined up (C, then B and <span class="vl">D</span>, then A), but the duels cannot.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+  <div class="why-grid">
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Усі 36 результатів</span><span class="en">All 36 outcomes</span></span>
+      <h3><span class="uk">Таблиця 6 × 6 для кожної пари</span><span class="en">A 6 × 6 table for each pair</span></h3>
+      <div class="presets" id="pair-pick"></div>
+      <div class="tbl-wrap"><table class="grid6" id="grid6"></table></div>
+      <div class="cnt" id="pair-cnt"></div>
+      <p class="uk">Два кубики разом дають 6 · 6 = 36 рівноймовірних пар граней. Рядок — грань першого кубика, стовпець — другого, колір клітинки — хто виграв. У чотирьох стрілках кола переможець забирає 24 клітинки з 36, тобто 2/3. Через коло, у парах A–C і B–<span class="vl">D</span>, перевага менша або її немає зовсім: 20 з 36 і 18 з 36.</p>
+      <p class="en">Two dice together give 6 × 6 = 36 equally likely pairs of faces. The row is the first die's face, the column the second's, and the cell's colour shows who won. On the four arrows of the cycle the winner takes 24 cells out of 36, that is 2/3. Across the circle, in the pairs A–C and B–<span class="vl">D</span>, the edge is smaller or gone: 20 of 36 and 18 of 36.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Найкраща відповідь</span><span class="en">The best reply</span></span>
+      <h3><span class="uk">Чому саме 1/3, а не менше</span><span class="en">Why exactly 1/3, and no less</span></h3>
+      <p class="uk">Для кожного вашого кубика суперник порівнює три варіанти й бере той, що виграє найчастіше. Проти A найкращий <span class="vl">D</span> (2/3), бо C дає лише 5/9, а B 1/3. Проти B найкращий A (2/3). Проти C найкращий B (2/3). Проти <span class="vl">D</span> найкращий C (2/3).</p>
+      <p class="en">For each of your dice the opponent compares three options and takes the one that wins most often. Against A the best is <span class="vl">D</span> (2/3), since C gives only 5/9 and B 1/3. Against B the best is A (2/3). Against C the best is B (2/3). Against <span class="vl">D</span> the best is C (2/3).</p>
+      <p class="uk">Найкраща відповідь щоразу дає рівно 2/3, тож ваш вибір нічого не змінює: шанс 1/3 з будь-яким кубиком. Якби ви обирали навмання, а суперник теж навмання з решти, ви вигравали б рівно половину: кожна пара з'являлася б в обидва боки.</p>
+      <p class="en">The best reply gives exactly 2/3 every time, so your choice changes nothing: your chance is 1/3 with any die. If you chose at random and your opponent also picked at random from the rest, you would win exactly half: every pair would come up both ways round.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span><span class="en">For formula lovers</span></span>
+      <h3><span class="uk">Шанс перемоги як сума за гранями</span><span class="en">The chance of winning as a sum over faces</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Перший кубик виграє, якщо випало x, а на другому менше за x.</span><span class="en">The first die wins if it shows x and the second shows less than x.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mi>X</mi><mo>&gt;</mo><mi>Y</mi><mo stretchy="false">)</mo><mo>=</mo><munder><mo>∑</mo><mi>x</mi></munder><mi>P</mi><mo stretchy="false">(</mo><mi>X</mi><mo>=</mo><mi>x</mi><mo stretchy="false">)</mo><mo>·</mo><mi>P</mi><mo stretchy="false">(</mo><mi>Y</mi><mo>&lt;</mo><mi>x</mi><mo stretchy="false">)</mo></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Чотири ланки кола:</span><span class="en">The four links of the cycle:</span></p>
+          <math display="block"><mtable><mtr><mtd><mi>P</mi><mo stretchy="false">(</mo><mi>A</mi><mo>&gt;</mo><mi>B</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>4</mn><mn>6</mn></mfrac><mo>·</mo><mn>1</mn><mo>=</mo><mfrac><mn>2</mn><mn>3</mn></mfrac></mtd></mtr><mtr><mtd><mi>P</mi><mo stretchy="false">(</mo><mi>B</mi><mo>&gt;</mo><mi>C</mi><mo stretchy="false">)</mo><mo>=</mo><mn>1</mn><mo>·</mo><mfrac><mn>4</mn><mn>6</mn></mfrac><mo>=</mo><mfrac><mn>2</mn><mn>3</mn></mfrac></mtd></mtr><mtr><mtd><mi>P</mi><mo stretchy="false">(</mo><mi>C</mi><mo>&gt;</mo><mi>D</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>2</mn><mn>6</mn></mfrac><mo>·</mo><mn>1</mn><mo>+</mo><mfrac><mn>4</mn><mn>6</mn></mfrac><mo>·</mo><mfrac><mn>3</mn><mn>6</mn></mfrac><mo>=</mo><mfrac><mn>2</mn><mn>3</mn></mfrac></mtd></mtr><mtr><mtd><mi>P</mi><mo stretchy="false">(</mo><mi>D</mi><mo>&gt;</mo><mi>A</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>3</mn><mn>6</mn></mfrac><mo>·</mo><mn>1</mn><mo>+</mo><mfrac><mn>3</mn><mn>6</mn></mfrac><mo>·</mo><mfrac><mn>2</mn><mn>6</mn></mfrac><mo>=</mo><mfrac><mn>2</mn><mn>3</mn></mfrac></mtd></mtr></mtable></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Ваш шанс, коли суперник бере найкращу відповідь:</span><span class="en">Your chance when the opponent takes the best reply:</span></p>
+          <math display="block"><munder><mo movablelimits="false">max</mo><mi>X</mi></munder><mspace width="0.2em"></mspace><munder><mo movablelimits="false">min</mo><mrow><mi>Y</mi><mo>≠</mo><mi>X</mi></mrow></munder><mi>P</mi><mo stretchy="false">(</mo><mi>X</mi><mo>&gt;</mo><mi>Y</mi><mo stretchy="false">)</mo><mo>=</mo><mrow class="hl"><mfrac><mn>1</mn><mn>3</mn></mfrac></mrow></math>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Транзитивність</span><span class="en">Transitivity</span></span>
+      <h3><span class="uk">Чому «кращий за» не мусить бути транзитивним</span><span class="en">Why "better than" need not be transitive</span></h3>
+      <p class="uk">Відношення транзитивне, якщо з «A краще за B» і «B краще за C» випливає «A краще за C». Для чисел це завжди так: 5 &gt; 3 і 3 &gt; 2, отже 5 &gt; 2. Інтуїція переносить це на кубики, ніби кожен кубик — одне число «сили». Але кубик — це шість чисел, а «частіше викидає більше» порівнює всі 36 пар граней. Таке порівняння не зводиться до одного числа, і транзитивності ніщо не гарантує.</p>
+      <p class="en">A relation is transitive if, whenever A is better than B and B is better than C, A is also better than C. For numbers this always holds: 5 &gt; 3 and 3 &gt; 2, so 5 &gt; 2. Intuition carries this over to dice, as if each die were a single "strength" number. But a die is six numbers, and "rolls higher more often" compares all 36 pairs of faces. Such a comparison does not reduce to one number, and nothing guarantees transitivity.</p>
+      <p class="uk">Найкоротший приклад ховається в магічному квадраті 3 × 3. Візьміть його рядки {4, 9, 2}, {3, 5, 7} і {8, 1, 6} як грані трьох кубиків (кожне число двічі). Тоді {8, 1, 6} б'є {3, 5, 7}, {3, 5, 7} б'є {4, 9, 2}, а {4, 9, 2} б'є {8, 1, 6}, щоразу з шансом 5/9. Це те саме, що три виборці з <a href="../condorcet-paradox/">парадоксу Кондорсе</a>: кожна пара програє більшості, і переможця немає.</p>
+      <p class="en">The shortest example hides in the 3 × 3 magic square. Take its rows {4, 9, 2}, {3, 5, 7} and {8, 1, 6} as the faces of three dice (each number twice). Then {8, 1, 6} beats {3, 5, 7}, {3, 5, 7} beats {4, 9, 2}, and {4, 9, 2} beats {8, 1, 6}, each with chance 5/9. It is the same as the three voters of the <a href="../../condorcet-paradox/en/">Condorcet paradox</a>: every option loses to a majority, and there is no winner.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Теорія й історія</span><span class="en">Theory and history</span></span>
+      <h3><span class="uk">Турніри, вибори й гра Пенні</span><span class="en">Tournaments, elections and Penney's game</span></h3>
+      <p class="uk">Коли про кожну пару відомо, хто сильніший, математики називають це турніром: граф, де між будь-якими двома вершинами одна стрілка. Турнір упорядковується в рейтинг, лише якщо в ньому немає циклів. Кубики Ефрона дають цикл з чотирьох, і жодне впорядкування не погодиться з усіма дуелями: хоч як поставити A, B, C, <span class="vl">D</span> у рядок, хоча б одна стрілка йтиме проти нього.</p>
+      <p class="en">When for every pair we know which is stronger, mathematicians call it a tournament: a graph with exactly one arrow between any two vertices. A tournament can be turned into a ranking only if it has no cycles. Efron's dice give a cycle of four, and no ordering agrees with every duel: every way of lining up A, B, C, <span class="vl">D</span> contradicts at least one arrow.</p>
+      <p class="uk">Маркіз де Кондорсе помітив такі цикли ще 1785 року у виборах, де кандидатів порівнюють попарно. Монетний варіант тієї ж ідеї — <a href="../penney-game/">гра Пенні</a>: на будь-яку трійку орлів і решок є трійка, що випадає раніше, і другий гравець знову має перевагу. А <a href="../parrondo-paradox/">парадокс Паррондо</a> показує інший бік тієї самої пастки: інтуїція про «гірше» і «краще» ламається, коли ігри поєднують.</p>
+      <p class="en">The Marquis de Condorcet spotted such cycles as early as 1785, in elections where candidates are compared in pairs. The coin version of the same idea is <a href="../../penney-game/en/">Penney's game</a>: for any triple of heads and tails there is a triple that comes up sooner, and the second player again has the edge. And <a href="../../parrondo-paradox/en/">Parrondo's paradox</a> shows another side of the same trap: intuition about "worse" and "better" breaks when games are combined.</p>
+    </div>
+
+  </div>
+  </div>
+
+</section>
+
+<!-- ROUND 5: going further -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Ускладнюємо</span><span class="en">Round 5 · Going further</span></span>
+    <h2><span class="uk">Два кубики, межа переваги й ящірки</span><span class="en">Two dice, the limit of the edge, and lizards</span></h2>
+    <p class="lead uk">Цикл може перевернутися, якщо кинути по два кубики. Перевага в циклі має стелю. А «камінь, ножиці, папір» грають і вибори, і бактерії, і ящірки.</p>
+    <p class="lead en">A cycle can flip when each player rolls two dice. The edge in a cycle has a ceiling. And rock, paper, scissors is played by elections, bacteria and lizards alike.</p>
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">По одному кубику чи по два</span><span class="en">One die each, or two</span></h3>
+        <div class="presets" id="ch-set"></div>
+        <div class="presets" id="ch-k"></div>
+        <div class="chains" id="chains"></div>
+        <p class="note" id="ch-note"></p>
+        <div class="legend">
+          <span style="--c:var(--win)"><b class="uk">стрілка тримається</b><b class="en">the arrow holds</b></span>
+          <span style="--c:var(--loss)"><b class="uk">стрілка перевернулася</b><b class="en">the arrow flipped</b></span>
+        </div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Математика</span><span class="en">The maths</span></span>
+        <h3><span class="uk">Сума двох кидків грає за іншими правилами</span><span class="en">The sum of two rolls plays by other rules</span></h3>
+        <p class="uk">Кинути два однакові кубики й скласти — означає грати новим «кубиком» на 36 граней. Його шанси залежать уже не лише від того, як часто кубик перемагає, а й від того, як розкидані його числа. Тому цикл може зламатися або навіть перевернутися.</p>
+        <p class="en">Rolling two identical dice and adding them means playing with a new 36-faced "die". Its chances depend not only on how often a die wins, but also on how spread out its numbers are. So the cycle can break, or even reverse.</p>
+        <p class="uk">Кубики Ефрона з двома кидками вже не утворюють кола: C частіше виграє, ніж програє, проти кожного з трьох. А п'ять кубиків Джеймса Ґрайма придумано так, що одне з двох їхніх кіл з двома кубиками перевертається повністю. Гравець, який обирає другим, ще й вирішує, грати одним кубиком чи двома, і знову виграє.</p>
+        <p class="en">Efron's dice rolled twice no longer form a circle: C wins more often than it loses against each of the other three. James Grime's five dice are designed so that one of their two cycles flips completely with two dice. The player who chooses second also decides whether to play one die or two, and wins again.</p>
+        <div class="tiles row3" style="margin-top:4px">
+          <div class="tile"><div class="k"><span class="uk">3 кубики: стеля переваги</span><span class="en">3 dice: the ceiling</span></div><div class="v mono"><span class="uk">≈ 0,618</span><span class="en">≈ 0.618</span></div><div class="s">(√5 − 1)/2</div></div>
+          <div class="tile"><div class="k"><span class="uk">4 кубики</span><span class="en">4 dice</span></div><div class="v mono">2/3</div><div class="s"><span class="uk">Ефрон досягає</span><span class="en">Efron reaches it</span></div></div>
+          <div class="tile"><div class="k"><span class="uk">Дуже багато кубиків</span><span class="en">Very many dice</span></div><div class="v mono">→ 3/4</div><div class="s"><span class="uk">Усіскін, 1964</span><span class="en">Usiskin, 1964</span></div></div>
+        </div>
+        <p class="uk">Наскільки сильною може бути кожна ланка циклу? Для трьох незалежних випадкових величин (кубики — окремий випадок) найменший шанс у колі не може перевищити (√5 − 1)/2 ≈ 0,618, обернене золоте число (Станіслав Трибула, 1961). Залман Усіскін 1964 року показав, як знайти цю стелю для будь-якої кількості: для чотирьох вона рівно 2/3, тож кубики Ефрона найкращі можливі, а з ростом кількості стеля наближається до 3/4.</p>
+        <p class="en">How strong can each link of a cycle be? For three independent random variables (dice are a special case) the smallest chance around the circle cannot exceed (√5 − 1)/2 ≈ 0.618, the inverse golden ratio (Stanisław Trybuła, 1961). In 1964 Zalman Usiskin showed how to find this ceiling for any number of them: for four it is exactly 2/3, so Efron's dice are the best possible, and as the number grows the ceiling approaches 3/4.</p>
+      </div>
+    </div>
+
+    <div class="card esc-text">
+      <span class="kicker"><span class="uk">Логіка</span><span class="en">The logic</span></span>
+      <h3><span class="uk">Порівняння парами не завжди дає рейтинг</span><span class="en">Pairwise comparisons don't always give a ranking</span></h3>
+      <p class="uk">Той самий магічний квадрат дає й вибори. Нехай його рядки 4 9 2, 3 5 7 і 8 1 6 — оцінки трьох кандидатів, а кожен стовпець — бюлетень одного виборця: вища оцінка означає вище місце. Перевірте самі: у кожній парі кандидатів двоє виборців з трьох за одного й лише один за другого.</p>
+      <p class="en">The same magic square gives an election too. Let its rows 4 9 2, 3 5 7 and 8 1 6 be the scores of three candidates, and each column one voter's ballot: a higher score means a higher place. Check it yourself: in every pair of candidates, two voters out of three prefer one and only one prefers the other.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Виборець</span><span class="en">Voter</span></th><th><span class="uk">Перший вибір</span><span class="en">1st choice</span></th><th><span class="uk">Другий</span><span class="en">2nd</span></th><th><span class="uk">Третій</span><span class="en">3rd</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="uk">1 (стовпець 4 3 8)</span><span class="en">1 (column 4 3 8)</span></td><td><span class="uk">Марко</span><span class="en">Mark</span></td><td><span class="uk">Ірина</span><span class="en">Iris</span></td><td><span class="uk">Олег</span><span class="en">Oscar</span></td></tr>
+            <tr><td><span class="uk">2 (стовпець 9 5 1)</span><span class="en">2 (column 9 5 1)</span></td><td><span class="uk">Ірина</span><span class="en">Iris</span></td><td><span class="uk">Олег</span><span class="en">Oscar</span></td><td><span class="uk">Марко</span><span class="en">Mark</span></td></tr>
+            <tr><td><span class="uk">3 (стовпець 2 7 6)</span><span class="en">3 (column 2 7 6)</span></td><td><span class="uk">Олег</span><span class="en">Oscar</span></td><td><span class="uk">Марко</span><span class="en">Mark</span></td><td><span class="uk">Ірина</span><span class="en">Iris</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="uk">Ірина (рядок 4 9 2) перемагає Олега (3 5 7) 2 : 1 (виборці 1 і 2), Олег перемагає Марка (8 1 6) 2 : 1 (виборці 2 і 3), а Марко перемагає Ірину 2 : 1 (виборці 1 і 3). Хоч кого оголосити переможцем, більшість воліла б іншого. Так само в спорті: команда, що виграла в лідера, може програти аутсайдеру, і таблиця з очками лише ховає цикл. А в A/B-тестах, де варіанти порівнюють попарно, «B кращий за A» і «C кращий за B» ще не означають, що C кращий за A: це треба перевіряти окремо. Більше про вибори — у <a href="../condorcet-paradox/">парадоксі Кондорсе</a>.</p>
+      <p class="en">Iris (row 4 9 2) beats Oscar (3 5 7) 2 : 1 (voters 1 and 2), Oscar beats Mark (8 1 6) 2 : 1 (voters 2 and 3), and Mark beats Iris 2 : 1 (voters 1 and 3). Whoever is declared the winner, a majority would prefer someone else. The same goes for sport: a team that beat the leader can lose to the bottom side, and a points table only hides the cycle. And in A/B tests where variants are compared in pairs, "B beats A" and "C beats B" do not yet mean that C beats A: that has to be tested on its own. More on elections in the <a href="../../condorcet-paradox/en/">Condorcet paradox</a>.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Практика</span><span class="en">In practice</span></span>
+      <h3><span class="uk">Де «камінь, ножиці, папір» грає природа</span><span class="en">Where nature plays rock, paper, scissors</span></h3>
+      <p class="note" style="margin:6px 0 12px"><span class="uk">Цикл без найсильнішого не дає жодному гравцеві перемогти назавжди. Тому в природі такі цикли підтримують різноманіття: кожен вид чи стратегія тримається, бо має свою «жертву».</span><span class="en">A cycle with no strongest player lets nobody win for good. That is why in nature such cycles keep diversity alive: each species or strategy survives because it has its own "prey".</span></p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Де</span><span class="en">Where</span></th><th><span class="uk">Цикл</span><span class="en">The cycle</span></th><th><span class="uk">Що з цього випливає</span><span class="en">What follows</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="uk">Кишкова паличка <i>E. coli</i>: Керр і співавтори, Nature, 2002</span><span class="en"><i>E. coli</i> bacteria: Kerr et al., Nature, 2002</span></td><td><span class="uk">Штам, що виробляє отруту коліцин, вбиває чутливий штам. Чутливий росте швидше за стійкий. Стійкий росте швидше за виробника, бо не витрачається на отруту.</span><span class="en">A strain that makes the poison colicin kills a sensitive strain. The sensitive strain outgrows a resistant one. The resistant strain outgrows the producer, since it spends nothing on poison.</span></td><td><span class="uk">На нерухомій чашці Петрі, де сусіди взаємодіють лише поруч, вижили всі три штами. У колбі, яку весь час перемішують, лишився один.</span><span class="en">On a static Petri dish, where neighbours meet only locally, all three strains survived. In a constantly shaken flask, only one was left.</span></td></tr>
+            <tr><td><span class="uk">Плямистобокі ящірки <i>Uta stansburiana</i>: Сінерво й Лайвлі, Nature, 1996</span><span class="en">Side-blotched lizards, <i>Uta stansburiana</i>: Sinervo and Lively, Nature, 1996</span></td><td><span class="uk">Помаранчевогорлі самці з великими територіями перемагають синьогорлих, що стережуть одну самку. Синьогорлі перемагають жовтогорлих «крадіїв». Жовтогорлі перемагають помаранчевих, пробираючись на їхні великі території.</span><span class="en">Orange-throated males with large territories beat blue-throated males guarding one female. Blue-throated males beat yellow-throated "sneakers". Yellow-throated males beat orange ones by slipping into their large territories.</span></td><td><span class="uk">Частки трьох типів самців роками ходять по колу: щойно один тип стає частим, розквітає той, хто його б'є.</span><span class="en">The shares of the three kinds of males cycle over the years: as soon as one kind becomes common, the one that beats it thrives.</span></td></tr>
+            <tr><td><span class="uk">Турніри й рейтинги</span><span class="en">Tournaments and ratings</span></td><td><span class="uk">Гравець A частіше виграє в B, B у C, а C в A: стилі гри, що «ловлять» один одного.</span><span class="en">Player A usually beats B, B beats C, and C beats A: playing styles that catch one another.</span></td><td><span class="uk">Одне число рейтингу завжди впорядковує гравців, тож цикл у ньому не видно. Прогноз для конкретної пари краще будувати на їхніх особистих зустрічах.</span><span class="en">A single rating number always puts players in order, so a cycle cannot show in it. A forecast for a specific pair is better built on their head-to-head record.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="uk">Що розповісти друзям</span><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n uk">Грудень 1970</span><span class="fact-n en">December 1970</span>
+        <h3><span class="uk">Колонка Мартіна Ґарднера</span><span class="en">Martin Gardner's column</span></h3>
+        <p class="uk">Широкий світ дізнався про ці кубики з колонки «Mathematical Games» у Scientific American за грудень 1970 року: «Парадокс нетранзитивних кубиків і невловимий принцип байдужості». Ґарднер описав там кубики стенфордського статистика Бредлі Ефрона.</p>
+        <p class="en">The wider world learned of these dice from the "Mathematical Games" column in the December 1970 Scientific American: "The paradox of the nontransitive dice and the elusive principle of indifference". Gardner described the dice of the Stanford statistician Bradley Efron there.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n uk">Баффет і Ґейтс</span><span class="fact-n en">Buffett and Gates</span>
+        <h3><span class="uk">«Обирайте першим»</span><span class="en">"You choose first"</span></h3>
+        <p class="uk">Часто розповідають, що Воррен Баффет запропонував Біллу Ґейтсу зіграти такими кубиками й чемно дав йому обирати першим. Ґейтс роздивився кубики, щось запідозрив і наполіг, щоб першим обирав Баффет. Цю історію переказує, зокрема, Scientific American (2023).</p>
+        <p class="en">The story often told is that Warren Buffett offered Bill Gates a game with such dice and politely let him choose first. Gates looked the dice over, grew suspicious and insisted that Buffett choose first. Scientific American, among others, retells it (2023).</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">2/3</span>
+        <h3><span class="uk">Більше з чотирьох не вичавити</span><span class="en">You can't squeeze more out of four</span></h3>
+        <p class="uk">Залман Усіскін 1964 року довів, що в циклі з чотирьох незалежних випадкових величин найслабша ланка не може бути сильнішою за 2/3. Кубики Ефрона мають рівно 2/3 на кожній ланці, тож ніякі чотири кубики не зроблять пастку для першого гравця ще глибшою.</p>
+        <p class="en">In 1964 Zalman Usiskin proved that in a cycle of four independent random variables the weakest link cannot be stronger than 2/3. Efron's dice have exactly 2/3 on every link, so no four dice can make the trap for the first player any deeper.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n uk">0,618</span><span class="fact-n en">0.618</span>
+        <h3><span class="uk">Золотий переріз у трьох кубиках</span><span class="en">The golden ratio in three dice</span></h3>
+        <p class="uk">Для трьох кубиків стеля переваги — обернене золоте число (√5 − 1)/2. Станіслав Трибула довів це 1961 року. Кубики з цілими гранями можуть лише наближатися до цього ірраціонального числа: магічний квадрат дає 5/9 ≈ 0,556.</p>
+        <p class="en">For three dice the ceiling of the edge is the inverse golden ratio, (√5 − 1)/2. Stanisław Trybuła proved it in 1961. Dice with whole-number faces can only approach this irrational number: the magic square gives 5/9 ≈ 0.556.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">× 2</span>
+        <h3><span class="uk">Кубики Ґрайма</span><span class="en">Grime dice</span></h3>
+        <p class="uk">Математик Джеймс Ґрайм придумав п'ять кубиків з двома різними колами перемог: одне йде за абеткою англійських назв кольорів, друге за довжиною цих назв. Якщо кожен кидає по два кубики, коло за довжиною перевертається, а за абеткою тримається, за одним винятком: стрілка між червоним і оливковим.</p>
+        <p class="en">The mathematician James Grime devised five dice with two different cycles of wins: one follows the alphabetical order of the colour names, the other their length. If each player rolls two dice, the length cycle flips while the alphabetical one holds, with one exception: the arrow between red and olive.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1975</span>
+        <h3><span class="uk">Кубики Мівіна</span><span class="en">Miwin's dice</span></h3>
+        <p class="uk">Фізик Міхаель Вінкельман 1975 року зробив три кубики з гранями 1, 2, 5, 6, 7, 9; 1, 3, 4, 5, 8, 9 і 2, 3, 4, 6, 7, 8. У кожного однакова сума граней, 30, і середнє 5. Проте кожен б'є наступного в колі: 17 кидків з 36 проти 16, а решта 3 нічиї.</p>
+        <p class="en">In 1975 the physicist Michael Winkelmann made three dice with faces 1, 2, 5, 6, 7, 9; 1, 3, 4, 5, 8, 9; and 2, 3, 4, 6, 7, 8. Each has the same face total, 30, and an average of 5. Yet each beats the next one around the circle: 17 rolls in 36 against 16, with the other 3 tied.</p>
+      </article>
+  </div>
+</section>
+</div>
+
+<footer>
+  <span class="uk">Кубики Ефрона утворюють коло: кожен б'є наступного з шансом 2/3. Хто обирає першим, виграє лише 1/3 кидків, бо найкращого кубика немає.</span>
+  <span class="en">Efron's dice form a circle: each beats the next with chance 2/3. Whoever chooses first wins only 1/3 of the rolls, because there is no best die.</span>
+  <code class="mono">A › B › C › D › A</code>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const SIG = () => tok('--signal') || '#D9318F';
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? s : s.replace('.', ',');
+const pct = (x, d = 1) => dec((100 * x).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const ukPl = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+const gcd = (a, b) => b ? gcd(b, a % b) : a;
+const frac = (n, d) => { const g = gcd(n, d) || 1; return d / g === 1 ? String(n / g) : (n / g) + '/' + (d / g); };
+
+/* ---------- the dice ---------- */
+const DICE = { A: [4, 4, 4, 4, 0, 0], B: [3, 3, 3, 3, 3, 3], C: [6, 6, 2, 2, 2, 2], D: [5, 5, 5, 1, 1, 1] };
+const NAMES = ['A', 'B', 'C', 'D'];
+const COL = { A: 'var(--da)', B: 'var(--db)', C: 'var(--dc)', D: 'var(--dd)' };
+// exact: in how many of the 36 face pairs x rolls higher than y
+const W = {};
+NAMES.forEach(x => NAMES.forEach(y => { let w = 0; DICE[x].forEach(a => DICE[y].forEach(b => { if (a > b) w++; })); W[x + y] = w; }));
+// the best reply to x: the die that beats x most often
+const BEST = {};
+NAMES.forEach(x => { BEST[x] = NAMES.filter(y => y !== x).reduce((a, b) => W[b + x] > W[a + x] ? b : a); });
+const rollOf = k => Math.floor(Math.random() * 6);
+
+// a die as HTML: its letter and six faces; `on` is the index of the face just rolled
+function dieHTML(k, o = {}) {
+  const tag = o.button ? 'button' : 'div';
+  const faces = DICE[k].map((v, i) => '<i' + (i === o.on ? ' class="on"' : '') + '>' + v + '</i>').join('');
+  return '<' + tag + (o.button ? ' type="button" data-k="' + k + '"' + (o.disabled ? ' disabled' : '') + ' aria-pressed="' + !!o.pressed + '"' : '') +
+    ' class="die' + (o.cpu ? ' cpu' : '') + (o.off ? ' off' : '') + '" style="--c:' + COL[k] + '"><b>' + k + '</b><span class="fc">' + faces + '</span>' +
+    (o.tag != null ? '<span class="tag">' + o.tag + '</span>' : '') + '</' + tag + '>';
+}
+
+/* ---------- hero: four dice keep rolling; the arrows appear once the puzzle is solved ---------- */
+const heroHide = () => window.mpSolved && !mpSolved();
+const HPOS = { A: [80, 70], B: [280, 70], C: [280, 240], D: [80, 240] };
+const hero = { on: { A: 0, B: 0, C: 0, D: 3 }, timer: 0 };
+function arrowSVG(x1, y1, x2, y2, label, col, cut = 52, lab = {}) {
+  const dx = x2 - x1, dy = y2 - y1, l = Math.hypot(dx, dy), ux = dx / l, uy = dy / l;
+  const ax = x1 + ux * cut, ay = y1 + uy * cut, bx = x2 - ux * cut, by = y2 - uy * cut;
+  const h = 9, w = 5.5;
+  let s = '<line x1="' + ax + '" y1="' + ay + '" x2="' + (bx - ux * h * .6) + '" y2="' + (by - uy * h * .6) + '" stroke="' + col + '" stroke-width="2.5"' + (lab.dash ? ' stroke-dasharray="4 4"' : '') + '/>';
+  if (!lab.noHead) s += '<path d="M' + bx + ' ' + by + ' L' + (bx - ux * h - uy * w) + ' ' + (by - uy * h + ux * w) + ' L' + (bx - ux * h + uy * w) + ' ' + (by - uy * h - ux * w) + ' Z" fill="' + col + '"/>';
+  if (label) {
+    const mx = (ax + bx) / 2 + (lab.ox || 0), my = (ay + by) / 2 + (lab.oy || 0);
+    s += '<rect x="' + (mx - 19) + '" y="' + (my - 10) + '" width="38" height="20" rx="6" fill="var(--surface)" stroke="' + col + '" stroke-width="1"/>' +
+      '<text x="' + mx + '" y="' + (my + 4) + '" text-anchor="middle" font-size="12" font-weight="600" fill="' + col + '">' + label + '</text>';
+  }
+  return s;
+}
+function heroDraw() {
+  const hide = heroHide();
+  let s = '';
+  if (!hide) {
+    const cyc = [['A', 'B'], ['B', 'C'], ['C', 'D'], ['D', 'A']];
+    cyc.forEach(([a, b]) => { s += arrowSVG(HPOS[a][0], HPOS[a][1], HPOS[b][0], HPOS[b][1], '2/3', 'var(--ink)', 62); });
+  }
+  NAMES.forEach(k => {
+    const [x, y] = HPOS[k], v = DICE[k][hero.on[k]];
+    s += '<g><rect x="' + (x - 34) + '" y="' + (y - 34) + '" width="68" height="68" rx="14" fill="var(--surface)" stroke="' + COL[k] + '" stroke-width="3"/>' +
+      '<text x="' + x + '" y="' + (y + 13) + '" text-anchor="middle" font-size="36" font-weight="700" fill="' + COL[k] + '">' + v + '</text>' +
+      '<text x="' + (x - 25) + '" y="' + (y - 15) + '" font-size="12" font-weight="700" fill="' + COL[k] + '">' + k + '</text>' +
+      '<text x="' + x + '" y="' + (y + 52) + '" text-anchor="middle" font-size="11" fill="var(--muted)">' + DICE[k].join(' ') + '</text></g>';
+  });
+  $('#hero-svg').innerHTML = s;
+  $('#hero-cap').textContent = hide
+    ? L('Чотири чесні кубики з незвичними гранями. Ви берете будь-який, суперник бере свій після вас. Чи допоможе вам те, що ви обираєте першим?', 'Four fair dice with unusual faces. You take any one, your opponent takes theirs after you. Does choosing first help you?')
+    : L('Стрілка веде від переможця до переможеного: кожен кубик б\'є наступного 2 кидки з 3, а останній б\'є першого.', 'Each arrow points from the winner to the loser: each die beats the next 2 rolls in 3, and the last beats the first.');
+}
+function heroStart() {
+  clearInterval(hero.timer);
+  heroDraw();
+  if (reduce()) return;
+  hero.timer = setInterval(() => { NAMES.forEach(k => { hero.on[k] = rollOf(k); }); heroDraw(); }, 1100);
+}
+
+/* ---------- puzzle: the dice on the table ---------- */
+function setupDraw() { $('#setup-dice').innerHTML = NAMES.map(k => dieHTML(k)).join(''); }
+
+/* ---------- round 1: guess ---------- */
+const guessIn = $('#guess-n');
+let guessed = null;
+$('#guess-go').addEventListener('click', () => { guessed = +guessIn.value; guessText(); window.mpSolve && mpSolve(guessed); });
+function guessText() {
+  if (guessed === null) return;
+  const g = guessed, sig = SIG();
+  const verdict = g >= 30 && g <= 36 ? L('Точно. Найкращого кубика немає, тож суперник завжди знаходить відповідь, що виграє 2 кидки з 3.', 'Exactly right. There is no best die, so your opponent always finds a reply that wins 2 rolls in 3.')
+    : g >= 45 ? L('Так думає більшість: перший вибір здається перевагою. Але кожен кубик програє якомусь іншому з шансом 2/3, і суперник бере саме його.', 'Most people think so: choosing first feels like an advantage. But every die loses to some other die with chance 2/3, and your opponent takes exactly that one.')
+    : g > 36 ? L('Ви вже відчули, що перший вибір не допомагає, але насправді ще гірше. Суперник щоразу виграє 2 кидки з 3.', 'You sensed that choosing first does not help, but it is even worse. Your opponent wins 2 rolls in 3 every time.')
+    : L('Песимістично. Суперник справді має перевагу, але не таку велику: він виграє 2 кидки з 3, а вам лишається третина.', 'Too gloomy. Your opponent does have the edge, but not that much: they win 2 rolls in 3, and you keep a third.');
+  const rows = [[L('Ваша відповідь', 'Your answer'), g / 100, 'var(--day)'], [L('Правильно', 'Correct'), 1 / 3, sig], [L('Інтуїція', 'Intuition'), .5, 'var(--muted)']];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат', 'Result') + '</span><p class="big sig mono">1/3 ≈ 33%</p>' +
+    '<p>' + verdict + '</p><div class="compare">' + rows.map(x => '<div class="crow"><span>' + x[0] + '</span><div class="bar"><i style="--c:' + x[2] + ';width:' + (100 * x[1]) + '%"></i></div><span class="mono">' + pct(x[1], 0) + '</span></div>').join('') + '</div>' +
+    '<p class="note">' + L('A б\'є B, B б\'є C, C б\'є D, а D б\'є A, щоразу з шансом 2/3. Хоч що ви візьмете, суперник бере кубик, що стоїть у колі перед вашим. Раунди 2–4 показують це на кидках і на таблицях.', 'A beats B, B beats C, C beats D, and D beats A, each with chance 2/3. Whatever you take, your opponent takes the die before yours in the circle. Rounds 2–4 show it with rolls and tables.') + '</p>';
+}
+
+/* ---------- round 2: the game ---------- */
+const game = { mode: 'first', me: 'A', cp: 'D', n: 0, wMe: 0, wCp: 0, hist: [], last: null };
+function gameSetMe(k) {
+  game.me = k; if (game.mode === 'first') game.cp = BEST[k];
+  game.n = game.wMe = game.wCp = 0; game.hist = []; game.last = null;
+}
+function gameMode(m) {
+  game.mode = m; game.n = game.wMe = game.wCp = 0; game.hist = []; game.last = null;
+  if (m === 'first') { game.me = 'A'; game.cp = BEST.A; }
+  else { game.cp = NAMES[Math.floor(Math.random() * 4)]; game.me = null; }
+  gameDraw();
+}
+function gameRoll(times) {
+  if (!game.me || !game.cp) return;
+  for (let i = 0; i < times; i++) {
+    const a = rollOf(), b = rollOf(), va = DICE[game.me][a], vb = DICE[game.cp][b];
+    const w = va > vb ? 'me' : 'cp';
+    game.n++; if (w === 'me') game.wMe++; else game.wCp++;
+    game.hist.push(w); if (game.hist.length > 100) game.hist.shift();
+    game.last = { a, b, va, vb, w };
+  }
+  gameDraw();
+}
+function gameDraw() {
+  const first = game.mode === 'first';
+  $('#g-mode').innerHTML = [['first', L('Ви обираєте першим', 'You choose first')], ['second', L('Ви обираєте другим', 'You choose second')]]
+    .map(m => '<button type="button" data-m="' + m[0] + '" aria-pressed="' + (game.mode === m[0]) + '">' + m[1] + '</button>').join('');
+  $('#g-pick-lab').textContent = first ? L('Ваш кубик (комп\'ютер бере свій одразу після вас):', 'Your die (the computer takes its own right after you):')
+    : L('Комп\'ютер уже обрав ' + game.cp + '. Оберіть свій кубик з решти:', 'The computer has chosen ' + game.cp + '. Pick your die from the rest:');
+  const L_ = game.last;
+  $('#g-dice').innerHTML = NAMES.map(k => {
+    const mine = k === game.me, cpu = k === game.cp;
+    return dieHTML(k, { button: true, pressed: mine, cpu, disabled: !first && cpu, off: !mine && !cpu && game.me != null,
+      on: L_ ? (mine ? L_.a : cpu ? L_.b : undefined) : undefined, tag: mine ? L('ви', 'you') : cpu ? L('комп\'ютер', 'computer') : '' });
+  }).join('');
+  const box = (id, k, v, won) => {
+    const el = $('#' + id + '-box'); el.style.setProperty('--c', k ? COL[k] : 'var(--ink)'); el.classList.toggle('won', !!won);
+    $('#' + id).textContent = v == null ? (k || '–') : v;
+    $('#' + id + '-s').textContent = k ? L('кубик ', 'die ') + k : L('ще не обрано', 'not chosen yet');
+  };
+  box('g-me', game.me, L_ ? L_.va : null, L_ && L_.w === 'me');
+  box('g-cp', game.cp, L_ ? L_.vb : null, L_ && L_.w === 'cp');
+  ['#g-roll', '#g-10', '#g-100'].forEach(s => { $(s).disabled = !game.me; });
+  let m;
+  if (!game.me) m = L('Подивіться на кубик комп\'ютера й оберіть той, що його б\'є.', 'Look at the computer\'s die and pick the one that beats it.');
+  else if (!L_) m = first ? L('Ви взяли ' + game.me + ', комп\'ютер відповів ' + game.cp + '. Кидайте.', 'You took ' + game.me + ', the computer replied with ' + game.cp + '. Roll.')
+    : L('Комп\'ютер з ' + game.cp + ', ви з ' + game.me + '. Кидайте.', 'The computer has ' + game.cp + ', you have ' + game.me + '. Roll.');
+  else m = (L_.w === 'me' ? L('Ваш кидок: ' + L_.va + ' проти ' + L_.vb + '. Ви виграли.', 'Your roll: ' + L_.va + ' against ' + L_.vb + '. You win.')
+    : L('Ваш кидок: ' + L_.va + ' проти ' + L_.vb + '. Виграв комп\'ютер.', 'Your roll: ' + L_.va + ' against ' + L_.vb + '. The computer wins.'));
+  $('#g-msg').textContent = m;
+  $('#s-n').textContent = fmt(game.n); $('#s-me').textContent = fmt(game.wMe); $('#s-cp').textContent = fmt(game.wCp);
+  const exact = game.me && game.cp ? W[game.me + game.cp] / 36 : null;
+  $('#s-txt').textContent = !game.n ? L('Ще не кидали.', 'No rolls yet.')
+    : L('Ваша частка: ' + pct(game.wMe / game.n) + ' з ' + game.n + ' ' + ukPl(game.n, 'кидка', 'кидків', 'кидків') + '. Точний шанс цієї пари: ' + frac(W[game.me + game.cp], 36) + '.',
+        'Your share: ' + pct(game.wMe / game.n) + ' of ' + game.n + ' roll' + (game.n === 1 ? '' : 's') + '. The exact chance for this pair: ' + frac(W[game.me + game.cp], 36) + '.');
+  $('#s-hist').innerHTML = game.hist.map(h => '<i class="' + (h === 'cp' ? 'c' : '') + '"></i>').join('');
+  $('#s-hint').textContent = first
+    ? L('Темні квадратики — ваші перемоги, кольорові — комп\'ютера. Спробуйте інший кубик: комп\'ютер щоразу знаходить відповідь. Потім перемкніться на «Ви обираєте другим».', 'Dark squares are your wins, coloured ones the computer\'s. Try another die: the computer finds a reply every time. Then switch to "You choose second".')
+    : (exact != null && exact > .5 ? L('Тепер ви на місці суперника: ваш кубик виграє ' + frac(W[game.me + game.cp], 36) + ' кидків.', 'Now you are in the opponent\'s seat: your die wins ' + frac(W[game.me + game.cp], 36) + ' of the rolls.')
+      : L('Шукайте кубик, що стоїть у колі перед кубиком комп\'ютера: A б\'є B, B б\'є C, C б\'є D, D б\'є A.', 'Look for the die before the computer\'s in the circle: A beats B, B beats C, C beats D, D beats A.'));
+}
+$('#g-mode').addEventListener('click', e => { const b = e.target.closest('button'); if (b) gameMode(b.dataset.m); });
+$('#g-dice').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  const k = b.dataset.k;
+  if (game.mode === 'second' && k === game.cp) return;
+  gameSetMe(k); gameDraw();
+});
+$('#g-roll').addEventListener('click', () => gameRoll(1));
+$('#g-10').addEventListener('click', () => gameRoll(10));
+$('#g-100').addEventListener('click', () => gameRoll(100));
+$('#s-reset').addEventListener('click', () => { game.n = game.wMe = game.wCp = 0; game.hist = []; game.last = null; if (game.mode === 'second') gameMode('second'); else gameDraw(); });
+
+/* ---------- round 3: every pair, simulated ---------- */
+const SIM_N = 20000;
+const sim = { share: null };
+function simRun() {
+  const share = {};
+  NAMES.forEach(x => NAMES.forEach(y => {
+    if (x === y) return;
+    let w = 0;
+    for (let i = 0; i < SIM_N; i++) if (DICE[y][rollOf()] > DICE[x][rollOf()]) w++;
+    share[x + y] = w / SIM_N;            // the share of rolls in which the opponent's y beats your x
+  }));
+  sim.share = share; simDraw();
+}
+function simDraw() {
+  if (!sim.share) return;
+  const sh = sim.share;
+  let h = '<thead><tr><th class="rh cap">' + L('ви ↓', 'you ↓') + '</th>' + NAMES.map(k => '<th style="--c:' + COL[k] + '">' + k + '</th>').join('') + '</tr></thead><tbody>';
+  let dev = 0, devAt = '';
+  NAMES.forEach(x => {
+    h += '<tr><th class="rh" style="--c:' + COL[x] + '">' + x + '</th>';
+    NAMES.forEach(y => {
+      if (x === y) { h += '<td class="d">·</td>'; return; }
+      const ex = W[y + x] / 36, d = Math.abs(sh[x + y] - ex);
+      if (d > dev) { dev = d; devAt = x + ' / ' + y; }
+      h += '<td class="' + (BEST[x] === y ? 'best' : '') + '" style="--a:' + Math.round(ex * 22) + '%">' + frac(W[y + x], 36) + '<small>' + pct(sh[x + y]) + '</small></td>';
+    });
+    h += '</tr>';
+  });
+  $('#mx').innerHTML = h + '</tbody>';
+  $('#sim-me').textContent = L('у симуляції: ', 'simulated: ') + NAMES.map(x => x + ' ' + pct(1 - sh[x + BEST[x]])).join(' · ');
+  $('#sim-dev').textContent = dev < .001 ? '< 0.1%' : dec((100 * dev).toFixed(2)) + L(' п. п.', ' pp');
+  $('#sim-devs').textContent = L('у парі ', 'in the pair ') + devAt + L(' · похибка ±0,7 п. п. звичайна', ' · ±0.7 pp is normal noise');
+  $('#sim-n').textContent = fmt(12 * SIM_N);
+  $('#sim-prog').textContent = '';
+}
+$('#sim-run').addEventListener('click', simRun);
+function leagueDraw() {
+  const rows = NAMES.map(x => {
+    let w = 0, d = 0, l = 0;
+    NAMES.forEach(y => { if (x === y) return; const a = W[x + y], b = W[y + x]; if (a > b) w++; else if (a < b) l++; else d++; });
+    const mean = DICE[x].reduce((s, v) => s + v, 0) / 6;
+    return { x, w, d, l, pts: 3 * w + d, mean };
+  }).sort((p, q) => q.pts - p.pts || q.mean - p.mean);
+  $('#league').innerHTML = '<thead><tr><th>' + L('Кубик', 'Die') + '</th><th class="num">' + L('В–Н–П', 'W–D–L') + '</th><th class="num">' + L('Очки', 'Pts') + '</th><th class="num">' + L('Середнє', 'Avg') + '</th><th>' + L('Кому програє', 'Loses to') + '</th></tr></thead><tbody>' +
+    rows.map(r => '<tr><td><span class="dl" style="--c:' + COL[r.x] + '">' + r.x + '</span></td><td class="num">' + r.w + '–' + r.d + '–' + r.l + '</td><td class="num">' + r.pts + '</td><td class="num">' + dec(r.mean.toFixed(2)) + '</td><td>' +
+      NAMES.filter(y => W[y + r.x] > W[r.x + y]).map(y => y + ' (' + frac(W[y + r.x], 36) + ')').join(', ') + '</td></tr>').join('') + '</tbody>';
+}
+
+/* ---------- round 4: the cycle diagram ---------- */
+function cycleDraw() {
+  const P = { A: [70, 60], B: [250, 60], C: [250, 190], D: [70, 190] };
+  let s = '';
+  [['A', 'B'], ['B', 'C'], ['C', 'D'], ['D', 'A']].forEach(([a, b]) => { s += arrowSVG(P[a][0], P[a][1], P[b][0], P[b][1], '2/3', 'var(--ink)', 34); });
+  s += arrowSVG(P.C[0], P.C[1], P.A[0], P.A[1], '5/9', 'var(--muted)', 34, { dash: true, ox: 30, oy: -12 });
+  s += arrowSVG(P.B[0], P.B[1], P.D[0], P.D[1], '1/2', 'var(--muted)', 34, { dash: true, noHead: true, ox: -30, oy: -12 });
+  NAMES.forEach(k => {
+    const [x, y] = P[k];
+    s += '<rect x="' + (x - 24) + '" y="' + (y - 24) + '" width="48" height="48" rx="10" fill="var(--surface)" stroke="' + COL[k] + '" stroke-width="3"/>' +
+      '<text x="' + x + '" y="' + (y + 7) + '" text-anchor="middle" style="font-size:20px;font-weight:800" fill="' + COL[k] + '">' + k + '</text>';
+  });
+  s += '<text x="160" y="240" text-anchor="middle" class="mut">' + L('пунктир: пари навхрест, слабша перевага', 'dashed: the cross pairs, a weaker edge') + '</text>';
+  $('#cycle-svg').innerHTML = s;
+}
+
+/* ---------- round 4: 6 × 6 table for a pair ---------- */
+const PAIRS = [['A', 'B'], ['B', 'C'], ['C', 'D'], ['D', 'A'], ['C', 'A'], ['B', 'D']];
+let pairI = 0;
+function pairDraw() {
+  $('#pair-pick').innerHTML = PAIRS.map((p, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === pairI) + '">' + p[0] + ' – ' + p[1] + '</button>').join('');
+  const [x, y] = PAIRS[pairI];
+  let h = '<thead><tr><th class="cap" style="font-size:.66rem">' + x + ' \\ ' + y + '</th>' + DICE[y].map(v => '<th style="--c:' + COL[y] + '">' + v + '</th>').join('') + '</tr></thead><tbody>';
+  DICE[x].forEach(a => {
+    h += '<tr><th style="--c:' + COL[x] + '">' + a + '</th>' + DICE[y].map(b => a > b ? '<td style="--c:' + COL[x] + '">' + x + '</td>' : a < b ? '<td style="--c:' + COL[y] + '">' + y + '</td>' : '<td class="t">=</td>').join('') + '</tr>';
+  });
+  $('#grid6').innerHTML = h + '</tbody>';
+  const wx = W[x + y], wy = W[y + x];
+  $('#pair-cnt').innerHTML = '<div style="--c:' + COL[x] + '"><b>' + wx + ' / 36</b>' + L('виграє ', 'wins for ') + x + ' · ' + frac(wx, 36) + '</div>' +
+    '<div style="--c:' + COL[y] + '"><b>' + wy + ' / 36</b>' + L('виграє ', 'wins for ') + y + ' · ' + frac(wy, 36) + '</div>';
+}
+$('#pair-pick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pairI = +b.dataset.i; pairDraw(); });
+
+/* ---------- round 5: one die or two ---------- */
+// the distribution of the total of k rolls of a die, as {total: count of the 6^k outcomes}
+function totals(f, k) {
+  let d = { 0: 1 };
+  for (let i = 0; i < k; i++) { const n = {}; Object.keys(d).forEach(s => f.forEach(v => { n[+s + v] = (n[+s + v] || 0) + d[s]; })); d = n; }
+  return d;
+}
+// exact chances that x's total beats, ties and loses to y's, out of 6^(2k)
+function duel(fx, fy, k) {
+  const a = totals(fx, k), b = totals(fy, k);
+  let w = 0, t = 0, n = 0;
+  Object.keys(a).forEach(s => Object.keys(b).forEach(r => { const m = a[s] * b[r]; n += m; if (+s > +r) w += m; else if (+s === +r) t += m; }));
+  return { w, t, l: n - w - t, n };
+}
+const GRIME = { red: [4, 4, 4, 4, 4, 9], blue: [2, 2, 2, 7, 7, 7], olive: [0, 5, 5, 5, 5, 5], yellow: [3, 3, 3, 3, 8, 8], magenta: [1, 1, 6, 6, 6, 6] };
+const GCOL = { red: '#C9472A', blue: '#2F5BD3', olive: '#6F7A1E', yellow: '#B07A00', magenta: '#8A3FA8' };
+const GNAME = { red: ['червоний', 'red'], blue: ['синій', 'blue'], olive: ['оливковий', 'olive'], yellow: ['жовтий', 'yellow'], magenta: ['пурпуровий', 'magenta'] };
+const SQUARE = { '492': [4, 4, 9, 9, 2, 2], '357': [3, 3, 5, 5, 7, 7], '816': [8, 8, 1, 1, 6, 6] };
+const SETS = [
+  { uk: 'Кубики Ефрона', en: 'Efron\'s dice', dice: DICE, col: k => COL[k], name: k => k,
+    chains: [{ uk: 'Коло Ефрона', en: 'Efron\'s circle', c: ['A', 'B', 'C', 'D'] }],
+    note: [L => L('Одним кубиком кожна стрілка 2/3.', 'With one die each arrow is 2/3.'),
+      L => L('З двома кубиками дві стрілки перевернулися, і кола вже немає. C тепер частіше виграє, ніж програє, проти всіх трьох: проти A 33/81 перемог і 16/81 поразок, решта нічиї.', 'With two dice two arrows flipped, and the circle is gone. C now wins more often than it loses against all three: against A it wins 33/81 and loses 16/81, the rest are ties.')] },
+  { uk: 'Кубики Ґрайма', en: 'Grime dice', dice: GRIME, col: k => GCOL[k], name: k => L(GNAME[k][0], GNAME[k][1]),
+    chains: [{ uk: 'За довжиною англійських назв', en: 'By the length of the names', c: ['red', 'blue', 'olive', 'yellow', 'magenta'] },
+      { uk: 'За абеткою англійських назв', en: 'Alphabetical', c: ['blue', 'magenta', 'olive', 'red', 'yellow'] }],
+    note: [L => L('Одним кубиком обидва кола тримаються.', 'With one die both circles hold.'),
+      L => L('З двома кубиками коло за довжиною перевертається повністю, а за абеткою тримається, крім стрілки оливковий – червоний: тепер 671 проти 625 з 1296 на користь червоного.', 'With two dice the length circle flips completely, while the alphabetical one holds, except the olive–red arrow: now 671 against 625 out of 1296 in red\'s favour.')] },
+  { uk: 'Магічний квадрат', en: 'Magic square', dice: SQUARE, col: k => ({ '492': '#2F5BD3', '357': '#168050', '816': '#C9472A' })[k], name: k => k.split('').join('·'),
+    chains: [{ uk: 'Рядки квадрата 4 9 2 / 3 5 7 / 8 1 6', en: 'Rows of the square 4 9 2 / 3 5 7 / 8 1 6', c: ['492', '816', '357'] }],
+    note: [L => L('Одним кубиком кожна стрілка 5/9.', 'With one die each arrow is 5/9.'),
+      L => L('З двома кубиками одна стрілка перевертається, а дві інші майже зникають: 39 проти 38 з 81, решта нічиї. Порядок стає звичайним.', 'With two dice one arrow flips and the other two nearly vanish: 39 against 38 out of 81, the rest ties. The order becomes an ordinary one.')] }
+];
+const ch = { set: 0, k: 1 };
+function chainsDraw() {
+  $('#ch-set').innerHTML = SETS.map((s, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === ch.set) + '">' + L(s.uk, s.en) + '</button>').join('');
+  $('#ch-k').innerHTML = [1, 2].map(k => '<button type="button" data-k="' + k + '" aria-pressed="' + (k === ch.k) + '">' + (k === 1 ? L('по одному кубику', 'one die each') : L('по два кубики', 'two dice each')) + '</button>').join('');
+  const S = SETS[ch.set];
+  $('#chains').innerHTML = S.chains.map(c => {
+    let row = '', flips = 0;
+    c.c.forEach((x, i) => {
+      const y = c.c[(i + 1) % c.c.length], r = duel(S.dice[x], S.dice[y], ch.k), rev = r.l > r.w;
+      if (rev) flips++;
+      row += '<span class="nd" style="--c:' + S.col(x) + '">' + S.name(x) + '</span>' +
+        '<span class="ar' + (rev ? ' rev' : '') + '">' + (rev ? '‹ ' + pct(r.l / r.n, 0) + ' ‹' : '› ' + pct(r.w / r.n, 0) + ' ›') + '</span>';
+    });
+    row += '<span class="nd" style="--c:' + S.col(c.c[0]) + '">' + S.name(c.c[0]) + '</span>';
+    const sum = flips === 0 ? L('коло тримається', 'the circle holds') : flips === c.c.length ? L('коло перевернулося повністю', 'the circle flipped completely')
+      : L('перевернулося стрілок: ' + flips + ' з ' + c.c.length, 'arrows flipped: ' + flips + ' of ' + c.c.length);
+    return '<div class="chain"><span class="kk">' + L(c.uk, c.en) + '</span><div class="row">' + row + '</div><span class="sum" style="color:' + (flips ? 'var(--loss)' : 'var(--win)') + '">' + sum + '</span></div>';
+  }).join('');
+  $('#ch-note').textContent = S.note[ch.k - 1](L) + ' ' + L('Відсоток показує шанс переможця пари.', 'The percentage is the pair winner\'s chance.');
+}
+$('#ch-set').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ch.set = +b.dataset.i; chainsDraw(); });
+$('#ch-k').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ch.k = +b.dataset.k; chainsDraw(); });
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Кубики Ефрона', 'Efron\'s Dice');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  $('#cycle-svg').setAttribute('aria-label', L('Коло перемог кубиків', 'The dice\'s circle of wins'));
+  heroDraw(); setupDraw(); guessText(); gameDraw(); simDraw(); leagueDraw(); cycleDraw(); pairDraw(); chainsDraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang === 'en' ? 'en' : 'uk'; applyLang(); });
+document.addEventListener('solved', () => setTimeout(heroDraw, 0));
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+
+/* ---------- opening state: everything filled ---------- */
+simRun();
+applyLang();
+heroStart();
+})();
+</script>
