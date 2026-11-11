@@ -1,0 +1,402 @@
+<style>
+/* Layout: glossary article in three layers: a price war guess and a "find the dominant strategy" checker over three
+   2×2 games (plain words), the definition, crossing out dominated strategies in a 3×3 game and where dominance lives
+   in business (rigorous), the formula, domination by a mix, weak dominance whose order matters and history (deeper). */
+:root { --tint: #F2EEE2; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+.ex { font-variant-numeric: tabular-nums; background: var(--paper); border-radius: 10px; padding: 10px 12px; font-size: .95rem; overflow-wrap: anywhere; }
+.pay { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.pay div { background: var(--paper); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; font-size: .9rem; }
+.pay b { font-size: 1.05rem; }
+.after { display: grid; gap: 14px; }
+.after[hidden] { display: none; }
+.after .big { font-size: 1.25rem; font-weight: 800; }
+.after .big em { color: var(--signal); font-style: normal; }
+.seg-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg-btns button { font: inherit; font-size: .9rem; font-weight: 600; background: var(--paper); color: var(--ink); border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.seg-btns button:hover { border-color: var(--ink); }
+.seg-btns button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.seg-btns button.ok { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.seg-btns button.no { border-color: var(--signal); }
+.mx { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: stretch; max-width: 520px; }
+.mx .lab { font-size: .82rem; font-weight: 700; color: var(--muted); text-align: center; padding: 4px; overflow-wrap: anywhere; align-self: end; }
+.mx .lab.r { text-align: right; padding-right: 4px; max-width: 96px; align-self: center; }
+.mx .cell { background: var(--paper); border-radius: 12px; padding: 10px; min-height: 64px; display: grid; gap: 2px; align-content: center; font-variant-numeric: tabular-nums; font-size: .9rem; border: 2px solid transparent; }
+.mx .cell small { color: var(--muted); font-size: .76rem; }
+.mx .cell .w { font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.qrow { display: grid; gap: 8px; }
+.qrow > b { font-size: .95rem; }
+.score { font-variant-numeric: tabular-nums; }
+.el { display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); gap: 6px; max-width: 560px; }
+.el button.h { font: inherit; font-size: .8rem; font-weight: 700; background: var(--paper); color: var(--ink); border: 1.5px solid var(--line); border-radius: 10px; padding: 8px 6px; cursor: pointer; overflow-wrap: anywhere; }
+.el button.h:hover:not(:disabled) { border-color: var(--ink); }
+.el button.h:disabled { cursor: default; color: var(--muted); text-decoration: line-through; opacity: .55; }
+.el .corner { font-size: .72rem; color: var(--muted); align-self: end; padding: 4px; }
+.el .c { background: var(--paper); border-radius: 10px; padding: 10px 4px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; border: 2px solid transparent; transition: opacity .25s; }
+.el .c .b { color: var(--muted); font-weight: 600; }
+.el .c.out { opacity: .22; text-decoration: line-through; }
+.el .c.last { border-color: var(--ink); }
+.el .c.lost { border-color: var(--signal); border-style: dashed; opacity: .5; }
+.steps { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: .92rem; font-variant-numeric: tabular-nums; }
+@media (max-width: 420px) { .pay { grid-template-columns: 1fr; } .mx .cell { padding: 8px 6px; font-size: .82rem; } .el .c { font-size: .85rem; } }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="{{HOME}}">{{BRAND}}</a>
+    <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="{{GLOSSARY}}"><span class="uk">Словник</span><span class="en">Glossary</span></a> / <span class="uk">Домінантна стратегія</span><span class="en">Dominant strategy</span></p>
+
+  <header class="gl-head">
+    <span class="eyebrow"><span class="uk">Словник · домінантна стратегія</span><span class="en">Glossary · dominant strategy</span></span>
+    <h1><span class="uk">Найкраще за будь-якого розкладу — і все одно гірше?</span><span class="en">Best whatever happens, and still worse?</span></h1>
+    <p class="lead uk">Зазвичай, щоб ухвалити рішення в конкуренції, треба вгадати, що зробить суперник. Але іноді один варіант кращий за інші, хоч би що той зробив. Це і є домінантна стратегія: гадати не треба, думки конкурента можна не читати. Здавалося б, із нею не можна прогадати. Проте буває, що двоє грають свої домінантні стратегії й обидва отримують менше, ніж якби обидва від них відмовилися.</p>
+    <p class="lead en">Usually, to decide anything in a competition, you have to guess what the rival will do. But sometimes one option is better than the others whatever the rival does. That is a dominant strategy: no guessing, no need to read the rival's mind. It seems you can't go wrong with one. Yet two players can each play their dominant strategy and both end up with less than if both had given it up.</p>
+  </header>
+
+  <section class="gl-layers">
+  <div class="mp-layer" data-layer="easy">
+  <section class="gl-sec" id="war">
+    <h2><span class="uk">Дві кав'ярні на одній вулиці</span><span class="en">Two coffee shops on one street</span></h2>
+    <p class="uk">Щопонеділка кожна кав'ярня вирішує: тримати ціну чи зробити знижку. Домовитися власники не можуть. Тижневий прибуток, у тисячах гривень:</p>
+    <p class="en">Every Monday each coffee shop decides: keep its price or offer a discount. The owners can't make a deal. Weekly profit, in thousands:</p>
+    <div class="gl-panel">
+      <div class="pay">
+        <div><b><span class="uk">Обидві тримають ціну</span><span class="en">Both keep the price</span></b><span class="uk">по 3 кожній</span><span class="en">3 each</span></div>
+        <div><b><span class="uk">Обидві знижують</span><span class="en">Both cut</span></b><span class="uk">по 1 кожній</span><span class="en">1 each</span></div>
+        <div><b><span class="uk">Одна знижує, друга ні</span><span class="en">One cuts, the other doesn't</span></b><span class="uk">та, що знизила, забирає покупців: 5, друга лишається з 0</span><span class="en">the one that cut takes the customers: 5; the other is left with 0</span></div>
+        <div><b><span class="uk">Знижка вигідна за будь-якого розкладу</span><span class="en">A cut pays whatever happens</span></b><span class="uk">якщо сусідка тримає ціну: 5 замість 3; якщо знижує: 1 замість 0</span><span class="en">if the neighbour keeps its price: 5 instead of 3; if it cuts: 1 instead of 0</span></div>
+      </div>
+      <p><b><span class="uk">Обидві власниці розумні й обидві бачать, що знижка завжди краща. Що буде з прибутком кожної, якщо обидві оберуть кращий для себе варіант, порівняно з тижнем, коли обидві тримали ціну?</span><span class="en">Both owners are smart and both see that the cut is always better. If both pick the option that is better for them, what happens to each one's profit compared with a week when both kept the price?</span></b></p>
+      <div class="gl-btns" role="group" aria-label="Ваш варіант" data-aria-en="Your guess">
+        <button type="button" class="btn ghost" data-g="0"><span class="uk">Зросте</span><span class="en">It goes up</span></button>
+        <button type="button" class="btn ghost" data-g="1"><span class="uk">Не зміниться</span><span class="en">It stays the same</span></button>
+        <button type="button" class="btn ghost" data-g="2"><span class="uk">Впаде</span><span class="en">It goes down</span></button>
+      </div>
+      <div class="after" id="war-after" hidden>
+        <p id="war-msg" aria-live="polite"></p>
+        <p class="big"><span class="uk">Прибуток кожної впаде <em>утричі</em>: 1 замість 3.</span><span class="en">Each one's profit falls <em>threefold</em>: 1 instead of 3.</span></p>
+        <p class="uk">Обидва міркування правильні водночас. «Хоч би що зробила сусідка, мені краще знизити» — правда: 5 більше за 3, а 1 більше за 0. «Якщо обидві знизимо, обом буде гірше» — теж правда: 1 менше за 3. Знижка найкраща для кожної окремо, і та сама знижка, зроблена обома, гірша для кожної. Домінантна стратегія порівнює ваші варіанти за незмінного вибору суперника. Але суперник незмінним не лишається: він має ту саму таблицю і ту саму спокусу.</p>
+        <p class="en">Both lines of reasoning are right at once. "Whatever my neighbour does, I'm better off cutting" is true: 5 beats 3 and 1 beats 0. "If we both cut, we're both worse off" is true too: 1 is less than 3. The cut is best for each one alone, and the same cut made by both is worse for each. A dominant strategy compares your options while the rival's choice stays fixed. But the rival doesn't stay fixed: it has the same table and the same temptation.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="gl-sec" id="find">
+    <h2><span class="uk">Знайдіть домінантну стратегію</span><span class="en">Find the dominant strategy</span></h2>
+    <p class="uk">Перевірка проста: закрийте очі на свій улюблений варіант і порівнюйте по стовпцях. Візьміть перший стовпець (суперник обрав перший варіант) і подивіться, який ваш рядок дає вам більше. Потім другий стовпець. Якщо в обох виграє той самий рядок, він домінантний. Для суперника те саме, лише порівнюють рядок за рядком його числа. Спробуйте у трьох іграх.</p>
+    <p class="en">The test is simple: forget your favourite option and compare column by column. Take the first column (the rival picked its first option) and see which of your rows gives you more. Then the second column. If the same row wins in both, it is dominant. For the rival it's the same, except you compare its numbers row by row. Try it in three games.</p>
+    <div class="gl-panel">
+      <div class="seg-btns" role="group" aria-label="Гра" data-aria-en="Game">
+        <button type="button" data-game="war" aria-pressed="true"><span class="uk">Цінова війна</span><span class="en">Price war</span></button>
+        <button type="button" data-game="meet" aria-pressed="false"><span class="uk">Де зустрітися</span><span class="en">Where to meet</span></button>
+        <button type="button" data-game="entry" aria-pressed="false"><span class="uk">Новачок на ринку</span><span class="en">A newcomer</span></button>
+      </div>
+      <p id="f-story"></p>
+      <div class="mx" id="f-grid"></div>
+      <div class="qrow">
+        <b id="f-q1"></b>
+        <div class="seg-btns" id="f-a1" role="group"></div>
+      </div>
+      <div class="qrow">
+        <b id="f-q2"></b>
+        <div class="seg-btns" id="f-a2" role="group"></div>
+      </div>
+      <p id="f-msg" aria-live="polite"></p>
+      <p class="gl-note score" id="f-score"></p>
+    </div>
+    <p class="uk">Домінантна стратегія — розкіш, яка трапляється нечасто. У грі «Де зустрітися» найкращий вибір цілком залежить від іншого, і тоді важать домовленості й звички. А в грі з новачком цікаве інше: свою домінантну стратегію має лише лідер, але новачкові досить знати про неї. Якщо реклама вигідна лідерові завжди, лідер її дасть, і новачок відповідає на рекламу, а не на здогадки. Чужа домінантна стратегія теж підказка.</p>
+    <p class="en">A dominant strategy is a luxury that turns up rarely. In "where to meet" the best choice depends entirely on the other person, and then agreements and habits matter. In the newcomer game something else is interesting: only the leader has a dominant strategy, but it's enough for the newcomer to know about it. If advertising always pays for the leader, the leader will advertise, and the newcomer responds to the advertising rather than to guesses. Someone else's dominant strategy is a clue too.</p>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="strict">
+  <section class="gl-sec">
+    <h2><span class="uk">Що таке домінантна стратегія</span><span class="en">What a dominant strategy is</span></h2>
+    <p class="uk">Домінантна стратегія — це варіант, який дає гравцеві більше за будь-який інший його варіант, хоч би що обрали інші гравці. Протилежність — домінована стратегія: існує інший варіант, кращий за неї за будь-якого вибору інших. Розумний гравець домінованої стратегії не обирає ніколи, а домінантну обирає завжди, якщо вона є.</p>
+    <p class="en">A dominant strategy is an option that gives a player more than any other option of theirs, whatever the other players choose. The opposite is a dominated strategy: there is another option that beats it whatever the others choose. A rational player never picks a dominated strategy, and always picks the dominant one if there is one.</p>
+    <ul class="gl-when">
+      <li><b><span class="uk">Стовпці, а не найбільше число</span><span class="en">Columns, not the biggest number</span></b><span><span class="uk">Поширена помилка — обрати рядок із найбільшим числом у таблиці. Домінантність перевіряють порівнянням у кожному стовпці окремо: ваш варіант має виграти в усіх.</span><span class="en">A common mistake is to pick the row with the biggest number in the table. Dominance is checked by comparing within each column separately: your option has to win in all of them.</span></span></li>
+      <li><b><span class="uk">Строга і слабка</span><span class="en">Strict and weak</span></b><span><span class="uk">Строго домінантна стратегія краща всюди. Слабко домінантна ніде не гірша і хоч десь краща. Чесна ставка в аукціоні другої ціни слабко домінантна: часто вона дає те саме, що й інші ставки, але ніколи менше.</span><span class="en">A strictly dominant strategy is better everywhere. A weakly dominant one is never worse and better somewhere. An honest bid in a second-price auction is weakly dominant: it often gives the same as other bids, but never less.</span></span></li>
+      <li><b><span class="uk">Найкраще для себе ≠ найкраще разом</span><span class="en">Best for you ≠ best together</span></b><span><span class="uk">Домінантність говорить про одного гравця за незмінних інших. Про те, що буде, коли всі зіграють свою домінантну стратегію, вона не обіцяє нічого доброго, як у цінової війни.</span><span class="en">Dominance is about one player with the others held fixed. It promises nothing good about what happens when everyone plays their dominant strategy, as the price war shows.</span></span></li>
+      <li><b><span class="uk">Знати її досить</span><span class="en">Knowing it is enough</span></b><span><span class="uk">Щоб зіграти домінантну стратегію, не потрібні ні припущення про суперника, ні віра в його розумність. Тому прогноз «гравець зіграє домінантну стратегію» найнадійніший у теорії ігор.</span><span class="en">To play a dominant strategy you need no assumptions about the rival and no faith in their rationality. That is why "the player will play the dominant strategy" is the most reliable prediction in game theory.</span></span></li>
+    </ul>
+  </section>
+
+  <section class="gl-sec" id="elim">
+    <h2><span class="uk">Викреслюйте зайве</span><span class="en">Cross out what can't win</span></h2>
+    <p class="uk">Тут у кожного гравця три варіанти, і домінантної стратегії немає ні в кого. Але деякі варіанти доміновані: є інший, кращий за них за будь-якого вибору суперника. Розумний гравець їх не обере, а суперник, знаючи це, може їх викреслити й дивитися на меншу таблицю. У меншій таблиці з'являються нові доміновані варіанти. У клітинці спершу ваш виграш (рядки), потім виграш суперника (стовпці). Клітинка «5 · 5» найкраща для обох. Чи дійдуть до неї розумні гравці? Натискайте на рядок або стовпець, який, на вашу думку, можна викреслити.</p>
+    <p class="en">Here each player has three options, and neither has a dominant strategy. But some options are dominated: another option beats them whatever the rival picks. A rational player won't pick them, and the rival, knowing that, can cross them out and look at a smaller table. In the smaller table new dominated options appear. Each cell shows your payoff first (rows), then the rival's (columns). The "5 · 5" cell is the best for both. Will rational players get there? Tap a row or a column you think can be crossed out.</p>
+    <div class="gl-panel">
+      <div class="el" id="e-grid"></div>
+      <div class="gl-btns">
+        <button type="button" class="btn ghost" id="e-hint"><span class="uk">Підказка</span><span class="en">Hint</span></button>
+        <button type="button" class="btn ghost" id="e-reset"><span class="uk">Почати знову</span><span class="en">Start over</span></button>
+      </div>
+      <p id="e-msg" aria-live="polite"></p>
+      <ol class="steps" id="e-steps"></ol>
+    </div>
+    <p class="uk">Кожен крок тут спирається на попередній: суперник викреслює стовпець, лише якщо вірить, що ви не оберете вже викреслений рядок, а ви — якщо вірите, що він міркує так само. Чим довший ланцюжок, тим більше довіри до чужої розумності він вимагає і тим менш надійний прогноз, коли грають живі люди.</p>
+    <p class="en">Each step here rests on the one before: the rival crosses out a column only if it believes you won't pick a row that is already crossed out, and you only if you believe the rival reasons the same way. The longer the chain, the more faith in the other's rationality it needs, and the less reliable the prediction when real people play.</p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Де живуть домінантні стратегії</span><span class="en">Where dominant strategies live</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="uk">Цінові війни</span><span class="en">Price wars</span></b><span><span class="uk">Знижка, яка забирає покупців у конкурента, часто вигідна за будь-якої його поведінки. Тому ринки з кількома схожими гравцями так легко сповзають у війну цін, у якій програють усі продавці, а виграють покупці.</span><span class="en">A discount that steals the rival's customers often pays whatever the rival does. That's why markets with a few similar players slide so easily into a price war in which all the sellers lose and the buyers win.</span></span></li>
+      <li><b><span class="uk">Гарантія найнижчої ціни</span><span class="en">A lowest-price guarantee</span></b><span><span class="uk">«Знайдете дешевше — повернемо різницю» звучить як подарунок покупцям, а насправді змінює таблицю. Якщо обидві кав'ярні вирівнюють ціну під сусідку, знижка вже не забирає покупців: вона дає 1 замість 3, а проти знижки сусідки — ту саму 1. Тримати ціну стає слабко домінантною стратегією.</span><span class="en">"Find it cheaper and we'll refund the difference" sounds like a gift to buyers, but it actually changes the table. If both coffee shops match each other's price, a cut no longer steals customers: it gives 1 instead of 3, and against the neighbour's cut the same 1. Keeping the price becomes a weakly dominant strategy.</span></span></li>
+      <li><b><span class="uk">Рекламні гонки</span><span class="en">Advertising races</span></b><span><span class="uk">Якщо реклама переманює клієнтів у конкурентів, рекламуватися вигідно кожному окремо, а разом усі платять і нікого не переманюють. Авінаш Діксіт і Баррі Нейлбафф у книжці «Thinking Strategically» (1991) описують заборону реклами сигарет на телебаченні США 1971 року як послугу самим тютюновим компаніям: вона зупинила гонку, з якої жодна не могла вийти сама.</span><span class="en">If advertising lures customers from rivals, advertising pays for each one alone, but together everyone pays and nobody lures anyone. Avinash Dixit and Barry Nalebuff, in "Thinking Strategically" (1991), describe the 1971 ban on cigarette ads on US television as a favour to the tobacco companies themselves: it stopped a race none of them could leave alone.</span></span></li>
+      <li><b><span class="uk">Аукціон другої ціни</span><span class="en">The second-price auction</span></b><span><span class="uk">Перемагає найвища ставка, а платить переможець другу за величиною. Вільям Вікрі 1961 року показав: тут поставити рівно стільки, скільки для вас варта річ, слабко домінантно. Ставка вище інколи змусить переплатити, нижче інколи забере вигідну перемогу. Автоматична ставка eBay працює майже так само.</span><span class="en">The highest bid wins, and the winner pays the second-highest. In 1961 William Vickrey showed that bidding exactly what the item is worth to you is weakly dominant here. Bidding higher sometimes makes you overpay; bidding lower sometimes loses you a profitable win. eBay's automatic bidding works almost the same way.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="deep">
+  <section class="gl-sec">
+    <h2><span class="uk">Формула і зв'язок із рівновагою</span><span class="en">The formula and the link to equilibrium</span></h2>
+    <div class="gl-panel">
+      <p class="ex">u<sub>i</sub>(s<sub>i</sub>*, s<sub>−i</sub>) &gt; u<sub>i</sub>(s<sub>i</sub>, s<sub>−i</sub>) &nbsp;<span class="uk">для кожної іншої стратегії s<sub>i</sub> ≠ s<sub>i</sub>* і кожного вибору інших s<sub>−i</sub></span><span class="en">for every other strategy s<sub>i</sub> ≠ s<sub>i</sub>* and every choice of the others s<sub>−i</sub></span></p>
+      <p class="uk">Тут u<sub>i</sub> — виграш гравця i, s<sub>−i</sub> — стратегії всіх інших. На відміну від рівноваги Неша, де нерівність перевіряють лише проти рівноважних стратегій інших, тут вона мусить виконуватися проти всіх. Тому домінантна стратегія — набагато сильніша умова. Якщо в кожного гравця є строго домінантна стратегія, набір цих стратегій — єдина рівновага Неша гри. Зворотне хибне: рівновазі домінантні стратегії не потрібні. У полюванні на оленя (олень удвох дає по 4, заєць завжди 3, олень наодинці 0) жоден мисливець не має домінантної стратегії, а рівноваг дві.</p>
+      <p class="en">Here u<sub>i</sub> is player i's payoff and s<sub>−i</sub> the strategies of everyone else. Unlike a Nash equilibrium, where the inequality is checked only against the others' equilibrium strategies, here it must hold against all of them. So a dominant strategy is a far stronger condition. If every player has a strictly dominant strategy, the set of those strategies is the game's only Nash equilibrium. The converse is false: an equilibrium needs no dominant strategies. In the stag hunt (a stag caught together gives 4 each, a hare always 3, a stag alone 0) neither hunter has a dominant strategy, yet there are two equilibria.</p>
+      <p class="uk">Ще дві властивості викреслювання строго домінованих стратегій. Воно ніколи не викреслює рівновагу Неша. І порядок не важить: хоч би в якій послідовності викреслювати, залишиться той самий набір.</p>
+      <p class="en">Two more properties of crossing out strictly dominated strategies. It never crosses out a Nash equilibrium. And the order doesn't matter: whatever sequence you cross them out in, the same set remains.</p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Не гірший за жоден, але гірший за суміш</span><span class="en">Not beaten by any option, yet beaten by a mix</span></h2>
+    <div class="gl-panel">
+      <p class="uk">Нехай у вас три варіанти, а в суперника два: ліво і право. Варіант «Верх» дає 3 проти лівого і 0 проти правого, «Середина» — 0 і 3, «Низ» — 1 і 1. «Низ» не домінований жодним іншим варіантом: проти правого він кращий за «Верх», проти лівого кращий за «Середину». Але киньте монетку між «Верхом» і «Серединою»:</p>
+      <p class="en">Say you have three options and the rival has two: left and right. "Top" gives 3 against left and 0 against right, "Middle" 0 and 3, "Bottom" 1 and 1. "Bottom" is not dominated by any other option: against right it beats "Top", against left it beats "Middle". But toss a coin between "Top" and "Middle":</p>
+      <p class="ex">½ · 3 + ½ · 0 = 1,5 &gt; 1 &nbsp; · &nbsp; ½ · 0 + ½ · 3 = 1,5 &gt; 1</p>
+      <p class="uk">Монетка в середньому дає 1,5 проти будь-якого вибору суперника, а «Низ» лише 1. Так само спрацьовує будь-яка суміш, де «Верх» обирають з імовірністю між 1/3 і 2/3. Тож «Низ» домінований сумішшю, і розумний гравець його не обере, хоча жоден окремий варіант його не перемагає. Тому в строгій теорії стратегію викреслюють, якщо її домінує будь-яка суміш.</p>
+      <p class="en">On average the coin gives 1.5 against whatever the rival picks, while "Bottom" gives only 1. Any mix that picks "Top" with a probability between 1/3 and 2/3 works too. So "Bottom" is dominated by a mix, and a rational player won't pick it, though no single option beats it. That's why rigorous theory crosses out a strategy if any mix dominates it.</p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Слабке домінування: порядок важить</span><span class="en">Weak dominance: the order matters</span></h2>
+    <div class="gl-panel">
+      <p class="uk">Зі слабко домінованими стратегіями викреслювання поводиться дивно. Візьміть гру, де у вас три варіанти, а в суперника два, ліво і право. Пари чисел — ваш виграш і виграш суперника.</p>
+      <p class="en">With weakly dominated strategies, crossing out behaves strangely. Take a game where you have three options and the rival has two, left and right. The pairs are your payoff and the rival's.</p>
+      <p class="ex"><span class="uk">Верх: (1, 1) і (0, 0) · Середина: (1, 1) і (2, 1) · Низ: (0, 0) і (2, 1)</span><span class="en">Top: (1, 1) and (0, 0) · Middle: (1, 1) and (2, 1) · Bottom: (0, 0) and (2, 1)</span></p>
+      <p class="uk">«Середина» слабко домінує і «Верх», і «Низ». Викресліть спершу «Верх»: тоді суперникові «право» слабко краще за «ліво», і гра закінчується виграшами (2, 1). Викресліть спершу «Низ»: тепер суперникові слабко краще «ліво», і виходить (1, 1). Та сама гра, ті самі правила, а відповідь залежить від того, з чого почати. Зі строгим домінуванням такого не буває.</p>
+      <p class="en">"Middle" weakly dominates both "Top" and "Bottom". Cross out "Top" first: then "right" is weakly better than "left" for the rival, and the game ends with payoffs (2, 1). Cross out "Bottom" first: now "left" is weakly better for the rival, and you get (1, 1). The same game, the same rules, and the answer depends on where you start. With strict dominance this never happens.</p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Звідки взялася ідея</span><span class="en">Where the idea came from</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="uk">Чесність як стратегія</span><span class="en">Honesty as a strategy</span></b><span><span class="uk">Вільям Вікрі 1961 року в статті про аукціони вперше показав правила, за яких казати правду слабко домінантно для кожного учасника. 1996 року він отримав за цю й інші роботи премію з економіки пам'яті Нобеля.</span><span class="en">In 1961, in a paper on auctions, William Vickrey first showed rules under which telling the truth is weakly dominant for every participant. In 1996 he received the Nobel memorial prize in economics for this and other work.</span></span></li>
+      <li><b><span class="uk">Голосування без хитрощів неможливе</span><span class="en">Voting without tricks is impossible</span></b><span><span class="uk">Аллан Гіббард (1973) і Марк Саттертвейт (1975) довели: якщо кандидатів щонайменше троє і кожен може перемогти, то будь-яке правило голосування, за якого чесний голос слабко домінантний для кожного виборця, — диктатура: результат вирішує один виборець. У решті правил комусь інколи вигідно голосувати не за свого фаворита.</span><span class="en">Allan Gibbard (1973) and Mark Satterthwaite (1975) proved that if there are at least three candidates and each can win, then any voting rule under which an honest vote is weakly dominant for every voter is a dictatorship: one voter decides the result. Under every other rule, someone sometimes gains by not voting for their favourite.</span></span></li>
+      <li><b><span class="uk">Принцип домінування проти середнього</span><span class="en">Dominance against the average</span></b><span><span class="uk">Філософ Роберт Нозік 1969 року в статті «Newcomb's Problem and Two Principles of Choice» описав задачу, де принцип «обирай домінантне» і розрахунок середнього виграшу радять різне, і досі немає згоди, хто з них правий.</span><span class="en">In 1969 the philosopher Robert Nozick, in "Newcomb's Problem and Two Principles of Choice", described a problem where the rule "pick what dominates" and the calculation of the average payoff give different advice, and there is still no agreement on which is right.</span></span></li>
+      <li><b><span class="uk">Від викреслювання до раціоналізованості</span><span class="en">From crossing out to rationalizability</span></b><span><span class="uk">1984 року Дуглас Бернгайм і Девід Пірс в одному номері журналу Econometrica незалежно описали, які стратегії може обрати розумний гравець, який знає, що інші теж розумні. Для двох гравців це саме ті, що лишаються після викреслювання всіх строго домінованих стратегій, зокрема домінованих сумішшю.</span><span class="en">In 1984 Douglas Bernheim and David Pearce, in the same issue of Econometrica, independently described which strategies a rational player who knows the others are rational too may choose. For two players these are exactly the ones left after crossing out all strictly dominated strategies, including those dominated by a mix.</span></span></li>
+    </ul>
+  </section>
+  </div>
+  </section>
+
+  <!--PROBLEMS-->
+
+  <!--TERMS-->
+
+  <footer>
+    <span class="uk">Математичні парадокси · автор <a href="{{HOME}}#author">Дмитро Кудренко</a></span><span class="en">Math paradoxes · by <a href="{{HOME}}#author">Dmytro Kudrenko</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const en = document.documentElement.dataset.lang === 'en', L = (uk, e) => en ? e : uk;
+  const $ = s => document.querySelector(s);
+  if (en) document.querySelectorAll('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn));
+  const q = s => L('«' + s + '»', '"' + s + '"');
+  const join = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + L(' і ', ' and ') + a[a.length - 1];
+
+  // 1. the price war: guess first, then the threefold drop
+  document.querySelectorAll('[data-g]').forEach(b => b.addEventListener('click', () => {
+    const k = +b.dataset.g;
+    document.querySelectorAll('[data-g]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    $('#war-after').hidden = false;
+    $('#war-msg').textContent = [
+      L('Здається логічним: кожна зробила найвигідніший для себе крок. Але обидві знизили ціну, і покупців ніхто ні в кого не забрав.', 'It seems logical: each made the move that pays her most. But both cut, and nobody took customers from anyone.'),
+      L('Покупців справді ніхто не переманив, але ціни впали в обох, а разом із ними й прибуток.', 'Indeed nobody lured any customers away, but prices fell at both shops, and profit fell with them.'),
+      L('Так. Кожна вчинила найкраще для себе, і саме тому обом стало гірше.', 'Yes. Each did what was best for her, and that is exactly why both are worse off.')][k];
+  }));
+
+  // 2. find the dominant strategy in three 2×2 games; u[r][c] = [row player's payoff, column player's payoff]
+  const GAMES = {
+    war: { p1: L('Ви', 'You'), p2: L('Сусідка', 'Neighbour'), s1: [L('Тримати ціну', 'Keep price'), L('Знизити', 'Cut')], s2: [L('Тримати ціну', 'Keep price'), L('Знизити', 'Cut')],
+      u: [[[3, 3], [0, 5]], [[5, 0], [1, 1]]],
+      story: L('Цінова війна кав\'ярень. Рядки — ваш вибір, стовпці — вибір сусідки. У клітинці ваш прибуток і прибуток сусідки, у тисячах.', 'The coffee-shop price war. Rows are your choice, columns your neighbour\'s. Each cell shows your profit and your neighbour\'s, in thousands.'),
+      end: L('Обидві мають домінантну стратегію, до того ж ту саму: знизити. Звідси й цінова війна.', 'Both have a dominant strategy, the same one: cut. Hence the price war.') },
+    meet: { p1: L('Ви', 'You'), p2: L('Партнер', 'Partner'), s1: [L('Кав\'ярня', 'Café'), L('Офіс', 'Office')], s2: [L('Кав\'ярня', 'Café'), L('Офіс', 'Office')],
+      u: [[[2, 2], [0, 0]], [[0, 0], [1, 1]]],
+      story: L('Ви з партнером забули домовитися, де зустрічаєтеся, а телефони сіли. Кав\'ярня обом приємніша (по 2), офіс теж годиться (по 1), розминутися — 0.', 'You and a partner forgot to agree where to meet, and both phones are dead. The café is nicer for both (2 each), the office will do (1 each), missing each other is 0.'),
+      end: L('Ні в кого немає домінантної стратегії: найкраще місце — там, де буде інший. Тут допомагають домовленості, звички і те, що здається очевидним обом.', 'Nobody has a dominant strategy: the best place is wherever the other one is. Here agreements, habits and whatever seems obvious to both are what help.') },
+    entry: { p1: L('Лідер', 'Leader'), p2: L('Новачок', 'Newcomer'), s1: [L('Реклама', 'Advertise'), L('Без реклами', 'No ads')], s2: [L('Зайти', 'Enter'), L('Не заходити', 'Stay out')],
+      u: [[[4, 0], [6, 1]], [[2, 3], [5, 1]]],
+      story: L('Ви — лідер ринку і вирішуєте, чи запускати велику рекламу. Новачок вирішує, чи заходити на ринок. Прибуток у мільйонах.', 'You are the market leader deciding whether to launch a big ad campaign. A newcomer decides whether to enter the market. Profit in millions.'),
+      end: L('Реклама домінантна для лідера, а новачок такої стратегії не має: проти реклами йому краще не заходити, без реклами — заходити. Але він знає, що лідер рекламуватиметься завжди, тож і гадати не треба: не заходити (1 більше за 0).', 'Advertising is dominant for the leader, while the newcomer has no such strategy: against advertising it should stay out, against no ads it should enter. But it knows the leader will always advertise, so there\'s no guessing: stay out (1 beats 0).') }
+  };
+  // index of the strictly dominant strategy for player 0 (rows) or 1 (columns), or -1
+  const domIdx = (u, p) => {
+    for (let s = 0; s < 2; s++) {
+      let ok = true;
+      for (let o = 0; o < 2; o++) { const a = p ? u[o][s][1] : u[s][o][0], b = p ? u[o][1 - s][1] : u[1 - s][o][0]; if (!(a > b)) ok = false; }
+      if (ok) return s;
+    }
+    return -1;
+  };
+  let gk = 'war';
+  const ans = { war: [null, null], meet: [null, null], entry: [null, null] };
+  const first = {};
+  function why(G, p) {
+    // compare the player's two options against each of the other's options
+    const mine = p ? G.s2 : G.s1, theirs = p ? G.s1 : G.s2;
+    return [0, 1].map(o => {
+      const a = p ? G.u[o][0][1] : G.u[0][o][0], b = p ? G.u[o][1][1] : G.u[1][o][0];
+      const w = a > b ? 0 : b > a ? 1 : -1;
+      return L('проти ', 'against ') + q(theirs[o]) + ': ' + (w < 0 ? L('однаково, ', 'a tie, ') + a : q(mine[w]) + ' ' + Math.max(a, b) + ' > ' + Math.min(a, b));
+    }).join('; ');
+  }
+  function drawFind() {
+    const G = GAMES[gk], box = $('#f-grid'); box.innerHTML = '';
+    const add = (html, cls) => { const el = document.createElement('div'); el.className = cls; el.innerHTML = html; box.appendChild(el); return el; };
+    add('', 'lab');
+    G.s2.forEach(s => add(G.p2 + ': ' + s, 'lab'));
+    const a = ans[gk];
+    for (let r = 0; r < 2; r++) {
+      add(G.p1 + ': ' + G.s1[r], 'lab r');
+      for (let c = 0; c < 2; c++) {
+        const v = G.u[r][c];
+        const w1 = a[0] !== null && v[0] > G.u[1 - r][c][0], w2 = a[1] !== null && v[1] > G.u[r][1 - c][1];
+        add('<span><small>' + G.p1 + '</small> <span class="' + (w1 ? 'w' : '') + '">' + v[0] + '</span></span><span><small>' + G.p2 + '</small> <span class="' + (w2 ? 'w' : '') + '">' + v[1] + '</span></span>', 'cell');
+      }
+    }
+    $('#f-story').textContent = G.story;
+    $('#f-q1').textContent = L('Чи є домінантна стратегія в гравця «' + G.p1 + '» (рядки)?', 'Does "' + G.p1 + '" (rows) have a dominant strategy?');
+    $('#f-q2').textContent = L('А в гравця «' + G.p2 + '» (стовпці)?', 'And "' + G.p2 + '" (columns)?');
+    [0, 1].forEach(p => {
+      const el = $('#f-a' + (p + 1)), opts = (p ? G.s2 : G.s1).concat([L('Немає', 'None')]);
+      el.setAttribute('aria-label', p ? G.p2 : G.p1);
+      el.innerHTML = '';
+      const right = domIdx(G.u, p), mark = right < 0 ? 2 : right;
+      opts.forEach((t, i) => {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = t;
+        b.setAttribute('aria-pressed', a[p] === i);
+        if (a[p] !== null) b.className = i === mark ? 'ok' : a[p] === i ? 'no' : '';
+        b.addEventListener('click', () => {
+          a[p] = i; const key = gk + p; if (!(key in first)) first[key] = i === mark;
+          drawFind(); explain(p, i === mark);
+        });
+        el.appendChild(b);
+      });
+    });
+    if (a[0] === null && a[1] === null) $('#f-msg').textContent = L('Оберіть відповідь для кожного гравця. Підкреслене число — кращий виграш гравця в цьому стовпці чи рядку.', 'Pick an answer for each player. An underlined number is the player\'s better payoff in that column or row.');
+    score();
+  }
+  function explain(p, ok) {
+    const G = GAMES[gk], a = ans[gk], right = domIdx(G.u, p);
+    const name = p ? G.p2 : G.p1;
+    let msg = (ok ? L('Так. ', 'Right. ') : L('Не зовсім. ', 'Not quite. ')) + name + ': ' + why(G, p) + '. ';
+    msg += right < 0 ? L('Найкращий вибір змінюється разом із вибором іншого, тож домінантної стратегії немає.', 'The best choice changes with the other\'s choice, so there is no dominant strategy.')
+                     : q((p ? G.s2 : G.s1)[right]) + L(' краще в обох випадках: це домінантна стратегія.', ' is better in both cases: it is a dominant strategy.');
+    if (a[0] !== null && a[1] !== null) msg += ' ' + G.end;
+    $('#f-msg').textContent = msg;
+  }
+  function score() {
+    const n = Object.keys(first).length, k = Object.values(first).filter(Boolean).length;
+    $('#f-score').textContent = n ? L('Правильно з першої спроби: ' + k + ' з ' + n + (n < 6 ? ' (усього питань 6)' : ''), 'Right at the first try: ' + k + ' of ' + n + (n < 6 ? ' (6 questions in all)' : '')) : '';
+  }
+  document.querySelectorAll('[data-game]').forEach(b => b.addEventListener('click', () => {
+    gk = b.dataset.game;
+    document.querySelectorAll('[data-game]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    drawFind();
+    const a = ans[gk];
+    if (a[1] !== null) explain(1, a[1] === (domIdx(GAMES[gk].u, 1) < 0 ? 2 : domIdx(GAMES[gk].u, 1)));
+    else if (a[0] !== null) explain(0, a[0] === (domIdx(GAMES[gk].u, 0) < 0 ? 2 : domIdx(GAMES[gk].u, 0)));
+  }));
+
+  // 3. iterated elimination of strictly dominated strategies in a 3×3 game
+  const E = [[[4, 3], [6, 1], [2, 0]], [[1, 0], [5, 5], [5, 1]], [[2, 0], [1, 0], [0, 5]]];
+  const RN = [L('Верх', 'Top'), L('Середина', 'Middle'), L('Низ', 'Bottom')], CN = [L('Ліво', 'Left'), L('Центр', 'Centre'), L('Право', 'Right')];
+  let rows, cols, log;
+  const pay = (p, s, o) => p ? E[o][s][1] : E[s][o][0];
+  // a strategy of player p that strictly beats s against every remaining option of the other player, or -1
+  function beater(p, s) {
+    const S = p ? cols : rows, O = p ? rows : cols;
+    for (const t of S) if (t !== s && O.every(o => pay(p, t, o) > pay(p, s, o))) return t;
+    return -1;
+  }
+  function eReset() { rows = [0, 1, 2]; cols = [0, 1, 2]; log = []; eDraw(); $('#e-msg').textContent = L('Почніть із будь-якого рядка чи стовпця, який, на вашу думку, завжди гірший за якийсь інший.', 'Start with any row or column you think is always worse than some other one.'); }
+  function eDraw() {
+    const box = $('#e-grid'); box.innerHTML = '';
+    const corner = document.createElement('div'); corner.className = 'corner'; corner.textContent = L('ви · суперник', 'you · rival'); box.appendChild(corner);
+    const done = rows.length === 1 && cols.length === 1;
+    const head = (p, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'h';
+      b.textContent = (p ? CN : RN)[i];
+      b.disabled = !(p ? cols : rows).includes(i) || done;
+      b.setAttribute('aria-label', (p ? L('Викреслити стовпець ', 'Cross out column ') : L('Викреслити рядок ', 'Cross out row ')) + (p ? CN : RN)[i]);
+      b.addEventListener('click', () => tryOut(p, i));
+      box.appendChild(b);
+    };
+    [0, 1, 2].forEach(c => head(1, c));
+    for (let r = 0; r < 3; r++) {
+      head(0, r);
+      for (let c = 0; c < 3; c++) {
+        const d = document.createElement('div'), alive = rows.includes(r) && cols.includes(c);
+        d.className = 'c' + (alive ? '' : ' out') + (done && alive ? ' last' : '') + (done && r === 1 && c === 1 ? ' lost' : '');
+        d.innerHTML = E[r][c][0] + ' <span class="b">· ' + E[r][c][1] + '</span>';
+        box.appendChild(d);
+      }
+    }
+    $('#e-steps').innerHTML = log.map(x => '<li>' + x + '</li>').join('');
+    $('#e-hint').disabled = done;
+  }
+  function tryOut(p, s) {
+    const t = beater(p, s), S = p ? CN : RN, O = p ? rows : cols, ON = p ? RN : CN;
+    if (t >= 0) {
+      const cmp = O.map(o => pay(p, s, o) + ' < ' + pay(p, t, o)).join(', ');
+      (p ? cols : rows).splice((p ? cols : rows).indexOf(s), 1);
+      log.push(L((p ? 'Суперник' : 'Ви') + ': варіант ' + q(S[s]) + ' гірший за ' + q(S[t]) + ' проти ' + join(O.map(o => q(ON[o]))) + ' (' + cmp + ').',
+                 (p ? 'Rival' : 'You') + ': the option ' + q(S[s]) + ' is worse than ' + q(S[t]) + ' against ' + join(O.map(o => q(ON[o]))) + ' (' + cmp + ').'));
+      eDraw();
+      if (rows.length === 1 && cols.length === 1) {
+        const v = E[rows[0]][cols[0]];
+        $('#e-msg').textContent = L('Лишилася одна клітинка: ' + v[0] + ' · ' + v[1] + '. Клітинку 5 · 5, найкращу для обох, викреслили, хоча ніхто не робив нічого нерозумного. До неї не дійти: з неї вам вигідно перейти на «Верх» (6 замість 5). Зверніть увагу, що домінантної стратегії на старті не мав ніхто.',
+          'One cell is left: ' + v[0] + ' · ' + v[1] + '. The 5 · 5 cell, best for both, got crossed out, though nobody did anything irrational. You can\'t get there: from it you gain by moving to "Top" (6 instead of 5). Note that nobody had a dominant strategy at the start.');
+      } else $('#e-msg').textContent = L('Викреслено. У меншій таблиці пошукайте наступний.', 'Crossed out. Look for the next one in the smaller table.');
+    } else {
+      const others = (p ? cols : rows).filter(x => x !== s);
+      const reasons = others.map(t2 => { const o = O.find(o => pay(p, s, o) >= pay(p, t2, o)); return L('проти ' + q(ON[o]) + ' ' + q(S[s]) + ' дає ' + pay(p, s, o) + ', а ' + q(S[t2]) + ' ' + pay(p, t2, o), 'against ' + q(ON[o]) + ' ' + q(S[s]) + ' gives ' + pay(p, s, o) + ' and ' + q(S[t2]) + ' ' + pay(p, t2, o)); });
+      $('#e-msg').textContent = L('Поки ні: варіант ' + q(S[s]) + ' не гірший за кожен інший. ', 'Not yet: the option ' + q(S[s]) + ' is not worse than every other one. ') + reasons.join('; ').replace(/^./, c => c.toUpperCase()) + '.' +
+        (p ? L(' Числа суперника — другі в клітинці.', ' The rival\'s numbers are the second in each cell.') : L(' Ваші числа — перші в клітинці.', ' Your numbers are the first in each cell.'));
+    }
+  }
+  $('#e-hint').onclick = () => {
+    for (const p of [0, 1]) for (const s of (p ? cols : rows)) { const t = beater(p, s); if (t >= 0) {
+      $('#e-msg').textContent = L('Подивіться на ' + (p ? 'стовпець ' : 'рядок ') + q((p ? CN : RN)[s]) + ' і порівняйте ' + (p ? 'другі числа' : 'перші числа') + ' з ' + (p ? 'стовпцем ' : 'рядком ') + q((p ? CN : RN)[t]) + '.',
+        'Look at the ' + (p ? 'column ' : 'row ') + q((p ? CN : RN)[s]) + ' and compare its ' + (p ? 'second' : 'first') + ' numbers with the ' + (p ? 'column ' : 'row ') + q((p ? CN : RN)[t]) + '.'); return; } }
+  };
+  $('#e-reset').onclick = eReset;
+
+  drawFind(); eReset();
+})();
+</script>

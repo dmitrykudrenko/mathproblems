@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/glossary/dominant-strategy/", "en": "/glossary/dominant-strategy/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = null;
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  // the gate card sits after round 1; once it hides, the browser would keep the bottom of the page in view, so jump to round 2
+  function toRounds(b) {
+    var r = b.closest(".sp-gate") && document.querySelector(".sp-rounds");
+    if (r) requestAnimationFrame(function () { r.scrollIntoView({ block: "start" }); });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+    if (on) toRounds(b);
+  });
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else { window.mpSolve(); toRounds(b); }
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+
+<title>Домінантна стратегія простими словами: краще завжди, а разом гірше</title>
+<meta name="description" content="Знижка вигідна, хоч би що зробив конкурент, а коли знижують обидва, кожен заробляє втричі менше. Знайдіть домінантні стратегії в іграх і викресліть зайве.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/glossary/dominant-strategy/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/glossary/dominant-strategy/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/glossary/dominant-strategy/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/glossary/dominant-strategy/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Домінантна стратегія простими словами: краще завжди, а разом гірше">
+<meta property="og:description" content="Знижка вигідна, хоч би що зробив конкурент, а коли знижують обидва, кожен заробляє втричі менше. Знайдіть домінантні стратегії в іграх і викресліть зайве.">
+<meta property="og:url" content="https://mathparadoxes.com/glossary/dominant-strategy/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Домінантна стратегія: найкращий вибір за будь-якого розкладу робить гірше обом?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Домінантна стратегія простими словами: краще завжди, а разом гірше">
+<meta name="twitter:description" content="Знижка вигідна, хоч би що зробив конкурент, а коли знижують обидва, кожен заробляє втричі менше. Знайдіть домінантні стратегії в іграх і викресліть зайве.">
+<meta name="twitter:image" content="https://mathparadoxes.com/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/glossary/dominant-strategy/#page", "url": "https://mathparadoxes.com/glossary/dominant-strategy/", "name": "Домінантна стратегія простими словами: краще завжди, а разом гірше", "description": "Знижка вигідна, хоч би що зробив конкурент, а коли знижують обидва, кожен заробляє втричі менше. Знайдіть домінантні стратегії в іграх і викресліть зайве.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "explanation"], "about": [{"@type": "DefinedTerm", "name": "Домінантна стратегія", "description": "Варіант, який дає гравцеві більше за будь-який інший його варіант, хоч би що обрали інші.", "inDefinedTermSet": "https://mathparadoxes.com/glossary/"}], "datePublished": "2026-11-11", "dateModified": "2026-11-11", "author": {"@id": "https://mathparadoxes.com/#author"}, "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "Словник", "item": "https://mathparadoxes.com/glossary/"}, {"@type": "ListItem", "position": 3, "name": "Домінантна стратегія", "item": "https://mathparadoxes.com/glossary/dominant-strategy/"}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: glossary article in three layers: a price war guess and a "find the dominant strategy" checker over three
+   2×2 games (plain words), the definition, crossing out dominated strategies in a 3×3 game and where dominance lives
+   in business (rigorous), the formula, domination by a mix, weak dominance whose order matters and history (deeper). */
+:root { --tint: #F2EEE2; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+.ex { font-variant-numeric: tabular-nums; background: var(--paper); border-radius: 10px; padding: 10px 12px; font-size: .95rem; overflow-wrap: anywhere; }
+.pay { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.pay div { background: var(--paper); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; font-size: .9rem; }
+.pay b { font-size: 1.05rem; }
+.after { display: grid; gap: 14px; }
+.after[hidden] { display: none; }
+.after .big { font-size: 1.25rem; font-weight: 800; }
+.after .big em { color: var(--signal); font-style: normal; }
+.seg-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg-btns button { font: inherit; font-size: .9rem; font-weight: 600; background: var(--paper); color: var(--ink); border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.seg-btns button:hover { border-color: var(--ink); }
+.seg-btns button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.seg-btns button.ok { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.seg-btns button.no { border-color: var(--signal); }
+.mx { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: stretch; max-width: 520px; }
+.mx .lab { font-size: .82rem; font-weight: 700; color: var(--muted); text-align: center; padding: 4px; overflow-wrap: anywhere; align-self: end; }
+.mx .lab.r { text-align: right; padding-right: 4px; max-width: 96px; align-self: center; }
+.mx .cell { background: var(--paper); border-radius: 12px; padding: 10px; min-height: 64px; display: grid; gap: 2px; align-content: center; font-variant-numeric: tabular-nums; font-size: .9rem; border: 2px solid transparent; }
+.mx .cell small { color: var(--muted); font-size: .76rem; }
+.mx .cell .w { font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.qrow { display: grid; gap: 8px; }
+.qrow > b { font-size: .95rem; }
+.score { font-variant-numeric: tabular-nums; }
+.el { display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); gap: 6px; max-width: 560px; }
+.el button.h { font: inherit; font-size: .8rem; font-weight: 700; background: var(--paper); color: var(--ink); border: 1.5px solid var(--line); border-radius: 10px; padding: 8px 6px; cursor: pointer; overflow-wrap: anywhere; }
+.el button.h:hover:not(:disabled) { border-color: var(--ink); }
+.el button.h:disabled { cursor: default; color: var(--muted); text-decoration: line-through; opacity: .55; }
+.el .corner { font-size: .72rem; color: var(--muted); align-self: end; padding: 4px; }
+.el .c { background: var(--paper); border-radius: 10px; padding: 10px 4px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; border: 2px solid transparent; transition: opacity .25s; }
+.el .c .b { color: var(--muted); font-weight: 600; }
+.el .c.out { opacity: .22; text-decoration: line-through; }
+.el .c.last { border-color: var(--ink); }
+.el .c.lost { border-color: var(--signal); border-style: dashed; opacity: .5; }
+.steps { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: .92rem; font-variant-numeric: tabular-nums; }
+@media (max-width: 420px) { .pay { grid-template-columns: 1fr; } .mx .cell { padding: 8px 6px; font-size: .82rem; } .el .c { font-size: .85rem; } }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=0215c449">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="https://mathparadoxes.com/"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+    <nav class="mp-nav" aria-label="Розділи" data-t="{&quot;cont&quot;: &quot;Продовжити&quot;, &quot;course&quot;: &quot;Продовжити курс&quot;}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Меню"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Продовжити: <b></b></a><a href="https://mathparadoxes.com/#all">Задачі</a><a href="https://mathparadoxes.com/courses/">Курси</a><a href="https://mathparadoxes.com/glossary/" aria-current="page">Словник</a></div><button type="button" class="mp-sx-btn" aria-haspopup="dialog" aria-label="Пошук" data-src="https://mathparadoxes.com/search.json" data-t="{&quot;btn&quot;: &quot;Пошук&quot;, &quot;ph&quot;: &quot;Задача, курс або термін&quot;, &quot;all&quot;: &quot;Усе&quot;, &quot;p&quot;: &quot;Задачі&quot;, &quot;c&quot;: &quot;Курси&quot;, &quot;g&quot;: &quot;Словник&quot;, &quot;recent&quot;: &quot;Нещодавно відкриті&quot;, &quot;try&quot;: &quot;Спробуйте&quot;, &quot;none&quot;: &quot;Нічого не знайшлося. Спробуйте інше слово або&quot;, &quot;every&quot;: &quot;подивіться всі задачі&quot;, &quot;keys&quot;: &quot;↑↓ вибрати · Enter відкрити · Esc закрити&quot;, &quot;solved&quot;: &quot;розв&#x27;язано&quot;, &quot;load&quot;: &quot;Завантаження…&quot;, &quot;fail&quot;: &quot;Не вдалося завантажити пошук. Перевірте з&#x27;єднання.&quot;, &quot;close&quot;: &quot;Закрити&quot;, &quot;course&quot;: &quot;Курс&quot;, &quot;chapter&quot;: &quot;розділ %d з %d&quot;, &quot;glossary&quot;: &quot;Словник&quot;, &quot;ideas&quot;: [&quot;ймовірність&quot;, &quot;A/B-тест&quot;, &quot;Монті Голл&quot;, &quot;медіана&quot;, &quot;співбесіда&quot;, &quot;аукціон&quot;]}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="mp-sx-lbl">Пошук</span><kbd>/</kbd></button></nav>
+  <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="https://mathparadoxes.com/glossary/dominant-strategy/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="https://mathparadoxes.com/glossary/dominant-strategy/en/" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="https://mathparadoxes.com/glossary/"><span class="uk">Словник</span></a> / <span class="uk">Домінантна стратегія</span></p>
+
+  <header class="gl-head">
+    <span class="eyebrow"><span class="uk">Словник · домінантна стратегія</span></span>
+    <h1><span class="uk">Найкраще за будь-якого розкладу&nbsp;— і все одно гірше?</span></h1>
+    <p class="lead uk">Зазвичай, щоб ухвалити рішення в конкуренції, треба вгадати, що зробить суперник. Але іноді один варіант кращий за інші, хоч би що той зробив. Це і є домінантна стратегія: гадати не треба, думки конкурента можна не читати. Здавалося б, із нею не можна прогадати. Проте буває, що двоє грають свої домінантні стратегії й обидва отримують менше, ніж якби обидва від них відмовилися.</p>
+    
+  </header>
+
+  <section class="gl-layers">
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">На пальцях</span><span class="mp-layer-desc">картинки, аналогії, маленькі числа</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «На пальцях» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <section class="gl-sec" id="war">
+    <h2><span class="uk">Дві кав'ярні на одній вулиці</span></h2>
+    <p class="uk">Щопонеділка кожна кав'ярня вирішує: тримати ціну чи зробити знижку. Домовитися власники не можуть. Тижневий прибуток, у тисячах гривень:</p>
+    
+    <div class="gl-panel">
+      <div class="pay">
+        <div><b><span class="uk">Обидві тримають ціну</span></b><span class="uk">по 3 кожній</span></div>
+        <div><b><span class="uk">Обидві знижують</span></b><span class="uk">по 1 кожній</span></div>
+        <div><b><span class="uk">Одна знижує, друга ні</span></b><span class="uk">та, що знизила, забирає покупців: 5, друга лишається з 0</span></div>
+        <div><b><span class="uk">Знижка вигідна за будь-якого розкладу</span></b><span class="uk">якщо сусідка тримає ціну: 5 замість 3; якщо знижує: 1 замість 0</span></div>
+      </div>
+      <p><b><span class="uk">Обидві власниці розумні й обидві бачать, що знижка завжди краща. Що буде з прибутком кожної, якщо обидві оберуть кращий для себе варіант, порівняно з тижнем, коли обидві тримали ціну?</span></b></p>
+      <div class="gl-btns" role="group" aria-label="Ваш варіант" data-aria-en="Your guess">
+        <button type="button" class="btn ghost" data-g="0"><span class="uk">Зросте</span></button>
+        <button type="button" class="btn ghost" data-g="1"><span class="uk">Не зміниться</span></button>
+        <button type="button" class="btn ghost" data-g="2"><span class="uk">Впаде</span></button>
+      </div>
+      <div class="after" id="war-after" hidden>
+        <p id="war-msg" aria-live="polite"></p>
+        <p class="big"><span class="uk">Прибуток кожної впаде <em>утричі</em>: 1 замість 3.</span></p>
+        <p class="uk">Обидва міркування правильні водночас. «Хоч би що зробила сусідка, мені краще знизити»&nbsp;— правда: 5 більше за 3, а 1 більше за 0. «Якщо обидві знизимо, обом буде гірше»&nbsp;— теж правда: 1 менше за 3. Знижка найкраща для кожної окремо, і та сама знижка, зроблена обома, гірша для кожної. Домінантна стратегія порівнює ваші варіанти за незмінного вибору суперника. Але суперник незмінним не лишається: він має ту саму таблицю і ту саму спокусу.</p>
+        
+      </div>
+    </div>
+  <script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "glossary-dominant-strategy" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+  <section class="gl-sec" id="find">
+    <h2><span class="uk">Знайдіть домінантну стратегію</span></h2>
+    <p class="uk">Перевірка проста: закрийте очі на свій улюблений варіант і порівнюйте по стовпцях. Візьміть перший стовпець (суперник обрав перший варіант) і подивіться, який ваш рядок дає вам більше. Потім другий стовпець. Якщо в обох виграє той самий рядок, він домінантний. Для суперника те саме, лише порівнюють рядок за рядком його числа. Спробуйте у трьох іграх.</p>
+    
+    <div class="gl-panel">
+      <div class="seg-btns" role="group" aria-label="Гра" data-aria-en="Game">
+        <button type="button" data-game="war" aria-pressed="true"><span class="uk">Цінова війна</span></button>
+        <button type="button" data-game="meet" aria-pressed="false"><span class="uk">Де зустрітися</span></button>
+        <button type="button" data-game="entry" aria-pressed="false"><span class="uk">Новачок на ринку</span></button>
+      </div>
+      <p id="f-story"></p>
+      <div class="mx" id="f-grid"></div>
+      <div class="qrow">
+        <b id="f-q1"></b>
+        <div class="seg-btns" id="f-a1" role="group"></div>
+      </div>
+      <div class="qrow">
+        <b id="f-q2"></b>
+        <div class="seg-btns" id="f-a2" role="group"></div>
+      </div>
+      <p id="f-msg" aria-live="polite"></p>
+      <p class="gl-note score" id="f-score"></p>
+    </div>
+    <p class="uk">Домінантна стратегія&nbsp;— розкіш, яка трапляється нечасто. У грі «Де зустрітися» найкращий вибір цілком залежить від іншого, і тоді важать домовленості й звички. А в грі з новачком цікаве інше: свою домінантну стратегію має лише лідер, але новачкові досить знати про неї. Якщо реклама вигідна лідерові завжди, лідер її дасть, і новачок відповідає на рекламу, а не на здогадки. Чужа домінантна стратегія теж підказка.</p>
+    
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Строго</span><span class="mp-layer-desc">таблиці, графіки, формули</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Строго» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <section class="gl-sec">
+    <h2><span class="uk">Що таке домінантна стратегія</span></h2>
+    <p class="uk">Домінантна стратегія&nbsp;— це варіант, який дає гравцеві більше за будь-який інший його варіант, хоч би що обрали інші гравці. Протилежність&nbsp;— домінована стратегія: існує інший варіант, кращий за неї за будь-якого вибору інших. Розумний гравець домінованої стратегії не обирає ніколи, а домінантну обирає завжди, якщо вона є.</p>
+    
+    <ul class="gl-when">
+      <li><b><span class="uk">Стовпці, а не найбільше число</span></b><span><span class="uk">Поширена помилка&nbsp;— обрати рядок із найбільшим числом у таблиці. Домінантність перевіряють порівнянням у кожному стовпці окремо: ваш варіант має виграти в усіх.</span></span></li>
+      <li><b><span class="uk">Строга і слабка</span></b><span><span class="uk">Строго домінантна стратегія краща всюди. Слабко домінантна ніде не гірша і хоч десь краща. Чесна ставка в аукціоні другої ціни слабко домінантна: часто вона дає те саме, що й інші ставки, але ніколи менше.</span></span></li>
+      <li><b><span class="uk">Найкраще для себе ≠ найкраще разом</span></b><span><span class="uk">Домінантність говорить про одного гравця за незмінних інших. Про те, що буде, коли всі зіграють свою домінантну стратегію, вона не обіцяє нічого доброго, як у цінової війни.</span></span></li>
+      <li><b><span class="uk">Знати її досить</span></b><span><span class="uk">Щоб зіграти домінантну стратегію, не потрібні ні припущення про суперника, ні віра в його розумність. Тому прогноз «гравець зіграє домінантну стратегію» найнадійніший у теорії ігор.</span></span></li>
+    </ul>
+  </section>
+
+  <section class="gl-sec" id="elim">
+    <h2><span class="uk">Викреслюйте зайве</span></h2>
+    <p class="uk">Тут у кожного гравця три варіанти, і домінантної стратегії немає ні в кого. Але деякі варіанти доміновані: є інший, кращий за них за будь-якого вибору суперника. Розумний гравець їх не обере, а суперник, знаючи це, може їх викреслити й дивитися на меншу таблицю. У меншій таблиці з'являються нові доміновані варіанти. У клітинці спершу ваш виграш (рядки), потім виграш суперника (стовпці). Клітинка «5 · 5» найкраща для обох. Чи дійдуть до неї розумні гравці? Натискайте на рядок або стовпець, який, на вашу думку, можна викреслити.</p>
+    
+    <div class="gl-panel">
+      <div class="el" id="e-grid"></div>
+      <div class="gl-btns">
+        <button type="button" class="btn ghost" id="e-hint"><span class="uk">Підказка</span></button>
+        <button type="button" class="btn ghost" id="e-reset"><span class="uk">Почати знову</span></button>
+      </div>
+      <p id="e-msg" aria-live="polite"></p>
+      <ol class="steps" id="e-steps"></ol>
+    </div>
+    <p class="uk">Кожен крок тут спирається на попередній: суперник викреслює стовпець, лише якщо вірить, що ви не оберете вже викреслений рядок, а ви&nbsp;— якщо вірите, що він міркує так само. Чим довший ланцюжок, тим більше довіри до чужої розумності він вимагає і тим менш надійний прогноз, коли грають живі люди.</p>
+    
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Де живуть домінантні стратегії</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="uk">Цінові війни</span></b><span><span class="uk">Знижка, яка забирає покупців у конкурента, часто вигідна за будь-якої його поведінки. Тому ринки з кількома схожими гравцями так легко сповзають у війну цін, у якій програють усі продавці, а виграють покупці.</span></span></li>
+      <li><b><span class="uk">Гарантія найнижчої ціни</span></b><span><span class="uk">«Знайдете дешевше&nbsp;— повернемо різницю» звучить як подарунок покупцям, а насправді змінює таблицю. Якщо обидві кав'ярні вирівнюють ціну під сусідку, знижка вже не забирає покупців: вона дає 1 замість 3, а проти знижки сусідки&nbsp;— ту саму 1. Тримати ціну стає слабко домінантною стратегією.</span></span></li>
+      <li><b><span class="uk">Рекламні гонки</span></b><span><span class="uk">Якщо реклама переманює клієнтів у конкурентів, рекламуватися вигідно кожному окремо, а разом усі платять і нікого не переманюють. Авінаш Діксіт і Баррі Нейлбафф у книжці «Thinking Strategically» (1991) описують заборону реклами сигарет на телебаченні США 1971 року як послугу самим тютюновим компаніям: вона зупинила гонку, з якої жодна не могла вийти сама.</span></span></li>
+      <li><b><span class="uk">Аукціон другої ціни</span></b><span><span class="uk">Перемагає найвища ставка, а платить переможець другу за величиною. Вільям Вікрі 1961 року показав: тут поставити рівно стільки, скільки для вас варта річ, слабко домінантно. Ставка вище інколи змусить переплатити, нижче інколи забере вигідну перемогу. Автоматична ставка eBay працює майже так само.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Глибше</span><span class="mp-layer-desc">узагальнення, теорія, історія</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Глибше» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <section class="gl-sec">
+    <h2><span class="uk">Формула і зв'язок із рівновагою</span></h2>
+    <div class="gl-panel">
+      <p class="ex">u<sub>i</sub>(s<sub>i</sub>*, s<sub>−i</sub>) &gt; u<sub>i</sub>(s<sub>i</sub>, s<sub>−i</sub>) &nbsp;<span class="uk">для кожної іншої стратегії s<sub>i</sub> ≠ s<sub>i</sub>* і кожного вибору інших s<sub>−i</sub></span></p>
+      <p class="uk">Тут u<sub>i</sub>&nbsp;— виграш гравця i, s<sub>−i</sub>&nbsp;— стратегії всіх інших. На відміну від <a href="https://mathparadoxes.com/glossary/nash-equilibrium/" class="gl-term">рівноваги Неша</a>, де нерівність перевіряють лише проти рівноважних стратегій інших, тут вона мусить виконуватися проти всіх. Тому домінантна стратегія&nbsp;— набагато сильніша умова. Якщо в кожного гравця є строго домінантна стратегія, набір цих стратегій&nbsp;— єдина рівновага Неша гри. Зворотне хибне: рівновазі домінантні стратегії не потрібні. У полюванні на оленя (олень удвох дає по 4, заєць завжди 3, олень наодинці 0) жоден мисливець не має домінантної стратегії, а рівноваг дві.</p>
+      
+      <p class="uk">Ще дві властивості викреслювання строго домінованих стратегій. Воно ніколи не викреслює рівновагу Неша. І порядок не важить: хоч би в якій послідовності викреслювати, залишиться той самий набір.</p>
+      
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Не гірший за жоден, але гірший за суміш</span></h2>
+    <div class="gl-panel">
+      <p class="uk">Нехай у вас три варіанти, а в суперника два: ліво і право. Варіант «Верх» дає 3 проти лівого і 0 проти правого, «Середина»&nbsp;— 0 і 3, «Низ»&nbsp;— 1 і 1. «Низ» не домінований жодним іншим варіантом: проти правого він кращий за «Верх», проти лівого кращий за «Середину». Але киньте монетку між «Верхом» і «Серединою»:</p>
+      
+      <p class="ex">½ · 3 + ½ · 0 = 1,5 &gt; 1 &nbsp; · &nbsp; ½ · 0 + ½ · 3 = 1,5 &gt; 1</p>
+      <p class="uk">Монетка в <a href="https://mathparadoxes.com/glossary/median-vs-mean/" class="gl-term">середньому</a> дає 1,5 проти будь-якого вибору суперника, а «Низ» лише 1. Так само спрацьовує будь-яка суміш, де «Верх» обирають з імовірністю між 1/3 і 2/3. Тож «Низ» домінований сумішшю, і розумний гравець його не обере, хоча жоден окремий варіант його не перемагає. Тому в строгій теорії стратегію викреслюють, якщо її домінує будь-яка суміш.</p>
+      
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Слабке домінування: порядок важить</span></h2>
+    <div class="gl-panel">
+      <p class="uk">Зі слабко домінованими стратегіями викреслювання поводиться дивно. Візьміть гру, де у вас три варіанти, а в суперника два, ліво і право. Пари чисел&nbsp;— ваш виграш і виграш суперника.</p>
+      
+      <p class="ex"><span class="uk">Верх: (1, 1) і (0, 0) · Середина: (1, 1) і (2, 1) · Низ: (0, 0) і (2, 1)</span></p>
+      <p class="uk">«Середина» слабко домінує і «Верх», і «Низ». Викресліть спершу «Верх»: тоді суперникові «право» слабко краще за «ліво», і гра закінчується виграшами (2, 1). Викресліть спершу «Низ»: тепер суперникові слабко краще «ліво», і виходить (1, 1). Та сама гра, ті самі правила, а відповідь залежить від того, з чого почати. Зі строгим домінуванням такого не буває.</p>
+      
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Звідки взялася ідея</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="uk">Чесність як стратегія</span></b><span><span class="uk">Вільям Вікрі 1961 року в статті про аукціони вперше показав правила, за яких казати правду слабко домінантно для кожного учасника. 1996 року він отримав за цю й інші роботи премію з економіки пам'яті Нобеля.</span></span></li>
+      <li><b><span class="uk">Голосування без хитрощів неможливе</span></b><span><span class="uk">Аллан Гіббард (1973) і Марк Саттертвейт (1975) довели: якщо кандидатів щонайменше троє і кожен може перемогти, то будь-яке правило голосування, за якого чесний голос слабко домінантний для кожного виборця,&nbsp;— диктатура: результат вирішує один виборець. У решті правил комусь інколи вигідно голосувати не за свого фаворита.</span></span></li>
+      <li><b><span class="uk">Принцип домінування проти середнього</span></b><span><span class="uk">Філософ Роберт Нозік 1969 року в статті «Newcomb's Problem and Two Principles of Choice» описав задачу, де принцип «обирай домінантне» і розрахунок середнього виграшу радять різне, і досі немає згоди, хто з них правий.</span></span></li>
+      <li><b><span class="uk">Від викреслювання до раціоналізованості</span></b><span><span class="uk">1984 року Дуглас Бернгайм і Девід Пірс в одному номері журналу Econometrica незалежно описали, які стратегії може обрати розумний гравець, який знає, що інші теж розумні. Для двох гравців це саме ті, що лишаються після викреслювання всіх строго домінованих стратегій, зокрема домінованих сумішшю.</span></span></li>
+    </ul>
+  </section>
+  </div>
+  </section>
+
+  <section class="gl-sec"><h2>Де це трапляється</h2>
+    <div class="mp-related-grid">
+      <a class="mp-related-card" href="https://mathparadoxes.com/axelrod-tournament/"><h3>Турнір Аксельрода</h3><p>Програми грають дилему в&#x27;язня по 200 раундів кожна з кожною. Хто набере найбільше: вічний зрадник, хитрун, «Око за око» чи монетка?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/braess-paradox/"><h3>Парадокс Браеса</h3><p>4000 водіїв їдуть по 65 хвилин. Місто відкриває безкоштовну миттєву перемичку між маршрутами. Поїздка стане коротшою чи довшою?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/travelers-dilemma/"><h3>Дилема мандрівника</h3><p>Дві розбиті вази, кожен власник пише ціну від $2 до $100. Обом платять меншу, з бонусом $2 тому, хто написав меншу. Що написали б ви?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/guess-two-thirds/"><h3>Вгадай 2/3 від середнього</h3><p>Кожен називає ціле число від 0 до 100. Виграє той, чиє число найближче до двох третин середнього всіх чисел. Яке число назвете ви?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/revenue-equivalence/"><h3>Чотири аукціони</h3><p>Четверо розумних покупців, чотири формати аукціону: перша ціна, друга ціна, англійський і голландський. Який принесе продавцю найбільше в середньому?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/newcomb-paradox/"><h3>Парадокс Ньюкомба</h3><p>У прозорій скриньці <span class="vl">A</span> $1&nbsp;000. У скриньку <span class="vl">B</span> провидець, що вгадує 99% виборів, поклав мільйон, лише якщо передбачив, що ви візьмете тільки <span class="vl">B</span>. Що ви візьмете: лише <span class="vl">B</span> чи обидві?</p></a>
+    </div></section>
+
+  <section class="gl-sec"><h2>Ще в темі «Ігри та логіка»</h2>
+    <ul class="gl-cards">
+      <li class="gl-card" id="nash-equilibrium"><a href="https://mathparadoxes.com/glossary/nash-equilibrium/"><h3>Рівновага Неша</h3><p>Набір стратегій, у якому нікому не вигідно змінити свою, поки інші не змінюють своїх.</p><p class="gl-hook">У дилемі в&#x27;язня обидва зраджують, хоча мовчати вигідніше обом: рівновага не означає найкращий результат.</p></a></li>
+      <li class="gl-card" id="backward-induction"><a href="https://mathparadoxes.com/glossary/backward-induction/"><h3>Зворотна індукція</h3><p>Розв&#x27;язування гри з кінця: спершу останній хід, потім передостанній, і так до першого.</p><p class="gl-hook">У грі-стоніжці логіка велить забрати копійки на першому ж ході, хоча, граючи довше, обидва отримали б сотні, і живі люди так майже не роблять.</p></a></li>
+      <li class="gl-card" id="common-knowledge"><a href="https://mathparadoxes.com/glossary/common-knowledge/"><h3>Спільне знання</h3><p>Усі знають факт, усі знають, що всі знають, і так без кінця.</p><p class="gl-hook">Два генерали можуть обмінятися тисячею підтверджень і все одно не мати спільного знання, тож жоден не наважиться атакувати першим.</p></a></li>
+    </ul>
+    <p class="gl-all"><a href="https://mathparadoxes.com/glossary/#games">Усі терміни →</a></p></section>
+
+  <footer>
+    <span class="uk">Математичні парадокси · автор <a href="https://mathparadoxes.com/#author">Дмитро Кудренко</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const en = document.documentElement.dataset.lang === 'en', L = (uk, e) => en ? e : uk;
+  const $ = s => document.querySelector(s);
+  if (en) document.querySelectorAll('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn));
+  const q = s => L('«' + s + '»', '"' + s + '"');
+  const join = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + L(' і ', ' and ') + a[a.length - 1];
+
+  // 1. the price war: guess first, then the threefold drop
+  document.querySelectorAll('[data-g]').forEach(b => b.addEventListener('click', () => {
+    const k = +b.dataset.g;
+    document.querySelectorAll('[data-g]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    $('#war-after').hidden = false;
+    $('#war-msg').textContent = [
+      L('Здається логічним: кожна зробила найвигідніший для себе крок. Але обидві знизили ціну, і покупців ніхто ні в кого не забрав.', 'It seems logical: each made the move that pays her most. But both cut, and nobody took customers from anyone.'),
+      L('Покупців справді ніхто не переманив, але ціни впали в обох, а разом із ними й прибуток.', 'Indeed nobody lured any customers away, but prices fell at both shops, and profit fell with them.'),
+      L('Так. Кожна вчинила найкраще для себе, і саме тому обом стало гірше.', 'Yes. Each did what was best for her, and that is exactly why both are worse off.')][k];
+  }));
+
+  // 2. find the dominant strategy in three 2×2 games; u[r][c] = [row player's payoff, column player's payoff]
+  const GAMES = {
+    war: { p1: L('Ви', 'You'), p2: L('Сусідка', 'Neighbour'), s1: [L('Тримати ціну', 'Keep price'), L('Знизити', 'Cut')], s2: [L('Тримати ціну', 'Keep price'), L('Знизити', 'Cut')],
+      u: [[[3, 3], [0, 5]], [[5, 0], [1, 1]]],
+      story: L('Цінова війна кав\'ярень. Рядки — ваш вибір, стовпці — вибір сусідки. У клітинці ваш прибуток і прибуток сусідки, у тисячах.', 'The coffee-shop price war. Rows are your choice, columns your neighbour\'s. Each cell shows your profit and your neighbour\'s, in thousands.'),
+      end: L('Обидві мають домінантну стратегію, до того ж ту саму: знизити. Звідси й цінова війна.', 'Both have a dominant strategy, the same one: cut. Hence the price war.') },
+    meet: { p1: L('Ви', 'You'), p2: L('Партнер', 'Partner'), s1: [L('Кав\'ярня', 'Café'), L('Офіс', 'Office')], s2: [L('Кав\'ярня', 'Café'), L('Офіс', 'Office')],
+      u: [[[2, 2], [0, 0]], [[0, 0], [1, 1]]],
+      story: L('Ви з партнером забули домовитися, де зустрічаєтеся, а телефони сіли. Кав\'ярня обом приємніша (по 2), офіс теж годиться (по 1), розминутися — 0.', 'You and a partner forgot to agree where to meet, and both phones are dead. The café is nicer for both (2 each), the office will do (1 each), missing each other is 0.'),
+      end: L('Ні в кого немає домінантної стратегії: найкраще місце — там, де буде інший. Тут допомагають домовленості, звички і те, що здається очевидним обом.', 'Nobody has a dominant strategy: the best place is wherever the other one is. Here agreements, habits and whatever seems obvious to both are what help.') },
+    entry: { p1: L('Лідер', 'Leader'), p2: L('Новачок', 'Newcomer'), s1: [L('Реклама', 'Advertise'), L('Без реклами', 'No ads')], s2: [L('Зайти', 'Enter'), L('Не заходити', 'Stay out')],
+      u: [[[4, 0], [6, 1]], [[2, 3], [5, 1]]],
+      story: L('Ви — лідер ринку і вирішуєте, чи запускати велику рекламу. Новачок вирішує, чи заходити на ринок. Прибуток у мільйонах.', 'You are the market leader deciding whether to launch a big ad campaign. A newcomer decides whether to enter the market. Profit in millions.'),
+      end: L('Реклама домінантна для лідера, а новачок такої стратегії не має: проти реклами йому краще не заходити, без реклами — заходити. Але він знає, що лідер рекламуватиметься завжди, тож і гадати не треба: не заходити (1 більше за 0).', 'Advertising is dominant for the leader, while the newcomer has no such strategy: against advertising it should stay out, against no ads it should enter. But it knows the leader will always advertise, so there\'s no guessing: stay out (1 beats 0).') }
+  };
+  // index of the strictly dominant strategy for player 0 (rows) or 1 (columns), or -1
+  const domIdx = (u, p) => {
+    for (let s = 0; s < 2; s++) {
+      let ok = true;
+      for (let o = 0; o < 2; o++) { const a = p ? u[o][s][1] : u[s][o][0], b = p ? u[o][1 - s][1] : u[1 - s][o][0]; if (!(a > b)) ok = false; }
+      if (ok) return s;
+    }
+    return -1;
+  };
+  let gk = 'war';
+  const ans = { war: [null, null], meet: [null, null], entry: [null, null] };
+  const first = {};
+  function why(G, p) {
+    // compare the player's two options against each of the other's options
+    const mine = p ? G.s2 : G.s1, theirs = p ? G.s1 : G.s2;
+    return [0, 1].map(o => {
+      const a = p ? G.u[o][0][1] : G.u[0][o][0], b = p ? G.u[o][1][1] : G.u[1][o][0];
+      const w = a > b ? 0 : b > a ? 1 : -1;
+      return L('проти ', 'against ') + q(theirs[o]) + ': ' + (w < 0 ? L('однаково, ', 'a tie, ') + a : q(mine[w]) + ' ' + Math.max(a, b) + ' > ' + Math.min(a, b));
+    }).join('; ');
+  }
+  function drawFind() {
+    const G = GAMES[gk], box = $('#f-grid'); box.innerHTML = '';
+    const add = (html, cls) => { const el = document.createElement('div'); el.className = cls; el.innerHTML = html; box.appendChild(el); return el; };
+    add('', 'lab');
+    G.s2.forEach(s => add(G.p2 + ': ' + s, 'lab'));
+    const a = ans[gk];
+    for (let r = 0; r < 2; r++) {
+      add(G.p1 + ': ' + G.s1[r], 'lab r');
+      for (let c = 0; c < 2; c++) {
+        const v = G.u[r][c];
+        const w1 = a[0] !== null && v[0] > G.u[1 - r][c][0], w2 = a[1] !== null && v[1] > G.u[r][1 - c][1];
+        add('<span><small>' + G.p1 + '</small> <span class="' + (w1 ? 'w' : '') + '">' + v[0] + '</span></span><span><small>' + G.p2 + '</small> <span class="' + (w2 ? 'w' : '') + '">' + v[1] + '</span></span>', 'cell');
+      }
+    }
+    $('#f-story').textContent = G.story;
+    $('#f-q1').textContent = L('Чи є домінантна стратегія в гравця «' + G.p1 + '» (рядки)?', 'Does "' + G.p1 + '" (rows) have a dominant strategy?');
+    $('#f-q2').textContent = L('А в гравця «' + G.p2 + '» (стовпці)?', 'And "' + G.p2 + '" (columns)?');
+    [0, 1].forEach(p => {
+      const el = $('#f-a' + (p + 1)), opts = (p ? G.s2 : G.s1).concat([L('Немає', 'None')]);
+      el.setAttribute('aria-label', p ? G.p2 : G.p1);
+      el.innerHTML = '';
+      const right = domIdx(G.u, p), mark = right < 0 ? 2 : right;
+      opts.forEach((t, i) => {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = t;
+        b.setAttribute('aria-pressed', a[p] === i);
+        if (a[p] !== null) b.className = i === mark ? 'ok' : a[p] === i ? 'no' : '';
+        b.addEventListener('click', () => {
+          a[p] = i; const key = gk + p; if (!(key in first)) first[key] = i === mark;
+          drawFind(); explain(p, i === mark);
+        });
+        el.appendChild(b);
+      });
+    });
+    if (a[0] === null && a[1] === null) $('#f-msg').textContent = L('Оберіть відповідь для кожного гравця. Підкреслене число — кращий виграш гравця в цьому стовпці чи рядку.', 'Pick an answer for each player. An underlined number is the player\'s better payoff in that column or row.');
+    score();
+  }
+  function explain(p, ok) {
+    const G = GAMES[gk], a = ans[gk], right = domIdx(G.u, p);
+    const name = p ? G.p2 : G.p1;
+    let msg = (ok ? L('Так. ', 'Right. ') : L('Не зовсім. ', 'Not quite. ')) + name + ': ' + why(G, p) + '. ';
+    msg += right < 0 ? L('Найкращий вибір змінюється разом із вибором іншого, тож домінантної стратегії немає.', 'The best choice changes with the other\'s choice, so there is no dominant strategy.')
+                     : q((p ? G.s2 : G.s1)[right]) + L(' краще в обох випадках: це домінантна стратегія.', ' is better in both cases: it is a dominant strategy.');
+    if (a[0] !== null && a[1] !== null) msg += ' ' + G.end;
+    $('#f-msg').textContent = msg;
+  }
+  function score() {
+    const n = Object.keys(first).length, k = Object.values(first).filter(Boolean).length;
+    $('#f-score').textContent = n ? L('Правильно з першої спроби: ' + k + ' з ' + n + (n < 6 ? ' (усього питань 6)' : ''), 'Right at the first try: ' + k + ' of ' + n + (n < 6 ? ' (6 questions in all)' : '')) : '';
+  }
+  document.querySelectorAll('[data-game]').forEach(b => b.addEventListener('click', () => {
+    gk = b.dataset.game;
+    document.querySelectorAll('[data-game]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    drawFind();
+    const a = ans[gk];
+    if (a[1] !== null) explain(1, a[1] === (domIdx(GAMES[gk].u, 1) < 0 ? 2 : domIdx(GAMES[gk].u, 1)));
+    else if (a[0] !== null) explain(0, a[0] === (domIdx(GAMES[gk].u, 0) < 0 ? 2 : domIdx(GAMES[gk].u, 0)));
+  }));
+
+  // 3. iterated elimination of strictly dominated strategies in a 3×3 game
+  const E = [[[4, 3], [6, 1], [2, 0]], [[1, 0], [5, 5], [5, 1]], [[2, 0], [1, 0], [0, 5]]];
+  const RN = [L('Верх', 'Top'), L('Середина', 'Middle'), L('Низ', 'Bottom')], CN = [L('Ліво', 'Left'), L('Центр', 'Centre'), L('Право', 'Right')];
+  let rows, cols, log;
+  const pay = (p, s, o) => p ? E[o][s][1] : E[s][o][0];
+  // a strategy of player p that strictly beats s against every remaining option of the other player, or -1
+  function beater(p, s) {
+    const S = p ? cols : rows, O = p ? rows : cols;
+    for (const t of S) if (t !== s && O.every(o => pay(p, t, o) > pay(p, s, o))) return t;
+    return -1;
+  }
+  function eReset() { rows = [0, 1, 2]; cols = [0, 1, 2]; log = []; eDraw(); $('#e-msg').textContent = L('Почніть із будь-якого рядка чи стовпця, який, на вашу думку, завжди гірший за якийсь інший.', 'Start with any row or column you think is always worse than some other one.'); }
+  function eDraw() {
+    const box = $('#e-grid'); box.innerHTML = '';
+    const corner = document.createElement('div'); corner.className = 'corner'; corner.textContent = L('ви · суперник', 'you · rival'); box.appendChild(corner);
+    const done = rows.length === 1 && cols.length === 1;
+    const head = (p, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'h';
+      b.textContent = (p ? CN : RN)[i];
+      b.disabled = !(p ? cols : rows).includes(i) || done;
+      b.setAttribute('aria-label', (p ? L('Викреслити стовпець ', 'Cross out column ') : L('Викреслити рядок ', 'Cross out row ')) + (p ? CN : RN)[i]);
+      b.addEventListener('click', () => tryOut(p, i));
+      box.appendChild(b);
+    };
+    [0, 1, 2].forEach(c => head(1, c));
+    for (let r = 0; r < 3; r++) {
+      head(0, r);
+      for (let c = 0; c < 3; c++) {
+        const d = document.createElement('div'), alive = rows.includes(r) && cols.includes(c);
+        d.className = 'c' + (alive ? '' : ' out') + (done && alive ? ' last' : '') + (done && r === 1 && c === 1 ? ' lost' : '');
+        d.innerHTML = E[r][c][0] + ' <span class="b">· ' + E[r][c][1] + '</span>';
+        box.appendChild(d);
+      }
+    }
+    $('#e-steps').innerHTML = log.map(x => '<li>' + x + '</li>').join('');
+    $('#e-hint').disabled = done;
+  }
+  function tryOut(p, s) {
+    const t = beater(p, s), S = p ? CN : RN, O = p ? rows : cols, ON = p ? RN : CN;
+    if (t >= 0) {
+      const cmp = O.map(o => pay(p, s, o) + ' < ' + pay(p, t, o)).join(', ');
+      (p ? cols : rows).splice((p ? cols : rows).indexOf(s), 1);
+      log.push(L((p ? 'Суперник' : 'Ви') + ': варіант ' + q(S[s]) + ' гірший за ' + q(S[t]) + ' проти ' + join(O.map(o => q(ON[o]))) + ' (' + cmp + ').',
+                 (p ? 'Rival' : 'You') + ': the option ' + q(S[s]) + ' is worse than ' + q(S[t]) + ' against ' + join(O.map(o => q(ON[o]))) + ' (' + cmp + ').'));
+      eDraw();
+      if (rows.length === 1 && cols.length === 1) {
+        const v = E[rows[0]][cols[0]];
+        $('#e-msg').textContent = L('Лишилася одна клітинка: ' + v[0] + ' · ' + v[1] + '. Клітинку 5 · 5, найкращу для обох, викреслили, хоча ніхто не робив нічого нерозумного. До неї не дійти: з неї вам вигідно перейти на «Верх» (6 замість 5). Зверніть увагу, що домінантної стратегії на старті не мав ніхто.',
+          'One cell is left: ' + v[0] + ' · ' + v[1] + '. The 5 · 5 cell, best for both, got crossed out, though nobody did anything irrational. You can\'t get there: from it you gain by moving to "Top" (6 instead of 5). Note that nobody had a dominant strategy at the start.');
+      } else $('#e-msg').textContent = L('Викреслено. У меншій таблиці пошукайте наступний.', 'Crossed out. Look for the next one in the smaller table.');
+    } else {
+      const others = (p ? cols : rows).filter(x => x !== s);
+      const reasons = others.map(t2 => { const o = O.find(o => pay(p, s, o) >= pay(p, t2, o)); return L('проти ' + q(ON[o]) + ' ' + q(S[s]) + ' дає ' + pay(p, s, o) + ', а ' + q(S[t2]) + ' ' + pay(p, t2, o), 'against ' + q(ON[o]) + ' ' + q(S[s]) + ' gives ' + pay(p, s, o) + ' and ' + q(S[t2]) + ' ' + pay(p, t2, o)); });
+      $('#e-msg').textContent = L('Поки ні: варіант ' + q(S[s]) + ' не гірший за кожен інший. ', 'Not yet: the option ' + q(S[s]) + ' is not worse than every other one. ') + reasons.join('; ').replace(/^./, c => c.toUpperCase()) + '.' +
+        (p ? L(' Числа суперника — другі в клітинці.', ' The rival\'s numbers are the second in each cell.') : L(' Ваші числа — перші в клітинці.', ' Your numbers are the first in each cell.'));
+    }
+  }
+  $('#e-hint').onclick = () => {
+    for (const p of [0, 1]) for (const s of (p ? cols : rows)) { const t = beater(p, s); if (t >= 0) {
+      $('#e-msg').textContent = L('Подивіться на ' + (p ? 'стовпець ' : 'рядок ') + q((p ? CN : RN)[s]) + ' і порівняйте ' + (p ? 'другі числа' : 'перші числа') + ' з ' + (p ? 'стовпцем ' : 'рядком ') + q((p ? CN : RN)[t]) + '.',
+        'Look at the ' + (p ? 'column ' : 'row ') + q((p ? CN : RN)[s]) + ' and compare its ' + (p ? 'second' : 'first') + ' numbers with the ' + (p ? 'column ' : 'row ') + q((p ? CN : RN)[t]) + '.'); return; } }
+  };
+  $('#e-reset').onclick = eReset;
+
+  drawFind(); eReset();
+})();
+</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Розділи"><a href="https://mathparadoxes.com/#all">Задачі</a><a href="https://mathparadoxes.com/courses/">Курси</a><a href="https://mathparadoxes.com/glossary/" aria-current="page">Словник</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+<script>
+(function () {
+  var btn = document.querySelector(".mp-sx-btn");
+  if (!btn) return;
+  var T = JSON.parse(btn.dataset.t), lang = document.documentElement.dataset.lang === "en" ? "en" : "uk";
+  var data = null, loading = null, box = null, input, list, tabs, foot, tab = "", act = 0, opts = [], back = null;
+  var W = { n: 3, on: 2.5, k: 2, d: 1, x: 0.8, o: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
+  // small words that may match nothing without dropping the result ("задача про монети")
+  var STOP = ["и", "та", "в", "у", "на", "з", "из", "до", "для", "про", "як", "що", "the", "a", "an", "of", "in", "on", "and", "to", "for", "how", "what"];
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  btn.querySelector("kbd").textContent = mac ? "⌘K" : "Ctrl K";
+
+  function norm(s) {
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’'ʼ`ъ]/g, "")
+      .replace(/[іыий]/g, "и").replace(/[єэё]/g, "е").replace(/ґ/g, "г");
+  }
+  function words(s) { return norm(s).split(/[^0-9a-zа-я]+/).filter(Boolean); }
+  // one edit apart: a letter swapped, missing, extra or two letters transposed
+  function near(a, b) {
+    var la = a.length, lb = b.length, i = 0;
+    if (Math.abs(la - lb) > 1) return false;
+    while (i < la && i < lb && a[i] === b[i]) i++;
+    if (la === lb) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+    return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+  }
+  // how well a query word q fits a word w of the text: whole word, its start, the same stem (Ukrainian endings), a typo
+  function hit(q, w) {
+    if (w === q) return 1;
+    if (w.lastIndexOf(q, 0) === 0) return 0.85;
+    if (q.length >= 4) {
+      if (q.length >= 5 && w.lastIndexOf(q.slice(0, Math.max(4, q.length - 2)), 0) === 0) return 0.6;
+      for (var d = -1; d <= 1; d++) if (near(q, w.slice(0, q.length + d))) return 0.45;
+    }
+    return q.length >= 3 && w.indexOf(q) > 0 ? 0.35 : 0;
+  }
+  // the score of an item, and in it.low the weakest word match (a typo or a piece of a word is weak)
+  function score(it, qs, phrase) {
+    var total = 0;
+    it.low = 1;
+    for (var i = 0; i < qs.length; i++) {
+      var best = 0, bestF;
+      for (var f in W) {
+        var ws = it.w[f];
+        for (var j = 0; j < ws.length; j++) { var h = hit(qs[i], ws[j]) * W[f]; if (h > best) { best = h; bestF = f; } }
+      }
+      if (!best && STOP.indexOf(qs[i]) === -1) return 0;
+      if (best) it.low = Math.min(it.low, best / W[bestF]);
+      total += best;
+    }
+    var name = it.w.nn, alt = it.w.no;
+    if (name.lastIndexOf(phrase, 0) === 0 || alt.lastIndexOf(phrase, 0) === 0) total += 2;
+    else if (name.indexOf(phrase) !== -1 || alt.indexOf(phrase) !== -1) total += 1;
+    return total + (it.t === "p" ? 0.2 : it.t === "h" ? -0.2 : 0);
+  }
+  function load() {
+    if (!loading) loading = fetch(btn.dataset.src).then(function (r) { return r.json(); }).then(function (j) {
+      data = j.items;
+      // a chapter's line under the name is only its course and number, so "парадокси" does not find all 21 chapters
+      data.forEach(function (it) {
+        it.w = { n: words(it.n), on: words(it.on || ""), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), o: words(it.o || ""),
+                 nn: words(it.n).join(" "), no: words(it.on || "").join(" ") };
+      });
+    });
+    return loading;
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done(it) {
+    if (it.t === "p") return !!get("mp-solved:" + it.s);
+    if (it.t !== "c") return false;
+    var d = []; try { d = JSON.parse(get("mp-course:" + it.s) || "[]"); } catch (e) {}
+    return d.length > 0;
+  }
+  function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+  // the text with the words that match the query in <mark>
+  function marked(text, qs) {
+    var out = document.createDocumentFragment(), parts = String(text).split(/([0-9A-Za-zА-Яа-яЄєІіЇїҐґЁё’'ʼ]+)/);
+    parts.forEach(function (p, i) {
+      if (!p) return;
+      var w = i % 2 && words(p), on = w && qs.length && w.some(function (x) { return qs.some(function (q) { return hit(q, x) >= 0.45; }); });
+      out.appendChild(on ? el("mark", null, p) : document.createTextNode(p));
+    });
+    return out;
+  }
+  function icon(it) {
+    var s = el("span", "mp-sx-ic mp-sx-" + it.t);
+    s.style.setProperty("--tint", it.tint || "var(--soft)");  // not the page's own --tint
+    if (it.t === "p") { var b = s.appendChild(el("span", "mp-bars")); for (var i = 1; i <= 3; i++) b.appendChild(el("i", i <= it.lv ? "on" : "")); }
+    else s.textContent = it.t === "g" ? "Aa" : it.t === "c" ? "≡" : "§";
+    return s;
+  }
+  function row(it, qs) {
+    var a = el("a", "mp-sx-it"); a.href = it.u; a.setAttribute("role", "option"); a.id = "mp-sx-o" + opts.length;
+    var tx = el("span", "mp-sx-tx"), n = el("b"), d = el("span");
+    n.appendChild(marked(it.n, qs)); d.appendChild(marked(it.d || "", qs)); tx.append(n, d);
+    a.append(icon(it), tx);
+    if (done(it)) { var ok = el("span", "mp-sx-ok", "✓"); ok.title = T.solved; a.appendChild(ok); }
+    opts.push(a);
+    return a;
+  }
+  function head(text) { return el("li", "mp-sx-h", text); }
+  function wrap(a) { var li = el("li"); li.setAttribute("role", "presentation"); li.appendChild(a); return li; }
+  function render() {
+    var q = input.value.trim(), qs = words(q), phrase = qs.join(" ");
+    list.textContent = ""; opts = []; act = 0;
+    tabs.hidden = !qs.length;
+    if (!qs.length) {
+      var recent = []; try { recent = JSON.parse(get("mp-recent") || "[]"); } catch (e) {}
+      recent = recent.slice(0, 5).map(function (r) {
+        var it = data && data.filter(function (x) { return (x.t === "p" && x.s === r.s) || (x.t === "c" && "course:" + x.s === r.s); })[0];
+        return it || { t: r.c ? "c" : "p", s: r.s, n: r.n[lang], u: r.u[lang] };
+      });
+      if (recent.length) { list.appendChild(head(T.recent)); recent.forEach(function (it) { list.appendChild(wrap(row(it, []))); }); }
+      var li = el("li", "mp-sx-try"); li.appendChild(el("span", null, T.try + ": "));
+      T.ideas.forEach(function (w, i) {
+        var b = el("button", null, w); b.type = "button";
+        b.addEventListener("click", function () { input.value = w; render(); input.focus(); });
+        if (i) li.appendChild(document.createTextNode(" · "));
+        li.appendChild(b);
+      });
+      list.appendChild(li);
+      return mark();
+    }
+    if (!data) { list.appendChild(el("li", "mp-sx-msg", T.load)); return; }
+    var found = data.map(function (it) { return { it: it, s: score(it, qs, phrase) }; }).filter(function (r) { return r.s > 0; });
+    // typos and pieces of words count only when nothing matches by whole words, their starts or stems
+    if (found.some(function (r) { return r.it.low >= 0.6; })) found = found.filter(function (r) { return r.it.low >= 0.6; });
+    found.sort(function (a, b) { return b.s - a.s; });
+    var count = { "": found.length, p: 0, c: 0, g: 0 };
+    found.forEach(function (r) { count[GROUP[r.it.t]]++; });
+    [].forEach.call(tabs.children, function (b) {
+      b.lastChild.textContent = count[b.dataset.k] ? " " + count[b.dataset.k] : "";
+      b.setAttribute("aria-pressed", b.dataset.k === tab);
+      b.disabled = !count[b.dataset.k] && b.dataset.k !== tab;
+    });
+    if (tab) found = found.filter(function (r) { return GROUP[r.it.t] === tab; });
+    if (!found.length) {
+      var m = el("li", "mp-sx-msg", T.none + " "), a = el("a", null, T.every);
+      a.href = document.querySelector(".mp-nav-list a:not(.mp-cont)").href; m.appendChild(a); list.appendChild(m);
+      return mark();
+    }
+    // groups in the order of their best match; with no tab chosen each shows its first 6
+    var order = [], by = {};
+    found.forEach(function (r) { var g = GROUP[r.it.t]; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(r.it); });
+    order.forEach(function (g) {
+      if (!tab) list.appendChild(head(T[g]));
+      var items = tab ? by[g] : by[g].slice(0, 6);
+      items.forEach(function (it) { list.appendChild(wrap(row(it, qs))); });
+      if (!tab && by[g].length > 6) {
+        var more = el("button", "mp-sx-more", "+" + (by[g].length - 6) + " →"); more.type = "button";
+        more.addEventListener("click", function () { tab = g; render(); input.focus(); });
+        var li = el("li"); li.appendChild(more); list.appendChild(li);
+      }
+    });
+    mark();
+  }
+  function mark() {
+    opts.forEach(function (o, i) { o.setAttribute("aria-selected", i === act); });
+    if (opts[act]) { input.setAttribute("aria-activedescendant", opts[act].id); opts[act].scrollIntoView({ block: "nearest" }); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function build() {
+    box = el("div", "mp-sx"); box.hidden = true;
+    box.innerHTML = '<div class="mp-sx-box" role="dialog" aria-modal="true"><div class="mp-sx-head">' + btn.querySelector("svg").outerHTML +
+      '<input type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="mp-sx-list" aria-autocomplete="list">' +
+      '<button type="button" class="mp-sx-x"></button></div><div class="mp-sx-tabs"></div><ul class="mp-sx-list" id="mp-sx-list" role="listbox"></ul>' +
+      '<div class="mp-sx-foot"></div></div>';
+    document.body.appendChild(box);
+    input = box.querySelector("input"); list = box.querySelector("ul"); tabs = box.querySelector(".mp-sx-tabs"); foot = box.querySelector(".mp-sx-foot");
+    box.firstChild.setAttribute("aria-label", T.btn); input.placeholder = T.ph; input.setAttribute("aria-label", T.btn);
+    var x = box.querySelector(".mp-sx-x"); x.textContent = "Esc"; x.setAttribute("aria-label", T.close);
+    foot.textContent = T.keys;
+    [["", T.all], ["p", T.p], ["c", T.c], ["g", T.g]].forEach(function (k) {
+      var b = el("button", null, k[1]); b.type = "button"; b.dataset.k = k[0]; b.appendChild(el("span"));
+      b.addEventListener("click", function () { tab = k[0]; render(); input.focus(); });
+      tabs.appendChild(b);
+    });
+    input.addEventListener("input", function () { tab = ""; render(); });
+    box.addEventListener("click", function (e) { if (e.target === box || e.target === x) close(); });
+    box.addEventListener("mousemove", function (e) {
+      var o = e.target.closest(".mp-sx-it"), i = opts.indexOf(o);
+      if (i !== -1 && i !== act) { act = i; mark(); }
+    });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (opts.length) { act = (act + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length; mark(); }
+      } else if (e.key === "Enter" && opts[act]) { e.preventDefault(); opts[act].click(); }
+    });
+  }
+  function open(q) {
+    if (!box) build();
+    if (!box.hidden) return input.focus();
+    back = document.activeElement; box.hidden = false; document.documentElement.classList.add("mp-sx-on");
+    if (q != null) input.value = q;
+    input.focus(); input.select(); render();
+    load().then(render, function () { list.textContent = ""; list.appendChild(el("li", "mp-sx-msg", T.fail)); loading = null; });
+  }
+  function close() {
+    if (!box || box.hidden) return;
+    box.hidden = true; document.documentElement.classList.remove("mp-sx-on");
+    if (back && back.focus) back.focus();
+  }
+  btn.addEventListener("click", function () { open(); });
+  btn.addEventListener("pointerenter", load, { once: true });
+  btn.addEventListener("focus", load, { once: true });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target, typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box && !box.hidden ? close() : open(); }
+    else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); open(); }
+    else if (e.key === "Escape" && box && !box.hidden) { e.preventDefault(); close(); }
+    else if (e.key === "Tab" && box && !box.hidden) {
+      // keep the focus inside the palette
+      var f = [].slice.call(box.querySelectorAll("input, button:not([disabled]), a[href]"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+    }
+  });
+  var q = new URLSearchParams(location.search).get("q");
+  if (q) open(q);
+})();
+</script>
+</body>
+</html>
