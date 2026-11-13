@@ -193,6 +193,15 @@ td.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
 td .btn { padding: 6px 10px; font-size: .8rem; }
 .res { font-family: var(--f-mono); font-size: .82rem; color: var(--muted); white-space: nowrap; }
 
+/* ---------- real data ---------- */
+.rr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-top: 14px; }
+.rr-grid div { border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; font-size: .84rem; line-height: 1.3; min-width: 0; }
+.rr-grid div span { display: block; font-family: var(--f-mono); font-size: .72rem; color: var(--muted); }
+.rr-grid div.h { background: var(--hit-soft); border-color: var(--hit); }
+.rr-grid div.me { box-shadow: inset 4px 0 0 var(--day); }
+.rr-grid div.me span { color: var(--day); font-weight: 600; }
+.mp-real-me select { font: inherit; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.msg b.me { color: var(--day); }
 footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
 @media (max-width: 860px) {
@@ -529,6 +538,35 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
   </div>
 </section>
 
+<!-- REAL DATA: famous rooms with real birthdays -->
+<section class="round mp-real" id="real">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Реальні дані</span><span class="en">Real data</span></span>
+    <h2><span class="uk">Ваш день народження в кімнатах відомих людей</span><span class="en">Your birthday in rooms of famous people</span></h2>
+    <p class="lead uk">П'ять справжніх «кімнат» зі справжніми датами народження. Оберіть свій день і пройдіть кімнатами: чи є там ваш двійник за днем народження і чи збіглися дні в когось між собою.</p>
+    <p class="lead en">Five real "rooms" with real birthdays. Pick your day and walk through them: is anyone there born on your day, and did any two of them share a birthday with each other?</p>
+  </div>
+  <div class="card mp-real-me">
+    <span class="kicker"><span class="uk">Перевірте на собі</span><span class="en">Try it on yourself</span></span>
+    <div class="controls" style="margin:12px 0 0">
+      <label class="ctl" for="me-d"><span class="uk">Ваш день народження</span><span class="en">Your birthday</span>
+        <span style="display:flex;gap:8px"><select id="me-d" aria-label="День / Day"></select><select id="me-m" aria-label="Місяць / Month"></select></span>
+      </label>
+    </div>
+    <p class="msg" id="me-sum" aria-live="polite" style="margin-top:12px"></p>
+  </div>
+  <div class="card mp-real-data" style="margin-top:20px">
+    <div class="presets" id="rr-tabs" role="group" aria-label="Кімнати / Rooms"></div>
+    <p class="msg" id="rr-msg" aria-live="polite" style="margin-top:14px"></p>
+    <div class="rr-grid" id="rr-grid"></div>
+    <div class="legend">
+      <span style="--c:var(--hit)"><b class="uk">спільний день у кімнаті</b><b class="en">a shared day in the room</b></span>
+      <span style="--c:var(--day)"><b class="uk">ваш день</b><b class="en">your day</b></span>
+    </div>
+    <p class="mp-real-src note" id="rr-src" style="margin-top:12px"></p>
+  </div>
+</section>
+
 <!-- FUN FACTS -->
 <section class="round" id="facts">
   <div class="round-head">
@@ -695,6 +733,7 @@ function guessText() {
     [L('Правильно: 23', 'Correct: 23'), pMatch(23), 'var(--hit)']
   ];
   const verdict = g === 23 ? L('Точно в ціль. Ви або знали, або чудово рахуєте.', 'Spot on. You either knew it or you count very well.')
+    : Math.abs(g - 23) <= 3 ? L('Дуже близько: ' + g + ' замість 23. Для ' + g + ' ' + (g % 10 === 1 && g % 100 !== 11 ? 'людини' : 'людей') + ' шанс збігу ' + pct(p) + '.', 'Very close: ' + g + ' instead of 23. With ' + g + ' people the chance of a match is ' + pct(p) + '.')
     : g < 23 ? L('Ви недооцінили: для ' + g + ' ' + (g % 10 === 1 && g % 100 !== 11 ? 'людини' : 'людей') + ' шанс збігу лише ' + pct(p) + '.', 'Too low: ' + g + ' people give only ' + pct(p) + '.')
     : L('З ' + g + ' ' + (g % 10 === 1 && g % 100 !== 11 ? 'людиною' : 'людьми') + ' шанс збігу вже ' + pctSafe(p) + '. ' + (g / 23 < 1.05 ? 'Ви трохи переоцінили потрібну кількість.' : 'Ви переоцінили потрібну кількість у ' + dec((g / 23).toFixed(1)) + ' раза.'),
         'With ' + g + ' people the chance of a match is already ' + pctSafe(p) + '. ' + (g / 23 < 1.05 ? 'Slightly too high.' : 'You overestimated by a factor of ' + (g / 23).toFixed(1) + '.'));
@@ -929,6 +968,70 @@ $('#variants').addEventListener('click', e => {
   varRes[i] = h / 10000; variantsText();
 });
 
+/* ---------- real data: rooms of famous people ----------
+   Real birthdays (day and month), collected 2026-11-13 and spot-checked against a second source:
+   presidents: en.wikipedia.org/wiki/List_of_presidents_of_the_United_States_by_age (Polk, Harding: Britannica); 45 people, Cleveland and Trump once; new style before 1752
+   poets: uk.wikipedia.org article of each writer, new style; Ostap Vyshnia left out (two dates in sources)
+   nobel: api.nobelprize.org, all physics laureates 2001–2020 (2025 laureates have only birth years there), checked against en.wikipedia
+   space: en.wikipedia.org/wiki/List_of_space_travellers_by_first_flight, everyone who first flew in 1961–1966 (Gagarin … Aldrin); NASA, Britannica
+   football: en.wikipedia.org/wiki/2014_FIFA_World_Cup_squads, Brazil; Hulk and Paulinho as in BBC, bbc.com/news/magazine-27835311 */
+const ROOMS = [
+  { id: 'presidents', uk: 'Президенти США', en: 'US presidents', src: 'https://en.wikipedia.org/wiki/List_of_presidents_of_the_United_States_by_age', srcName: 'Wikipedia: List of presidents of the United States by age',
+    people: [['Джордж Вашингтон','George Washington','02-22'],['Джон Адамс','John Adams','10-30'],['Томас Джефферсон','Thomas Jefferson','04-13'],['Джеймс Медісон','James Madison','03-16'],['Джеймс Монро','James Monroe','04-28'],['Джон Квінсі Адамс','John Quincy Adams','07-11'],['Ендрю Джексон','Andrew Jackson','03-15'],['Мартін Ван Бюрен','Martin Van Buren','12-05'],['Вільям Генрі Гаррісон','William Henry Harrison','02-09'],['Джон Тайлер','John Tyler','03-29'],['Джеймс Полк','James K. Polk','11-02'],['Закарі Тейлор','Zachary Taylor','11-24'],['Міллард Філлмор','Millard Fillmore','01-07'],['Франклін Пірс','Franklin Pierce','11-23'],['Джеймс Б’юкенен','James Buchanan','04-23'],['Авраам Лінкольн','Abraham Lincoln','02-12'],['Ендрю Джонсон','Andrew Johnson','12-29'],['Улісс Ґрант','Ulysses S. Grant','04-27'],['Ратерфорд Гейз','Rutherford B. Hayes','10-04'],['Джеймс Гарфілд','James A. Garfield','11-19'],['Честер Артур','Chester A. Arthur','10-05'],['Гровер Клівленд','Grover Cleveland','03-18'],['Бенджамін Гаррісон','Benjamin Harrison','08-20'],['Вільям Мак-Кінлі','William McKinley','01-29'],['Теодор Рузвельт','Theodore Roosevelt','10-27'],['Вільям Тафт','William Howard Taft','09-15'],['Вудро Вільсон','Woodrow Wilson','12-28'],['Воррен Гардінг','Warren G. Harding','11-02'],['Калвін Кулідж','Calvin Coolidge','07-04'],['Герберт Гувер','Herbert Hoover','08-10'],['Франклін Рузвельт','Franklin D. Roosevelt','01-30'],['Гаррі Трумен','Harry S. Truman','05-08'],['Дуайт Ейзенхауер','Dwight D. Eisenhower','10-14'],['Джон Кеннеді','John F. Kennedy','05-29'],['Ліндон Джонсон','Lyndon B. Johnson','08-27'],['Річард Ніксон','Richard Nixon','01-09'],['Джеральд Форд','Gerald Ford','07-14'],['Джиммі Картер','Jimmy Carter','10-01'],['Рональд Рейган','Ronald Reagan','02-06'],['Джордж Буш-старший','George H. W. Bush','06-12'],['Білл Клінтон','Bill Clinton','08-19'],['Джордж Буш-молодший','George W. Bush','07-06'],['Барак Обама','Barack Obama','08-04'],['Дональд Трамп','Donald Trump','06-14'],['Джо Байден','Joe Biden','11-20']] },
+  { id: 'poets', uk: 'Українські письменники', en: 'Ukrainian poets and writers', src: 'https://uk.wikipedia.org/', srcName: 'Вікіпедія, стаття про кожного письменника, дати за новим стилем|Ukrainian Wikipedia, each writer’s article, new-style dates',
+    people: [['Тарас Шевченко','Taras Shevchenko','03-09'],['Леся Українка','Lesia Ukrainka','02-25'],['Іван Франко','Ivan Franko','08-27'],['Михайло Коцюбинський','Mykhailo Kotsiubynskyi','09-17'],['Григорій Сковорода','Hryhorii Skovoroda','12-03'],['Іван Котляревський','Ivan Kotliarevskyi','09-09'],['Василь Стус','Vasyl Stus','01-06'],['Василь Симоненко','Vasyl Symonenko','01-08'],['Ліна Костенко','Lina Kostenko','03-19'],['Максим Рильський','Maksym Rylskyi','03-19'],['Павло Тичина','Pavlo Tychyna','01-23'],['Володимир Сосюра','Volodymyr Sosiura','01-06'],['Микола Хвильовий','Mykola Khvylovyi','12-13'],['Олександр Олесь','Oleksandr Oles','12-05'],['Олена Теліга','Olena Teliha','07-21'],['Микола Зеров','Mykola Zerov','04-26'],['Богдан-Ігор Антонич','Bohdan-Ihor Antonych','10-05'],['Володимир Свідзінський','Volodymyr Svidzinskyi','10-08'],['Марко Вовчок','Marko Vovchok','12-22'],['Ольга Кобилянська','Olha Kobylianska','11-27'],['Василь Стефаник','Vasyl Stefanyk','05-14'],['Іван Нечуй-Левицький','Ivan Nechui-Levytskyi','11-25'],['Панас Мирний','Panas Myrnyi','05-13'],['Пантелеймон Куліш','Panteleimon Kulish','08-07'],['Борис Грінченко','Borys Hrinchenko','12-09'],['Олександр Довженко','Oleksandr Dovzhenko','09-10'],['Іван Багряний','Ivan Bahrianyi','10-02'],['Микола Вінграновський','Mykola Vinhranovskyi','11-07'],['Сергій Жадан','Serhiy Zhadan','08-23']] },
+  { id: 'nobel', uk: 'Нобелівські лауреати з фізики 2001–2020', en: 'Nobel laureates in physics 2001–2020', src: 'https://www.nobelprize.org/prizes/lists/all-nobel-prizes-in-physics/', srcName: 'nobelprize.org: All Nobel Prizes in Physics',
+    people: [['Ерік Корнелл','Eric Cornell','12-19'],['Вольфганг Кеттерле','Wolfgang Ketterle','10-21'],['Карл Вімен','Carl Wieman','03-26'],['Реймонд Девіс','Raymond Davis Jr.','10-14'],['Масатосі Косіба','Masatoshi Koshiba','09-19'],['Ріккардо Джакконі','Riccardo Giacconi','10-06'],['Олексій Абрикосов','Alexei Abrikosov','06-25'],['Віталій Гінзбург','Vitaly Ginzburg','10-04'],['Ентоні Леґґетт','Anthony Leggett','03-26'],['Девід Гросс','David Gross','02-19'],['Девід Політцер','David Politzer','08-31'],['Френк Вільчек','Frank Wilczek','05-15'],['Рой Глаубер','Roy Glauber','09-01'],['Джон Голл','John L. Hall','08-21'],['Теодор Генш','Theodor Hänsch','10-30'],['Джон Мезер','John Mather','08-07'],['Джордж Смут','George Smoot','02-20'],['Альбер Ферт','Albert Fert','03-07'],['Петер Ґрюнберг','Peter Grünberg','05-18'],['Йоітіро Намбу','Yoichiro Nambu','01-18'],['Макото Кобаясі','Makoto Kobayashi','04-07'],['Тосіхіде Маскава','Toshihide Maskawa','02-07'],['Чарльз Као','Charles K. Kao','11-04'],['Віллард Бойл','Willard Boyle','08-19'],['Джордж Сміт','George E. Smith','05-10'],['Андрій Гейм','Andre Geim','10-21'],['Костянтин Новосьолов','Konstantin Novoselov','08-23'],['Сол Перлмуттер','Saul Perlmutter','09-22'],['Браян Шмідт','Brian Schmidt','02-24'],['Адам Рісс','Adam Riess','12-16'],['Серж Арош','Serge Haroche','09-11'],['Девід Вайнленд','David Wineland','02-24'],['Франсуа Англер','François Englert','11-06'],['Пітер Гіґґс','Peter Higgs','05-29'],['Ісаму Акасакі','Isamu Akasaki','01-30'],['Хіросі Амано','Hiroshi Amano','09-11'],['Сюдзі Накамура','Shuji Nakamura','05-22'],['Такаакі Кадзіта','Takaaki Kajita','03-09'],['Артур Макдональд','Arthur McDonald','08-29'],['Девід Таулесс','David Thouless','09-21'],['Дункан Голдейн','Duncan Haldane','09-14'],['Майкл Костерліц','Michael Kosterlitz','06-22'],['Райнер Вайсс','Rainer Weiss','09-29'],['Баррі Беріш','Barry Barish','01-27'],['Кіп Торн','Kip Thorne','06-01'],['Артур Ешкін','Arthur Ashkin','09-02'],['Жерар Муру','Gérard Mourou','06-22'],['Донна Стрікленд','Donna Strickland','05-27'],['Джеймс Пібблс','James Peebles','04-25'],['Мішель Майор','Michel Mayor','01-12'],['Дідьє Кело','Didier Queloz','02-23'],['Роджер Пенроуз','Roger Penrose','08-08'],['Райнгард Ґенцель','Reinhard Genzel','03-24'],['Андреа Гез','Andrea Ghez','06-16']] },
+  { id: 'space', uk: 'Перші люди в космосі (1961–1966)', en: 'First people in space (1961–1966)', src: 'https://en.wikipedia.org/wiki/List_of_space_travellers_by_first_flight', srcName: 'Wikipedia: List of space travellers by first flight',
+    people: [['Юрій Гагарін','Yuri Gagarin','03-09'],['Алан Шепард','Alan Shepard','11-18'],['Вірджил Гріссом','Gus Grissom','04-03'],['Герман Титов','Gherman Titov','09-11'],['Джон Гленн','John Glenn','07-18'],['Скотт Карпентер','Scott Carpenter','05-01'],['Андріян Ніколаєв','Andriyan Nikolayev','09-05'],['Павло Попович','Pavel Popovich','10-05'],['Воллі Ширра','Wally Schirra','03-12'],['Гордон Купер','Gordon Cooper','03-06'],['Валерій Биковський','Valery Bykovsky','08-02'],['Валентина Терешкова','Valentina Tereshkova','03-06'],['Джозеф Вокер','Joseph Walker','02-20'],['Костянтин Феоктистов','Konstantin Feoktistov','02-07'],['Володимир Комаров','Vladimir Komarov','03-16'],['Борис Єгоров','Boris Yegorov','11-26'],['Павло Бєляєв','Pavel Belyayev','06-26'],['Олексій Леонов','Alexei Leonov','05-30'],['Джон Янг','John Young','09-24'],['Джеймс Макдівітт','James McDivitt','06-10'],['Едвард Вайт','Ed White','11-14'],['Піт Конрад','Pete Conrad','06-02'],['Френк Борман','Frank Borman','03-14'],['Джеймс Ловелл','Jim Lovell','03-25'],['Томас Стаффорд','Thomas Stafford','09-17'],['Ніл Армстронг','Neil Armstrong','08-05'],['Девід Скотт','David Scott','06-06'],['Юджин Сернан','Eugene Cernan','03-14'],['Майкл Коллінз','Michael Collins','10-31'],['Річард Гордон','Richard Gordon','10-05'],['Базз Олдрін','Buzz Aldrin','01-20']] },
+  { id: 'football', uk: 'Збірна Бразилії на ЧС-2014', en: 'Brazil squad, 2014 World Cup', src: 'https://en.wikipedia.org/wiki/2014_FIFA_World_Cup_squads', srcName: 'Wikipedia: 2014 FIFA World Cup squads',
+    people: [['Жефферсон','Jefferson','01-02'],['Дані Алвес','Dani Alves','05-06'],['Тьяго Сілва','Thiago Silva','09-22'],['Давід Луїс','David Luiz','04-22'],['Фернандінью','Fernandinho','05-04'],['Марселу','Marcelo','05-12'],['Халк','Hulk','07-25'],['Паулінью','Paulinho','07-25'],['Фред','Fred','10-03'],['Неймар','Neymar','02-05'],['Оскар','Oscar','09-09'],['Жуліу Сезар','Júlio César','09-03'],['Данте','Dante','10-18'],['Максвелл','Maxwell','08-27'],['Енріке','Henrique','10-14'],['Раміреш','Ramires','03-24'],['Луїс Густаво','Luiz Gustavo','07-23'],['Ернанес','Hernanes','05-29'],['Віліан','Willian','08-09'],['Бернард','Bernard','09-08'],['Жо','Jô','03-20'],['Віктор','Victor','01-21'],['Майкон','Maicon','07-26']] }
+];
+const mdName = s => lang === 'en' ? MONTHS_GEN.en[+s.slice(0, 2) - 1] + ' ' + +s.slice(3) : +s.slice(3) + ' ' + MONTHS_GEN.uk[+s.slice(0, 2) - 1];
+const andList = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + L(' і ', ' and ') + a[a.length - 1];
+const nm = p => lang === 'en' ? p[1] : p[0];
+let realRoom = 0;
+const meD = $('#me-d'), meM = $('#me-m');
+const meDay = () => meD.value && meM.value ? meM.value.padStart(2, '0') + '-' + meD.value.padStart(2, '0') : null;
+function meOptions() {
+  const d = meD.value, m = meM.value, max = m ? [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1] : 31;
+  meD.innerHTML = '<option value="">' + L('день', 'day') + '</option>' + Array.from({ length: max }, (_, i) => '<option>' + (i + 1) + '</option>').join('');
+  meM.innerHTML = '<option value="">' + L('місяць', 'month') + '</option>' + MONTHS_GEN[lang].map((n, i) => '<option value="' + (i + 1) + '">' + n + '</option>').join('');
+  meD.value = d && +d <= max ? d : ''; meM.value = m;
+}
+function realText() {
+  const me = meDay(), R = ROOMS[realRoom];
+  $('#rr-tabs').innerHTML = ROOMS.map((r, i) => '<button type="button" data-i="' + i + '" aria-pressed="' + (i === realRoom) + '">' + r[lang] + ' · ' + r.people.length + '</button>').join('');
+  const cnt = {}; R.people.forEach(p => cnt[p[2]] = (cnt[p[2]] || 0) + 1);
+  const sorted = R.people.slice().sort((a, b) => a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0);
+  $('#rr-grid').innerHTML = sorted.map(p => '<div class="' + (cnt[p[2]] > 1 ? 'h' : '') + (p[2] === me ? ' me' : '') + '">' + nm(p) + '<span>' + mdName(p[2]) + '</span></div>').join('');
+  const n = R.people.length, shared = Object.keys(cnt).filter(k => cnt[k] > 1).sort();
+  const pairs = shared.map(k => andList(R.people.filter(p => p[2] === k).map(nm)) + ' (' + mdName(k) + ')');
+  let msg = L(n + ' ' + peopleWord(n) + ', ' + fmt(n * (n - 1) / 2) + ' пар. Шанс хоча б одного збігу для стількох людей ' + pct(pMatch(n)) + '. ',
+    n + ' people, ' + fmt(n * (n - 1) / 2) + ' pairs. The chance of at least one match for that many people is ' + pct(pMatch(n)) + '. ');
+  msg += shared.length ? L('Тут збіглися: ', 'Shared here: ') + '<b>' + pairs.join('; ') + '</b>.' : L('Тут збігів немає.', 'No match here.');
+  if (me) {
+    const twins = R.people.filter(p => p[2] === me).map(nm);
+    msg += ' ' + (twins.length ? L('Ваш день: ', 'Your day: ') + '<b class="me">' + andList(twins) + '</b>.' : L('Вашого дня тут немає ні в кого.', 'Nobody here was born on your day.'));
+  }
+  $('#rr-msg').innerHTML = msg;
+  const sn = R.srcName.split('|'), sname = sn.length > 1 ? L(sn[0], sn[1]) : sn[0];
+  $('#rr-src').innerHTML = '<b>' + L('Джерело:', 'Source:') + '</b> <a href="' + R.src + '" target="_blank" rel="noopener">' + sname + '</a>' +
+    (R.id === 'football' ? L('. Про збіги в усіх 32 збірних: ', '. Matches in all 32 squads: ') + '<a href="https://www.bbc.com/news/magazine-27835311" target="_blank" rel="noopener">BBC, 2014</a>' : '');
+  // the visitor across all rooms: someone sharing YOUR day is much rarer than a match in some pair
+  const all = ROOMS.reduce((a, r) => a.concat(r.people), []), T = all.length;
+  const withPair = ROOMS.filter(r => new Set(r.people.map(p => p[2])).size < r.people.length).length;
+  if (!me) { $('#me-sum').innerHTML = L('Оберіть день і місяць.', 'Pick a day and a month.'); return; }
+  const twinsAll = all.filter(p => p[2] === me).map(nm);
+  $('#me-sum').innerHTML = L('У п\'яти кімнатах ' + T + ' ' + peopleWord(T) + '. ', 'The five rooms hold ' + T + ' people. ') +
+    (twinsAll.length ? L('Ваш день народження з вами ділять: ', 'Born on your day: ') + '<b class="me">' + andList(twinsAll) + '</b>. ' : L('Жоден з них не народився ' + mdName(me) + '. ', 'None of them was born on ' + mdName(me) + '. ')) +
+    L('Шанс, що серед ' + T + ' ' + (T % 10 === 1 && T % 100 !== 11 ? 'людини' : 'людей') + ' знайдеться хтось саме з вашим днем, лише ' + pct(1 - Math.pow(364 / 365, T), 0) + '. А пара зі спільним днем знайшлася в ' + withPair + ' кімнатах з 5: збіг будь-якої пари трапляється значно частіше, ніж збіг з вами.',
+      'The chance that ' + T + ' people include someone born on your very day is only ' + pct(1 - Math.pow(364 / 365, T), 0) + '. Yet ' + withPair + ' of the 5 rooms have a pair sharing a day: a match in any pair is far more common than a match with you.');
+}
+$('#rr-tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; realRoom = +b.dataset.i; realText(); });
+meM.addEventListener('change', () => { meOptions(); realText(); });
+meD.addEventListener('change', realText);
+
 /* ---------- language ---------- */
 function applyLang() {
   document.documentElement.dataset.lang = lang;
@@ -936,7 +1039,7 @@ function applyLang() {
   if (!STATIC) document.title = L('Парадокс днів народження', 'The Birthday Paradox');
   $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
   heroCal.labels(); roomCal.labels();
-  guessText(); roomText(); statsText(); simText(); drawSim(); drawPairs(); drawProd(); presetText(); variantsText();
+  meOptions(); realText(); guessText(); roomText(); statsText(); simText(); drawSim(); drawPairs(); drawProd(); presetText(); variantsText();
 }
 $('#lang').addEventListener('click', e => {
   const a = e.target.closest('a'); if (!a || STATIC) return;
