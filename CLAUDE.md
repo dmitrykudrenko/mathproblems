@@ -23,6 +23,8 @@ Bilingual (uk/en) interactive explainers of math puzzles where intuition is wron
 
 Optional `sim.js` + `sim.py` in a problem folder (always both): the round-3 simulation in a few lines with no libraries, comments and printed words as `⟨uk|en⟩`; the build adds a folded "Check it yourself in code" block (sp-after) to round 3. Run both language versions in node and python before shipping (README «Код симуляції для розробників»).
 
+Optional round «Реальні дані і ви» (`<section class="round mp-real" id="real">`, after round 5, before the fun facts; README «Реальні дані і ви»): «Перевірте на собі» — the reader enters their own numbers (birthday, serials seen, waits at a stop) and sees the paradox in them — plus real, cited data sets embedded as small arrays (source and access date in a script comment, spot-checked against a second source). Only where it comes naturally: if the link is forced, skip it. One input or one slider beats a panel of options.
+
 Optional `work.json`: 2–3 real cases from marketing, analytics, product or business ("At work" section before the fun facts, README «У роботі»). Real data, known research or plain arithmetic with realistic numbers only, each with a source where there is one; skip the file when the link to work is weak.
 
 ## Glossary
