@@ -25,7 +25,7 @@ const T = {
     hintSub: 'Кожна пара — ще один шанс на збіг.',
     comment: 'Ваша відповідь — у коментарях',
     play: 'Гра і 10 000 кімнат:',
-    url: 'mathparadoxes.com/birthday',
+    url: 'mathparadoxes.com/uk/birthday',
     months: 'СЛБКТЧЛСВЖЛГ',
   },
   en: {
@@ -40,7 +40,7 @@ const T = {
     hintSub: 'Every pair is one more chance of a match.',
     comment: 'Drop your answer in the comments',
     play: 'Play it and run 10,000 rooms:',
-    url: 'mathparadoxes.com/birthday/en',
+    url: 'mathparadoxes.com/birthday',
     months: 'JFMAMJJASOND',
   },
 };

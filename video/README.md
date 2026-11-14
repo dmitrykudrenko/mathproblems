@@ -17,7 +17,7 @@ Vertical shorts (1080×1920, 30 fps, uk + en) in the site's style, rendered from
 
 ## New video
 
-1. Read the problem's `page.html` and `meta.json` (`share`, `hints`, round 1 options). The short follows: hook (1 line) → the question in `share` words → the round-1 options → «pause and guess» with a silent 4 s countdown → the page's own hint, animated → end card: question, options, «answer in the comments», the page URL on screen. 35–55 s.
+1. Read the problem's `page.html` and `meta.json` (`share`, `hints`, round 1 options). The short follows: hook (1 line) → the question in `share` words → the round-1 options → «pause and guess» with a silent 4 s countdown → the page's own hint, animated → end card: question, options, «answer in the comments», the page URL on screen (English is the root, `mathparadoxes.com/<slug>`; Ukrainian is `mathparadoxes.com/uk/<slug>`). 35–55 s.
 2. Copy `birthday.mjs` to `<slug>.mjs`. Set `INTRO.title` (the problem's name, uk/en) and `INTRO.tint` (a saturated version of the page's `--tint`, readable on ink), the colours `C` from the page's `:root`, and the full-frame background gradient from its tint, so each video has its own colour.
 3. Write `VOICE` in both languages: short spoken sentences, numbers in words, no web address (say «the link is on screen»). Draw the problem's signature object from the page, not stock shapes.
 4. Render stills of every scene in both languages and look at them: text inside 80–1000 px across and 230–1540 px down (Shorts/Reels/TikTok cover the rest), nothing cut off, English lines wrap.
