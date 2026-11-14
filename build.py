@@ -53,6 +53,12 @@ SITE_NAME = {"uk": "Математичні парадокси", "en": "Math para
 # logo mark (three doors, the third one taken); the source files live in brand/
 BRAND_MARK = '<svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>'
 AUTHOR_NAME = {"uk": "Дмитро Кудренко", "en": "Dmytro Kudrenko"}
+# the site's own channels for the puzzle videos, per language (the YouTube channel has a Ukrainian translation);
+# shown at the end of the footer menu of every page and as sameAs of the WebSite in the home page's JSON-LD
+SOCIAL = {
+    "en": [("YouTube", "https://www.youtube.com/@mathparadoxes"), ("TikTok", "https://www.tiktok.com/@mathparadoxes")],
+    "uk": [("YouTube", "https://www.youtube.com/@mathparadoxes"), ("Telegram", "https://t.me/mathparadoxes")],
+}
 AUTHOR_ORGS = [("Stripo", "https://stripo.email/"), ("Claspo", "https://claspo.io/"), ("Yespo", "https://yespo.io/"),
                ("Reteno", "https://reteno.com/"), ("eSputnik", "https://esputnik.com/")]
 
@@ -1803,7 +1809,9 @@ def with_site_nav(doc, lang, path):
     doc, n = re.subn(r'(<div class="topbar">.*?)(<nav\b[^>]*\bid="lang")', lambda m: m.group(1) + nav + m.group(2), doc, count=1, flags=re.S)
     if not n:
         return doc
-    foot = f'<nav class="mp-fnav" aria-label="{t["nav"]}">{items}</nav>\n{NAV_SCRIPT}\n{SEARCH_SCRIPT}\n'
+    social = "".join(f'<a href="{u}" rel="me noopener">{n}</a>' for n, u in SOCIAL[lang])
+    foot = (f'<nav class="mp-fnav" aria-label="{t["nav"]}">{items}<span class="mp-social">{social}</span></nav>\n'
+            f'{NAV_SCRIPT}\n{SEARCH_SCRIPT}\n')
     i = doc.rindex("</body>")
     return doc[:i] + foot + doc[i:]
 
@@ -1978,7 +1986,7 @@ def build_hub(problems, base):
         ld = {"@context": "https://schema.org", "@graph": [
             {"@type": "WebSite", "@id": urls[lang] + "#site", "name": SITE_NAME[lang], "url": urls[lang],
              "inLanguage": lang, "description": m["description"], "author": {"@id": base + "#author"},
-             "creator": {"@id": base + "#author"},
+             "creator": {"@id": base + "#author"}, "sameAs": [u for _, u in SOCIAL[lang]],
              "potentialAction": {"@type": "SearchAction", "target": urls[lang] + "?q={search_term_string}",
                                  "query-input": "required name=search_term_string"}},
             author_ld(lang, base),
