@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/glossary/holdout/", "en": "/glossary/holdout/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = null;
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  // the gate card sits after round 1; once it hides, the browser would keep the bottom of the page in view, so jump to round 2
+  function toRounds(b) {
+    var r = b.closest(".sp-gate") && document.querySelector(".sp-rounds");
+    if (r) requestAnimationFrame(function () { r.scrollIntoView({ block: "start" }); });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+    if (on) toRounds(b);
+  });
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else { window.mpSolve(); toRounds(b); }
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+
+<title>Holdout Group Explained: Why a Year of A/B Wins Doesn&#x27;t Add Up</title>
+<meta name="description" content="20 changes won their A/B tests and the report promises almost +50%. Live a year of tests and compare the sum of wins with a holdout that saw none of them.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/glossary/holdout/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/glossary/holdout/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/glossary/holdout/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/glossary/holdout/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="Holdout Group Explained: Why a Year of A/B Wins Doesn&#x27;t Add Up">
+<meta property="og:description" content="20 changes won their A/B tests and the report promises almost +50%. Live a year of tests and compare the sum of wins with a holdout that saw none of them.">
+<meta property="og:url" content="https://mathparadoxes.com/glossary/holdout/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Holdout group: what did a year of 20 winning tests really add?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Holdout Group Explained: Why a Year of A/B Wins Doesn&#x27;t Add Up">
+<meta name="twitter:description" content="20 changes won their A/B tests and the report promises almost +50%. Live a year of tests and compare the sum of wins with a holdout that saw none of them.">
+<meta name="twitter:image" content="https://mathparadoxes.com/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/glossary/holdout/en/#page", "url": "https://mathparadoxes.com/glossary/holdout/en/", "name": "Holdout Group Explained: Why a Year of A/B Wins Doesn't Add Up", "description": "20 changes won their A/B tests and the report promises almost +50%. Live a year of tests and compare the sum of wins with a holdout that saw none of them.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "explanation"], "about": [{"@type": "DefinedTerm", "name": "Holdout group", "description": "A small random share of customers who for a long time see none of the shipped changes, so that comparing with them shows what all the changes gave together.", "inDefinedTermSet": "https://mathparadoxes.com/glossary/en/"}], "datePublished": "2026-11-14", "dateModified": "2026-11-14", "author": {"@id": "https://mathparadoxes.com/#author"}, "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "Glossary", "item": "https://mathparadoxes.com/glossary/en/"}, {"@type": "ListItem", "position": 3, "name": "Holdout group", "item": "https://mathparadoxes.com/glossary/holdout/en/"}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: glossary article in three layers: a year of 20 winning A/B tests whose booked lifts add up to almost +50%
+   while the holdout shows about +7%, with the three reasons (plain words), how big a holdout must be and the rules of
+   keeping one (rigorous), the formulas for the winner's curse and for overlapping effects, long-term effects and
+   history (deeper). */
+:root { --tint: #E7EFF4; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+.ex { font-variant-numeric: tabular-nums; background: var(--paper); border-radius: 10px; padding: 10px 12px; font-size: .95rem; overflow-wrap: anywhere; }
+.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.gl-stat b { font-variant-numeric: tabular-nums; }
+.key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .88rem; color: var(--muted); }
+.key i { display: inline-block; width: 12px; height: 12px; vertical-align: middle; margin-right: 6px; border-radius: 50%; }
+.key i.open { border: 2px solid var(--ink); background: transparent; }
+.after { display: grid; gap: 16px; }
+.after[hidden] { display: none; }
+.gbtn[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.tbl-wrap { overflow-x: auto; background: var(--paper); border-radius: 14px; }
+.tbl { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .95rem; }
+.tbl th, .tbl td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; white-space: normal; vertical-align: bottom; }
+.tbl tr:last-child td { border-bottom: 0; }
+@media (max-width: 860px) { .three { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .tbl { font-size: .85rem; } .tbl th, .tbl td { padding: 8px 6px; } .tbl th { font-size: .68rem; } }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=0215c449">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="https://mathparadoxes.com/en/"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+    <nav class="mp-nav" aria-label="Sections" data-t="{&quot;cont&quot;: &quot;Continue&quot;, &quot;course&quot;: &quot;Continue the course&quot;}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Menu"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Continue: <b></b></a><a href="https://mathparadoxes.com/en/#all">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/" aria-current="page">Glossary</a></div><button type="button" class="mp-sx-btn" aria-haspopup="dialog" aria-label="Search" data-src="https://mathparadoxes.com/en/search.json" data-t="{&quot;btn&quot;: &quot;Search&quot;, &quot;ph&quot;: &quot;A puzzle, course or term&quot;, &quot;all&quot;: &quot;All&quot;, &quot;p&quot;: &quot;Puzzles&quot;, &quot;c&quot;: &quot;Courses&quot;, &quot;g&quot;: &quot;Glossary&quot;, &quot;recent&quot;: &quot;Recently opened&quot;, &quot;try&quot;: &quot;Try&quot;, &quot;none&quot;: &quot;Nothing found. Try another word or&quot;, &quot;every&quot;: &quot;browse all puzzles&quot;, &quot;keys&quot;: &quot;↑↓ choose · Enter open · Esc close&quot;, &quot;solved&quot;: &quot;solved&quot;, &quot;load&quot;: &quot;Loading…&quot;, &quot;fail&quot;: &quot;Couldn&#x27;t load the search. Check your connection.&quot;, &quot;close&quot;: &quot;Close&quot;, &quot;course&quot;: &quot;Course&quot;, &quot;chapter&quot;: &quot;chapter %d of %d&quot;, &quot;glossary&quot;: &quot;Glossary&quot;, &quot;ideas&quot;: [&quot;probability&quot;, &quot;A/B test&quot;, &quot;Monty Hall&quot;, &quot;median&quot;, &quot;interview&quot;, &quot;auction&quot;]}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="mp-sx-lbl">Search</span><kbd>/</kbd></button></nav>
+  <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="https://mathparadoxes.com/glossary/holdout/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="https://mathparadoxes.com/glossary/holdout/en/" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="https://mathparadoxes.com/glossary/en/"><span class="en">Glossary</span></a> / <span class="en">Holdout group</span></p>
+
+  <header class="gl-head">
+    <span class="eyebrow"><span class="en">Glossary · holdout group</span></span>
+    <h1><span class="en">Twenty wins a year, so where is the growth?</span></h1>
+    
+    <p class="lead en">Over a year a big product team shipped 20 changes, and each one honestly won its A/B test. The analyst adds up the recorded lifts, and the report promises almost +50% in sales. Meanwhile 5% of customers spent the whole year on the old site and saw none of these changes. Surely they should buy noticeably less than everyone else. The comparison with them is the year's real check, and the group itself is called a holdout group.</p>
+  </header>
+
+  <section class="gl-layers">
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">In plain words</span><span class="mp-layer-desc">pictures, analogies, small numbers</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“In plain words” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec" id="year">
+    <h2><span class="en">A year of wins</span></h2>
+    
+    <p class="en">The shop checks ideas with A/B tests of 400,000 visitors per variant, at a 5% conversion rate. Ideas vary: some help a little, others change nothing, a few do harm. Every idea that wins its test with a significant result is shipped, and its lift from the dashboard goes into the annual report. Over the year there are 20 such winners.</p>
+    <div class="gl-panel">
+      <p><b><span class="en">The report: 20 winners, about +49% together. What will the comparison with the holdout show at the end of the year?</span></b></p>
+      <div class="gl-btns" role="group" aria-label="Ваш варіант" data-aria-en="Your guess">
+        <button type="button" class="btn ghost gbtn" data-g="0"><span class="en">Roughly the same +49%</span></button>
+        <button type="button" class="btn ghost gbtn" data-g="1"><span class="en">A bit less, around +30%</span></button>
+        <button type="button" class="btn ghost gbtn" data-g="2"><span class="en">Less than +10%</span></button>
+      </div>
+      <div class="after" id="y-after" hidden>
+        <p id="y-verdict" aria-live="polite"></p>
+        <div>
+          <label class="gl-note" for="y-n"><span class="en">Visitors per variant in a test</span>: <b id="y-nv"></b></label>
+          <input type="range" id="y-n" min="0" max="6" step="1" value="2" style="width:100%">
+        </div>
+        <div class="three">
+          <div class="gl-stat"><span><span class="en">Ideas tested this year</span></span><b id="y-tests">–</b></div>
+          <div class="gl-stat"><span><span class="en">Sum of lifts in the report</span></span><b id="y-booked">–</b></div>
+          <div class="gl-stat"><span><span class="en">The holdout showed</span></span><b class="hit" id="y-hold">–</b></div>
+        </div>
+        <canvas class="gl-canvas" id="y-fall" style="height:270px" aria-label="Від суми ліфтів у звіті до того, що показала холдаут-група" data-aria-en="From the sum of lifts in the report to what the holdout showed"></canvas>
+        <p id="y-msg" aria-live="polite"></p>
+        <div class="gl-btns"><button type="button" class="btn" id="y-run"><span class="en">Live another year</span></button></div>
+        <h3><span class="en">The year's 20 winners</span></h3>
+        <canvas class="gl-canvas" id="y-wins" style="height:300px" aria-label="Записаний і справжній ліфт кожного переможця" data-aria-en="Recorded and true lift of each winner"></canvas>
+        <p class="key"><span><i class="open"></i><span class="en">lift recorded in the report</span></span><span><i style="background:var(--muted)"></i><span class="en">the idea's true effect</span></span></p>
+        <p class="gl-note" id="y-avg"></p>
+      </div>
+    </div>
+  <script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "glossary-holdout" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+  <section class="gl-sec">
+    <h2><span class="en">Where the percent went</span></h2>
+    
+    <p class="en">The simplest explanation, slightly simplified: each test sees its change alone, for a few weeks and with noise, while the holdout sees all the changes together, for the whole year, with no picking of the best. So the report adds up optimistic pieces, and the holdout measures the whole picture. The gap between them comes from three separate reasons, and none of them depends on the analyst's honesty.</p>
+    <ul class="gl-when">
+      <li><b><span class="en">1. The lucky ones win</span></b><span><span class="en">The true effects of ideas are small, smaller than a test's noise. A significant win more often goes to the idea that noise happened to push up this time. So a winner's recorded lift is bigger than its true effect on average, and some "winners" actually do harm. This is the winner's curse.</span></span></li>
+      <li><b><span class="en">2. Effects overlap</span></b><span><span class="en">Two abandoned-cart emails, each bringing back 30% of carts in its own test. Together they bring back not 60% but 51%: the second email can only bring back a cart the first one didn't. A buyer can be persuaded only once, yet each test claims them.</span></span></li>
+      <li><b><span class="en">3. Novelty fades</span></b><span><span class="en">A test lasts a few weeks, and part of the effect comes simply from something being new. Half a year later people are used to it. In the simulation two thirds of the effect remain.</span></span></li>
+    </ul>
+    
+    <p class="en">Move the slider to the right: with big tests the noise is smaller, and the first reason almost disappears. But even with 6.4&nbsp;million visitors per variant the report promises +19% on <a href="https://mathparadoxes.com/glossary/median-vs-mean/en/" class="gl-term">average</a>, while the holdout shows about +7%: no test size lets a single test see overlap and fading.</p>
+  </section>
+
+  <section class="gl-sec" id="what">
+    <h2><span class="en">What a holdout group is</span></h2>
+    
+    <p class="en">A <b>holdout group</b>, or long-term holdout, is a small random share of customers who for a long time, usually a quarter or a year, see none of the shipped changes or campaigns. Everyone else sees everything. The difference between them at the end shows what all the changes gave together, overlap and fading included. In CRM marketing such a group is often called a universal control group: these customers get no campaigns at all. And when part of the users are kept without one new feature after its launch, people call it a holdback.</p>
+    
+    <p class="en">An ordinary control group in an A/B test answers "is this change better than the old version right now". A holdout answers a different question: "how much better is our whole year of work than a year without it".</p>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Rigorous</span><span class="mp-layer-desc">tables, charts, formulas</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Rigorous” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec" id="size">
+    <h2><span class="en">How many customers to keep out</span></h2>
+    
+    <p class="en">A holdout has a price: these customers go a whole year without improvements. And it has a precision: the smaller the group, the noisier its result. Say the shop has 2&nbsp;million customers a year, and 30% of them buy. The true gain from all changes is +7.1%, as in the simulation. Change the holdout's share.</p>
+    <div class="gl-panel">
+      <label class="gl-note" for="h-s"><span class="en">Holdout share</span>: <b id="h-sv"></b></label>
+      <input type="range" id="h-s" min="1" max="20" step="1" value="5" style="width:100%">
+      <canvas class="gl-canvas" id="h-cv" style="height:150px" aria-label="Що покаже холдаут-група: справжній приріст і похибка" data-aria-en="What the holdout will show: the true gain and its margin"></canvas>
+      <div class="three">
+        <div class="gl-stat"><span><span class="en">People in the group</span></span><b id="h-n">–</b></div>
+        <div class="gl-stat"><span><span class="en">Margin, 95%</span></span><b id="h-m">–</b></div>
+        <div class="gl-stat"><span><span class="en">Price · share of annual sales</span></span><b id="h-c">–</b></div>
+      </div>
+      <p class="ex" id="h-fx"></p>
+    </div>
+    
+    <p class="en">Even 1% is enough to tell +7% from the promised +49%: the margin is then about ±2.1 points. To measure the gain itself to half a point, you already need a fifth of the customers. Halving the margin takes a group four times bigger, which is why people usually keep 5–10%: at 5% the margin is about ±1.0 point, and the price is roughly 0.36% of annual sales.</p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">Rules for a holdout</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="en">A lottery, not convenience</span></b><span><span class="en">The group is drawn at random before the year starts. "Those who didn't update the app" or "those who unsubscribed" are not a holdout: these people differ on their own.</span></span></li>
+      <li><b><span class="en">The same people all year</span></b><span><span class="en">Split by customer, not by visit. If a person drifts in and out of the group, they see half of the changes, and the comparison gets blurred.</span></span></li>
+      <li><b><span class="en">No exceptions</span></b><span><span class="en">The holdout sees no new features, no new emails, no discounts. One "very important" campaign for everyone, and the group now measures a year without everything except that campaign.</span></span></li>
+      <li><b><span class="en">One comparison at the end</span></b><span><span class="en">If you search every week for a segment where the holdout "already shows" a difference, the same false discoveries it was meant to guard against come back.</span></span></li>
+      <li><b><span class="en">Discount the report, don't add it up</span></b><span><span class="en">The ratio "holdout / sum of lifts" for last year is an honest correction factor for next year's plans. In the simulation it is about 0.15.</span></span></li>
+    </ul>
+    
+    <p class="en">How recorded wins add up in an annual report step by step is covered in <a href="../../../courses/ab-testing/en/#ch-17">chapter 17 of the course "A/B testing paradoxes"</a>, and how to size a long-term holdout for a single feature in <a href="../../../courses/feature-impact/en/#ch-10">the course on feature impact</a>.</p>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Deeper</span><span class="mp-layer-desc">generalisations, theory, history</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Deeper” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec" id="math">
+    <h2><span class="en">The three corrections as formulas</span></h2>
+    
+    <p class="en"><b>The winner's curse.</b> In the simulation the true effects of ideas are spread around zero with a <a href="https://mathparadoxes.com/glossary/variance/en/" class="gl-term">standard deviation</a> τ = 0.75%, and the noise of a test with 400,000 visitors per variant is σ ≈ 0.97%. If a test recorded a lift x, the best estimate of the true effect is only a fraction of it:</p>
+    <p class="ex"><span class="en">E[true | recorded x] = x · τ² / (τ² + σ²) = x · 0.56 / (0.56 + 0.95) ≈ 0.37 · x</span></p>
+    
+    <p class="en">So of the recorded +49% only about +18% remains, and 7% of the winners actually do harm. The bigger the test, the closer the factor gets to one: at 6.4&nbsp;million per variant it is 0.90.</p>
+    
+    <p class="en"><b>Overlap.</b> In the model all changes together can add at most H = 15%: that is how many buyers can be persuaded at all. Each change persuades a share e/H of those still left. Then together:</p>
+    <p class="ex"><span class="en">together = H · (1 − (1 − e₁/H)(1 − e₂/H)…(1 − e₂₀/H))</span></p>
+    
+    <p class="en">For small effects this is almost the sum, but twenty changes of 0.9% each already give +10.7% instead of +18.2%. The limit H in the simulation is an assumption, and every business has its own. But the formula shows the direction: the more changes aim at one and the same purchase, the less their sum looks like the truth. If each test runs on top of the changes already shipped, it measures only its own addition, and such additions add up honestly. Overlap is counted twice where tests run in parallel, each against the old version.</p>
+    
+    <p class="en"><b>Fading.</b> The "two thirds remain" factor is also a model assumption. Only a long measurement shows the real share, and that is exactly what a holdout is kept for.</p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th><span class="en">Visitors per variant</span></th><th><span class="en">Ideas for 20 wins</span></th><th><span class="en">Report</span></th><th><span class="en">True, alone</span></th><th><span class="en">Together</span></th><th><span class="en">Holdout</span></th></tr></thead>
+        <tbody id="t-body"></tbody>
+      </table>
+    </div>
+    <p class="gl-note"><span class="en">An exact calculation under the normal approximation, the average for a year. The simulation above gives slightly different numbers every time: it is one year, not the average.</span></p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">How we know</span></h2>
+    
+    <p class="en">In 2018 Minyong Lee and Milan Shen of Airbnb published a KDD paper, "Winner's Curse: Bias Estimation for Total Effects of Features in Online Controlled Experiments". They showed that the sum of effects of launched experiments, chosen for being significant, systematically overstates the true total effect, and proposed a correction for this bias.</p>
+    
+    <p class="en">Fading and long-term effects were the subject of a 2015 paper by Henning Hohnhold, Deirdre O'Brien and Diane Tang of Google, "Focusing on the Long-term: It's Good for Users and Business". On search ads they showed that a short test does not always predict the long-term effect: users learn over time and change their behaviour. To see it, groups of people lived with different settings for a long time.</p>
+    
+    <p class="en">Long-term holdouts and holdbacks as a tool of their own are described in Ron Kohavi, Diane Tang and Ya Xu's book "Trustworthy Online Controlled Experiments" (Cambridge University Press, 2020), in the chapter on measuring long-term effects (p. 175).</p>
+  </section>
+  </div>
+  </section>
+
+  <section class="gl-sec"><h2>Where it shows up</h2>
+    <div class="mp-related-grid">
+      <a class="mp-related-card" href="https://mathparadoxes.com/winners-curse/en/"><h3>The winner&#x27;s curse</h3><p>Ten bidders honestly estimate a jar of coins worth 100 dollars and bid their estimates. On average, what does the auction winner make?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/multiple-testing/en/"><h3>Slice it until something wins</h3><p>The new email is no better than the old one. The analyst checks the result in 20 countries. What is the chance at least one shows a &quot;significant&quot; difference?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/ab-test-peeking/en/"><h3>Peeking at an A/B test</h3><p>Two identical pages, a 30-day test, a check every evening and a stop at the first &quot;95%&quot;. How often is one of the identical pages declared the winner?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/persuadables/en/"><h3>Who gets the coupon?</h3><p>A perfect model finds the 250 likeliest buyers, and they get discount coupons. How many purchases does that add?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/regression-to-mean/en/"><h3>Regression to the mean</h3><p>After praise players do worse, and after criticism they do better. Does that mean criticism works?</p></a>
+    </div></section>
+
+  <section class="gl-sec"><h2>More on “Data and experiments”</h2>
+    <ul class="gl-cards">
+      <li class="gl-card" id="sampling-bias"><a href="https://mathparadoxes.com/glossary/sampling-bias/en/"><h3>Sampling bias</h3><p>A sample some people get into more easily than others, so it describes everyone badly.</p><p class="gl-hook">In 1936 a magazine polled millions of Americans and still picked the wrong election winner.</p></a></li>
+      <li class="gl-card" id="law-of-large-numbers"><a href="https://mathparadoxes.com/glossary/law-of-large-numbers/en/"><h3>Law of large numbers</h3><p>The more repetitions, the closer the share of an outcome gets to its true probability.</p><p class="gl-hook">The share of heads creeps towards 50%, while the gap between heads and tails in coins usually grows.</p></a></li>
+      <li class="gl-card" id="correlation"><a href="https://mathparadoxes.com/glossary/correlation/en/"><h3>Correlation</h3><p>A number from −1 to +1 showing how closely two quantities move together.</p><p class="gl-hook">In summer both ice cream sales and drownings go up. Ice cream isn&#x27;t to blame: the heat drives both.</p></a></li>
+      <li class="gl-card" id="standard-error"><a href="https://mathparadoxes.com/glossary/standard-error/en/"><h3>Standard error</h3><p>How far an average or a rate computed from a sample usually misses the truth: σ divided by the square root of the sample size.</p><p class="gl-hook">Halving the error takes four times as much data.</p></a></li>
+      <li class="gl-card" id="confidence-interval"><a href="https://mathparadoxes.com/glossary/confidence-interval/en/"><h3>Confidence interval</h3><p>A range around a measured number, built by a method that covers the true value in a chosen share of samples, such as 95%.</p><p class="gl-hook">Of twenty honest 95% intervals, on average one misses the truth, and none of them knows whether it is the one.</p></a></li>
+      <li class="gl-card" id="p-value"><a href="https://mathparadoxes.com/glossary/p-value/en/"><h3>p-value</h3><p>How often chance alone would produce a gap at least as big as yours if there were really no difference.</p><p class="gl-hook">When there is no effect at all, p below 0.05 turns up as often as p between 0.50 and 0.55.</p></a></li>
+      <li class="gl-card" id="chance-to-beat"><a href="https://mathparadoxes.com/glossary/confidence-vs-chance-to-beat/en/"><h3>Chance to beat</h3><p>The number on Bayesian dashboards: how likely <span class="vl">B</span> is to be better than <span class="vl">A</span>, given the data and a starting assumption.</p><p class="gl-hook">&quot;97% chance&quot; tells the truth only when every idea of yours changes something; if four in five are useless, <span class="vl">B</span> is better in only a third of such tests.</p></a></li>
+      <li class="gl-card" id="statistical-power"><a href="https://mathparadoxes.com/glossary/statistical-power/en/"><h3>Statistical power</h3><p>The probability that a test notices a real effect of a given size. A power of 80% means the test misses one working effect in five.</p><p class="gl-hook">A weak A/B test that does find an effect almost always exaggerates it: a real +10% shows up on the dashboard as +24%.</p></a></li>
+      <li class="gl-card" id="mde"><a href="https://mathparadoxes.com/glossary/minimum-detectable-effect/en/"><h3>Minimum detectable effect (MDE)</h3><p>The smallest real effect a test of a given size will find with 80% probability (usually at a 5% significance level). Smaller effects the test will mostly miss.</p><p class="gl-hook">A shop with 1,000 visitors a day would need seven years of testing to reliably notice a +2% lift in conversion.</p></a></li>
+      <li class="gl-card" id="bootstrap"><a href="https://mathparadoxes.com/glossary/bootstrap/en/"><h3>Bootstrap</h3><p>A way to get the error of any number without a formula: redraw a sample of the same size from your own data with replacement many times and watch how the result jumps.</p><p class="gl-hook">Each resample loses a third of your data and repeats the rest, yet the spread of such copies shows the real error.</p></a></li>
+    </ul>
+    <p class="gl-all"><a href="https://mathparadoxes.com/glossary/en/#data">All terms →</a></p></section>
+
+  <footer>
+    <span class="en">Math paradoxes · by <a href="https://mathparadoxes.com/en/#author">Dmytro Kudrenko</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const en = document.documentElement.dataset.lang === 'en', L = (uk, e) => en ? e : uk;
+  const $ = s => document.querySelector(s);
+  if (en) document.querySelectorAll('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn));
+  const css = getComputedStyle(document.documentElement);
+  const C = { ink: css.getPropertyValue('--ink').trim() || '#151515', muted: css.getPropertyValue('--muted').trim() || '#5F5F5F',
+              line: css.getPropertyValue('--line').trim() || '#E4E4E4', hit: css.getPropertyValue('--signal').trim() || '#D9318F' };
+  const loc = en ? 'en-US' : 'uk-UA';
+  const nf = (v, d = 1) => (v < 0 && Math.abs(v) >= 0.5 * 10 ** -d ? '−' : '') + Math.abs(v).toLocaleString(loc, { maximumFractionDigits: d, minimumFractionDigits: d });
+  const int = v => Math.round(v).toLocaleString(loc);
+  const lift = (v, d = 0) => (Math.abs(v) < 1e-9 ? '' : v > 0 ? '+' : '−') + nf(Math.abs(100 * v), d) + '%';
+  const plural = (n, one, few, many) => { n = Math.round(n); const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+  const pts = (v, d = 1) => nf(100 * v, d) + L(' п.', ' pt');
+  function setup(cv) {
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (!r.width) return null;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.font = '12px Inter, system-ui, sans-serif';
+    return { g, w: r.width, h: r.height };
+  }
+  const erf = x => { const t = 1 / (1 + 0.3275911 * Math.abs(x)), y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return x < 0 ? -y : y; };
+  const Phi = x => 0.5 * (1 + erf(x / Math.SQRT2));
+  const phi = x => Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI);
+  const gauss = () => { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); };
+
+  // Model (checked in Python and Node): idea effects d ~ N(0, TAU); a test with n visitors per variant at 5% conversion,
+  // pooled one-sided win at z > 1.96; the first 20 winners are shipped and their dashboard lifts booked.
+  // Together = H (1 − Π(1 − d/H)); long run keeps KEEP of it; the holdout (5% of 2M customers, 30% buy) adds noise HSE.
+  const P0 = 0.05, TAU = 0.0075, H = 0.15, KEEP = 2 / 3, WINS = 20, Z = 1.959964, HSE = 0.00495;
+  const NS = [100000, 200000, 400000, 800000, 1600000, 3200000, 6400000];
+  const nlab = n => n >= 1e6 ? nf(n / 1e6, 1) + L(' млн', 'M') : int(n / 1000) + L(' тис.', 'k');
+  function year(n) {
+    let tests = 0, prod = 1; const wins = [];
+    while (wins.length < WINS && tests < 5000) {
+      tests++;
+      const d = TAU * gauss(), pB = P0 * (1 + d);
+      const a = n * P0 + Math.sqrt(n * P0 * (1 - P0)) * gauss(), b = n * pB + Math.sqrt(n * pB * (1 - pB)) * gauss();
+      const pp = (a + b) / (2 * n), z = (b - a) / n / Math.sqrt(pp * (1 - pp) * 2 / n);
+      if (z > Z) { wins.push({ x: b / a - 1, d }); prod *= 1 - d / H; }
+    }
+    const booked = wins.reduce((s, w) => s + w.x, 0), alone = wins.reduce((s, w) => s + w.d, 0), together = H * (1 - prod);
+    return { n, tests, wins, booked, alone, together, long: KEEP * together, hold: KEEP * together + HSE * gauss() };
+  }
+  function exact(n) {
+    const se = Math.sqrt(2 * (1 - P0) / (n * P0)), s = Math.hypot(TAU, se), a = Z * se / s, P = 1 - Phi(a);
+    const Ex = s * phi(a) / P, Ed = TAU * TAU / (s * s) * Ex, together = H * (1 - (1 - Ed / H) ** WINS);
+    return { tests: WINS / P, booked: WINS * Ex, alone: WINS * Ed, together, hold: KEEP * together };
+  }
+
+  let Y = null, guessed = false;
+  function run() { Y = year(NS[+$('#y-n').value]); drawYear(); }
+  function drawYear() {
+    if (!Y) return;
+    const E = exact(Y.n);
+    $('#y-nv').textContent = nlab(Y.n);
+    $('#y-tests').textContent = int(Y.tests);
+    $('#y-booked').textContent = lift(Y.booked);
+    $('#y-hold').textContent = lift(Y.hold, 1);
+    const harm = Y.wins.filter(w => w.d < 0).length;
+    $('#y-msg').textContent = L(
+      `Щоб набрати 20 переможців, команда перевірила ${int(Y.tests)} ${plural(Y.tests, 'ідею', 'ідеї', 'ідей')}. Звіт склав їхні ліфти в ${lift(Y.booked)}. Справжні ефекти тих самих 20 ідей, кожної окремо, — ${lift(Y.alone, 1)}.${harm ? ` ${harm} з переможців насправді ${plural(harm, 'шкодить', 'шкодять', 'шкодять')}.` : ''} Разом, з перекриттям, вони дали ${lift(Y.together, 1)}, а після згасання лишилося ${lift(Y.long, 1)}. Холдаут-група показала ${lift(Y.hold, 1)}, з похибкою близько ±1 пункту.`,
+      `To collect 20 winners the team tested ${int(Y.tests)} ideas. The report added their lifts up to ${lift(Y.booked)}. The true effects of the same 20 ideas, each alone, come to ${lift(Y.alone, 1)}.${harm ? ` ${harm} of the winners actually ${harm === 1 ? 'does' : 'do'} harm.` : ''} Together, with overlap, they gave ${lift(Y.together, 1)}, and after fading ${lift(Y.long, 1)} remained. The holdout showed ${lift(Y.hold, 1)}, with a margin of about ±1 point.`);
+    $('#y-avg').textContent = L(
+      `У середньому за рік за цього розміру тестів (точний розрахунок): ${int(E.tests)} ${plural(E.tests, 'ідея', 'ідеї', 'ідей')}, звіт ${lift(E.booked, 1)}, справжні ефекти окремо ${lift(E.alone, 1)}, разом ${lift(E.together, 1)}, холдаут-група ${lift(E.hold, 1)}.`,
+      `On average per year at this test size (exact calculation): ${int(E.tests)} ideas, report ${lift(E.booked, 1)}, true effects alone ${lift(E.alone, 1)}, together ${lift(E.together, 1)}, holdout ${lift(E.hold, 1)}.`);
+    drawFall(); drawWins();
+  }
+  // waterfall, one row per step: the label on its own line, the bar under it
+  function drawFall() {
+    const s = setup($('#y-fall')); if (!s) return;
+    const { g, w, h } = s, pl = 4, pr = 8, top = Math.max(0.2, Y.booked) * 1.04, X = v => pl + Math.max(0, v) / top * (w - pl - pr);
+    const rows = [
+      [L('Сума ліфтів у звіті', 'Sum of lifts in the report'), 0, Y.booked, C.ink, lift(Y.booked)],
+      [L('мінус удача переможців', 'minus the winners\' luck'), Y.alone, Y.booked, C.line, '−' + pts(Y.booked - Y.alone, 0)],
+      [L('мінус перекриття', 'minus overlap'), Y.together, Y.alone, C.line, '−' + pts(Y.alone - Y.together)],
+      [L('мінус згасання', 'minus fading'), Y.long, Y.together, C.line, '−' + pts(Y.together - Y.long)],
+      [L('Холдаут-група показала', 'The holdout showed'), 0, Y.hold, C.hit, lift(Y.hold, 1)]];
+    const rh = (h - 8) / rows.length;
+    g.clearRect(0, 0, w, h);
+    rows.forEach(([lab, a, b, col, val], i) => {
+      const y = 4 + i * rh, by = y + 18, bh = Math.min(20, rh - 26);
+      g.fillStyle = C.ink; g.textAlign = 'left'; g.font = (i === 0 || i === 4 ? '600 ' : '') + '12px Inter, system-ui, sans-serif';
+      g.fillText(lab + ' · ' + val, pl, y + 12);
+      g.fillStyle = col; const x0 = X(Math.min(a, b)), x1 = X(Math.max(a, b)); g.fillRect(x0, by, Math.max(2, x1 - x0), bh);
+      if (i > 0 && i < 4) { g.strokeStyle = C.muted; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(X(b), by - 4); g.lineTo(X(b), by + bh + 4); g.stroke(); g.setLineDash([]); }
+      if (i === 4) { g.strokeStyle = C.hit; g.lineWidth = 2; const m = 1.96 * HSE, c = by + bh / 2; g.beginPath(); g.moveTo(X(Y.hold - m), c); g.lineTo(X(Y.hold + m), c); g.moveTo(X(Y.hold + m), c - 6); g.lineTo(X(Y.hold + m), c + 6); g.stroke(); g.lineWidth = 1; }
+    });
+    g.font = '12px Inter, system-ui, sans-serif';
+  }
+  // dumbbells: each winner's recorded lift (open) and true effect (filled), sorted by the recorded lift
+  function drawWins() {
+    const s = setup($('#y-wins')); if (!s) return;
+    const { g, w, h } = s, pl = 8, pr = 12, pt = 8, pb = 24, ws = [...Y.wins].sort((p, q) => q.x - p.x);
+    const lo = Math.min(-0.02, ...ws.map(v => v.d)) - 0.002, hi = Math.max(0.03, ...ws.map(v => v.x)) + 0.002;
+    const X = v => pl + (v - lo) / (hi - lo) * (w - pl - pr), rh = (h - pt - pb) / ws.length;
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = C.muted; g.textAlign = 'center'; g.strokeStyle = C.line;
+    const step = hi - lo > 0.12 ? 0.04 : hi - lo > 0.06 ? 0.02 : 0.01;
+    for (let t = Math.ceil(lo / step) * step; t <= hi; t += step) { g.beginPath(); g.moveTo(X(t), pt); g.lineTo(X(t), h - pb); g.stroke(); g.fillText(lift(t), X(t), h - 6); }
+    g.strokeStyle = C.ink; g.beginPath(); g.moveTo(X(0), pt); g.lineTo(X(0), h - pb); g.stroke();
+    ws.forEach((v, i) => {
+      const y = pt + (i + 0.5) * rh, r = Math.max(2.5, Math.min(5, rh / 2 - 1));
+      g.strokeStyle = C.muted; g.beginPath(); g.moveTo(X(v.d), y); g.lineTo(X(v.x), y); g.stroke();
+      g.fillStyle = C.muted; g.beginPath(); g.arc(X(v.d), y, r, 0, 7); g.fill();
+      g.strokeStyle = C.ink; g.lineWidth = 2; g.beginPath(); g.arc(X(v.x), y, r, 0, 7); g.stroke(); g.lineWidth = 1;
+    });
+  }
+  document.querySelectorAll('.gbtn').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.gbtn').forEach(x => x.setAttribute('aria-pressed', x === b));
+    const g = +b.dataset.g;
+    $('#y-verdict').textContent = g === 2
+      ? L('Так. Холдаут-група покаже в середньому близько +7%, усемеро менше за звіт. Проживіть кілька років і подивіться, звідки розрив.', 'Yes. The holdout shows about +7% on average, seven times less than the report. Live a few years and see where the gap comes from.')
+      : L('Інтуїція каже: запущені перемоги — це запущений приріст. Але холдаут-група покаже в середньому близько +7%, усемеро менше за звіт. Проживіть кілька років і подивіться, звідки розрив.', 'Intuition says shipped wins are shipped growth. But the holdout shows about +7% on average, seven times less than the report. Live a few years and see where the gap comes from.');
+    $('#y-after').hidden = false;
+    if (!guessed) { guessed = true; run(); } else drawYear();
+  }));
+  $('#y-n').addEventListener('input', () => { $('#y-nv').textContent = nlab(NS[+$('#y-n').value]); run(); });
+  $('#y-run').onclick = run;
+
+  // holdout size: 2M customers a year, 30% buy; margin of the relative lift = 1.96 · sqrt((1 − q)/q · (1/n_h + 1/n_rest))
+  const NC = 2000000, Q = 0.3, TRUE = exact(400000).hold, REPORT = exact(400000).booked;
+  function drawSize() {
+    const sh = $('#h-s').value / 100, nh = sh * NC, m = 1.96 * Math.sqrt((1 - Q) / Q * (1 / nh + 1 / (NC - nh)));
+    $('#h-sv').textContent = nf(100 * sh, 0) + '%';
+    $('#h-n').textContent = int(nh);
+    $('#h-m').textContent = '±' + pts(m);
+    $('#h-c').textContent = nf(100 * sh * TRUE, 2) + '%';
+    $('#h-fx').textContent = L(`похибка = 1,96 · √(0,7/0,3 · (1/${int(nh)} + 1/${int(NC - nh)})) ≈ ${pts(m, 2)}; ціна = ${nf(100 * sh, 0)}% клієнтів × ${lift(TRUE, 1)} ≈ ${nf(100 * sh * TRUE, 2)}% продажів`,
+      `margin = 1.96 · √(0.7/0.3 · (1/${int(nh)} + 1/${int(NC - nh)})) ≈ ${pts(m, 2)}; price = ${nf(100 * sh, 0)}% of customers × ${lift(TRUE, 1)} ≈ ${nf(100 * sh * TRUE, 2)}% of sales`);
+    const s = setup($('#h-cv')); if (!s) return;
+    const { g, w, h } = s, pl = 10, pr = 14, hi = 0.55, X = v => pl + v / hi * (w - pl - pr), y = h / 2 + 4;
+    g.clearRect(0, 0, w, h);
+    g.strokeStyle = C.line; g.fillStyle = C.muted; g.textAlign = 'center';
+    for (let t = 0; t <= 0.5; t += 0.1) { g.beginPath(); g.moveTo(X(t), 18); g.lineTo(X(t), h - 24); g.stroke(); g.textAlign = t ? 'center' : 'left'; g.fillText(lift(t), t ? X(t) : 0, h - 6); }
+    g.fillStyle = C.hit; g.globalAlpha = 0.25; g.fillRect(X(TRUE - m), y - 12, X(TRUE + m) - X(TRUE - m), 24); g.globalAlpha = 1;
+    g.beginPath(); g.arc(X(TRUE), y, 5, 0, 7); g.fill();
+    g.textAlign = 'left'; g.fillText(L('холдаут-група ', 'holdout ') + lift(TRUE, 1) + ' ± ' + pts(m), X(TRUE) + 8, 14);
+    g.strokeStyle = C.ink; g.lineWidth = 2; g.beginPath(); g.moveTo(X(REPORT), y - 14); g.lineTo(X(REPORT), y + 14); g.stroke(); g.lineWidth = 1;
+    g.fillStyle = C.ink; g.textAlign = 'right'; g.fillText(L('звіт ', 'report ') + lift(REPORT), X(REPORT) + 6, y + 30 > h - 20 ? y - 18 : y + 30);
+  }
+  $('#h-s').addEventListener('input', drawSize);
+
+  // table: exact averages per test size
+  $('#t-body').innerHTML = NS.map(n => { const E = exact(n); return `<tr><td>${nlab(n)}</td><td>${int(E.tests)}</td><td>${lift(E.booked)}</td><td>${lift(E.alone, 1)}</td><td>${lift(E.together, 1)}</td><td>${lift(E.hold, 1)}</td></tr>`; }).join('');
+
+  $('#y-nv').textContent = nlab(NS[+$('#y-n').value]);
+  drawSize();
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { drawYear(); drawSize(); }, 100); });
+})();
+</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Sections"><a href="https://mathparadoxes.com/en/#all">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/" aria-current="page">Glossary</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+<script>
+(function () {
+  var btn = document.querySelector(".mp-sx-btn");
+  if (!btn) return;
+  var T = JSON.parse(btn.dataset.t), lang = document.documentElement.dataset.lang === "en" ? "en" : "uk";
+  var data = null, loading = null, box = null, input, list, tabs, foot, tab = "", act = 0, opts = [], back = null;
+  var W = { n: 3, on: 2.5, k: 2, d: 1, x: 0.8, o: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
+  // small words that may match nothing without dropping the result ("задача про монети")
+  var STOP = ["и", "та", "в", "у", "на", "з", "из", "до", "для", "про", "як", "що", "the", "a", "an", "of", "in", "on", "and", "to", "for", "how", "what"];
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  btn.querySelector("kbd").textContent = mac ? "⌘K" : "Ctrl K";
+
+  function norm(s) {
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’'ʼ`ъ]/g, "")
+      .replace(/[іыий]/g, "и").replace(/[єэё]/g, "е").replace(/ґ/g, "г");
+  }
+  function words(s) { return norm(s).split(/[^0-9a-zа-я]+/).filter(Boolean); }
+  // one edit apart: a letter swapped, missing, extra or two letters transposed
+  function near(a, b) {
+    var la = a.length, lb = b.length, i = 0;
+    if (Math.abs(la - lb) > 1) return false;
+    while (i < la && i < lb && a[i] === b[i]) i++;
+    if (la === lb) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+    return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+  }
+  // how well a query word q fits a word w of the text: whole word, its start, the same stem (Ukrainian endings), a typo
+  function hit(q, w) {
+    if (w === q) return 1;
+    if (w.lastIndexOf(q, 0) === 0) return 0.85;
+    if (q.length >= 4) {
+      if (q.length >= 5 && w.lastIndexOf(q.slice(0, Math.max(4, q.length - 2)), 0) === 0) return 0.6;
+      for (var d = -1; d <= 1; d++) if (near(q, w.slice(0, q.length + d))) return 0.45;
+    }
+    return q.length >= 3 && w.indexOf(q) > 0 ? 0.35 : 0;
+  }
+  // the score of an item, and in it.low the weakest word match (a typo or a piece of a word is weak)
+  function score(it, qs, phrase) {
+    var total = 0;
+    it.low = 1;
+    for (var i = 0; i < qs.length; i++) {
+      var best = 0, bestF;
+      for (var f in W) {
+        var ws = it.w[f];
+        for (var j = 0; j < ws.length; j++) { var h = hit(qs[i], ws[j]) * W[f]; if (h > best) { best = h; bestF = f; } }
+      }
+      if (!best && STOP.indexOf(qs[i]) === -1) return 0;
+      if (best) it.low = Math.min(it.low, best / W[bestF]);
+      total += best;
+    }
+    var name = it.w.nn, alt = it.w.no;
+    if (name.lastIndexOf(phrase, 0) === 0 || alt.lastIndexOf(phrase, 0) === 0) total += 2;
+    else if (name.indexOf(phrase) !== -1 || alt.indexOf(phrase) !== -1) total += 1;
+    return total + (it.t === "p" ? 0.2 : it.t === "h" ? -0.2 : 0);
+  }
+  function load() {
+    if (!loading) loading = fetch(btn.dataset.src).then(function (r) { return r.json(); }).then(function (j) {
+      data = j.items;
+      // a chapter's line under the name is only its course and number, so "парадокси" does not find all 21 chapters
+      data.forEach(function (it) {
+        it.w = { n: words(it.n), on: words(it.on || ""), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), o: words(it.o || ""),
+                 nn: words(it.n).join(" "), no: words(it.on || "").join(" ") };
+      });
+    });
+    return loading;
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done(it) {
+    if (it.t === "p") return !!get("mp-solved:" + it.s);
+    if (it.t !== "c") return false;
+    var d = []; try { d = JSON.parse(get("mp-course:" + it.s) || "[]"); } catch (e) {}
+    return d.length > 0;
+  }
+  function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+  // the text with the words that match the query in <mark>
+  function marked(text, qs) {
+    var out = document.createDocumentFragment(), parts = String(text).split(/([0-9A-Za-zА-Яа-яЄєІіЇїҐґЁё’'ʼ]+)/);
+    parts.forEach(function (p, i) {
+      if (!p) return;
+      var w = i % 2 && words(p), on = w && qs.length && w.some(function (x) { return qs.some(function (q) { return hit(q, x) >= 0.45; }); });
+      out.appendChild(on ? el("mark", null, p) : document.createTextNode(p));
+    });
+    return out;
+  }
+  function icon(it) {
+    var s = el("span", "mp-sx-ic mp-sx-" + it.t);
+    s.style.setProperty("--tint", it.tint || "var(--soft)");  // not the page's own --tint
+    if (it.t === "p") { var b = s.appendChild(el("span", "mp-bars")); for (var i = 1; i <= 3; i++) b.appendChild(el("i", i <= it.lv ? "on" : "")); }
+    else s.textContent = it.t === "g" ? "Aa" : it.t === "c" ? "≡" : "§";
+    return s;
+  }
+  function row(it, qs) {
+    var a = el("a", "mp-sx-it"); a.href = it.u; a.setAttribute("role", "option"); a.id = "mp-sx-o" + opts.length;
+    var tx = el("span", "mp-sx-tx"), n = el("b"), d = el("span");
+    n.appendChild(marked(it.n, qs)); d.appendChild(marked(it.d || "", qs)); tx.append(n, d);
+    a.append(icon(it), tx);
+    if (done(it)) { var ok = el("span", "mp-sx-ok", "✓"); ok.title = T.solved; a.appendChild(ok); }
+    opts.push(a);
+    return a;
+  }
+  function head(text) { return el("li", "mp-sx-h", text); }
+  function wrap(a) { var li = el("li"); li.setAttribute("role", "presentation"); li.appendChild(a); return li; }
+  function render() {
+    var q = input.value.trim(), qs = words(q), phrase = qs.join(" ");
+    list.textContent = ""; opts = []; act = 0;
+    tabs.hidden = !qs.length;
+    if (!qs.length) {
+      var recent = []; try { recent = JSON.parse(get("mp-recent") || "[]"); } catch (e) {}
+      recent = recent.slice(0, 5).map(function (r) {
+        var it = data && data.filter(function (x) { return (x.t === "p" && x.s === r.s) || (x.t === "c" && "course:" + x.s === r.s); })[0];
+        return it || { t: r.c ? "c" : "p", s: r.s, n: r.n[lang], u: r.u[lang] };
+      });
+      if (recent.length) { list.appendChild(head(T.recent)); recent.forEach(function (it) { list.appendChild(wrap(row(it, []))); }); }
+      var li = el("li", "mp-sx-try"); li.appendChild(el("span", null, T.try + ": "));
+      T.ideas.forEach(function (w, i) {
+        var b = el("button", null, w); b.type = "button";
+        b.addEventListener("click", function () { input.value = w; render(); input.focus(); });
+        if (i) li.appendChild(document.createTextNode(" · "));
+        li.appendChild(b);
+      });
+      list.appendChild(li);
+      return mark();
+    }
+    if (!data) { list.appendChild(el("li", "mp-sx-msg", T.load)); return; }
+    var found = data.map(function (it) { return { it: it, s: score(it, qs, phrase) }; }).filter(function (r) { return r.s > 0; });
+    // typos and pieces of words count only when nothing matches by whole words, their starts or stems
+    if (found.some(function (r) { return r.it.low >= 0.6; })) found = found.filter(function (r) { return r.it.low >= 0.6; });
+    found.sort(function (a, b) { return b.s - a.s; });
+    var count = { "": found.length, p: 0, c: 0, g: 0 };
+    found.forEach(function (r) { count[GROUP[r.it.t]]++; });
+    [].forEach.call(tabs.children, function (b) {
+      b.lastChild.textContent = count[b.dataset.k] ? " " + count[b.dataset.k] : "";
+      b.setAttribute("aria-pressed", b.dataset.k === tab);
+      b.disabled = !count[b.dataset.k] && b.dataset.k !== tab;
+    });
+    if (tab) found = found.filter(function (r) { return GROUP[r.it.t] === tab; });
+    if (!found.length) {
+      var m = el("li", "mp-sx-msg", T.none + " "), a = el("a", null, T.every);
+      a.href = document.querySelector(".mp-nav-list a:not(.mp-cont)").href; m.appendChild(a); list.appendChild(m);
+      return mark();
+    }
+    // groups in the order of their best match; with no tab chosen each shows its first 6
+    var order = [], by = {};
+    found.forEach(function (r) { var g = GROUP[r.it.t]; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(r.it); });
+    order.forEach(function (g) {
+      if (!tab) list.appendChild(head(T[g]));
+      var items = tab ? by[g] : by[g].slice(0, 6);
+      items.forEach(function (it) { list.appendChild(wrap(row(it, qs))); });
+      if (!tab && by[g].length > 6) {
+        var more = el("button", "mp-sx-more", "+" + (by[g].length - 6) + " →"); more.type = "button";
+        more.addEventListener("click", function () { tab = g; render(); input.focus(); });
+        var li = el("li"); li.appendChild(more); list.appendChild(li);
+      }
+    });
+    mark();
+  }
+  function mark() {
+    opts.forEach(function (o, i) { o.setAttribute("aria-selected", i === act); });
+    if (opts[act]) { input.setAttribute("aria-activedescendant", opts[act].id); opts[act].scrollIntoView({ block: "nearest" }); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function build() {
+    box = el("div", "mp-sx"); box.hidden = true;
+    box.innerHTML = '<div class="mp-sx-box" role="dialog" aria-modal="true"><div class="mp-sx-head">' + btn.querySelector("svg").outerHTML +
+      '<input type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="mp-sx-list" aria-autocomplete="list">' +
+      '<button type="button" class="mp-sx-x"></button></div><div class="mp-sx-tabs"></div><ul class="mp-sx-list" id="mp-sx-list" role="listbox"></ul>' +
+      '<div class="mp-sx-foot"></div></div>';
+    document.body.appendChild(box);
+    input = box.querySelector("input"); list = box.querySelector("ul"); tabs = box.querySelector(".mp-sx-tabs"); foot = box.querySelector(".mp-sx-foot");
+    box.firstChild.setAttribute("aria-label", T.btn); input.placeholder = T.ph; input.setAttribute("aria-label", T.btn);
+    var x = box.querySelector(".mp-sx-x"); x.textContent = "Esc"; x.setAttribute("aria-label", T.close);
+    foot.textContent = T.keys;
+    [["", T.all], ["p", T.p], ["c", T.c], ["g", T.g]].forEach(function (k) {
+      var b = el("button", null, k[1]); b.type = "button"; b.dataset.k = k[0]; b.appendChild(el("span"));
+      b.addEventListener("click", function () { tab = k[0]; render(); input.focus(); });
+      tabs.appendChild(b);
+    });
+    input.addEventListener("input", function () { tab = ""; render(); });
+    box.addEventListener("click", function (e) { if (e.target === box || e.target === x) close(); });
+    box.addEventListener("mousemove", function (e) {
+      var o = e.target.closest(".mp-sx-it"), i = opts.indexOf(o);
+      if (i !== -1 && i !== act) { act = i; mark(); }
+    });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (opts.length) { act = (act + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length; mark(); }
+      } else if (e.key === "Enter" && opts[act]) { e.preventDefault(); opts[act].click(); }
+    });
+  }
+  function open(q) {
+    if (!box) build();
+    if (!box.hidden) return input.focus();
+    back = document.activeElement; box.hidden = false; document.documentElement.classList.add("mp-sx-on");
+    if (q != null) input.value = q;
+    input.focus(); input.select(); render();
+    load().then(render, function () { list.textContent = ""; list.appendChild(el("li", "mp-sx-msg", T.fail)); loading = null; });
+  }
+  function close() {
+    if (!box || box.hidden) return;
+    box.hidden = true; document.documentElement.classList.remove("mp-sx-on");
+    if (back && back.focus) back.focus();
+  }
+  btn.addEventListener("click", function () { open(); });
+  btn.addEventListener("pointerenter", load, { once: true });
+  btn.addEventListener("focus", load, { once: true });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target, typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box && !box.hidden ? close() : open(); }
+    else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); open(); }
+    else if (e.key === "Escape" && box && !box.hidden) { e.preventDefault(); close(); }
+    else if (e.key === "Tab" && box && !box.hidden) {
+      // keep the focus inside the palette
+      var f = [].slice.call(box.querySelectorAll("input, button:not([disabled]), a[href]"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+    }
+  });
+  var q = new URLSearchParams(location.search).get("q");
+  if (q) open(q);
+})();
+</script>
+</body>
+</html>

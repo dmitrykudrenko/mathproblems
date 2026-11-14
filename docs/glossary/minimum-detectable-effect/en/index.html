@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/glossary/minimum-detectable-effect/", "en": "/glossary/minimum-detectable-effect/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = null;
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  // the gate card sits after round 1; once it hides, the browser would keep the bottom of the page in view, so jump to round 2
+  function toRounds(b) {
+    var r = b.closest(".sp-gate") && document.querySelector(".sp-rounds");
+    if (r) requestAnimationFrame(function () { r.scrollIntoView({ block: "start" }); });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+    if (on) toRounds(b);
+  });
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else { window.mpSolve(); toRounds(b); }
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+
+<title>Minimum Detectable Effect (MDE) Explained: a Calculator</title>
+<meta name="description" content="A shop with 1,000 visitors a day would need seven years to detect a +2% lift. Work out your own MDE and run 200 A/B tests to see what it means.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/glossary/minimum-detectable-effect/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/glossary/minimum-detectable-effect/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/glossary/minimum-detectable-effect/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/glossary/minimum-detectable-effect/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="Minimum Detectable Effect (MDE) Explained: a Calculator">
+<meta property="og:description" content="A shop with 1,000 visitors a day would need seven years to detect a +2% lift. Work out your own MDE and run 200 A/B tests to see what it means.">
+<meta property="og:url" content="https://mathparadoxes.com/glossary/minimum-detectable-effect/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Minimum detectable effect: how long must a test run to see +2%?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Minimum Detectable Effect (MDE) Explained: a Calculator">
+<meta name="twitter:description" content="A shop with 1,000 visitors a day would need seven years to detect a +2% lift. Work out your own MDE and run 200 A/B tests to see what it means.">
+<meta name="twitter:image" content="https://mathparadoxes.com/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/glossary/minimum-detectable-effect/en/#page", "url": "https://mathparadoxes.com/glossary/minimum-detectable-effect/en/", "name": "Minimum Detectable Effect (MDE) Explained: a Calculator", "description": "A shop with 1,000 visitors a day would need seven years to detect a +2% lift. Work out your own MDE and run 200 A/B tests to see what it means.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "explanation"], "about": [{"@type": "DefinedTerm", "name": "Minimum detectable effect (MDE)", "description": "The smallest real effect a test of a given size will find with 80% probability (usually at a 5% significance level). Smaller effects the test will mostly miss.", "inDefinedTermSet": "https://mathparadoxes.com/glossary/en/"}], "datePublished": "2026-11-14", "dateModified": "2026-11-14", "author": {"@id": "https://mathparadoxes.com/#author"}, "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "Glossary", "item": "https://mathparadoxes.com/glossary/en/"}, {"@type": "ListItem", "position": 3, "name": "Minimum detectable effect (MDE)", "item": "https://mathparadoxes.com/glossary/minimum-detectable-effect/en/"}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: glossary article in three layers: a guess about how long a small shop must test +2%, a calculator of test
+   length with the MDE curve over days, and 200 tests that run too short (plain words), the 16·p(1−p)/δ² rule, the
+   4/√conversions table and power below the MDE (rigorous), Lehr's rule of sixteen and where the 2.8 comes from (deeper). */
+:root { --tint: #E6F2EC; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+.ex { font-variant-numeric: tabular-nums; background: var(--paper); border-radius: 10px; padding: 10px 12px; font-size: .95rem; overflow-wrap: anywhere; }
+.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.gl-stat b { font-variant-numeric: tabular-nums; }
+.key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .88rem; color: var(--muted); }
+.key i { display: inline-block; width: 10px; height: 10px; vertical-align: middle; margin-right: 6px; border-radius: 50%; }
+.key i.dash { height: 0; width: 18px; border-top: 2px dashed var(--ink); border-radius: 0; }
+.after { display: grid; gap: 14px; }
+.after[hidden] { display: none; }
+.after .big { font-size: 1.25rem; font-weight: 800; }
+.after .big em { color: var(--signal); font-style: normal; }
+.sl { display: grid; gap: 4px; }
+.sl input { width: 100%; }
+.tbl-wrap { overflow-x: auto; background: var(--paper); border-radius: 14px; }
+.tbl { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .95rem; }
+.tbl th, .tbl td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; white-space: normal; vertical-align: bottom; }
+.tbl tr:last-child td { border-bottom: 0; }
+@media (max-width: 860px) { .three { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .tbl { font-size: .85rem; } .tbl th, .tbl td { padding: 8px 6px; } .tbl th { font-size: .68rem; } }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=0215c449">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="https://mathparadoxes.com/en/"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+    <nav class="mp-nav" aria-label="Sections" data-t="{&quot;cont&quot;: &quot;Continue&quot;, &quot;course&quot;: &quot;Continue the course&quot;}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Menu"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Continue: <b></b></a><a href="https://mathparadoxes.com/en/#all">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/" aria-current="page">Glossary</a></div><button type="button" class="mp-sx-btn" aria-haspopup="dialog" aria-label="Search" data-src="https://mathparadoxes.com/en/search.json" data-t="{&quot;btn&quot;: &quot;Search&quot;, &quot;ph&quot;: &quot;A puzzle, course or term&quot;, &quot;all&quot;: &quot;All&quot;, &quot;p&quot;: &quot;Puzzles&quot;, &quot;c&quot;: &quot;Courses&quot;, &quot;g&quot;: &quot;Glossary&quot;, &quot;recent&quot;: &quot;Recently opened&quot;, &quot;try&quot;: &quot;Try&quot;, &quot;none&quot;: &quot;Nothing found. Try another word or&quot;, &quot;every&quot;: &quot;browse all puzzles&quot;, &quot;keys&quot;: &quot;↑↓ choose · Enter open · Esc close&quot;, &quot;solved&quot;: &quot;solved&quot;, &quot;load&quot;: &quot;Loading…&quot;, &quot;fail&quot;: &quot;Couldn&#x27;t load the search. Check your connection.&quot;, &quot;close&quot;: &quot;Close&quot;, &quot;course&quot;: &quot;Course&quot;, &quot;chapter&quot;: &quot;chapter %d of %d&quot;, &quot;glossary&quot;: &quot;Glossary&quot;, &quot;ideas&quot;: [&quot;probability&quot;, &quot;A/B test&quot;, &quot;Monty Hall&quot;, &quot;median&quot;, &quot;interview&quot;, &quot;auction&quot;]}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="mp-sx-lbl">Search</span><kbd>/</kbd></button></nav>
+  <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="https://mathparadoxes.com/glossary/minimum-detectable-effect/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="https://mathparadoxes.com/glossary/minimum-detectable-effect/en/" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="https://mathparadoxes.com/glossary/en/"><span class="en">Glossary</span></a> / <span class="en">Minimum detectable effect (MDE)</span></p>
+
+  <header class="gl-head">
+    <span class="eyebrow"><span class="en">Glossary · minimum detectable effect</span></span>
+    <h1><span class="en">How long does a test of +2% take?</span></h1>
+    
+    <p class="lead en">An A/B test seems to be a matter of a few weeks: launch it, look, decide. But every test sees only effects above a certain bar. Smaller ones it mostly misses, however real they are. The bar depends on traffic, conversion rate and test length, and it is called the minimum detectable effect, or MDE. On a small site it can be so high that a modest improvement goes unseen for years.</p>
+  </header>
+
+  <section class="gl-layers">
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">In plain words</span><span class="mp-layer-desc">pictures, analogies, small numbers</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“In plain words” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec" id="guess">
+    <h2><span class="en">A shop with a thousand visitors</span></h2>
+    
+    <p class="en">An online shop gets 1,000 visitors a day, and 3% of them buy. A new checkout page really is better: with it 3.06% of visitors will buy, which is 2% more. For a big shop that is real money. The owner splits traffic evenly between the old and the new page and wants a test that finds such an effect with 80% probability at the usual 5% significance level.</p>
+    <div class="gl-panel">
+      <p><b><span class="en">How long does such a test have to run?</span></b></p>
+      <div class="gl-btns" role="group" aria-label="Ваш варіант" data-aria-en="Your guess">
+        <button type="button" class="btn ghost" data-g="0"><span class="en">Two weeks</span></button>
+        <button type="button" class="btn ghost" data-g="1"><span class="en">About three months</span></button>
+        <button type="button" class="btn ghost" data-g="2"><span class="en">About a year</span></button>
+        <button type="button" class="btn ghost" data-g="3"><span class="en">Several years</span></button>
+      </div>
+      <div class="after" id="g-after" hidden>
+        <p id="g-msg" aria-live="polite"></p>
+        <p class="big"><span class="en">About <em>seven years</em>: 2,563 days.</span></p>
+        
+        <p class="en">The difference between 3% and 3.06% is six purchases per 10,000 visitors. The random noise in the number of purchases over a few weeks is far larger. For six extra purchases per ten thousand to stand out from the noise, it takes about 1.28&nbsp;million visitors per page. In two weeks this shop can reliably see only an effect of +29% or more.</p>
+      </div>
+    </div>
+  <script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "glossary-minimum-detectable-effect" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+  <section class="gl-sec" id="calc">
+    <h2><span class="en">A test length calculator</span></h2>
+    
+    <p class="en">The line shows the smallest lift the test will notice depending on how many days it runs (the day scale is <a href="https://mathparadoxes.com/glossary/logarithm/en/" class="gl-term">logarithmic</a>). The dashed line is the lift you want to notice. Where the curve comes down to the dashed line, the test is long enough.</p>
+    <div class="gl-panel">
+      <div class="three">
+        <div class="sl"><label class="gl-note" for="c-p"><span class="en">Conversion now</span>: <b id="c-pv"></b></label><input type="range" id="c-p" min="0" max="9" step="1" value="3"></div>
+        <div class="sl"><label class="gl-note" for="c-t"><span class="en">Visitors a day</span>: <b id="c-tv"></b></label><input type="range" id="c-t" min="0" max="14" step="1" value="4"></div>
+        <div class="sl"><label class="gl-note" for="c-m"><span class="en">Lift you want to notice</span>: <b id="c-mv"></b></label><input type="range" id="c-m" min="0" max="9" step="1" value="5"></div>
+      </div>
+      <canvas class="gl-canvas" id="c-cv" style="height:280px" aria-label="Мінімальний помітний ефект залежно від тривалості тесту" data-aria-en="Minimum detectable effect against test length"></canvas>
+      <p class="key"><span><i style="background:var(--ink)"></i><span class="en">MDE after this many days</span></span><span><i class="dash"></i><span class="en">the lift you want</span></span></p>
+      <div class="three">
+        <div class="gl-stat"><span><span class="en">The test will take</span></span><b class="hit" id="c-days">–</b></div>
+        <div class="gl-stat"><span><span class="en">Visitors per version</span></span><b id="c-n">–</b></div>
+        <div class="gl-stat"><span><span class="en">MDE in 4 weeks</span></span><b id="c-m28">–</b></div>
+      </div>
+      <p id="c-msg" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">The bar below which a test is blind</span></h2>
+    
+    <p class="en">The simplest explanation, slightly simplified. In any test the number of purchases jitters at random: today 16 people bought on the old page, tomorrow 13, though the page is the same. A real difference has to be clearly bigger than this jitter, or it gets lost in it. The more visitors, the less the share of buyers jitters, and the lower the bar. The size of this jitter is measured by the <a href="https://mathparadoxes.com/glossary/standard-error/en/" class="gl-term">standard error</a>.</p>
+    
+    <p class="en">The <b>minimum detectable effect</b> is the smallest real effect that a test of a given size will find with a probability chosen in advance, usually 80%. It is worked out before launch: from the conversion rate, the traffic and the test length. Effects smaller than the MDE the test sometimes finds too, but mostly misses.</p>
+    
+    <p class="en">The treacherous part is how slowly the bar comes down. A test twice as long does not make it half as high: it drops by only 29%. To notice an effect half the size, you need four times as many visitors. That is why small improvements are so expensive to check.</p>
+  </section>
+
+  <section class="gl-sec" id="sim">
+    <h2><span class="en">A test that is short of days</span></h2>
+    
+    <p class="en">The computer runs the same test from the calculator above 200 times: the new page really is better by exactly the lift you chose. Each dot is one test. Change the length and see how often the test finds the real improvement.</p>
+    <div class="gl-panel">
+      <div class="sl"><label class="gl-note" for="s-d"><span class="en">Test length</span>: <b id="s-dv"></b></label><input type="range" id="s-d" min="0" max="11" step="1" value="3"></div>
+      <canvas class="gl-canvas" id="s-cv" style="height:200px" aria-label="200 тестів: які знайшли ефект" data-aria-en="200 tests: which ones found the effect"></canvas>
+      <p class="key"><span><i style="background:var(--signal)"></i><span class="en">new page significantly better: effect found</span></span><span><i style="background:var(--line)"></i><span class="en">"no difference"</span></span><span><i style="background:var(--ink)"></i><span class="en">"old page significantly better"</span></span></p>
+      <div class="three">
+        <div class="gl-stat"><span><span class="en">MDE for this length</span></span><b id="s-mde">–</b></div>
+        <div class="gl-stat"><span><span class="en">The test found the effect</span></span><b class="hit" id="s-got">–</b></div>
+        <div class="gl-stat"><span><span class="en">By the formula</span></span><b id="s-th">–</b></div>
+      </div>
+      <p id="s-msg" aria-live="polite"></p>
+      <div class="gl-btns"><button type="button" class="btn ghost" id="s-new"><span class="en">Run 200 more tests</span></button></div>
+    </div>
+    
+    <p class="en">When the real effect is far below the MDE, the test finds it hardly more often than it would find a "winner" between two identical pages. Such a test cannot tell a working change from a useless one: whatever it shows, you have learned almost nothing.</p>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Rigorous</span><span class="mp-layer-desc">tables, charts, formulas</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Rigorous” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec">
+    <h2><span class="en">The formula</span></h2>
+    
+    <p class="en">For two versions with conversion rates p₁ and p₂, the number of visitors needed per version at a 5% significance level (two-sided) and an 80% chance of finding the effect is:</p>
+    <p class="ex">n ≈ (1,96 + 0,84)² · [p₁(1 − p₁) + p₂(1 − p₂)] / (p₂ − p₁)² <span class="en">≈ 16 · p(1 − p) / (p₂ − p₁)²</span></p>
+    
+    <p class="en">Here 1.96 corresponds to the 5% significance level, 0.84 to 80% power, and 2 · 2.8² ≈ 15.7 is rounded to 16. The MDE is the same formula solved the other way round: n is given, and we look for the smallest difference. For conversion it is handy to count not visitors but purchases per version, c = n·p. Then the relative MDE is about 2.8 · √(2(1 − p) / c), and for small conversion rates it is simpler still: <b>MDE ≈ 4 / √c</b>.</p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th><span class="en">Purchases per version</span></th><th><span class="en">MDE, exact (3% conversion)</span></th><th><span class="en">Rule 4 / √c</span></th></tr></thead>
+        <tbody id="t-body"></tbody>
+      </table>
+    </div>
+    
+    <p class="en">A hundred purchases per version, and the test notices only effects of around +40%. To get down to +4% takes 10,000 purchases per version. What counts is the number of purchases: a site converting at 1% has to gather about three times as many visitors as a site at 3% to have the same MDE.</p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">The MDE is not a cut-off, it is 80%</span></h2>
+    
+    <p class="en">The MDE is often pictured as a line: anything bigger the test will see, anything smaller it won't. In fact the chance of finding an effect, which is <a href="https://mathparadoxes.com/glossary/statistical-power/en/" class="gl-term">statistical power</a>, changes smoothly. An effect equal to the MDE is found in 80% of cases, not always. Here is how the chance depends on what share of the MDE the real effect is (normal approximation; it hardly depends on conversion or traffic):</p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th><span class="en">Real effect</span></th><th><span class="en">The test finds it</span></th></tr></thead>
+        <tbody id="t-pow"></tbody>
+      </table>
+    </div>
+    
+    <p class="en">Another surprise: the significance bar lies below the MDE. A test planned for an MDE of +10% already calls an observed lift of about +7% significant, because 1.96 / 2.8 ≈ 0.7. So a "significant +7%" in such a test is no wonder but an ordinary thing. The wonder would be a test with a real +10% effect always showing at least +10%: half the time it shows less.</p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">What to do about it</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="en">Pick the MDE from money, not hope</span></b><span><span class="en">Ask from what lift the change pays for itself. That is the smallest effect worth catching. Work out how many days it needs before you launch.</span></span></li>
+      <li><b><span class="en">Longer is slow</span></b><span><span class="en">Doubling a test's length lowers the MDE by only 29%. If it needs years, no "let's give it another week" will help.</span></span></li>
+      <li><b><span class="en">Little traffic, bolder changes</span></b><span><span class="en">A small site can test a new price, offer or the whole checkout, where a +30% effect is realistic. Small tweaks it sees only as noise.</span></span></li>
+      <li><b><span class="en">A more frequent event, a lower MDE</span></b><span><span class="en">Adding to the cart happens more often than buying, so a test on it notices smaller effects. But it measures something else, and its link to revenue must be checked separately.</span></span></li>
+      <li><b><span class="en">Each extra version raises the MDE</span></b><span><span class="en">Four versions instead of two: each gets half the traffic, and the MDE grows √2 ≈ 1.41 times. And random "winners" turn up more often too.</span></span></li>
+      <li><b><span class="en">Read "not significant" through the MDE</span></b><span><span class="en">A test with no result says only that an effect bigger than the MDE is probably not there. About effects smaller than the MDE it says nothing.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Deeper</span><span class="mp-layer-desc">generalisations, theory, history</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Deeper” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec">
+    <h2><span class="en">The rule of sixteen</span></h2>
+    
+    <p class="en">In 1992 the statistician Robert Lehr of the pharmaceutical company Berlex published a short paper in Statistics in Medicine titled "Sixteen S-squared over D-squared". He proposed estimating the size of each group as n ≈ 16·s²/d², where s² is the <a href="https://mathparadoxes.com/glossary/variance/en/" class="gl-term">variance</a> of the measurement and d is the difference to be noticed. The rule works for exactly the usual setting: 80% power and a two-sided 5% significance level. For conversion, s² = p(1 − p), which gives the formula above.</p>
+    
+    <p class="en">Where the 16 comes from: the difference of the means of two groups of n wobbles with a standard error of s·√(2/n). For a real difference d to be found in 80% of cases, it has to lie 1.96 + 0.84 = 2.8 such errors away from zero: d = 2.8 · s · √(2/n). Hence n = 2 · 2.8² · s²/d² ≈ 15.7 · s²/d². The square in the denominator is what makes small effects so expensive: make d ten times smaller and n grows a hundredfold.</p>
+    
+    <p class="en">All A/B test calculators use this same logic: they ask for the conversion rate and the MDE and answer with a number of visitors. If the test is driven by the traffic you have, it helps to count the other way round, as in the calculator above: as many days as you have, that is the MDE you get. Sometimes the honest answer is "this test makes no sense on our traffic", and that too is a useful decision made before launch.</p>
+  </section>
+  </div>
+  </section>
+
+  <section class="gl-sec"><h2>Where it shows up</h2>
+    <div class="mp-related-grid">
+      <a class="mp-related-card" href="https://mathparadoxes.com/ab-test/en/"><h3>The A/A test: two identical pages</h3><p>The same page is shown as &quot;<span class="vl">A</span>&quot; and as &quot;<span class="vl">B</span>&quot;, converting at 5%, with 1,000 visitors each. How often will one of two identical pages &quot;win&quot; by 20% or more?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/ab-test-peeking/en/"><h3>Peeking at an A/B test</h3><p>Two identical pages, a 30-day test, a check every evening and a stop at the first &quot;95%&quot;. How often is one of the identical pages declared the winner?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/small-numbers/en/"><h3>The most dangerous equation</h3><p>Disease is rarest in quiet rural counties. Clean air? Or something else?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/winners-curse/en/"><h3>The winner&#x27;s curse</h3><p>Ten bidders honestly estimate a jar of coins worth 100 dollars and bid their estimates. On average, what does the auction winner make?</p></a>
+    </div></section>
+
+  <section class="gl-sec"><h2>More on “Data and experiments”</h2>
+    <ul class="gl-cards">
+      <li class="gl-card" id="sampling-bias"><a href="https://mathparadoxes.com/glossary/sampling-bias/en/"><h3>Sampling bias</h3><p>A sample some people get into more easily than others, so it describes everyone badly.</p><p class="gl-hook">In 1936 a magazine polled millions of Americans and still picked the wrong election winner.</p></a></li>
+      <li class="gl-card" id="law-of-large-numbers"><a href="https://mathparadoxes.com/glossary/law-of-large-numbers/en/"><h3>Law of large numbers</h3><p>The more repetitions, the closer the share of an outcome gets to its true probability.</p><p class="gl-hook">The share of heads creeps towards 50%, while the gap between heads and tails in coins usually grows.</p></a></li>
+      <li class="gl-card" id="correlation"><a href="https://mathparadoxes.com/glossary/correlation/en/"><h3>Correlation</h3><p>A number from −1 to +1 showing how closely two quantities move together.</p><p class="gl-hook">In summer both ice cream sales and drownings go up. Ice cream isn&#x27;t to blame: the heat drives both.</p></a></li>
+      <li class="gl-card" id="standard-error"><a href="https://mathparadoxes.com/glossary/standard-error/en/"><h3>Standard error</h3><p>How far an average or a rate computed from a sample usually misses the truth: σ divided by the square root of the sample size.</p><p class="gl-hook">Halving the error takes four times as much data.</p></a></li>
+      <li class="gl-card" id="confidence-interval"><a href="https://mathparadoxes.com/glossary/confidence-interval/en/"><h3>Confidence interval</h3><p>A range around a measured number, built by a method that covers the true value in a chosen share of samples, such as 95%.</p><p class="gl-hook">Of twenty honest 95% intervals, on average one misses the truth, and none of them knows whether it is the one.</p></a></li>
+      <li class="gl-card" id="p-value"><a href="https://mathparadoxes.com/glossary/p-value/en/"><h3>p-value</h3><p>How often chance alone would produce a gap at least as big as yours if there were really no difference.</p><p class="gl-hook">When there is no effect at all, p below 0.05 turns up as often as p between 0.50 and 0.55.</p></a></li>
+      <li class="gl-card" id="chance-to-beat"><a href="https://mathparadoxes.com/glossary/confidence-vs-chance-to-beat/en/"><h3>Chance to beat</h3><p>The number on Bayesian dashboards: how likely <span class="vl">B</span> is to be better than <span class="vl">A</span>, given the data and a starting assumption.</p><p class="gl-hook">&quot;97% chance&quot; tells the truth only when every idea of yours changes something; if four in five are useless, <span class="vl">B</span> is better in only a third of such tests.</p></a></li>
+      <li class="gl-card" id="statistical-power"><a href="https://mathparadoxes.com/glossary/statistical-power/en/"><h3>Statistical power</h3><p>The probability that a test notices a real effect of a given size. A power of 80% means the test misses one working effect in five.</p><p class="gl-hook">A weak A/B test that does find an effect almost always exaggerates it: a real +10% shows up on the dashboard as +24%.</p></a></li>
+      <li class="gl-card" id="bootstrap"><a href="https://mathparadoxes.com/glossary/bootstrap/en/"><h3>Bootstrap</h3><p>A way to get the error of any number without a formula: redraw a sample of the same size from your own data with replacement many times and watch how the result jumps.</p><p class="gl-hook">Each resample loses a third of your data and repeats the rest, yet the spread of such copies shows the real error.</p></a></li>
+      <li class="gl-card" id="holdout"><a href="https://mathparadoxes.com/glossary/holdout/en/"><h3>Holdout group</h3><p>A small random share of customers who for a long time see none of the shipped changes, so that comparing with them shows what all the changes gave together.</p><p class="gl-hook">Twenty changes a year, each one winning its A/B test, almost +50% together, yet customers who saw none of them buy only about 7% less.</p></a></li>
+    </ul>
+    <p class="gl-all"><a href="https://mathparadoxes.com/glossary/en/#data">All terms →</a></p></section>
+
+  <footer>
+    <span class="en">Math paradoxes · by <a href="https://mathparadoxes.com/en/#author">Dmytro Kudrenko</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const en = document.documentElement.dataset.lang === 'en', L = (uk, e) => en ? e : uk;
+  const $ = s => document.querySelector(s);
+  if (en) document.querySelectorAll('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn));
+  const css = getComputedStyle(document.documentElement);
+  const C = { ink: css.getPropertyValue('--ink').trim() || '#151515', muted: css.getPropertyValue('--muted').trim() || '#5F5F5F',
+              line: css.getPropertyValue('--line').trim() || '#E4E4E4', hit: css.getPropertyValue('--signal').trim() || '#D9318F' };
+  const loc = en ? 'en-US' : 'uk-UA';
+  const nf = (v, d = 1) => v.toLocaleString(loc, { maximumFractionDigits: d, minimumFractionDigits: d });
+  const int = v => Math.round(v).toLocaleString(loc);
+  const pct = (v, d = 0) => nf(100 * v, d) + '%';
+  const lift = v => { const x = 100 * v; return '+' + nf(x, x < 10 && Math.abs(x - Math.round(x)) > 0.05 ? 1 : 0) + '%'; };
+  const still = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const plural = (n, f) => { if (en) return n === 1 ? f[3] : f[4]; const a = Math.abs(n) % 100, b = a % 10; return a > 10 && a < 20 ? f[2] : b === 1 ? f[0] : b > 1 && b < 5 ? f[1] : f[2]; };
+  const DAY = ['день', 'дні', 'днів', 'day', 'days'], YEAR = ['рік', 'роки', 'років', 'year', 'years'];
+  function dur(days) {
+    const d = Math.ceil(days);
+    if (d > 36500) return L('понад 100 років', 'over 100 years');
+    if (d <= 120) return int(d) + ' ' + plural(d, DAY);
+    if (d < 730) return '≈ ' + nf(d / 30.44, 0) + L(' міс.', ' months');
+    const y = Math.round(d / 365.25); return '≈ ' + int(y) + ' ' + plural(y, YEAR);
+  }
+  function setup(cv) {
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (!r.width) return null;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.font = '12px Inter, system-ui, sans-serif';
+    return { g, w: r.width, h: r.height };
+  }
+  const erf = x => { const t = 1 / (1 + 0.3275911 * Math.abs(x)), y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return x < 0 ? -y : y; };
+  const Phi = x => 0.5 * (1 + erf(x / Math.SQRT2));
+  const Z = 1.959964, Z80 = 0.841621, K = (Z + Z80) ** 2;
+  // visitors per version for 80% power, two-sided 5% (normal approximation, unpooled variances)
+  const need = (p, m) => { const q = p * (1 + m); return K * (p * (1 - p) + q * (1 - q)) / (q - p) ** 2; };
+  // relative MDE for n per version: need() solved for m by bisection (it falls as m grows)
+  function mde(p, n) {
+    let lo = 1e-6, hi = Math.min(50, 1 / p - 1 - 1e-9);
+    if (need(p, hi) > n) return Infinity;
+    for (let i = 0; i < 100; i++) { const c = (lo + hi) / 2; if (need(p, c) > n) lo = c; else hi = c; }
+    return hi;
+  }
+  // chance that the new version comes out significantly better (one direction of the two-sided test)
+  const found = (p, m, n) => { const q = p * (1 + m); return Phi((q - p) / Math.sqrt((p * (1 - p) + q * (1 - q)) / n) - Z); };
+
+  const PS = [0.005, 0.01, 0.02, 0.03, 0.04, 0.05, 0.07, 0.1, 0.15, 0.2];
+  const TS = [100, 200, 300, 500, 1000, 2000, 3000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000];
+  const MS = [0.01, 0.02, 0.03, 0.05, 0.07, 0.1, 0.15, 0.2, 0.3, 0.5];
+  const DS = [7, 14, 21, 28, 42, 56, 90, 180, 365, 730, 1825, 3650];
+  const cur = () => ({ p: PS[+$('#c-p').value], t: TS[+$('#c-t').value], m: MS[+$('#c-m').value] });
+
+  // 1. the guess
+  document.querySelectorAll('#guess [data-g]').forEach(b => b.onclick = () => {
+    const g = +b.dataset.g;
+    document.querySelectorAll('#guess [data-g]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    $('#g-msg').textContent = g === 3 ? L('Так. І «кілька» тут — це багато.', 'Yes. And "several" here means a lot.')
+      : L('Інтуїція підказує тижні чи місяці, але насправді тест має тривати набагато довше.', 'Intuition says weeks or months, but in fact the test has to run far longer.');
+    $('#g-after').hidden = false;
+  });
+
+  // 2. the calculator: MDE against test length
+  function drawCalc() {
+    const { p, t, m } = cur(), n = need(p, m), days = 2 * n / t;
+    $('#c-pv').textContent = nf(100 * p, p < 0.01 ? 1 : 0) + '%';
+    $('#c-tv').textContent = int(t);
+    $('#c-mv').textContent = lift(m);
+    $('#c-days').textContent = dur(days);
+    $('#c-n').textContent = int(Math.ceil(n));
+    const m28 = mde(p, 14 * t);
+    $('#c-m28').textContent = isFinite(m28) ? lift(m28) : '–';
+    $('#c-msg').textContent = days <= 28
+      ? L(`За ${dur(days)} тест надійно помітить ${lift(m)}. Трафіку вистачає.`, `In ${dur(days)} the test will reliably notice ${lift(m)}. The traffic is enough.`)
+      : days <= 120 ? L(`Тест довгий, але реальний: ${dur(days)}. За 4 тижні його MDE був би ${lift(m28)}.`, `A long test, but feasible: ${dur(days)}. In 4 weeks its MDE would be ${lift(m28)}.`)
+      : L(`Щоб помітити ${lift(m)}, треба ${dur(days)}. За 4 тижні тест бачить лише ефекти від ${lift(m28)}: усе менше він здебільшого пропустить.`,
+          `Noticing ${lift(m)} takes ${dur(days)}. In 4 weeks the test sees only effects from ${lift(m28)} up: anything smaller it will mostly miss.`);
+    const s = setup($('#c-cv')); if (!s) return;
+    const { g, w, h } = s, pl = 44, pr = 14, pt = 14, pb = 24, l0 = 0, l1 = Math.log10(3650);
+    const ymax = Math.max(0.5, Math.min(2, m * 2.5)), X = d => pl + (Math.log10(d) - l0) / (l1 - l0) * (w - pl - pr), Y = v => pt + (1 - v / ymax) * (h - pt - pb);
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = C.muted; g.strokeStyle = C.line; g.lineWidth = 1; g.textAlign = 'right';
+    const step = ymax <= 0.5 ? 0.1 : ymax <= 1 ? 0.2 : 0.5;
+    for (let v = 0; v <= ymax + 1e-9; v += step) { g.beginPath(); g.moveTo(pl, Y(v)); g.lineTo(w - pr, Y(v)); g.stroke(); g.fillText('+' + nf(100 * v, 0) + '%', pl - 6, Y(v) + 4); }
+    const XT = [[1, L('1 день', '1 day')], [7, L('тиждень', 'week')], [30, L('місяць', 'month')], [365, L('рік', 'year')], [3650, L('10 років', '10 years')]];
+    XT.forEach(([d, lab], i) => { if (w < 420 && d === 7) return; g.textAlign = i === 0 ? 'left' : i === XT.length - 1 ? 'right' : 'center'; g.fillText(lab, i === XT.length - 1 ? w - pr : i === 0 ? pl : X(d), h - 6); });
+    g.save(); g.beginPath(); g.rect(pl, pt - 2, w - pl - pr, h - pt - pb + 2); g.clip();
+    g.strokeStyle = C.ink; g.setLineDash([5, 4]); g.lineWidth = 1.5; g.beginPath(); g.moveTo(pl, Y(m)); g.lineTo(w - pr, Y(m)); g.stroke(); g.setLineDash([]);
+    g.lineWidth = 2.5; g.beginPath();
+    for (let i = 0; i <= 300; i++) { const d = 10 ** (l0 + (l1 - l0) * i / 300), v = Math.min(ymax * 1.5, mde(p, d * t / 2)); i ? g.lineTo(X(d), Y(v)) : g.moveTo(X(d), Y(v)); }
+    g.stroke(); g.restore(); g.lineWidth = 1;
+    if (days >= 1 && days <= 3650) {
+      const x = X(days); g.fillStyle = C.hit; g.beginPath(); g.arc(x, Y(m), 6, 0, 7); g.fill();
+      g.textAlign = x > w - 140 ? 'right' : 'left'; g.fillText(dur(days), x + (g.textAlign === 'right' ? -10 : 10), Y(m) - 10);
+    } else if (days > 3650) { g.fillStyle = C.hit; g.textAlign = 'right'; g.fillText(dur(days) + ' →', w - pr, Y(m) - 10); }
+  }
+  ['#c-p', '#c-t', '#c-m'].forEach(id => $(id).addEventListener('input', () => { drawCalc(); runSim(); }));
+
+  // 3. 200 tests of the calculator's setup, the new page truly better by the chosen lift
+  // exact binomial sampler for moderate n (inverted cumulative pmf around the mean), normal approximation for huge n
+  function sampler(n, p) {
+    const sd = Math.sqrt(n * p * (1 - p));
+    if (sd > 3000) return () => { let u = 0, v = 0; while (!u) u = Math.random(); v = Math.random(); return Math.round(n * p + sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)); };
+    const mo = Math.floor((n + 1) * p), lo = Math.max(0, Math.floor(mo - 10 * sd - 5)), hi = Math.min(n, Math.ceil(mo + 10 * sd + 5));
+    const w = new Float64Array(hi - lo + 1); w[mo - lo] = 1;
+    for (let k = mo; k < hi; k++) w[k + 1 - lo] = w[k - lo] * (n - k) / (k + 1) * p / (1 - p);
+    for (let k = mo; k > lo; k--) w[k - 1 - lo] = w[k - lo] * k / (n - k + 1) * (1 - p) / p;
+    let s = 0; for (let i = 0; i < w.length; i++) { s += w[i]; w[i] = s; }
+    for (let i = 0; i < w.length; i++) w[i] /= s;
+    return () => { const u = Math.random(); let a = 0, b = w.length - 1; while (a < b) { const c = (a + b) >> 1; if (w[c] < u) a = c + 1; else b = c; } return lo + a; };
+  }
+  // pooled two-sided z-test, as most A/B tools do
+  const zstat = (a, b, n) => { const pp = (a + b) / (2 * n); return pp <= 0 || pp >= 1 ? 0 : (b - a) / n / Math.sqrt(pp * (1 - pp) * 2 / n); };
+  const T = 200;
+  let res = [], raf = 0, sA = null, sB = null, simN = 0;
+  function runSim() {
+    const { p, t, m } = cur(); simN = Math.round(DS[+$('#s-d').value] * t / 2);
+    sA = sampler(simN, p); sB = sampler(simN, p * (1 + m)); res = [];
+    cancelAnimationFrame(raf);
+    if (still()) { grow(T); drawSim(); } else step();
+  }
+  function grow(k) { for (let i = 0; i < k && res.length < T; i++) { const z = zstat(sA(), sB(), simN); res.push(z > Z ? 1 : z < -Z ? -1 : 0); } }
+  function step() { grow(8); drawSim(); if (res.length < T) raf = requestAnimationFrame(step); }
+  function drawSim() {
+    const { p, t, m } = cur(), d = DS[+$('#s-d').value], md = mde(p, simN), th = found(p, m, simN), got = res.filter(r => r === 1).length;
+    $('#s-dv').textContent = dur(d);
+    $('#s-mde').textContent = isFinite(md) ? lift(md) : '–';
+    $('#s-got').textContent = res.length ? pct(got / res.length) : '–';
+    $('#s-th').textContent = pct(th);
+    if (res.length >= T) $('#s-msg').textContent = md > 3 * m
+      ? L(`Справжній ефект ${lift(m)}, а MDE за ${dur(d)} — ${lift(md)}. Тест знайшов поліпшення лише в ${got} з ${T} випадків. Якби нова сторінка була такою самою, як стара, вона «вигравала» б приблизно у 2,5% тестів: різниця майже непомітна.`,
+          `The real effect is ${lift(m)}, while the MDE for ${dur(d)} is ${lift(md)}. The test found the improvement in only ${got} of ${T} cases. If the new page were the same as the old one, it would "win" about 2.5% of tests: the difference is barely visible.`)
+      : md > m ? L(`MDE за ${dur(d)} — ${lift(md)}, вище за справжній ефект ${lift(m)}. Тест знайшов поліпшення в ${pct(got / T)} випадків, а в решті сказав «різниці немає», хоча нова сторінка справді краща.`,
+          `The MDE for ${dur(d)} is ${lift(md)}, above the real effect of ${lift(m)}. The test found the improvement in ${pct(got / T)} of cases, and in the rest it said "no difference", although the new page really is better.`)
+      : L(`Тепер MDE ${lift(md)} не вищий за справжній ефект ${lift(m)}, і за формулою тест знаходить його щонайменше у 80% випадків. Ціна — ${dur(d)} тесту.`,
+          `Now the MDE of ${lift(md)} is no higher than the real effect of ${lift(m)}, and by the formula the test finds it in at least 80% of cases. The price: ${dur(d)} of testing.`);
+    else $('#s-msg').textContent = L(`Тестів проведено: ${res.length}…`, `Tests run: ${res.length}…`);
+    const s = setup($('#s-cv')); if (!s) return;
+    const { g, w, h } = s, cols = 25, rows = 8, cw = w / cols, ch = h / rows, r = Math.max(2, Math.min(cw, ch) * 0.36);
+    g.clearRect(0, 0, w, h);
+    for (let i = 0; i < T; i++) {
+      const x = (i % cols + 0.5) * cw, y = (Math.floor(i / cols) + 0.5) * ch;
+      g.beginPath(); g.arc(x, y, r, 0, 7);
+      if (i < res.length) { g.fillStyle = res[i] === 1 ? C.hit : res[i] === -1 ? C.ink : C.line; g.fill(); }
+      else { g.strokeStyle = C.line; g.lineWidth = 1; g.stroke(); }
+    }
+  }
+  $('#s-d').addEventListener('input', runSim);
+  $('#s-new').onclick = runSim;
+
+  // tables: purchases per version → exact MDE at 3% and the 4/√c rule; power at shares of the MDE (normal approximation)
+  $('#t-body').innerHTML = [100, 400, 1000, 2500, 10000, 40000].map(c => `<tr><td>${int(c)}</td><td>${lift(mde(0.03, c / 0.03))}</td><td>${lift(4 / Math.sqrt(c))}</td></tr>`).join('');
+  $('#t-pow').innerHTML = [[0.25, L('чверть MDE', 'a quarter of the MDE')], [0.5, L('половина MDE', 'half the MDE')], [0.75, L('три чверті MDE', 'three quarters of the MDE')],
+    [1, L('рівно MDE', 'exactly the MDE')], [1.25, L('MDE × 1,25', 'MDE × 1.25')], [1.5, L('MDE × 1,5', 'MDE × 1.5')]]
+    .map(([f, lab]) => { const D = f * (Z + Z80); return `<tr><td>${lab}</td><td>${pct(Phi(D - Z) + Phi(-D - Z))}</td></tr>`; }).join('');
+
+  drawCalc(); runSim();
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { drawCalc(); drawSim(); }, 100); });
+})();
+</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Sections"><a href="https://mathparadoxes.com/en/#all">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/" aria-current="page">Glossary</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+<script>
+(function () {
+  var btn = document.querySelector(".mp-sx-btn");
+  if (!btn) return;
+  var T = JSON.parse(btn.dataset.t), lang = document.documentElement.dataset.lang === "en" ? "en" : "uk";
+  var data = null, loading = null, box = null, input, list, tabs, foot, tab = "", act = 0, opts = [], back = null;
+  var W = { n: 3, on: 2.5, k: 2, d: 1, x: 0.8, o: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
+  // small words that may match nothing without dropping the result ("задача про монети")
+  var STOP = ["и", "та", "в", "у", "на", "з", "из", "до", "для", "про", "як", "що", "the", "a", "an", "of", "in", "on", "and", "to", "for", "how", "what"];
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  btn.querySelector("kbd").textContent = mac ? "⌘K" : "Ctrl K";
+
+  function norm(s) {
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’'ʼ`ъ]/g, "")
+      .replace(/[іыий]/g, "и").replace(/[єэё]/g, "е").replace(/ґ/g, "г");
+  }
+  function words(s) { return norm(s).split(/[^0-9a-zа-я]+/).filter(Boolean); }
+  // one edit apart: a letter swapped, missing, extra or two letters transposed
+  function near(a, b) {
+    var la = a.length, lb = b.length, i = 0;
+    if (Math.abs(la - lb) > 1) return false;
+    while (i < la && i < lb && a[i] === b[i]) i++;
+    if (la === lb) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+    return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+  }
+  // how well a query word q fits a word w of the text: whole word, its start, the same stem (Ukrainian endings), a typo
+  function hit(q, w) {
+    if (w === q) return 1;
+    if (w.lastIndexOf(q, 0) === 0) return 0.85;
+    if (q.length >= 4) {
+      if (q.length >= 5 && w.lastIndexOf(q.slice(0, Math.max(4, q.length - 2)), 0) === 0) return 0.6;
+      for (var d = -1; d <= 1; d++) if (near(q, w.slice(0, q.length + d))) return 0.45;
+    }
+    return q.length >= 3 && w.indexOf(q) > 0 ? 0.35 : 0;
+  }
+  // the score of an item, and in it.low the weakest word match (a typo or a piece of a word is weak)
+  function score(it, qs, phrase) {
+    var total = 0;
+    it.low = 1;
+    for (var i = 0; i < qs.length; i++) {
+      var best = 0, bestF;
+      for (var f in W) {
+        var ws = it.w[f];
+        for (var j = 0; j < ws.length; j++) { var h = hit(qs[i], ws[j]) * W[f]; if (h > best) { best = h; bestF = f; } }
+      }
+      if (!best && STOP.indexOf(qs[i]) === -1) return 0;
+      if (best) it.low = Math.min(it.low, best / W[bestF]);
+      total += best;
+    }
+    var name = it.w.nn, alt = it.w.no;
+    if (name.lastIndexOf(phrase, 0) === 0 || alt.lastIndexOf(phrase, 0) === 0) total += 2;
+    else if (name.indexOf(phrase) !== -1 || alt.indexOf(phrase) !== -1) total += 1;
+    return total + (it.t === "p" ? 0.2 : it.t === "h" ? -0.2 : 0);
+  }
+  function load() {
+    if (!loading) loading = fetch(btn.dataset.src).then(function (r) { return r.json(); }).then(function (j) {
+      data = j.items;
+      // a chapter's line under the name is only its course and number, so "парадокси" does not find all 21 chapters
+      data.forEach(function (it) {
+        it.w = { n: words(it.n), on: words(it.on || ""), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), o: words(it.o || ""),
+                 nn: words(it.n).join(" "), no: words(it.on || "").join(" ") };
+      });
+    });
+    return loading;
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done(it) {
+    if (it.t === "p") return !!get("mp-solved:" + it.s);
+    if (it.t !== "c") return false;
+    var d = []; try { d = JSON.parse(get("mp-course:" + it.s) || "[]"); } catch (e) {}
+    return d.length > 0;
+  }
+  function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+  // the text with the words that match the query in <mark>
+  function marked(text, qs) {
+    var out = document.createDocumentFragment(), parts = String(text).split(/([0-9A-Za-zА-Яа-яЄєІіЇїҐґЁё’'ʼ]+)/);
+    parts.forEach(function (p, i) {
+      if (!p) return;
+      var w = i % 2 && words(p), on = w && qs.length && w.some(function (x) { return qs.some(function (q) { return hit(q, x) >= 0.45; }); });
+      out.appendChild(on ? el("mark", null, p) : document.createTextNode(p));
+    });
+    return out;
+  }
+  function icon(it) {
+    var s = el("span", "mp-sx-ic mp-sx-" + it.t);
+    s.style.setProperty("--tint", it.tint || "var(--soft)");  // not the page's own --tint
+    if (it.t === "p") { var b = s.appendChild(el("span", "mp-bars")); for (var i = 1; i <= 3; i++) b.appendChild(el("i", i <= it.lv ? "on" : "")); }
+    else s.textContent = it.t === "g" ? "Aa" : it.t === "c" ? "≡" : "§";
+    return s;
+  }
+  function row(it, qs) {
+    var a = el("a", "mp-sx-it"); a.href = it.u; a.setAttribute("role", "option"); a.id = "mp-sx-o" + opts.length;
+    var tx = el("span", "mp-sx-tx"), n = el("b"), d = el("span");
+    n.appendChild(marked(it.n, qs)); d.appendChild(marked(it.d || "", qs)); tx.append(n, d);
+    a.append(icon(it), tx);
+    if (done(it)) { var ok = el("span", "mp-sx-ok", "✓"); ok.title = T.solved; a.appendChild(ok); }
+    opts.push(a);
+    return a;
+  }
+  function head(text) { return el("li", "mp-sx-h", text); }
+  function wrap(a) { var li = el("li"); li.setAttribute("role", "presentation"); li.appendChild(a); return li; }
+  function render() {
+    var q = input.value.trim(), qs = words(q), phrase = qs.join(" ");
+    list.textContent = ""; opts = []; act = 0;
+    tabs.hidden = !qs.length;
+    if (!qs.length) {
+      var recent = []; try { recent = JSON.parse(get("mp-recent") || "[]"); } catch (e) {}
+      recent = recent.slice(0, 5).map(function (r) {
+        var it = data && data.filter(function (x) { return (x.t === "p" && x.s === r.s) || (x.t === "c" && "course:" + x.s === r.s); })[0];
+        return it || { t: r.c ? "c" : "p", s: r.s, n: r.n[lang], u: r.u[lang] };
+      });
+      if (recent.length) { list.appendChild(head(T.recent)); recent.forEach(function (it) { list.appendChild(wrap(row(it, []))); }); }
+      var li = el("li", "mp-sx-try"); li.appendChild(el("span", null, T.try + ": "));
+      T.ideas.forEach(function (w, i) {
+        var b = el("button", null, w); b.type = "button";
+        b.addEventListener("click", function () { input.value = w; render(); input.focus(); });
+        if (i) li.appendChild(document.createTextNode(" · "));
+        li.appendChild(b);
+      });
+      list.appendChild(li);
+      return mark();
+    }
+    if (!data) { list.appendChild(el("li", "mp-sx-msg", T.load)); return; }
+    var found = data.map(function (it) { return { it: it, s: score(it, qs, phrase) }; }).filter(function (r) { return r.s > 0; });
+    // typos and pieces of words count only when nothing matches by whole words, their starts or stems
+    if (found.some(function (r) { return r.it.low >= 0.6; })) found = found.filter(function (r) { return r.it.low >= 0.6; });
+    found.sort(function (a, b) { return b.s - a.s; });
+    var count = { "": found.length, p: 0, c: 0, g: 0 };
+    found.forEach(function (r) { count[GROUP[r.it.t]]++; });
+    [].forEach.call(tabs.children, function (b) {
+      b.lastChild.textContent = count[b.dataset.k] ? " " + count[b.dataset.k] : "";
+      b.setAttribute("aria-pressed", b.dataset.k === tab);
+      b.disabled = !count[b.dataset.k] && b.dataset.k !== tab;
+    });
+    if (tab) found = found.filter(function (r) { return GROUP[r.it.t] === tab; });
+    if (!found.length) {
+      var m = el("li", "mp-sx-msg", T.none + " "), a = el("a", null, T.every);
+      a.href = document.querySelector(".mp-nav-list a:not(.mp-cont)").href; m.appendChild(a); list.appendChild(m);
+      return mark();
+    }
+    // groups in the order of their best match; with no tab chosen each shows its first 6
+    var order = [], by = {};
+    found.forEach(function (r) { var g = GROUP[r.it.t]; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(r.it); });
+    order.forEach(function (g) {
+      if (!tab) list.appendChild(head(T[g]));
+      var items = tab ? by[g] : by[g].slice(0, 6);
+      items.forEach(function (it) { list.appendChild(wrap(row(it, qs))); });
+      if (!tab && by[g].length > 6) {
+        var more = el("button", "mp-sx-more", "+" + (by[g].length - 6) + " →"); more.type = "button";
+        more.addEventListener("click", function () { tab = g; render(); input.focus(); });
+        var li = el("li"); li.appendChild(more); list.appendChild(li);
+      }
+    });
+    mark();
+  }
+  function mark() {
+    opts.forEach(function (o, i) { o.setAttribute("aria-selected", i === act); });
+    if (opts[act]) { input.setAttribute("aria-activedescendant", opts[act].id); opts[act].scrollIntoView({ block: "nearest" }); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function build() {
+    box = el("div", "mp-sx"); box.hidden = true;
+    box.innerHTML = '<div class="mp-sx-box" role="dialog" aria-modal="true"><div class="mp-sx-head">' + btn.querySelector("svg").outerHTML +
+      '<input type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="mp-sx-list" aria-autocomplete="list">' +
+      '<button type="button" class="mp-sx-x"></button></div><div class="mp-sx-tabs"></div><ul class="mp-sx-list" id="mp-sx-list" role="listbox"></ul>' +
+      '<div class="mp-sx-foot"></div></div>';
+    document.body.appendChild(box);
+    input = box.querySelector("input"); list = box.querySelector("ul"); tabs = box.querySelector(".mp-sx-tabs"); foot = box.querySelector(".mp-sx-foot");
+    box.firstChild.setAttribute("aria-label", T.btn); input.placeholder = T.ph; input.setAttribute("aria-label", T.btn);
+    var x = box.querySelector(".mp-sx-x"); x.textContent = "Esc"; x.setAttribute("aria-label", T.close);
+    foot.textContent = T.keys;
+    [["", T.all], ["p", T.p], ["c", T.c], ["g", T.g]].forEach(function (k) {
+      var b = el("button", null, k[1]); b.type = "button"; b.dataset.k = k[0]; b.appendChild(el("span"));
+      b.addEventListener("click", function () { tab = k[0]; render(); input.focus(); });
+      tabs.appendChild(b);
+    });
+    input.addEventListener("input", function () { tab = ""; render(); });
+    box.addEventListener("click", function (e) { if (e.target === box || e.target === x) close(); });
+    box.addEventListener("mousemove", function (e) {
+      var o = e.target.closest(".mp-sx-it"), i = opts.indexOf(o);
+      if (i !== -1 && i !== act) { act = i; mark(); }
+    });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (opts.length) { act = (act + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length; mark(); }
+      } else if (e.key === "Enter" && opts[act]) { e.preventDefault(); opts[act].click(); }
+    });
+  }
+  function open(q) {
+    if (!box) build();
+    if (!box.hidden) return input.focus();
+    back = document.activeElement; box.hidden = false; document.documentElement.classList.add("mp-sx-on");
+    if (q != null) input.value = q;
+    input.focus(); input.select(); render();
+    load().then(render, function () { list.textContent = ""; list.appendChild(el("li", "mp-sx-msg", T.fail)); loading = null; });
+  }
+  function close() {
+    if (!box || box.hidden) return;
+    box.hidden = true; document.documentElement.classList.remove("mp-sx-on");
+    if (back && back.focus) back.focus();
+  }
+  btn.addEventListener("click", function () { open(); });
+  btn.addEventListener("pointerenter", load, { once: true });
+  btn.addEventListener("focus", load, { once: true });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target, typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box && !box.hidden ? close() : open(); }
+    else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); open(); }
+    else if (e.key === "Escape" && box && !box.hidden) { e.preventDefault(); close(); }
+    else if (e.key === "Tab" && box && !box.hidden) {
+      // keep the focus inside the palette
+      var f = [].slice.call(box.querySelectorAll("input, button:not([disabled]), a[href]"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+    }
+  });
+  var q = new URLSearchParams(location.search).get("q");
+  if (q) open(q);
+})();
+</script>
+</body>
+</html>

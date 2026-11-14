@@ -1,0 +1,315 @@
+<style>
+/* Layout: glossary article in three layers: a guess about how many orders a resample leaves out, 50 tiles of one
+   resample, and a thousand resamples of 50 orders next to a thousand real new samples (plain words), the definition,
+   the steps, the 1/e table and when to use it (rigorous), where the bootstrap goes blind (the maximum) and its history
+   (deeper). */
+:root { --tint: #F0EDE6; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul, ol { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+.ex { font-variant-numeric: tabular-nums; background: var(--paper); border-radius: 10px; padding: 10px 12px; font-size: .95rem; overflow-wrap: anywhere; }
+.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.gl-stat b { font-variant-numeric: tabular-nums; }
+.gl-btns .btn[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.after { display: grid; gap: 14px; }
+.after[hidden] { display: none; }
+.after .big { font-size: 1.25rem; font-weight: 800; }
+.after .big em { color: var(--signal); font-style: normal; }
+.tiles { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; max-width: 520px; }
+.tiles span { aspect-ratio: 1; border-radius: 7px; background: var(--paper); border: 1.5px solid var(--line); display: grid; place-items: center; font-size: .8rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+.tiles span.out { background: transparent; border-style: dashed; color: transparent; }
+.tiles span.many { background: var(--ink); border-color: var(--ink); color: #fff; }
+.seg-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg-btns button { font: inherit; font-size: .9rem; font-weight: 600; background: var(--paper); color: var(--ink); border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.seg-btns button:hover { border-color: var(--ink); }
+.seg-btns button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .88rem; color: var(--muted); }
+.key i { display: inline-block; width: 14px; height: 10px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+.key i.line { width: 0; height: 14px; border-left: 2px solid var(--ink); border-radius: 0; }
+.key i.dash { width: 0; height: 14px; border-left: 2px dashed var(--ink); border-radius: 0; }
+.steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; max-width: 70ch; }
+.tbl-wrap { overflow-x: auto; background: var(--paper); border-radius: 14px; }
+.tbl { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .95rem; }
+.tbl th, .tbl td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; white-space: normal; vertical-align: bottom; }
+.tbl tr:last-child td { border-bottom: 0; }
+@media (max-width: 860px) { .three { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .tbl { font-size: .85rem; } .tbl th, .tbl td { padding: 8px 6px; } .tbl th { font-size: .68rem; } .tiles { gap: 3px; } .tiles span { font-size: .7rem; border-radius: 5px; } }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="{{HOME}}">{{BRAND}}</a>
+    <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="{{GLOSSARY}}"><span class="uk">Словник</span><span class="en">Glossary</span></a> / <span class="uk">Бутстреп</span><span class="en">Bootstrap</span></p>
+
+  <header class="gl-head">
+    <span class="eyebrow"><span class="uk">Словник · бутстреп</span><span class="en">Glossary · bootstrap</span></span>
+    <h1><span class="uk">Повторити опитування, не питаючи нікого нового</span><span class="en">Rerun the survey without asking anyone new</span></h1>
+    <p class="lead uk">У вас 50 замовлень, і ви порахували середній чек. Наскільки йому вірити? Чесна відповідь — зібрати ще тисячу таких тижнів і подивитися, як стрибає цифра. Бутстреп робить це без жодного нового замовлення: тисячу разів витягує 50 замовлень із ваших же 50, кладучи кожне назад. Кожна така копія губить приблизно третину ваших даних і дублює інші. І все ж розкид цих «зіпсованих» копій майже такий самий, як у справжніх нових тижнів.</p>
+    <p class="lead en">You have 50 orders and you have computed the average order value. How far can you trust it? The honest answer is to collect a thousand more such weeks and watch how the number jumps. The bootstrap does this without a single new order: a thousand times it draws 50 orders from your own 50, putting each one back. Every such copy loses about a third of your data and repeats some of the rest. And yet the spread of these "damaged" copies is almost the same as that of real new weeks.</p>
+  </header>
+
+  <section class="gl-layers">
+  <div class="mp-layer" data-layer="easy">
+  <section class="gl-sec" id="guess">
+    <h2><span class="uk">Скільки замовлень загубиться</span><span class="en">How many orders get lost</span></h2>
+    <p class="uk">Перевибірка робиться так: 50 разів навмання тягнемо одне з ваших 50 замовлень, записуємо і кладемо назад. Тож те саме замовлення може трапитися двічі чи тричі, а інше — жодного разу.</p>
+    <p class="en">A resample works like this: 50 times we pick one of your 50 orders at random, write it down and put it back. So the same order can come up twice or three times, and another one not at all.</p>
+    <div class="gl-panel">
+      <p><b><span class="uk">Яка частка ваших 50 замовлень зазвичай не потрапляє в перевибірку жодного разу?</span><span class="en">What share of your 50 orders usually doesn't make it into a resample even once?</span></b></p>
+      <div class="gl-btns" role="group" aria-label="Ваш варіант" data-aria-en="Your guess">
+        <button type="button" class="btn ghost" data-g="0"><span class="uk">Майже жодного: до 5%</span><span class="en">Almost none: up to 5%</span></button>
+        <button type="button" class="btn ghost" data-g="1"><span class="uk">Близько 10%</span><span class="en">About 10%</span></button>
+        <button type="button" class="btn ghost" data-g="2"><span class="uk">Близько третини</span><span class="en">About a third</span></button>
+        <button type="button" class="btn ghost" data-g="3"><span class="uk">Близько половини</span><span class="en">About half</span></button>
+      </div>
+      <div class="after" id="g-after" hidden>
+        <p id="g-msg" aria-live="polite"></p>
+        <p class="big"><span class="uk">Бракує <em>36,4%</em> замовлень, тобто зазвичай близько 18 з 50. Для великих вибірок ця частка прямує до 1/e ≈ 36,8%.</span><span class="en"><em>36.4%</em> of the orders go missing, usually about 18 of 50. For large samples the share tends to 1/e ≈ 36.8%.</span></p>
+        <p class="uk">Ось одна перевибірка. Кожна клітинка — одне з ваших замовлень, число в ній — скільки разів його витягли. Порожні пунктирні клітинки не потрапили зовсім, темні трапилися двічі й більше.</p>
+        <p class="en">Here is one resample. Each square is one of your orders, and the number in it is how many times it was drawn. Empty dashed squares didn't make it at all; dark ones came up twice or more.</p>
+        <div class="tiles" id="tiles" aria-label="Одна перевибірка з 50 замовлень" data-aria-en="One resample of 50 orders"></div>
+        <div class="gl-btns"><button type="button" class="btn ghost" id="t-new"><span class="uk">Ще одна перевибірка</span><span class="en">Another resample</span></button></div>
+        <p class="gl-note" id="t-msg" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="gl-sec" id="sim">
+    <h2><span class="uk">Тисяча тижнів з одного</span><span class="en">A thousand weeks out of one</span></h2>
+    <p class="uk">У симуляції ми знаємо весь магазин: справжній середній чек 800 грн, окремі замовлення здебільшого від 200 до 2000 грн, зрідка більше. Ви бачите лише 50 замовлень одного тижня. Натисніть «Перевибрати ×1000»: темна гірка — середні чеки тисячі перевибірок. Сіра гірка — те, чого в житті ви не побачите: тисяча справжніх нових тижнів по 50 замовлень. Порівняйте їхню ширину.</p>
+    <p class="en">In the simulation we know the whole shop: the true average order is $40, and single orders mostly run from $10 to $100, occasionally more. You see only 50 orders from one week. Press "Resample ×1000": the dark pile shows the averages of a thousand resamples. The grey pile is what you never get to see in real life: a thousand genuinely new weeks of 50 orders. Compare their widths.</p>
+    <div class="gl-panel">
+      <div class="seg-btns" role="group" aria-label="Що рахуємо" data-aria-en="What we compute">
+        <button type="button" data-st="mean" aria-pressed="true"><span class="uk">Середній чек</span><span class="en">Average order</span></button>
+        <button type="button" data-st="median" aria-pressed="false"><span class="uk">Медіанний чек</span><span class="en">Median order</span></button>
+        <button type="button" data-st="max" aria-pressed="false"><span class="uk">Найбільше замовлення</span><span class="en">Largest order</span></button>
+      </div>
+      <canvas class="gl-canvas" id="b-cv" style="height:230px" aria-label="Розподіл результатів перевибірок і справжніх нових вибірок" data-aria-en="Distribution of resample results and real new samples"></canvas>
+      <p class="key"><span><i style="background:var(--ink);opacity:.7"></i><span class="uk">1000 перевибірок</span><span class="en">1,000 resamples</span></span><span><i style="background:var(--muted);opacity:.35"></i><span class="uk">1000 справжніх нових тижнів</span><span class="en">1,000 real new weeks</span></span><span><i class="line"></i><span class="uk">ваш тиждень</span><span class="en">your week</span></span><span><i class="dash"></i><span class="uk">правда</span><span class="en">the truth</span></span></p>
+      <div class="gl-btns">
+        <button type="button" class="btn pri" id="b-run"><span class="uk">Перевибрати ×1000</span><span class="en">Resample ×1000</span></button>
+        <button type="button" class="btn ghost" id="b-new"><span class="uk">Інші 50 замовлень</span><span class="en">Another 50 orders</span></button>
+      </div>
+      <div class="three">
+        <div class="gl-stat"><span><span class="uk">Розкид перевибірок</span><span class="en">Spread of resamples</span></span><b id="b-boot">–</b></div>
+        <div class="gl-stat"><span><span class="uk">Формула s / √n</span><span class="en">Formula s / √n</span></span><b id="b-form">–</b></div>
+        <div class="gl-stat"><span><span class="uk">Справжній розкид</span><span class="en">Real spread</span></span><b id="b-true">–</b></div>
+      </div>
+      <p id="b-msg" aria-live="polite"></p>
+    </div>
+    <p class="uk">Зверніть увагу: темна гірка стоїть навколо вашого тижня, а не навколо правди. Бутстреп не підказує, де справжній середній чек. Він підказує, наскільки ваша цифра могла б стрибнути, і саме це потрібно для «±» у звіті та для довірчого інтервалу. А для медіани чи частки повернень зручної формули взагалі немає, тож бутстреп часто єдиний простий спосіб дізнатися похибку.</p>
+    <p class="en">Notice that the dark pile sits around your week, not around the truth. The bootstrap doesn't tell you where the true average is. It tells you how far your number could have jumped, and that is exactly what the "±" in a report and a confidence interval need. For a median or a return rate there is no handy formula at all, so the bootstrap is often the only simple way to get the error.</p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Чому зіпсовані копії не брешуть</span><span class="en">Why damaged copies don't lie</span></h2>
+    <p class="uk">Пояснення на пальцях, трохи спрощене. Новий тиждень у справжньому магазині — це нові 50 покупців, узятих навмання з усіх. Ви не можете піти до всіх, але ваші 50 замовлень — найкращий портрет магазину, який у вас є: дрібних і великих чеків там приблизно в тій самій пропорції. Перевибірка «ходить» у цей портрет так, як ви ходили б у магазин. Те, що одних замовлень бракує, а інші повторилися, — не вада, а сама суть: у новому тижні теж одних покупців не буде, а схожі прийдуть по кілька. Ця випадковість і є похибкою, яку ми шукаємо.</p>
+    <p class="en">An explanation without formulas, slightly simplified. A new week in the real shop means 50 new customers drawn at random from everyone. You can't visit everyone, but your 50 orders are the best portrait of the shop you have: small and large orders appear there in roughly the right proportion. A resample "visits" this portrait the way you would visit the shop. That some orders are missing and others repeat is not a flaw but the whole point: a new week would also miss some customers and bring several similar ones. That randomness is the very error we are after.</p>
+    <p class="uk">Тому бутстреп настільки добрий, наскільки добрий ваш портрет. Якщо в 50 замовлень випадково не потрапив жоден великий клієнт, перевибірки про нього теж не дізнаються. І якщо вибірка зміщена — скажімо, опитали лише тих, хто відповідає на дзвінки, — бутстреп акуратно виміряє похибку зміщеної цифри.</p>
+    <p class="en">So the bootstrap is only as good as your portrait. If not a single big client happened to land among your 50 orders, the resamples won't learn about them either. And if the sample is biased, say you only surveyed people who answer the phone, the bootstrap will carefully measure the error of a biased number.</p>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="strict">
+  <section class="gl-sec">
+    <h2><span class="uk">Що таке бутстреп</span><span class="en">What the bootstrap is</span></h2>
+    <p class="uk">Бутстреп — спосіб оцінити похибку будь-якої цифри, порахованої з вибірки, без формули: з самої вибірки багато разів беруть нову вибірку того самого розміру з поверненням і дивляться, як змінюється результат. Кроки:</p>
+    <p class="en">The bootstrap is a way to estimate the error of any number computed from a sample, without a formula: you repeatedly draw a new sample of the same size from the sample itself, with replacement, and watch how the result changes. The steps:</p>
+    <ol class="steps">
+      <li><span class="uk">Маєте n значень і цифру, яку з них порахували: середнє, медіану, частку, різницю двох груп.</span><span class="en">You have n values and a number computed from them: a mean, a median, a rate, the difference between two groups.</span></li>
+      <li><span class="uk">Витягніть n значень навмання з поверненням і порахуйте ту саму цифру.</span><span class="en">Draw n values at random with replacement and compute the same number.</span></li>
+      <li><span class="uk">Повторіть 1000–10 000 разів.</span><span class="en">Repeat 1,000–10,000 times.</span></li>
+      <li><span class="uk">Стандартне відхилення отриманих цифр — це бутстреп-оцінка стандартної похибки. Проміжок між 2,5-м і 97,5-м перцентилями — простий 95% довірчий інтервал.</span><span class="en">The standard deviation of these numbers is the bootstrap estimate of the standard error. The range between the 2.5th and 97.5th percentiles is a simple 95% confidence interval.</span></li>
+    </ol>
+    <p class="ex"><span class="uk">Частка, що не потрапила:</span><span class="en">Share left out:</span> (1 − 1/n)ⁿ → 1/e ≈ 0,368 &nbsp;·&nbsp; <span class="uk">для середнього:</span><span class="en">for the mean:</span> SE* = σ̂ / √n = √((n − 1)/n) · s / √n</p>
+    <p class="uk">Кожне замовлення щоразу оминають з імовірністю 1 − 1/n, а за n спроб — з імовірністю (1 − 1/n)ⁿ. Для середнього бутстреп відтворює відому формулу майже точно: розкид перевибірок дорівнює σ̂ / √n, де σ̂ — розкид ваших n значень. Від звичної s / √n він відрізняється множником √((n − 1)/n), для 50 замовлень це 0,99. Тобто бутстреп «винайшов» формулу стандартної похибки сам, нічого про неї не знаючи.</p>
+    <p class="en">Each order is missed on a single draw with probability 1 − 1/n, and over n draws with probability (1 − 1/n)ⁿ. For the mean, the bootstrap reproduces the known formula almost exactly: the spread of the resamples equals σ̂ / √n, where σ̂ is the spread of your n values. It differs from the usual s / √n by a factor of √((n − 1)/n), which is 0.99 for 50 orders. In other words, the bootstrap "invented" the standard error formula on its own, knowing nothing about it.</p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th><span class="uk">Вибірка n</span><span class="en">Sample n</span></th><th><span class="uk">Не потрапляє</span><span class="en">Left out</span></th><th><span class="uk">Різних значень</span><span class="en">Distinct values</span></th><th><span class="uk">Рекорд лишається</span><span class="en">Record kept</span></th></tr></thead>
+        <tbody id="t-body"></tbody>
+      </table>
+    </div>
+    <p class="gl-note"><span class="uk">«Не потрапляє» — частка значень, яких немає в перевибірці; «Різних значень» — скільки різних значень у ній лишається; «Рекорд лишається» — імовірність, що найбільше значення вибірки потрапило в перевибірку.</span><span class="en">"Left out" is the share of values missing from a resample; "Distinct values" is how many different values remain in it; "Record kept" is the chance that the sample's largest value made it into the resample.</span></p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Коли що брати</span><span class="en">When to use what</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="uk">Середнє чи частка, даних багато</span><span class="en">A mean or a rate, plenty of data</span></b><span><span class="uk">Досить формули σ / √n: бутстреп дасть те саме, тільки повільніше. Він корисний як перевірка, що ви не помилилися у формулі.</span><span class="en">The formula σ / √n is enough: the bootstrap gives the same, only slower. It is useful as a check that you got the formula right.</span></span></li>
+      <li><b><span class="uk">Медіана, перцентиль, відношення</span><span class="en">Median, percentile, ratio</span></b><span><span class="uk">Медіанний чек, 90-й перцентиль часу завантаження, дохід на користувача, різниця медіан у A/B-тесті. Формули або немає, або вона складна й крихка. Тут бутстреп — перший вибір.</span><span class="en">The median order, the 90th percentile of load time, revenue per user, the difference of medians in an A/B test. Either there is no formula or it is complicated and fragile. Here the bootstrap is the first choice.</span></span></li>
+      <li><b><span class="uk">Перевибирайте людей, а не сесії</span><span class="en">Resample people, not sessions</span></b><span><span class="uk">Якщо одна людина дає кілька рядків даних, тягнуть людину разом з усіма її рядками. Інакше перевибірки вийдуть надто спокійними, і похибка буде заниженою. Для часових рядів так само тягнуть цілі тижні чи блоки днів.</span><span class="en">If one person contributes several rows of data, you draw the person with all their rows. Otherwise the resamples come out too calm and the error is understated. For time series, likewise, you draw whole weeks or blocks of days.</span></span></li>
+      <li><b><span class="uk">Мала й скошена вибірка</span><span class="en">A small, skewed sample</span></b><span><span class="uk">На 50 замовленнях такого магазину інтервал ±2 бутстреп-похибки накриває правду приблизно в 92% випадків, а не в 95%. Що менша вибірка і довший хвіст великих чеків, то оптимістичніший бутстреп. Нових даних він не замінює.</span><span class="en">With 50 orders from this shop, the ±2 bootstrap-error interval covers the truth in about 92% of cases, not 95%. The smaller the sample and the longer the tail of big orders, the more optimistic the bootstrap. It is no substitute for more data.</span></span></li>
+      <li><b><span class="uk">Скільки перевибірок</span><span class="en">How many resamples</span></b><span><span class="uk">Для самої похибки досить 1000: похибка оцінки похибки тоді близько 2%. Для краю інтервалу, 2,5-го перцентиля, краще 10 000.</span><span class="en">For the error itself 1,000 is enough: the error of the error estimate is then about 2%. For the edge of an interval, the 2.5th percentile, 10,000 is better.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="deep">
+  <section class="gl-sec" id="max">
+    <h2><span class="uk">Де бутстреп сліпне: рекорди</span><span class="en">Where the bootstrap goes blind: records</span></h2>
+    <p class="uk">Перемкніть симуляцію на «Найбільше замовлення». Темна гірка перетворюється на стовпчик: у 63,6% перевибірок найбільше замовлення таке саме, як у вашому тижні, бо ваш рекорд потрапляє в перевибірку з імовірністю 1 − (49/50)⁵⁰. Більшого за нього перевибірка не дасть ніколи: вона знає лише ті числа, які ви вже бачили. А справжній рекорд нового тижня вищий за ваш рівно в половині випадків: який із двох тижнів рекордніший, вирішує випадок. У типовому тижні розкид перевибірок для рекорду приблизно втричі менший за справжній.</p>
+    <p class="en">Switch the simulation to "Largest order". The dark pile turns into a single bar: in 63.6% of resamples the largest order is the same as in your week, because your record makes it into a resample with probability 1 − (49/50)⁵⁰. A resample can never go above it: it only knows the numbers you have already seen. Yet the real record of a new week beats yours in exactly half of cases: which of two weeks holds the bigger record is down to chance. In a typical week the spread of the resamples for the record is about three times smaller than the real one.</p>
+    <p class="uk">Те саме з усім, що залежить від країв: максимум, мінімум, найрідший випадок. Бутстреп працює для цифр, які спираються на багато значень одразу, як середнє чи медіана, і підводить для тих, що спираються на одне.</p>
+    <p class="en">The same goes for anything that depends on the edges: the maximum, the minimum, the rarest event. The bootstrap works for numbers that rest on many values at once, like the mean or the median, and fails for those that rest on a single one.</p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Звідки назва</span><span class="en">Where the name comes from</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="uk">Ефрон, 1979</span><span class="en">Efron, 1979</span></b><span><span class="uk">Метод описав стенфордський статистик Бредлі Ефрон у статті «Bootstrap methods: another look at the jackknife» (The Annals of Statistics, 1979). Назва — від англійського виразу «витягнути себе за халявки чобіт»: отримати те, чого, здавалося б, отримати нізвідки.</span><span class="en">The method was described by the Stanford statistician Bradley Efron in "Bootstrap methods: another look at the jackknife" (The Annals of Statistics, 1979). The name comes from the idiom "to pull yourself up by your bootstraps": getting something that seemingly can't be had from anywhere.</span></span></li>
+      <li><b><span class="uk">Ніж-складанка</span><span class="en">The jackknife</span></b><span><span class="uk">Попередник бутстрепу — «джекнайф» Кенуя (1949) і Т'юкі (1958): викидати з вибірки по одному значенню і дивитися, як змінюється результат. Бутстреп узагальнив цю ідею, але потребував комп'ютерів, які в 1970-х саме стали доступними.</span><span class="en">The bootstrap's forerunner is the jackknife of Quenouille (1949) and Tukey (1958): drop one value at a time from the sample and watch how the result changes. The bootstrap generalised the idea, but it needed computers, which were just becoming available in the 1970s.</span></span></li>
+      <li><b><span class="uk">Премія</span><span class="en">The prize</span></b><span><span class="uk">У листопаді 2018 року Ефрону присудили Міжнародну премію зі статистики саме за бутстреп; вручили її на Всесвітньому статистичному конгресі 2019 року.</span><span class="en">In November 2018 Efron was awarded the International Prize in Statistics for the bootstrap; it was presented at the 2019 World Statistics Congress.</span></span></li>
+      <li><b><span class="uk">Ті самі 37% у машинному навчанні</span><span class="en">The same 37% in machine learning</span></b><span><span class="uk">Беггінг Лео Бреймана (1996) і випадковий ліс (2001) навчають кожне дерево на перевибірці. Приблизно 37% даних, які в неї не потрапили, стають готовою тестовою вибіркою для цього дерева.</span><span class="en">Leo Breiman's bagging (1996) and random forests (2001) train each tree on a resample. The roughly 37% of the data left out of it becomes a ready-made test set for that tree.</span></span></li>
+    </ul>
+  </section>
+  </div>
+  </section>
+
+  <!--PROBLEMS-->
+
+  <!--TERMS-->
+
+  <footer>
+    <span class="uk">Математичні парадокси · автор <a href="{{HOME}}#author">Дмитро Кудренко</a></span><span class="en">Math paradoxes · by <a href="{{HOME}}#author">Dmytro Kudrenko</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const en = document.documentElement.dataset.lang === 'en', L = (uk, e) => en ? e : uk;
+  const $ = s => document.querySelector(s);
+  if (en) document.querySelectorAll('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn));
+  const css = getComputedStyle(document.documentElement);
+  const C = { ink: css.getPropertyValue('--ink').trim() || '#151515', muted: css.getPropertyValue('--muted').trim() || '#5F5F5F',
+              line: css.getPropertyValue('--line').trim() || '#E4E4E4' };
+  const loc = en ? 'en-US' : 'uk-UA';
+  const nf = (v, d = 1) => v.toLocaleString(loc, { maximumFractionDigits: d, minimumFractionDigits: d });
+  const int = v => Math.round(v).toLocaleString(loc);
+  // money: the model works in hryvnias (average 800, σ 600); the English page shows dollars at 1/20 of that
+  const money = v => { const x = v / 20; return en ? '$' + (Number.isInteger(x) || x >= 100 ? int(x) : nf(x, 2)) : int(v) + ' грн'; };
+  function setup(cv) {
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (!r.width) return null;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.font = '12px Inter, system-ui, sans-serif';
+    return { g, w: r.width, h: r.height };
+  }
+  const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const sd = a => { const m = mean(a); return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / a.length); };
+  const N = 50;
+  const median = a => { const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  const STAT = { mean, median, max: a => Math.max(...a) };
+  // the shop: lognormal orders with mean 800 and σ 600 (median 640), as in the standard-error article
+  const SIG = Math.sqrt(Math.log(1 + 0.75 ** 2)), MU = Math.log(800) - SIG * SIG / 2;
+  const order = () => Math.exp(MU + SIG * gauss());
+  const TRUTH = { mean: 800, median: Math.exp(MU), max: null };
+
+  // 1. guess, then one resample as 50 tiles
+  let S = Array.from({ length: N }, order), seen = 0, lostSum = 0;
+  document.querySelectorAll('[data-g]').forEach(b => b.addEventListener('click', () => {
+    const k = +b.dataset.g;
+    document.querySelectorAll('[data-g]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    $('#g-after').hidden = false;
+    $('#g-msg').textContent = [
+      L('Здається, що 50 витягів із 50 зачеплять майже кожне замовлення. Але на кожному витягу конкретне замовлення оминають з імовірністю 49/50, а за 50 витягів — (49/50)⁵⁰ ≈ 0,364.', 'It seems that 50 draws out of 50 will touch almost every order. But on each draw a given order is missed with probability 49/50, and over 50 draws with probability (49/50)⁵⁰ ≈ 0.364.'),
+      L('Набагато більше. На кожному витягу конкретне замовлення оминають з імовірністю 49/50, а за 50 витягів — (49/50)⁵⁰ ≈ 0,364.', 'Far more. On each draw a given order is missed with probability 49/50, and over 50 draws with probability (49/50)⁵⁰ ≈ 0.364.'),
+      L('Так. На кожному витягу конкретне замовлення оминають з імовірністю 49/50, а за 50 витягів — (49/50)⁵⁰ ≈ 0,364.', 'Yes. On each draw a given order is missed with probability 49/50, and over 50 draws with probability (49/50)⁵⁰ ≈ 0.364.'),
+      L('Трохи менше. На кожному витягу конкретне замовлення оминають з імовірністю 49/50, а за 50 витягів — (49/50)⁵⁰ ≈ 0,364.', 'A bit less. On each draw a given order is missed with probability 49/50, and over 50 draws with probability (49/50)⁵⁰ ≈ 0.364.')][k];
+    if (!seen) tiles();
+  }));
+  function tiles() {
+    const c = new Array(N).fill(0);
+    for (let i = 0; i < N; i++) c[Math.floor(Math.random() * N)]++;
+    const lost = c.filter(x => !x).length, many = c.filter(x => x > 1).length;
+    seen++; lostSum += lost;
+    $('#tiles').innerHTML = c.map((x, i) => `<span class="${x ? x > 1 ? 'many' : '' : 'out'}" title="${money(S[i])}">${x || ''}</span>`).join('');
+    $('#t-msg').textContent = L(`Не потрапили: ${lost} з 50 (${nf(100 * lost / N, 0)}%). Двічі й більше: ${many}. `, `Left out: ${lost} of 50 (${nf(100 * lost / N, 0)}%). Twice or more: ${many}. `)
+      + (seen > 1 ? L(`У середньому за ${seen} перевибірок: ${nf(100 * lostSum / seen / N, 1)}%.`, `Average over ${seen} resamples: ${nf(100 * lostSum / seen / N, 1)}%.`) : '');
+  }
+  $('#t-new').onclick = tiles;
+
+  // 2. a thousand resamples vs a thousand real new weeks
+  const REAL = { mean: [], median: [], max: [] };
+  for (let r = 0; r < 1000; r++) { const s = Array.from({ length: N }, order); for (const k in REAL) REAL[k].push(STAT[k](s)); }
+  let st = 'mean', BOOT = null;
+  const RANGE = { mean: [300, 1500], median: [300, 1500], max: [0, 8000] };
+  function run() {
+    BOOT = { mean: [], median: [], max: [] };
+    for (let b = 0; b < 1000; b++) { const x = Array.from({ length: N }, () => S[Math.floor(Math.random() * N)]); for (const k in BOOT) BOOT[k].push(STAT[k](x)); }
+    draw();
+  }
+  function draw() {
+    const val = STAT[st](S), real = sd(REAL[st]);
+    $('#b-true').textContent = '± ' + money(real);
+    $('#b-form').textContent = st === 'mean' ? '± ' + money(Math.sqrt(N / (N - 1)) * sd(S) / Math.sqrt(N)) : L('немає', 'none');
+    if (!BOOT) {
+      $('#b-boot').textContent = '–';
+      $('#b-msg').textContent = L(`У вашому тижні ${st === 'mean' ? 'середній чек' : st === 'median' ? 'медіанний чек' : 'найбільше замовлення'} — ${money(val)}. Натисніть «Перевибрати ×1000».`,
+        `In your week the ${st === 'mean' ? 'average order' : st === 'median' ? 'median order' : 'largest order'} is ${money(val)}. Press "Resample ×1000".`);
+    } else {
+      const boot = sd(BOOT[st]), ratio = boot / real;
+      $('#b-boot').textContent = '± ' + money(boot);
+      if (st === 'max') {
+        const same = BOOT.max.filter(v => v === val).length;
+        $('#b-msg').textContent = L(`У ${int(same / 10)}% перевибірок найбільше замовлення те саме, ${money(val)}, і жодна не перевищила його. А справжній новий тиждень перевершує ваш рекорд у половині випадків. Розкид перевибірок — ${nf(ratio, 2)} від справжнього, у типовому тижні близько третини.`,
+          `In ${int(same / 10)}% of resamples the largest order is the same ${money(val)}, and none goes above it. Yet a real new week beats your record in half of cases. The resamples show ${nf(ratio, 2)} of the real spread; in a typical week it is about a third.`);
+      } else {
+        $('#b-msg').textContent = L(`Розкид перевибірок — ${nf(ratio, 2)} від справжнього, хоча жодного нового замовлення не було. Натисніть «Інші 50 замовлень» кілька разів: зазвичай виходить від 0,7 до ${st === 'mean' ? '1,3' : '1,4'}, бо й ваші 50 замовлень — лише одна вибірка.`,
+          `The spread of the resamples is ${nf(ratio, 2)} of the real one, with not a single new order. Press "Another 50 orders" a few times: it usually lands between 0.7 and ${st === 'mean' ? '1.3' : '1.4'}, because your 50 orders are just one sample too.`);
+      }
+    }
+    const s = setup($('#b-cv')); if (!s) return;
+    const { g, w, h } = s, pl = 12, pr = 12, pt = 26, pb = 22, [lo, hi] = RANGE[st], bins = 60, bw = (hi - lo) / bins;
+    const X = v => pl + (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo) * (w - pl - pr), px = (w - pl - pr) / bins, H = h - pt - pb;
+    const count = a => { const c = new Array(bins).fill(0); a.forEach(v => { c[Math.max(0, Math.min(bins - 1, Math.floor((v - lo) / bw)))]++; }); return c; };
+    const cr = count(REAL[st]), cb = BOOT ? count(BOOT[st]) : null;
+    const peak = Math.max(...cr, ...(cb || [0]));
+    g.clearRect(0, 0, w, h);
+    const bars = (c, col, a) => { g.globalAlpha = a; g.fillStyle = col; c.forEach((n, i) => { if (n) { const bh = n / peak * H; g.fillRect(pl + i * px, h - pb - bh, Math.max(1, px - 1), bh); } }); g.globalAlpha = 1; };
+    if (cb) { bars(cr, C.muted, 0.35); bars(cb, C.ink, 0.7); }
+    g.fillStyle = C.muted; g.textAlign = 'center';
+    const ticks = st === 'max' ? (w < 500 ? [0, 4000, 8000] : [0, 2000, 4000, 6000, 8000]) : (w < 500 ? [300, 800, 1300] : [300, 500, 800, 1100, 1500]);
+    ticks.forEach(t => { g.textAlign = t === lo ? 'left' : t === hi ? 'right' : 'center'; g.fillText(money(t) + (t === hi ? '+' : ''), t === lo ? pl : t === hi ? w - pr : X(t), h - 6); });
+    const vline = (v, dash, label, right) => {
+      g.strokeStyle = C.ink; g.lineWidth = 2; g.setLineDash(dash ? [5, 4] : []); g.beginPath(); g.moveTo(X(v), pt - 4); g.lineTo(X(v), h - pb); g.stroke(); g.setLineDash([]); g.lineWidth = 1;
+      g.fillStyle = C.ink; g.textAlign = right ? 'left' : 'right'; g.fillText(label, X(v) + (right ? 5 : -5), pt - 8);
+    };
+    if (TRUTH[st] !== null) { const t = TRUTH[st]; vline(t, true, L('правда', 'truth'), t > val); }
+    vline(val, false, L('ваш тиждень', 'your week'), TRUTH[st] === null || val >= TRUTH[st]);
+  }
+  document.querySelectorAll('[data-st]').forEach(b => b.addEventListener('click', () => {
+    st = b.dataset.st;
+    document.querySelectorAll('[data-st]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    draw();
+  }));
+  $('#b-run').onclick = run;
+  $('#b-new').onclick = () => { S = Array.from({ length: N }, order); seen = 0; lostSum = 0; if (!$('#g-after').hidden) tiles(); if (BOOT) run(); else draw(); };
+
+  // table: share left out, distinct values and the chance the maximum survives, exact
+  $('#t-body').innerHTML = [10, 50, 1000, Infinity].map(n => {
+    const p = n === Infinity ? Math.exp(-1) : (1 - 1 / n) ** n;
+    return `<tr><td>${n === Infinity ? '∞' : int(n)}</td><td>${nf(100 * p, 1)}%</td><td>${n === Infinity ? nf(100 * (1 - p), 1) + '%' : nf(n * (1 - p), 1)}</td><td>${nf(100 * (1 - p), 1)}%</td></tr>`;
+  }).join('');
+
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
+  draw();
+})();
+</script>

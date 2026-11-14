@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/glossary/invariant/", "en": "/glossary/invariant/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = null;
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  // the gate card sits after round 1; once it hides, the browser would keep the bottom of the page in view, so jump to round 2
+  function toRounds(b) {
+    var r = b.closest(".sp-gate") && document.querySelector(".sp-rounds");
+    if (r) requestAnimationFrame(function () { r.scrollIntoView({ block: "start" }); });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+    if (on) toRounds(b);
+  });
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else { window.mpSolve(); toRounds(b); }
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+
+<title>Інваріант простими словами: чому 31 доміно не лягає на 62 клітинки</title>
+<meta name="description" content="Шахівниця без двох кутів, сім склянок і п&#x27;ятнашки, що не складаються. Пограйте й побачте величину, яку не змінює жоден хід: інваріант.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/glossary/invariant/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/glossary/invariant/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/glossary/invariant/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/glossary/invariant/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Інваріант простими словами: чому 31 доміно не лягає на 62 клітинки">
+<meta property="og:description" content="Шахівниця без двох кутів, сім склянок і п&#x27;ятнашки, що не складаються. Пограйте й побачте величину, яку не змінює жоден хід: інваріант.">
+<meta property="og:url" content="https://mathparadoxes.com/glossary/invariant/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Інваріант: чи можна накрити шахівницю без двох кутів 31 доміно?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Інваріант простими словами: чому 31 доміно не лягає на 62 клітинки">
+<meta name="twitter:description" content="Шахівниця без двох кутів, сім склянок і п&#x27;ятнашки, що не складаються. Пограйте й побачте величину, яку не змінює жоден хід: інваріант.">
+<meta name="twitter:image" content="https://mathparadoxes.com/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/glossary/invariant/#page", "url": "https://mathparadoxes.com/glossary/invariant/", "name": "Інваріант простими словами: чому 31 доміно не лягає на 62 клітинки", "description": "Шахівниця без двох кутів, сім склянок і п'ятнашки, що не складаються. Пограйте й побачте величину, яку не змінює жоден хід: інваріант.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "explanation"], "about": [{"@type": "DefinedTerm", "name": "Інваріант", "description": "Величина, яку не змінює жоден дозволений хід: якщо на старті й у цілі вона різна, мети не досягти.", "inDefinedTermSet": "https://mathparadoxes.com/glossary/"}], "datePublished": "2026-11-14", "dateModified": "2026-11-14", "author": {"@id": "https://mathparadoxes.com/#author"}, "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/"}, {"@type": "ListItem", "position": 2, "name": "Словник", "item": "https://mathparadoxes.com/glossary/"}, {"@type": "ListItem", "position": 3, "name": "Інваріант", "item": "https://mathparadoxes.com/glossary/invariant/"}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: glossary article in three layers: a guess on the chessboard with two corners cut off, a playable board with a
+   dark/light counter that never moves, and seven cups flipped two at a time (plain words); the definition, how to hunt
+   for an invariant, Loyd's 14-15 puzzle with a live parity counter and where invariants live (rigorous); the formula,
+   monovariants, stronger colourings and history (deeper). */
+:root { --tint: #E6EEF2; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+.ex { font-variant-numeric: tabular-nums; background: var(--paper); border-radius: 10px; padding: 10px 12px; font-size: .95rem; overflow-wrap: anywhere; }
+.after { display: grid; gap: 14px; }
+.after[hidden] { display: none; }
+.after .big { font-size: 1.25rem; font-weight: 800; }
+.after .big em, .cnt em { color: var(--signal); font-style: normal; }
+.seg-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg-btns button { font: inherit; font-size: .9rem; font-weight: 600; background: var(--paper); color: var(--ink); border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.seg-btns button:hover { border-color: var(--ink); }
+.seg-btns button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.cnt { display: flex; flex-wrap: wrap; gap: 8px; font-variant-numeric: tabular-nums; }
+.cnt span { background: var(--paper); border-radius: 10px; padding: 8px 12px; font-size: .92rem; }
+.cnt b { font-size: 1.05rem; }
+/* chessboard */
+.cb { display: grid; grid-template-columns: repeat(8, 1fr); width: 100%; max-width: 400px; aspect-ratio: 1; border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; touch-action: manipulation; }
+.cb button { border: 0; padding: 0; margin: 0; cursor: pointer; position: relative; font: inherit; min-width: 0; }
+.cb .lt { background: #F4EFE3; }
+.cb .dk { background: #8E9AA6; }
+.cb .gone { background: repeating-linear-gradient(45deg, transparent 0 4px, rgba(0,0,0,.12) 4px 6px), var(--paper); cursor: default; }
+.cb .sel { box-shadow: inset 0 0 0 3px var(--signal); }
+.cb .dom::after { content: ""; position: absolute; inset: 3px; background: var(--ink); opacity: .85; }
+.cb .dom.e::after { right: 0; border-radius: 6px 0 0 6px; }
+.cb .dom.w::after { left: 0; border-radius: 0 6px 6px 0; }
+.cb .dom.s::after { bottom: 0; border-radius: 6px 6px 0 0; }
+.cb .dom.n::after { top: 0; border-radius: 0 0 6px 6px; }
+/* cups */
+.cups { display: flex; flex-wrap: wrap; gap: 10px; }
+.cups button { width: 44px; height: 58px; border: 0; background: none; padding: 0; cursor: pointer; display: grid; place-items: center; border-radius: 8px; }
+.cups button i { display: block; width: 34px; height: 44px; background: #7FA6BD; clip-path: polygon(0 0, 100% 0, 82% 100%, 18% 100%); transition: transform .25s; }
+.cups button.down i { transform: rotate(180deg); background: var(--ink); }
+.cups button.pick { box-shadow: 0 0 0 2px var(--signal); }
+/* fifteen */
+.ft { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; max-width: 320px; aspect-ratio: 1; touch-action: manipulation; }
+.ft button { font: inherit; font-size: 1.3rem; font-weight: 800; font-variant-numeric: tabular-nums; background: var(--paper); color: var(--ink); border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; min-width: 0; }
+.ft button.hot { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.ft button.blank { visibility: hidden; }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=0215c449">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="https://mathparadoxes.com/"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+    <nav class="mp-nav" aria-label="Розділи" data-t="{&quot;cont&quot;: &quot;Продовжити&quot;, &quot;course&quot;: &quot;Продовжити курс&quot;}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Меню"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Продовжити: <b></b></a><a href="https://mathparadoxes.com/#all">Задачі</a><a href="https://mathparadoxes.com/courses/">Курси</a><a href="https://mathparadoxes.com/glossary/" aria-current="page">Словник</a></div><button type="button" class="mp-sx-btn" aria-haspopup="dialog" aria-label="Пошук" data-src="https://mathparadoxes.com/search.json" data-t="{&quot;btn&quot;: &quot;Пошук&quot;, &quot;ph&quot;: &quot;Задача, курс або термін&quot;, &quot;all&quot;: &quot;Усе&quot;, &quot;p&quot;: &quot;Задачі&quot;, &quot;c&quot;: &quot;Курси&quot;, &quot;g&quot;: &quot;Словник&quot;, &quot;recent&quot;: &quot;Нещодавно відкриті&quot;, &quot;try&quot;: &quot;Спробуйте&quot;, &quot;none&quot;: &quot;Нічого не знайшлося. Спробуйте інше слово або&quot;, &quot;every&quot;: &quot;подивіться всі задачі&quot;, &quot;keys&quot;: &quot;↑↓ вибрати · Enter відкрити · Esc закрити&quot;, &quot;solved&quot;: &quot;розв&#x27;язано&quot;, &quot;load&quot;: &quot;Завантаження…&quot;, &quot;fail&quot;: &quot;Не вдалося завантажити пошук. Перевірте з&#x27;єднання.&quot;, &quot;close&quot;: &quot;Закрити&quot;, &quot;course&quot;: &quot;Курс&quot;, &quot;chapter&quot;: &quot;розділ %d з %d&quot;, &quot;glossary&quot;: &quot;Словник&quot;, &quot;ideas&quot;: [&quot;ймовірність&quot;, &quot;A/B-тест&quot;, &quot;Монті Голл&quot;, &quot;медіана&quot;, &quot;співбесіда&quot;, &quot;аукціон&quot;]}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="mp-sx-lbl">Пошук</span><kbd>/</kbd></button></nav>
+  <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="https://mathparadoxes.com/glossary/invariant/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="https://mathparadoxes.com/glossary/invariant/en/" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="https://mathparadoxes.com/glossary/"><span class="uk">Словник</span></a> / <span class="uk">Інваріант</span></p>
+
+  <header class="gl-head">
+    <span class="eyebrow"><span class="uk">Словник · інваріант</span></span>
+    <h1><span class="uk">Чому тут не допоможе жодна спроба?</span></h1>
+    <p class="lead uk">Є задачі, у яких хочеться пробувати ще і ще: переставити, перекласти, перевернути інакше. Здається, що бракує лише вдалого ходу. Але буває, що якась величина не змінюється від жодного ходу, а в кінці вона мусила б бути іншою. Тоді мети не досягти ніколи, і доводить це не тисяча невдалих спроб, а один підрахунок. Таку величину називають інваріантом.</p>
+    
+  </header>
+
+  <section class="gl-layers">
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">На пальцях</span><span class="mp-layer-desc">картинки, аналогії, маленькі числа</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «На пальцях» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <section class="gl-sec" id="board">
+    <h2><span class="uk">Шахівниця без двох кутів</span></h2>
+    <p class="uk">Зі звичайної шахівниці 8 × 8 вирізали дві клітинки в протилежних кутах. Лишилося 62 клітинки. У вас 31 доміно, і кожне накриває рівно дві сусідні клітинки, по горизонталі або вертикалі.</p>
+    
+    <div class="gl-panel">
+      <p><b><span class="uk">Чи можна накрити всі 62 клітинки 31 доміно без накладань?</span></b></p>
+      <div class="gl-btns" role="group" aria-label="Ваш варіант" data-aria-en="Your guess">
+        <button type="button" class="btn ghost" data-g="0"><span class="uk">Так, треба лише знайти розклад</span></button>
+        <button type="button" class="btn ghost" data-g="1"><span class="uk">Ні, ніколи</span></button>
+        <button type="button" class="btn ghost" data-g="2"><span class="uk">Залежить від того, з якого кута почати</span></button>
+      </div>
+      <div class="after" id="b-after" hidden>
+        <p id="b-msg" aria-live="polite"></p>
+        <p class="big"><span class="uk">Ні, і доводить це <em>один підрахунок</em>, а не перебір.</span></p>
+        <p class="uk">Протилежні кути шахівниці одного кольору. Тож після вирізання лишилося 32 темні клітинки і лише 30 світлих. А кожне доміно, хоч як його покласти, накриває одну темну й одну світлу. Скільки б доміно ви не поклали, вільних темних завжди на 2 більше, ніж вільних світлих. Щоб накрити все, ця різниця мала б стати нулем, а вона не змінюється. Спробуйте самі.</p>
+        
+      </div>
+    </div>
+    <div class="gl-panel">
+      <div class="seg-btns" role="group" aria-label="Які кути вирізано" data-aria-en="Which corners are cut">
+        <button type="button" data-mode="opp" aria-pressed="true"><span class="uk">Протилежні кути</span></button>
+        <button type="button" data-mode="adj" aria-pressed="false"><span class="uk">Сусідні кути</span></button>
+      </div>
+      <p class="gl-note"><span class="uk">Торкніться клітинки, потім сусідньої: ляже доміно. Торкніться доміно, щоб його прибрати.</span></p>
+      <div class="cb" id="cb" role="grid" aria-label="Шахівниця" data-aria-en="Chessboard"></div>
+      <div class="cnt" id="b-cnt" aria-live="polite"></div>
+      <div class="gl-btns">
+        <button type="button" class="btn ghost" id="b-auto"><span class="uk">Нехай спробує комп'ютер</span></button>
+        <button type="button" class="btn ghost" id="b-clear"><span class="uk">Прибрати все</span></button>
+      </div>
+      <p id="b-say" aria-live="polite"></p>
+    </div>
+    <p class="uk">Комп'ютер не здогадується, а шукає найбільшу кількість доміно повним алгоритмом. На дошці без протилежних кутів він теж зупиняється на 30, і дві вільні клітинки завжди темні. А на дошці без сусідніх кутів вирізано одну темну й одну світлу клітинку, різниця з самого початку нуль, і 31 доміно лягає.</p>
+    
+  <script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "glossary-invariant" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+  <section class="gl-sec" id="glasses">
+    <h2><span class="uk">Сім склянок</span></h2>
+    <p class="uk">На столі сім склянок, усі догори дном. За один хід треба перевернути рівно дві, будь-які. Чи вдасться поставити всі сім правильно? Оберіть дві склянки, і вони перевернуться.</p>
+    
+    <div class="gl-panel">
+      <div class="seg-btns" role="group" aria-label="Скільки перевертати за хід" data-aria-en="How many to flip per move">
+        <button type="button" data-k="2" aria-pressed="true"><span class="uk">По дві за хід</span></button>
+        <button type="button" data-k="3" aria-pressed="false"><span class="uk">По три за хід</span></button>
+      </div>
+      <div class="cups" id="cups" role="group" aria-label="Склянки" data-aria-en="Cups"></div>
+      <div class="cnt" id="c-cnt" aria-live="polite"></div>
+      <div class="gl-btns"><button type="button" class="btn ghost" id="c-reset"><span class="uk">Почати знову</span></button></div>
+      <p id="c-msg" aria-live="polite"></p>
+    </div>
+    <p class="uk">Коли перевертаєте дві, кількість склянок догори дном змінюється на 2 або не змінюється зовсім: обидві з дна, обидві на дно, або одна туди, а друга назад. Тож непарне число лишається непарним, а 0 парне. Почали з 7, отже, нуля не буде. Але варто дозволити перевертати по три, і парність щоразу змінюється: інваріант зник, і мети можна досягти. Інваріант&nbsp;— властивість не самої задачі, а дозволених ходів.</p>
+    
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Строго</span><span class="mp-layer-desc">таблиці, графіки, формули</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Строго» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <section class="gl-sec">
+    <h2><span class="uk">Що таке інваріант</span></h2>
+    <p class="uk">Інваріант&nbsp;— це величина або властивість, яка не змінюється від жодного дозволеного ходу. Різниця між темними і світлими вільними клітинками, парність склянок догори дном, сума, остача від ділення на 3. Якщо на початку інваріант має одне значення, а в бажаному кінці мав би інше, кінця не досягти, хоч скільки пробувати.</p>
+    
+    <ul class="gl-when">
+      <li><b><span class="uk">Почніть із ходу, а не з мети</span></b><span><span class="uk">Запишіть, що саме робить один хід: накриває дві сусідні клітинки, перевертає дві склянки, міняє місцями дві плитки. Інваріант шукають серед того, що цей хід зберігає.</span></span></li>
+      <li><b><span class="uk">Перші кандидати</span></b><span><span class="uk">Парність (парне чи непарне), розфарбування в два чи більше кольорів, сума чисел, остача від ділення. Найчастіше спрацьовує парність.</span></span></li>
+      <li><b><span class="uk">Доводить «ні», але не «так»</span></b><span><span class="uk">Якщо інваріант на старті й на фініші різний, мета недосяжна. Якщо однаковий, це ще нічого не обіцяє: може існувати інший інваріант, якого ви не помітили, або просто бракувати ходів.</span></span></li>
+      <li><b><span class="uk">Невдалі спроби не доказ</span></b><span><span class="uk">Сто невдач кажуть лише, що ви не знайшли розкладу. Інваріант каже, що розкладу немає. Саме тому на нього варто витратити хвилину, перш ніж пробувати вдесяте.</span></span></li>
+    </ul>
+  </section>
+
+  <section class="gl-sec" id="fifteen">
+    <h2><span class="uk">П'ятнашки, які не складаються</span></h2>
+    <p class="uk">П'ятнадцять плиток у коробці 4 × 4 і одна порожня клітинка. Хід&nbsp;— пересунути в порожнечу сусідню плитку. Тут усе зібрано, крім двох останніх: 15 стоїть перед 14. Здається, це найпростіша позиція з можливих: дві плитки поміняти місцями. Спробуйте.</p>
+    
+    <div class="gl-panel">
+      <div class="ft" id="ft" role="group" aria-label="П'ятнашки" data-aria-en="15 puzzle"></div>
+      <div class="cnt" id="f-cnt" aria-live="polite"></div>
+      <div class="gl-btns">
+        <button type="button" class="btn ghost" id="f-loyd"><span class="uk">14 і 15 переставлені</span></button>
+        <button type="button" class="btn ghost" id="f-mix"><span class="uk">Перемішати чесними ходами</span></button>
+      </div>
+      <p id="f-msg" aria-live="polite"></p>
+    </div>
+    <p class="uk">Лічильник рахує дві речі. «Безлад»&nbsp;— скільки пар плиток стоять у неправильному порядку, якщо читати рядками зліва направо: більша раніше за меншу. І номер рядка порожньої клітинки. Хід уздовж рядка не змінює ні того, ні іншого. Хід угору чи вниз переносить плитку через три інші: безлад змінюється на 1 або на 3, а рядок порожнечі на 1. Разом виходить зміна на парне число, тож парність суми&nbsp;— інваріант. У зібраних п'ятнашках сума 0 + 4 = 4, парна. У позиції з переставленими 14 і 15 вона 1 + 4 = 5, непарна. Скільки б ви не крутили, зібрати не вийде.</p>
+    
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Де живуть інваріанти</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="uk">Подвійний запис у бухгалтерії</span></b><span><span class="uk">Кожна операція записується двічі, в дебет і кредит, тож активи завжди дорівнюють пасивам. Рівність&nbsp;— інваріант кожної проводки. Якщо баланс не зійшовся, десь помилка, і шукати її можна, не перевіряючи кожну цифру. Цей метод описав Лука Пачолі 1494 року в «Summa de arithmetica».</span></span></li>
+      <li><b><span class="uk">Кубик Рубика</span></b><span><span class="uk">Якщо розібрати кубик і зібрати деталі навмання, складеться лише кожен 12-й варіант. Повернутий на місці один кут, перевернуте одне ребро чи дві переставлені деталі ламають один із трьох інваріантів (2 × 3 × 2 = 12), і жодні повороти граней цього не виправлять.</span></span></li>
+      <li><b><span class="uk">Програмування</span></b><span><span class="uk">Інваріант циклу&nbsp;— твердження, правдиве перед кожним кроком циклу. У двійковому пошуку це «шукане, якщо воно є, лежить між лівою і правою межею». Роберт Флойд (1967) і Тоні Гоар (1969) зробили такі твердження основою доведення, що програма правильна.</span></span></li>
+      <li><b><span class="uk">Закони збереження</span></b><span><span class="uk">Енергія замкненої системи&nbsp;— інваріант усього, що в ній відбувається. Тому вічний двигун не потребує перевірки креслення: Паризька академія наук ще 1775 року вирішила не розглядати таких проєктів.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Глибше</span><span class="mp-layer-desc">узагальнення, теорія, історія</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Глибше» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <section class="gl-sec">
+    <h2><span class="uk">Формула і монотонна величина</span></h2>
+    <div class="gl-panel">
+      <p class="ex">f(T(x)) = f(x) &nbsp;<span class="uk">для кожного стану x і кожного дозволеного ходу T</span></p>
+      <p class="uk">Звідси одразу: якщо f(старт) ≠ f(ціль), жодна послідовність ходів не веде від старту до цілі. Функція f може бути числом, остачею, кольором, будь-чим, що можна порівняти.</p>
+      
+      <p class="uk">Близький родич&nbsp;— монотонна величина (монотонний інваріант): вона не стоїть на місці, а щоразу зменшується. Якщо це ціле невід'ємне число, процес мусить зупинитися. Приклад&nbsp;— той самий безлад із п'ятнашок. Якщо в списку щоразу міняти місцями два сусідні елементи, що стоять не по порядку, безлад зменшується рівно на 1. Тож сортування обов'язково закінчиться, і ходів буде рівно стільки, скільки було пар не по порядку.</p>
+      
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Сильніші розфарбування</span></h2>
+    <div class="gl-panel">
+      <p class="uk">Двох кольорів вистачає для доміно. Для довших фігур беруть більше. Чи можна покласти дошку 10 × 10 смужками 1 × 4? Площа ділиться: 100 = 25 × 4. Розфарбуйте клітинки по діагоналях у чотири кольори по колу: колір клітинки&nbsp;— остача від ділення суми номерів рядка й стовпця на 4. Будь-яка смужка 1 × 4, лежача чи стояча, накриває по одній клітинці кожного кольору. Тож у покладеній дошці кольорів мало б бути порівну, по 25. А їх 25, 26, 25 і 24. Не вийде.</p>
+      
+      <p class="uk">А іноді інваріант&nbsp;— уся історія. Теорема Гоморі: якщо з шахівниці 8 × 8 вирізати будь-яку темну і будь-яку світлу клітинку, решту завжди можна накрити 31 доміно. Тут різниця кольорів&nbsp;— єдина перешкода. Комп'ютер легко перевіряє всі 32 × 32 = 1024 такі пари: кожна складається.</p>
+      
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Звідки взялися ці задачі</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="uk">Шахівниця</span></b><span><span class="uk">Задачу з вирізаними кутами поставив філософ Макс Блек у підручнику логіки «Critical Thinking» (1946). Її розбирали Соломон Голомб (1954) і Мартін Гарднер у колонці в Scientific American (1957), а Джон Маккарті 1964 року запропонував її як «твердий горіх» для програм, що шукають доведення: перебір ламається, а людина бачить кольори.</span></span></li>
+      <li><b><span class="uk">П'ятнашки</span></b><span><span class="uk">Головоломку вигадав поштмейстер Нойз Чепмен із міста Канастота в штаті Нью-Йорк, і 1880 року нею захопилася вся Америка. Ще 1879 року Вільям Джонсон і Вільям Сторі в American Journal of Mathematics довели, що рівно половина розкладів не складається. Сем Лойд пізніше видавав себе за автора і обіцяв 1000 доларів тому, хто розставить 14 і 15 по місцях.</span></span></li>
+      <li><b><span class="uk">Симетрії і збереження</span></b><span><span class="uk">Еммі Нетер 1918 року довела, що кожен закон збереження у фізиці випливає з симетрії: енергія зберігається, бо закони не змінюються з часом, імпульс&nbsp;— бо вони однакові в кожній точці простору. Інваріант і симетрія виявилися двома боками однієї ідеї.</span></span></li>
+    </ul>
+  </section>
+  </div>
+  </section>
+
+  <section class="gl-sec"><h2>Де це трапляється</h2>
+    <div class="mp-related-grid">
+      <a class="mp-related-card" href="https://mathparadoxes.com/fly-between-trains/"><h3>Муха між потягами</h3><p>Два потяги за 100&nbsp;км їдуть назустріч по 50&nbsp;км/год, а муха літає між ними туди-сюди на 75&nbsp;км/год. Скільки вона пролетить, поки потяги зустрінуться?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/hats-parity/"><h3>Капелюхи в ряд</h3><p>100 людей у ряд у чорних і білих капелюхах бачать лише тих, хто попереду. Скільки з них можуть напевно назвати колір свого капелюха?</p></a>
+    </div></section>
+
+  <section class="gl-sec"><h2>Ще в темі «Ігри та логіка»</h2>
+    <ul class="gl-cards">
+      <li class="gl-card" id="dominant-strategy"><a href="https://mathparadoxes.com/glossary/dominant-strategy/"><h3>Домінантна стратегія</h3><p>Варіант, який дає гравцеві більше за будь-який інший його варіант, хоч би що обрали інші.</p><p class="gl-hook">Знижка вигідна кав&#x27;ярні, хоч би що зробила сусідня, але коли знижують обидві, кожна заробляє втричі менше, ніж якби обидві тримали ціну.</p></a></li>
+      <li class="gl-card" id="nash-equilibrium"><a href="https://mathparadoxes.com/glossary/nash-equilibrium/"><h3>Рівновага Неша</h3><p>Набір стратегій, у якому нікому не вигідно змінити свою, поки інші не змінюють своїх.</p><p class="gl-hook">У дилемі в&#x27;язня обидва зраджують, хоча мовчати вигідніше обом: рівновага не означає найкращий результат.</p></a></li>
+      <li class="gl-card" id="backward-induction"><a href="https://mathparadoxes.com/glossary/backward-induction/"><h3>Зворотна індукція</h3><p>Розв&#x27;язування гри з кінця: спершу останній хід, потім передостанній, і так до першого.</p><p class="gl-hook">У грі-стоніжці логіка велить забрати копійки на першому ж ході, хоча, граючи довше, обидва отримали б сотні, і живі люди так майже не роблять.</p></a></li>
+      <li class="gl-card" id="common-knowledge"><a href="https://mathparadoxes.com/glossary/common-knowledge/"><h3>Спільне знання</h3><p>Усі знають факт, усі знають, що всі знають, і так без кінця.</p><p class="gl-hook">Два генерали можуть обмінятися тисячею підтверджень і все одно не мати спільного знання, тож жоден не наважиться атакувати першим.</p></a></li>
+      <li class="gl-card" id="pigeonhole-principle"><a href="https://mathparadoxes.com/glossary/pigeonhole-principle/"><h3>Принцип Діріхле</h3><p>Якщо предметів більше, ніж скриньок, у якійсь скриньці опиниться щонайменше два.</p><p class="gl-hook">У Києві щонайменше троє людей мають рівно однакову кількість волосин на голові, хоча ніхто їх не рахував.</p></a></li>
+    </ul>
+    <p class="gl-all"><a href="https://mathparadoxes.com/glossary/#games">Усі терміни →</a></p></section>
+
+  <footer>
+    <span class="uk">Математичні парадокси · автор <a href="https://mathparadoxes.com/#author">Дмитро Кудренко</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const en = document.documentElement.dataset.lang === 'en', L = (uk, e) => en ? e : uk;
+  const $ = s => document.querySelector(s);
+  if (en) document.querySelectorAll('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn));
+  const par = n => n % 2 ? L('непарне', 'odd') : L('парне', 'even');
+
+  // 1. guess first
+  document.querySelectorAll('[data-g]').forEach(b => b.addEventListener('click', () => {
+    const k = +b.dataset.g;
+    document.querySelectorAll('[data-g]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    $('#b-after').hidden = false;
+    $('#b-msg').textContent = [
+      L('Так здається: клітинок 62, доміно 31, площа сходиться. Але площа тут не єдине, що важить.', 'It seems so: 62 squares, 31 dominoes, the area adds up. But area is not the only thing that matters here.'),
+      L('Так. І це можна довести, не перебравши жодного розкладу.', 'Right. And you can prove it without trying a single layout.'),
+      L('Ні, звідки б не почати, результат той самий: доміно не лягають.', 'No: wherever you start, the result is the same, the dominoes don\'t fit.')][k];
+  }));
+
+  // 2. the board: cell id = r*8+c; (r+c) even = light, odd = dark
+  const N = 8, dark = i => ((i >> 3) + (i & 7)) % 2 === 1;
+  const nb = i => { const r = i >> 3, c = i & 7, o = []; if (r > 0) o.push(i - 8); if (r < 7) o.push(i + 8); if (c > 0) o.push(i - 1); if (c < 7) o.push(i + 1); return o; };
+  let mode = 'opp', gone, mate, sel = null;
+  const cells = [];
+  for (let i = 0; i < 64; i++) {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'gridcell');
+    b.addEventListener('click', () => tap(i)); $('#cb').appendChild(b); cells.push(b);
+  }
+  function bReset() { gone = mode === 'opp' ? new Set([0, 63]) : new Set([0, 7]); mate = new Array(64).fill(-1); sel = null; bDraw(); $('#b-say').textContent = ''; }
+  function tap(i) {
+    if (gone.has(i)) return;
+    if (mate[i] >= 0) { const j = mate[i]; mate[i] = mate[j] = -1; sel = null; bDraw(); return; }
+    if (sel === null || sel === i) { sel = sel === i ? null : i; bDraw(); return; }
+    if (nb(sel).includes(i) && mate[sel] < 0) { mate[sel] = i; mate[i] = sel; sel = null; } else sel = i;
+    bDraw();
+  }
+  function bDraw() {
+    let fd = 0, fl = 0, d = 0;
+    for (let i = 0; i < 64; i++) {
+      const b = cells[i], j = mate[i];
+      let cls = gone.has(i) ? 'gone' : dark(i) ? 'dk' : 'lt';
+      if (j >= 0) cls += ' dom ' + (j === i + 1 ? 'e' : j === i - 1 ? 'w' : j === i + 8 ? 's' : 'n');
+      if (sel === i) cls += ' sel';
+      b.className = cls;
+      b.setAttribute('aria-label', String.fromCharCode(97 + (i & 7)) + (8 - (i >> 3)) + ', ' + (gone.has(i) ? L('вирізано', 'cut out') : (dark(i) ? L('темна', 'dark') : L('світла', 'light')) + (j >= 0 ? L(', під доміно', ', covered') : '')));
+      if (!gone.has(i) && j < 0) dark(i) ? fd++ : fl++;
+      if (j > i) d++;
+    }
+    $('#b-cnt').innerHTML = '<span>' + L('Доміно: ', 'Dominoes: ') + '<b>' + d + '</b></span><span>' + L('Вільних темних: ', 'Free dark: ') + '<b>' + fd + '</b></span><span>' + L('Вільних світлих: ', 'Free light: ') + '<b>' + fl + '</b></span><span>' + L('Різниця: ', 'Difference: ') + '<b>' + (fd - fl ? '<em>' + (fd - fl) + '</em>' : 0) + '</b></span>';
+    if (fd + fl === 0) $('#b-say').textContent = L('Усе накрито! Тут вирізано одну темну й одну світлу клітинку, тож різниця від початку була нуль.', 'All covered! One dark and one light square were cut here, so the difference was zero from the start.');
+    else if (d && mode === 'opp') $('#b-say').textContent = L('Кожне нове доміно забирає одну темну й одну світлу, і різниця стоїть на 2.', 'Every new domino takes one dark and one light, and the difference stays at 2.');
+  }
+  // maximum matching (augmenting paths) from the dark squares
+  function bAuto() {
+    const m = new Array(64).fill(-1);
+    const aug = (u, seen) => { for (const v of nb(u)) { if (gone.has(v) || seen[v]) continue; seen[v] = 1; if (m[v] < 0 || aug(m[v], seen)) { m[v] = u; m[u] = v; return true; } } return false; };
+    for (let u = 0; u < 64; u++) if (dark(u) && !gone.has(u)) aug(u, []);
+    mate = m; sel = null; bDraw();
+    const d = m.filter(x => x >= 0).length / 2;
+    $('#b-say').textContent = d === 31 ? L('Комп\'ютер поклав усі 31 доміно.', 'The computer laid all 31 dominoes.')
+      : L('Найбільше, що можна покласти: ' + d + ' доміно. Дві клітинки лишаються вільними, і обидві темні, бо світлих на дві менше.', 'The most that fit: ' + d + ' dominoes. Two squares stay free, and both are dark, because there are two fewer light ones.');
+  }
+  document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
+    mode = b.dataset.mode; document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', x === b)); bReset();
+  }));
+  $('#b-auto').onclick = bAuto; $('#b-clear').onclick = bReset;
+  bReset();
+
+  // 3. seven cups, flip exactly k per move
+  let K = 2, down, pick, moves;
+  function cReset() { down = new Array(7).fill(true); pick = []; moves = 0; cDraw(); $('#c-msg').textContent = L('Оберіть ' + (K === 2 ? 'дві склянки' : 'три склянки') + '.', 'Pick ' + (K === 2 ? 'two' : 'three') + ' cups.'); }
+  function cDraw() {
+    const box = $('#cups'); box.innerHTML = '';
+    down.forEach((d, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = (d ? 'down' : '') + (pick.includes(i) ? ' pick' : '');
+      b.setAttribute('aria-label', L('Склянка ', 'Cup ') + (i + 1) + ', ' + (d ? L('догори дном', 'upside down') : L('стоїть правильно', 'right way up')));
+      b.setAttribute('aria-pressed', pick.includes(i));
+      b.innerHTML = '<i></i>';
+      b.addEventListener('click', () => cTap(i)); box.appendChild(b);
+    });
+    const n = down.filter(Boolean).length;
+    $('#c-cnt').innerHTML = '<span>' + L('Ходів: ', 'Moves: ') + '<b>' + moves + '</b></span><span>' + L('Догори дном: ', 'Upside down: ') + '<b>' + n + '</b> · ' + par(n) + '</span>';
+  }
+  function cTap(i) {
+    pick = pick.includes(i) ? pick.filter(x => x !== i) : pick.concat(i);
+    if (pick.length === K) {
+      pick.forEach(j => down[j] = !down[j]); pick = []; moves++;
+      const n = down.filter(Boolean).length;
+      $('#c-msg').textContent = n === 0 ? L('Усі стоять правильно за ' + moves + ' ходів. З трьома за хід парність щоразу змінюється, тож вона вже не перешкода.', 'All the right way up in ' + moves + ' moves. With three per move the parity changes every time, so it no longer stands in the way.')
+        : K === 2 ? L('Догори дном ' + n + ', і це знову ' + par(n) + ' число.' + (moves >= 4 ? ' Хоч скільки ходити, воно лишиться непарним, а нуль парний.' : ''), n + ' upside down, and it\'s ' + par(n) + ' again.' + (moves >= 4 ? ' However long you go on, it stays odd, and zero is even.' : ''))
+        : L('Догори дном ' + n + ': ' + par(n) + ' число. Тут парність змінюється з кожним ходом.', n + ' upside down: ' + par(n) + '. Here the parity changes with every move.');
+    }
+    cDraw();
+  }
+  document.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => {
+    K = +b.dataset.k; document.querySelectorAll('[data-k]').forEach(x => x.setAttribute('aria-pressed', x === b)); cReset();
+  }));
+  $('#c-reset').onclick = cReset;
+  cReset();
+
+  // 4. the 15 puzzle with a live parity counter; 0 = the gap
+  const SOLVED = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0];
+  let t, fmoves;
+  const inv = s => { const a = s.filter(Boolean); let k = 0; for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) if (a[i] > a[j]) k++; return k; };
+  const near = g => { const r = g >> 2, c = g & 3, o = []; if (r > 0) o.push(g - 4); if (r < 3) o.push(g + 4); if (c > 0) o.push(g - 1); if (c < 3) o.push(g + 1); return o; };
+  function fDraw() {
+    const box = $('#ft'); box.innerHTML = '';
+    t.forEach((v, i) => {
+      const b = document.createElement('button'); b.type = 'button';
+      b.className = !v ? 'blank' : (v === 14 || v === 15) ? 'hot' : '';
+      b.textContent = v || ''; if (!v) b.tabIndex = -1;
+      b.setAttribute('aria-label', v ? L('Плитка ', 'Tile ') + v : L('Порожньо', 'Empty'));
+      b.addEventListener('click', () => fTap(i)); box.appendChild(b);
+    });
+    const d = inv(t), row = (t.indexOf(0) >> 2) + 1, s = d + row;
+    $('#f-cnt').innerHTML = '<span>' + L('Безлад: ', 'Disorder: ') + '<b>' + d + '</b></span><span>' + L('Рядок порожньої: ', 'Gap\'s row: ') + '<b>' + row + '</b></span><span>' + L('Сума: ', 'Sum: ') + '<b>' + (s % 2 ? '<em>' + s + '</em>' : s) + '</b> · ' + par(s) + '</span>';
+  }
+  function fTap(i) {
+    const g = t.indexOf(0); if (!near(g).includes(i)) return;
+    t[g] = t[i]; t[i] = 0; fmoves++; fDraw();
+    const solved = t.every((v, k) => v === SOLVED[k]), s = inv(t) + (t.indexOf(0) >> 2) + 1;
+    $('#f-msg').textContent = solved ? L('Зібрано! Ця позиція мала парну суму, як і зібрана.', 'Solved! This position had an even sum, like the solved one.')
+      : s % 2 ? L('Ходів: ' + fmoves + '. Сума знову непарна. У зібраних п\'ятнашках вона парна (0 + 4), тож ця позиція туди не дійде.', 'Moves: ' + fmoves + '. The sum is odd again. In the solved puzzle it\'s even (0 + 4), so this position will never get there.')
+      : L('Ходів: ' + fmoves + '. Сума парна, як у зібраних п\'ятнашок: ця позиція складається.', 'Moves: ' + fmoves + '. The sum is even, like the solved puzzle\'s: this position can be solved.');
+  }
+  function fLoyd() { t = SOLVED.slice(); t[13] = 15; t[14] = 14; fmoves = 0; fDraw(); $('#f-msg').textContent = L('Пересувайте плитки, сусідні з порожньою клітинкою, і стежте за сумою.', 'Slide tiles next to the gap and watch the sum.'); }
+  function fMix() {
+    t = SOLVED.slice(); let g = 15, prev = -1;
+    for (let k = 0; k < 160; k++) { const o = near(g).filter(x => x !== prev), j = o[Math.floor(Math.random() * o.length)]; t[g] = t[j]; t[j] = 0; prev = g; g = j; }
+    fmoves = 0; fDraw();
+    $('#f-msg').textContent = L('160 випадкових чесних ходів від зібраної позиції. Сума парна, як і на початку: інваріант не зрушив.', '160 random legal moves from the solved position. The sum is even, as at the start: the invariant didn\'t budge.');
+  }
+  $('#f-loyd').onclick = fLoyd; $('#f-mix').onclick = fMix;
+  fLoyd();
+})();
+</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Розділи"><a href="https://mathparadoxes.com/#all">Задачі</a><a href="https://mathparadoxes.com/courses/">Курси</a><a href="https://mathparadoxes.com/glossary/" aria-current="page">Словник</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+<script>
+(function () {
+  var btn = document.querySelector(".mp-sx-btn");
+  if (!btn) return;
+  var T = JSON.parse(btn.dataset.t), lang = document.documentElement.dataset.lang === "en" ? "en" : "uk";
+  var data = null, loading = null, box = null, input, list, tabs, foot, tab = "", act = 0, opts = [], back = null;
+  var W = { n: 3, on: 2.5, k: 2, d: 1, x: 0.8, o: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
+  // small words that may match nothing without dropping the result ("задача про монети")
+  var STOP = ["и", "та", "в", "у", "на", "з", "из", "до", "для", "про", "як", "що", "the", "a", "an", "of", "in", "on", "and", "to", "for", "how", "what"];
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  btn.querySelector("kbd").textContent = mac ? "⌘K" : "Ctrl K";
+
+  function norm(s) {
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’'ʼ`ъ]/g, "")
+      .replace(/[іыий]/g, "и").replace(/[єэё]/g, "е").replace(/ґ/g, "г");
+  }
+  function words(s) { return norm(s).split(/[^0-9a-zа-я]+/).filter(Boolean); }
+  // one edit apart: a letter swapped, missing, extra or two letters transposed
+  function near(a, b) {
+    var la = a.length, lb = b.length, i = 0;
+    if (Math.abs(la - lb) > 1) return false;
+    while (i < la && i < lb && a[i] === b[i]) i++;
+    if (la === lb) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+    return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+  }
+  // how well a query word q fits a word w of the text: whole word, its start, the same stem (Ukrainian endings), a typo
+  function hit(q, w) {
+    if (w === q) return 1;
+    if (w.lastIndexOf(q, 0) === 0) return 0.85;
+    if (q.length >= 4) {
+      if (q.length >= 5 && w.lastIndexOf(q.slice(0, Math.max(4, q.length - 2)), 0) === 0) return 0.6;
+      for (var d = -1; d <= 1; d++) if (near(q, w.slice(0, q.length + d))) return 0.45;
+    }
+    return q.length >= 3 && w.indexOf(q) > 0 ? 0.35 : 0;
+  }
+  // the score of an item, and in it.low the weakest word match (a typo or a piece of a word is weak)
+  function score(it, qs, phrase) {
+    var total = 0;
+    it.low = 1;
+    for (var i = 0; i < qs.length; i++) {
+      var best = 0, bestF;
+      for (var f in W) {
+        var ws = it.w[f];
+        for (var j = 0; j < ws.length; j++) { var h = hit(qs[i], ws[j]) * W[f]; if (h > best) { best = h; bestF = f; } }
+      }
+      if (!best && STOP.indexOf(qs[i]) === -1) return 0;
+      if (best) it.low = Math.min(it.low, best / W[bestF]);
+      total += best;
+    }
+    var name = it.w.nn, alt = it.w.no;
+    if (name.lastIndexOf(phrase, 0) === 0 || alt.lastIndexOf(phrase, 0) === 0) total += 2;
+    else if (name.indexOf(phrase) !== -1 || alt.indexOf(phrase) !== -1) total += 1;
+    return total + (it.t === "p" ? 0.2 : it.t === "h" ? -0.2 : 0);
+  }
+  function load() {
+    if (!loading) loading = fetch(btn.dataset.src).then(function (r) { return r.json(); }).then(function (j) {
+      data = j.items;
+      // a chapter's line under the name is only its course and number, so "парадокси" does not find all 21 chapters
+      data.forEach(function (it) {
+        it.w = { n: words(it.n), on: words(it.on || ""), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), o: words(it.o || ""),
+                 nn: words(it.n).join(" "), no: words(it.on || "").join(" ") };
+      });
+    });
+    return loading;
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done(it) {
+    if (it.t === "p") return !!get("mp-solved:" + it.s);
+    if (it.t !== "c") return false;
+    var d = []; try { d = JSON.parse(get("mp-course:" + it.s) || "[]"); } catch (e) {}
+    return d.length > 0;
+  }
+  function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+  // the text with the words that match the query in <mark>
+  function marked(text, qs) {
+    var out = document.createDocumentFragment(), parts = String(text).split(/([0-9A-Za-zА-Яа-яЄєІіЇїҐґЁё’'ʼ]+)/);
+    parts.forEach(function (p, i) {
+      if (!p) return;
+      var w = i % 2 && words(p), on = w && qs.length && w.some(function (x) { return qs.some(function (q) { return hit(q, x) >= 0.45; }); });
+      out.appendChild(on ? el("mark", null, p) : document.createTextNode(p));
+    });
+    return out;
+  }
+  function icon(it) {
+    var s = el("span", "mp-sx-ic mp-sx-" + it.t);
+    s.style.setProperty("--tint", it.tint || "var(--soft)");  // not the page's own --tint
+    if (it.t === "p") { var b = s.appendChild(el("span", "mp-bars")); for (var i = 1; i <= 3; i++) b.appendChild(el("i", i <= it.lv ? "on" : "")); }
+    else s.textContent = it.t === "g" ? "Aa" : it.t === "c" ? "≡" : "§";
+    return s;
+  }
+  function row(it, qs) {
+    var a = el("a", "mp-sx-it"); a.href = it.u; a.setAttribute("role", "option"); a.id = "mp-sx-o" + opts.length;
+    var tx = el("span", "mp-sx-tx"), n = el("b"), d = el("span");
+    n.appendChild(marked(it.n, qs)); d.appendChild(marked(it.d || "", qs)); tx.append(n, d);
+    a.append(icon(it), tx);
+    if (done(it)) { var ok = el("span", "mp-sx-ok", "✓"); ok.title = T.solved; a.appendChild(ok); }
+    opts.push(a);
+    return a;
+  }
+  function head(text) { return el("li", "mp-sx-h", text); }
+  function wrap(a) { var li = el("li"); li.setAttribute("role", "presentation"); li.appendChild(a); return li; }
+  function render() {
+    var q = input.value.trim(), qs = words(q), phrase = qs.join(" ");
+    list.textContent = ""; opts = []; act = 0;
+    tabs.hidden = !qs.length;
+    if (!qs.length) {
+      var recent = []; try { recent = JSON.parse(get("mp-recent") || "[]"); } catch (e) {}
+      recent = recent.slice(0, 5).map(function (r) {
+        var it = data && data.filter(function (x) { return (x.t === "p" && x.s === r.s) || (x.t === "c" && "course:" + x.s === r.s); })[0];
+        return it || { t: r.c ? "c" : "p", s: r.s, n: r.n[lang], u: r.u[lang] };
+      });
+      if (recent.length) { list.appendChild(head(T.recent)); recent.forEach(function (it) { list.appendChild(wrap(row(it, []))); }); }
+      var li = el("li", "mp-sx-try"); li.appendChild(el("span", null, T.try + ": "));
+      T.ideas.forEach(function (w, i) {
+        var b = el("button", null, w); b.type = "button";
+        b.addEventListener("click", function () { input.value = w; render(); input.focus(); });
+        if (i) li.appendChild(document.createTextNode(" · "));
+        li.appendChild(b);
+      });
+      list.appendChild(li);
+      return mark();
+    }
+    if (!data) { list.appendChild(el("li", "mp-sx-msg", T.load)); return; }
+    var found = data.map(function (it) { return { it: it, s: score(it, qs, phrase) }; }).filter(function (r) { return r.s > 0; });
+    // typos and pieces of words count only when nothing matches by whole words, their starts or stems
+    if (found.some(function (r) { return r.it.low >= 0.6; })) found = found.filter(function (r) { return r.it.low >= 0.6; });
+    found.sort(function (a, b) { return b.s - a.s; });
+    var count = { "": found.length, p: 0, c: 0, g: 0 };
+    found.forEach(function (r) { count[GROUP[r.it.t]]++; });
+    [].forEach.call(tabs.children, function (b) {
+      b.lastChild.textContent = count[b.dataset.k] ? " " + count[b.dataset.k] : "";
+      b.setAttribute("aria-pressed", b.dataset.k === tab);
+      b.disabled = !count[b.dataset.k] && b.dataset.k !== tab;
+    });
+    if (tab) found = found.filter(function (r) { return GROUP[r.it.t] === tab; });
+    if (!found.length) {
+      var m = el("li", "mp-sx-msg", T.none + " "), a = el("a", null, T.every);
+      a.href = document.querySelector(".mp-nav-list a:not(.mp-cont)").href; m.appendChild(a); list.appendChild(m);
+      return mark();
+    }
+    // groups in the order of their best match; with no tab chosen each shows its first 6
+    var order = [], by = {};
+    found.forEach(function (r) { var g = GROUP[r.it.t]; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(r.it); });
+    order.forEach(function (g) {
+      if (!tab) list.appendChild(head(T[g]));
+      var items = tab ? by[g] : by[g].slice(0, 6);
+      items.forEach(function (it) { list.appendChild(wrap(row(it, qs))); });
+      if (!tab && by[g].length > 6) {
+        var more = el("button", "mp-sx-more", "+" + (by[g].length - 6) + " →"); more.type = "button";
+        more.addEventListener("click", function () { tab = g; render(); input.focus(); });
+        var li = el("li"); li.appendChild(more); list.appendChild(li);
+      }
+    });
+    mark();
+  }
+  function mark() {
+    opts.forEach(function (o, i) { o.setAttribute("aria-selected", i === act); });
+    if (opts[act]) { input.setAttribute("aria-activedescendant", opts[act].id); opts[act].scrollIntoView({ block: "nearest" }); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function build() {
+    box = el("div", "mp-sx"); box.hidden = true;
+    box.innerHTML = '<div class="mp-sx-box" role="dialog" aria-modal="true"><div class="mp-sx-head">' + btn.querySelector("svg").outerHTML +
+      '<input type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="mp-sx-list" aria-autocomplete="list">' +
+      '<button type="button" class="mp-sx-x"></button></div><div class="mp-sx-tabs"></div><ul class="mp-sx-list" id="mp-sx-list" role="listbox"></ul>' +
+      '<div class="mp-sx-foot"></div></div>';
+    document.body.appendChild(box);
+    input = box.querySelector("input"); list = box.querySelector("ul"); tabs = box.querySelector(".mp-sx-tabs"); foot = box.querySelector(".mp-sx-foot");
+    box.firstChild.setAttribute("aria-label", T.btn); input.placeholder = T.ph; input.setAttribute("aria-label", T.btn);
+    var x = box.querySelector(".mp-sx-x"); x.textContent = "Esc"; x.setAttribute("aria-label", T.close);
+    foot.textContent = T.keys;
+    [["", T.all], ["p", T.p], ["c", T.c], ["g", T.g]].forEach(function (k) {
+      var b = el("button", null, k[1]); b.type = "button"; b.dataset.k = k[0]; b.appendChild(el("span"));
+      b.addEventListener("click", function () { tab = k[0]; render(); input.focus(); });
+      tabs.appendChild(b);
+    });
+    input.addEventListener("input", function () { tab = ""; render(); });
+    box.addEventListener("click", function (e) { if (e.target === box || e.target === x) close(); });
+    box.addEventListener("mousemove", function (e) {
+      var o = e.target.closest(".mp-sx-it"), i = opts.indexOf(o);
+      if (i !== -1 && i !== act) { act = i; mark(); }
+    });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (opts.length) { act = (act + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length; mark(); }
+      } else if (e.key === "Enter" && opts[act]) { e.preventDefault(); opts[act].click(); }
+    });
+  }
+  function open(q) {
+    if (!box) build();
+    if (!box.hidden) return input.focus();
+    back = document.activeElement; box.hidden = false; document.documentElement.classList.add("mp-sx-on");
+    if (q != null) input.value = q;
+    input.focus(); input.select(); render();
+    load().then(render, function () { list.textContent = ""; list.appendChild(el("li", "mp-sx-msg", T.fail)); loading = null; });
+  }
+  function close() {
+    if (!box || box.hidden) return;
+    box.hidden = true; document.documentElement.classList.remove("mp-sx-on");
+    if (back && back.focus) back.focus();
+  }
+  btn.addEventListener("click", function () { open(); });
+  btn.addEventListener("pointerenter", load, { once: true });
+  btn.addEventListener("focus", load, { once: true });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target, typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box && !box.hidden ? close() : open(); }
+    else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); open(); }
+    else if (e.key === "Escape" && box && !box.hidden) { e.preventDefault(); close(); }
+    else if (e.key === "Tab" && box && !box.hidden) {
+      // keep the focus inside the palette
+      var f = [].slice.call(box.querySelectorAll("input, button:not([disabled]), a[href]"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+    }
+  });
+  var q = new URLSearchParams(location.search).get("q");
+  if (q) open(q);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/glossary/bootstrap/", "en": "/glossary/bootstrap/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = null;
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  // the gate card sits after round 1; once it hides, the browser would keep the bottom of the page in view, so jump to round 2
+  function toRounds(b) {
+    var r = b.closest(".sp-gate") && document.querySelector(".sp-rounds");
+    if (r) requestAnimationFrame(function () { r.scrollIntoView({ block: "start" }); });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+    if (on) toRounds(b);
+  });
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else { window.mpSolve(); toRounds(b); }
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+
+<title>Bootstrap Explained: Error Bars Without Formulas or New Data</title>
+<meta name="description" content="Each resample drops a third of your data and repeats the rest, yet its spread shows the real error. Resample 50 orders a thousand times and compare.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/glossary/bootstrap/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/glossary/bootstrap/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/glossary/bootstrap/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/glossary/bootstrap/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="Bootstrap Explained: Error Bars Without Formulas or New Data">
+<meta property="og:description" content="Each resample drops a third of your data and repeats the rest, yet its spread shows the real error. Resample 50 orders a thousand times and compare.">
+<meta property="og:url" content="https://mathparadoxes.com/glossary/bootstrap/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Bootstrap: how do you find the error without asking anyone new?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bootstrap Explained: Error Bars Without Formulas or New Data">
+<meta name="twitter:description" content="Each resample drops a third of your data and repeats the rest, yet its spread shows the real error. Resample 50 orders a thousand times and compare.">
+<meta name="twitter:image" content="https://mathparadoxes.com/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/glossary/bootstrap/en/#page", "url": "https://mathparadoxes.com/glossary/bootstrap/en/", "name": "Bootstrap Explained: Error Bars Without Formulas or New Data", "description": "Each resample drops a third of your data and repeats the rest, yet its spread shows the real error. Resample 50 orders a thousand times and compare.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "explanation"], "about": [{"@type": "DefinedTerm", "name": "Bootstrap", "description": "A way to get the error of any number without a formula: redraw a sample of the same size from your own data with replacement many times and watch how the result jumps.", "inDefinedTermSet": "https://mathparadoxes.com/glossary/en/"}], "datePublished": "2026-11-14", "dateModified": "2026-11-14", "author": {"@id": "https://mathparadoxes.com/#author"}, "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "Glossary", "item": "https://mathparadoxes.com/glossary/en/"}, {"@type": "ListItem", "position": 3, "name": "Bootstrap", "item": "https://mathparadoxes.com/glossary/bootstrap/en/"}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: glossary article in three layers: a guess about how many orders a resample leaves out, 50 tiles of one
+   resample, and a thousand resamples of 50 orders next to a thousand real new samples (plain words), the definition,
+   the steps, the 1/e table and when to use it (rigorous), where the bootstrap goes blind (the maximum) and its history
+   (deeper). */
+:root { --tint: #F0EDE6; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul, ol { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+.ex { font-variant-numeric: tabular-nums; background: var(--paper); border-radius: 10px; padding: 10px 12px; font-size: .95rem; overflow-wrap: anywhere; }
+.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.gl-stat b { font-variant-numeric: tabular-nums; }
+.gl-btns .btn[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.after { display: grid; gap: 14px; }
+.after[hidden] { display: none; }
+.after .big { font-size: 1.25rem; font-weight: 800; }
+.after .big em { color: var(--signal); font-style: normal; }
+.tiles { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; max-width: 520px; }
+.tiles span { aspect-ratio: 1; border-radius: 7px; background: var(--paper); border: 1.5px solid var(--line); display: grid; place-items: center; font-size: .8rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+.tiles span.out { background: transparent; border-style: dashed; color: transparent; }
+.tiles span.many { background: var(--ink); border-color: var(--ink); color: #fff; }
+.seg-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg-btns button { font: inherit; font-size: .9rem; font-weight: 600; background: var(--paper); color: var(--ink); border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.seg-btns button:hover { border-color: var(--ink); }
+.seg-btns button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .88rem; color: var(--muted); }
+.key i { display: inline-block; width: 14px; height: 10px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+.key i.line { width: 0; height: 14px; border-left: 2px solid var(--ink); border-radius: 0; }
+.key i.dash { width: 0; height: 14px; border-left: 2px dashed var(--ink); border-radius: 0; }
+.steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; max-width: 70ch; }
+.tbl-wrap { overflow-x: auto; background: var(--paper); border-radius: 14px; }
+.tbl { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .95rem; }
+.tbl th, .tbl td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; white-space: normal; vertical-align: bottom; }
+.tbl tr:last-child td { border-bottom: 0; }
+@media (max-width: 860px) { .three { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .tbl { font-size: .85rem; } .tbl th, .tbl td { padding: 8px 6px; } .tbl th { font-size: .68rem; } .tiles { gap: 3px; } .tiles span { font-size: .7rem; border-radius: 5px; } }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=0215c449">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="https://mathparadoxes.com/en/"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+    <nav class="mp-nav" aria-label="Sections" data-t="{&quot;cont&quot;: &quot;Continue&quot;, &quot;course&quot;: &quot;Continue the course&quot;}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Menu"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Continue: <b></b></a><a href="https://mathparadoxes.com/en/#all">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/" aria-current="page">Glossary</a></div><button type="button" class="mp-sx-btn" aria-haspopup="dialog" aria-label="Search" data-src="https://mathparadoxes.com/en/search.json" data-t="{&quot;btn&quot;: &quot;Search&quot;, &quot;ph&quot;: &quot;A puzzle, course or term&quot;, &quot;all&quot;: &quot;All&quot;, &quot;p&quot;: &quot;Puzzles&quot;, &quot;c&quot;: &quot;Courses&quot;, &quot;g&quot;: &quot;Glossary&quot;, &quot;recent&quot;: &quot;Recently opened&quot;, &quot;try&quot;: &quot;Try&quot;, &quot;none&quot;: &quot;Nothing found. Try another word or&quot;, &quot;every&quot;: &quot;browse all puzzles&quot;, &quot;keys&quot;: &quot;↑↓ choose · Enter open · Esc close&quot;, &quot;solved&quot;: &quot;solved&quot;, &quot;load&quot;: &quot;Loading…&quot;, &quot;fail&quot;: &quot;Couldn&#x27;t load the search. Check your connection.&quot;, &quot;close&quot;: &quot;Close&quot;, &quot;course&quot;: &quot;Course&quot;, &quot;chapter&quot;: &quot;chapter %d of %d&quot;, &quot;glossary&quot;: &quot;Glossary&quot;, &quot;ideas&quot;: [&quot;probability&quot;, &quot;A/B test&quot;, &quot;Monty Hall&quot;, &quot;median&quot;, &quot;interview&quot;, &quot;auction&quot;]}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="mp-sx-lbl">Search</span><kbd>/</kbd></button></nav>
+  <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="https://mathparadoxes.com/glossary/bootstrap/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="https://mathparadoxes.com/glossary/bootstrap/en/" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="https://mathparadoxes.com/glossary/en/"><span class="en">Glossary</span></a> / <span class="en">Bootstrap</span></p>
+
+  <header class="gl-head">
+    <span class="eyebrow"><span class="en">Glossary · bootstrap</span></span>
+    <h1><span class="en">Rerun the survey without asking anyone new</span></h1>
+    
+    <p class="lead en">You have 50 orders and you have computed the average order value. How far can you trust it? The honest answer is to collect a thousand more such weeks and watch how the number jumps. The bootstrap does this without a single new order: a thousand times it draws 50 orders from your own 50, putting each one back. Every such copy loses about a third of your data and repeats some of the rest. And yet the spread of these "damaged" copies is almost the same as that of real new weeks.</p>
+  </header>
+
+  <section class="gl-layers">
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">In plain words</span><span class="mp-layer-desc">pictures, analogies, small numbers</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“In plain words” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec" id="guess">
+    <h2><span class="en">How many orders get lost</span></h2>
+    
+    <p class="en">A resample works like this: 50 times we pick one of your 50 orders at random, write it down and put it back. So the same order can come up twice or three times, and another one not at all.</p>
+    <div class="gl-panel">
+      <p><b><span class="en">What share of your 50 orders usually doesn't make it into a resample even once?</span></b></p>
+      <div class="gl-btns" role="group" aria-label="Ваш варіант" data-aria-en="Your guess">
+        <button type="button" class="btn ghost" data-g="0"><span class="en">Almost none: up to 5%</span></button>
+        <button type="button" class="btn ghost" data-g="1"><span class="en">About 10%</span></button>
+        <button type="button" class="btn ghost" data-g="2"><span class="en">About a third</span></button>
+        <button type="button" class="btn ghost" data-g="3"><span class="en">About half</span></button>
+      </div>
+      <div class="after" id="g-after" hidden>
+        <p id="g-msg" aria-live="polite"></p>
+        <p class="big"><span class="en"><em>36.4%</em> of the orders go missing, usually about 18 of 50. For large samples the share tends to 1/e ≈ 36.8%.</span></p>
+        
+        <p class="en">Here is one resample. Each square is one of your orders, and the number in it is how many times it was drawn. Empty dashed squares didn't make it at all; dark ones came up twice or more.</p>
+        <div class="tiles" id="tiles" aria-label="Одна перевибірка з 50 замовлень" data-aria-en="One resample of 50 orders"></div>
+        <div class="gl-btns"><button type="button" class="btn ghost" id="t-new"><span class="en">Another resample</span></button></div>
+        <p class="gl-note" id="t-msg" aria-live="polite"></p>
+      </div>
+    </div>
+  <script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "glossary-bootstrap" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+  <section class="gl-sec" id="sim">
+    <h2><span class="en">A thousand weeks out of one</span></h2>
+    
+    <p class="en">In the simulation we know the whole shop: the true <a href="https://mathparadoxes.com/glossary/median-vs-mean/en/" class="gl-term">average</a> order is $40, and single orders mostly run from $10 to $100, occasionally more. You see only 50 orders from one week. Press "Resample ×1000": the dark pile shows the averages of a thousand resamples. The grey pile is what you never get to see in real life: a thousand genuinely new weeks of 50 orders. Compare their widths.</p>
+    <div class="gl-panel">
+      <div class="seg-btns" role="group" aria-label="Що рахуємо" data-aria-en="What we compute">
+        <button type="button" data-st="mean" aria-pressed="true"><span class="en">Average order</span></button>
+        <button type="button" data-st="median" aria-pressed="false"><span class="en">Median order</span></button>
+        <button type="button" data-st="max" aria-pressed="false"><span class="en">Largest order</span></button>
+      </div>
+      <canvas class="gl-canvas" id="b-cv" style="height:230px" aria-label="Розподіл результатів перевибірок і справжніх нових вибірок" data-aria-en="Distribution of resample results and real new samples"></canvas>
+      <p class="key"><span><i style="background:var(--ink);opacity:.7"></i><span class="en">1,000 resamples</span></span><span><i style="background:var(--muted);opacity:.35"></i><span class="en">1,000 real new weeks</span></span><span><i class="line"></i><span class="en">your week</span></span><span><i class="dash"></i><span class="en">the truth</span></span></p>
+      <div class="gl-btns">
+        <button type="button" class="btn pri" id="b-run"><span class="en">Resample ×1000</span></button>
+        <button type="button" class="btn ghost" id="b-new"><span class="en">Another 50 orders</span></button>
+      </div>
+      <div class="three">
+        <div class="gl-stat"><span><span class="en">Spread of resamples</span></span><b id="b-boot">–</b></div>
+        <div class="gl-stat"><span><span class="en">Formula s / √n</span></span><b id="b-form">–</b></div>
+        <div class="gl-stat"><span><span class="en">Real spread</span></span><b id="b-true">–</b></div>
+      </div>
+      <p id="b-msg" aria-live="polite"></p>
+    </div>
+    
+    <p class="en">Notice that the dark pile sits around your week, not around the truth. The bootstrap doesn't tell you where the true average is. It tells you how far your number could have jumped, and that is exactly what the "±" in a report and a <a href="https://mathparadoxes.com/glossary/confidence-interval/en/" class="gl-term">confidence interval</a> need. For a <a href="https://mathparadoxes.com/glossary/median-vs-mean/en/" class="gl-term">median</a> or a return rate there is no handy formula at all, so the bootstrap is often the only simple way to get the error.</p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">Why damaged copies don't lie</span></h2>
+    
+    <p class="en">An explanation without formulas, slightly simplified. A new week in the real shop means 50 new customers drawn at random from everyone. You can't visit everyone, but your 50 orders are the best portrait of the shop you have: small and large orders appear there in roughly the right proportion. A resample "visits" this portrait the way you would visit the shop. That some orders are missing and others repeat is not a flaw but the whole point: a new week would also miss some customers and bring several similar ones. That randomness is the very error we are after.</p>
+    
+    <p class="en">So the bootstrap is only as good as your portrait. If not a single big client happened to land among your 50 orders, the resamples won't learn about them either. And if the sample is biased, say you only surveyed people who answer the phone, the bootstrap will carefully measure the error of a biased number.</p>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Rigorous</span><span class="mp-layer-desc">tables, charts, formulas</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Rigorous” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec">
+    <h2><span class="en">What the bootstrap is</span></h2>
+    
+    <p class="en">The bootstrap is a way to estimate the error of any number computed from a sample, without a formula: you repeatedly draw a new sample of the same size from the sample itself, with replacement, and watch how the result changes. The steps:</p>
+    <ol class="steps">
+      <li><span class="en">You have n values and a number computed from them: a mean, a median, a rate, the difference between two groups.</span></li>
+      <li><span class="en">Draw n values at random with replacement and compute the same number.</span></li>
+      <li><span class="en">Repeat 1,000–10,000 times.</span></li>
+      <li><span class="en">The standard deviation of these numbers is the bootstrap estimate of the standard error. The range between the 2.5th and 97.5th percentiles is a simple 95% confidence interval.</span></li>
+    </ol>
+    <p class="ex"><span class="en">Share left out:</span> (1 − 1/n)ⁿ → 1/e ≈ 0,368 &nbsp;·&nbsp; <span class="en">for the mean:</span> SE* = σ̂ / √n = √((n − 1)/n) · s / √n</p>
+    
+    <p class="en">Each order is missed on a single draw with probability 1 − 1/n, and over n draws with probability (1 − 1/n)ⁿ. For the mean, the bootstrap reproduces the known formula almost exactly: the spread of the resamples equals σ̂ / √n, where σ̂ is the spread of your n values. It differs from the usual s / √n by a factor of √((n − 1)/n), which is 0.99 for 50 orders. In other words, the bootstrap "invented" the <a href="https://mathparadoxes.com/glossary/standard-error/en/" class="gl-term">standard error</a> formula on its own, knowing nothing about it.</p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th><span class="en">Sample n</span></th><th><span class="en">Left out</span></th><th><span class="en">Distinct values</span></th><th><span class="en">Record kept</span></th></tr></thead>
+        <tbody id="t-body"></tbody>
+      </table>
+    </div>
+    <p class="gl-note"><span class="en">"Left out" is the share of values missing from a resample; "Distinct values" is how many different values remain in it; "Record kept" is the chance that the sample's largest value made it into the resample.</span></p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">When to use what</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="en">A mean or a rate, plenty of data</span></b><span><span class="en">The formula σ / √n is enough: the bootstrap gives the same, only slower. It is useful as a check that you got the formula right.</span></span></li>
+      <li><b><span class="en">Median, percentile, ratio</span></b><span><span class="en">The median order, the 90th percentile of load time, revenue per user, the difference of medians in an A/B test. Either there is no formula or it is complicated and fragile. Here the bootstrap is the first choice.</span></span></li>
+      <li><b><span class="en">Resample people, not sessions</span></b><span><span class="en">If one person contributes several rows of data, you draw the person with all their rows. Otherwise the resamples come out too calm and the error is understated. For time series, likewise, you draw whole weeks or blocks of days.</span></span></li>
+      <li><b><span class="en">A small, skewed sample</span></b><span><span class="en">With 50 orders from this shop, the ±2 bootstrap-error interval covers the truth in about 92% of cases, not 95%. The smaller the sample and the longer the tail of big orders, the more optimistic the bootstrap. It is no substitute for more data.</span></span></li>
+      <li><b><span class="en">How many resamples</span></b><span><span class="en">For the error itself 1,000 is enough: the error of the error estimate is then about 2%. For the edge of an interval, the 2.5th percentile, 10,000 is better.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Deeper</span><span class="mp-layer-desc">generalisations, theory, history</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Deeper” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec" id="max">
+    <h2><span class="en">Where the bootstrap goes blind: records</span></h2>
+    
+    <p class="en">Switch the simulation to "Largest order". The dark pile turns into a single bar: in 63.6% of resamples the largest order is the same as in your week, because your record makes it into a resample with probability 1 − (49/50)⁵⁰. A resample can never go above it: it only knows the numbers you have already seen. Yet the real record of a new week beats yours in exactly half of cases: which of two weeks holds the bigger record is down to chance. In a typical week the spread of the resamples for the record is about three times smaller than the real one.</p>
+    
+    <p class="en">The same goes for anything that depends on the edges: the maximum, the minimum, the rarest event. The bootstrap works for numbers that rest on many values at once, like the mean or the median, and fails for those that rest on a single one.</p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">Where the name comes from</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="en">Efron, 1979</span></b><span><span class="en">The method was described by the Stanford statistician Bradley Efron in "Bootstrap methods: another look at the jackknife" (The Annals of Statistics, 1979). The name comes from the idiom "to pull yourself up by your bootstraps": getting something that seemingly can't be had from anywhere.</span></span></li>
+      <li><b><span class="en">The jackknife</span></b><span><span class="en">The bootstrap's forerunner is the jackknife of Quenouille (1949) and Tukey (1958): drop one value at a time from the sample and watch how the result changes. The bootstrap generalised the idea, but it needed computers, which were just becoming available in the 1970s.</span></span></li>
+      <li><b><span class="en">The prize</span></b><span><span class="en">In November 2018 Efron was awarded the International Prize in Statistics for the bootstrap; it was presented at the 2019 World Statistics Congress.</span></span></li>
+      <li><b><span class="en">The same 37% in machine learning</span></b><span><span class="en">Leo Breiman's bagging (1996) and random forests (2001) train each tree on a resample. The roughly 37% of the data left out of it becomes a ready-made test set for that tree.</span></span></li>
+    </ul>
+  </section>
+  </div>
+  </section>
+
+  <section class="gl-sec"><h2>Where it shows up</h2>
+    <div class="mp-related-grid">
+      <a class="mp-related-card" href="https://mathparadoxes.com/election-poll/en/"><h3>How many people should a poll ask</h3><p>A country has 30&nbsp;million voters. How many random people do you need to ask to forecast the election within ±3 points?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/ab-test/en/"><h3>The A/A test: two identical pages</h3><p>The same page is shown as &quot;<span class="vl">A</span>&quot; and as &quot;<span class="vl">B</span>&quot;, converting at 5%, with 1,000 visitors each. How often will one of two identical pages &quot;win&quot; by 20% or more?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/german-tank-problem/en/"><h3>The German tank problem</h3><p>A factory numbers its tanks 1, 2, 3, … You come across four, numbered 4, 10, 15 and 60. How many tanks did the factory build?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/small-numbers/en/"><h3>The most dangerous equation</h3><p>Disease is rarest in quiet rural counties. Clean air? Or something else?</p></a>
+    </div></section>
+
+  <section class="gl-sec"><h2>More on “Data and experiments”</h2>
+    <ul class="gl-cards">
+      <li class="gl-card" id="sampling-bias"><a href="https://mathparadoxes.com/glossary/sampling-bias/en/"><h3>Sampling bias</h3><p>A sample some people get into more easily than others, so it describes everyone badly.</p><p class="gl-hook">In 1936 a magazine polled millions of Americans and still picked the wrong election winner.</p></a></li>
+      <li class="gl-card" id="law-of-large-numbers"><a href="https://mathparadoxes.com/glossary/law-of-large-numbers/en/"><h3>Law of large numbers</h3><p>The more repetitions, the closer the share of an outcome gets to its true probability.</p><p class="gl-hook">The share of heads creeps towards 50%, while the gap between heads and tails in coins usually grows.</p></a></li>
+      <li class="gl-card" id="correlation"><a href="https://mathparadoxes.com/glossary/correlation/en/"><h3>Correlation</h3><p>A number from −1 to +1 showing how closely two quantities move together.</p><p class="gl-hook">In summer both ice cream sales and drownings go up. Ice cream isn&#x27;t to blame: the heat drives both.</p></a></li>
+      <li class="gl-card" id="standard-error"><a href="https://mathparadoxes.com/glossary/standard-error/en/"><h3>Standard error</h3><p>How far an average or a rate computed from a sample usually misses the truth: σ divided by the square root of the sample size.</p><p class="gl-hook">Halving the error takes four times as much data.</p></a></li>
+      <li class="gl-card" id="confidence-interval"><a href="https://mathparadoxes.com/glossary/confidence-interval/en/"><h3>Confidence interval</h3><p>A range around a measured number, built by a method that covers the true value in a chosen share of samples, such as 95%.</p><p class="gl-hook">Of twenty honest 95% intervals, on average one misses the truth, and none of them knows whether it is the one.</p></a></li>
+      <li class="gl-card" id="p-value"><a href="https://mathparadoxes.com/glossary/p-value/en/"><h3>p-value</h3><p>How often chance alone would produce a gap at least as big as yours if there were really no difference.</p><p class="gl-hook">When there is no effect at all, p below 0.05 turns up as often as p between 0.50 and 0.55.</p></a></li>
+      <li class="gl-card" id="chance-to-beat"><a href="https://mathparadoxes.com/glossary/confidence-vs-chance-to-beat/en/"><h3>Chance to beat</h3><p>The number on Bayesian dashboards: how likely <span class="vl">B</span> is to be better than <span class="vl">A</span>, given the data and a starting assumption.</p><p class="gl-hook">&quot;97% chance&quot; tells the truth only when every idea of yours changes something; if four in five are useless, <span class="vl">B</span> is better in only a third of such tests.</p></a></li>
+      <li class="gl-card" id="statistical-power"><a href="https://mathparadoxes.com/glossary/statistical-power/en/"><h3>Statistical power</h3><p>The probability that a test notices a real effect of a given size. A power of 80% means the test misses one working effect in five.</p><p class="gl-hook">A weak A/B test that does find an effect almost always exaggerates it: a real +10% shows up on the dashboard as +24%.</p></a></li>
+      <li class="gl-card" id="mde"><a href="https://mathparadoxes.com/glossary/minimum-detectable-effect/en/"><h3>Minimum detectable effect (MDE)</h3><p>The smallest real effect a test of a given size will find with 80% probability (usually at a 5% significance level). Smaller effects the test will mostly miss.</p><p class="gl-hook">A shop with 1,000 visitors a day would need seven years of testing to reliably notice a +2% lift in conversion.</p></a></li>
+      <li class="gl-card" id="holdout"><a href="https://mathparadoxes.com/glossary/holdout/en/"><h3>Holdout group</h3><p>A small random share of customers who for a long time see none of the shipped changes, so that comparing with them shows what all the changes gave together.</p><p class="gl-hook">Twenty changes a year, each one winning its A/B test, almost +50% together, yet customers who saw none of them buy only about 7% less.</p></a></li>
+    </ul>
+    <p class="gl-all"><a href="https://mathparadoxes.com/glossary/en/#data">All terms →</a></p></section>
+
+  <footer>
+    <span class="en">Math paradoxes · by <a href="https://mathparadoxes.com/en/#author">Dmytro Kudrenko</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const en = document.documentElement.dataset.lang === 'en', L = (uk, e) => en ? e : uk;
+  const $ = s => document.querySelector(s);
+  if (en) document.querySelectorAll('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn));
+  const css = getComputedStyle(document.documentElement);
+  const C = { ink: css.getPropertyValue('--ink').trim() || '#151515', muted: css.getPropertyValue('--muted').trim() || '#5F5F5F',
+              line: css.getPropertyValue('--line').trim() || '#E4E4E4' };
+  const loc = en ? 'en-US' : 'uk-UA';
+  const nf = (v, d = 1) => v.toLocaleString(loc, { maximumFractionDigits: d, minimumFractionDigits: d });
+  const int = v => Math.round(v).toLocaleString(loc);
+  // money: the model works in hryvnias (average 800, σ 600); the English page shows dollars at 1/20 of that
+  const money = v => { const x = v / 20; return en ? '$' + (Number.isInteger(x) || x >= 100 ? int(x) : nf(x, 2)) : int(v) + ' грн'; };
+  function setup(cv) {
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (!r.width) return null;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.font = '12px Inter, system-ui, sans-serif';
+    return { g, w: r.width, h: r.height };
+  }
+  const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const sd = a => { const m = mean(a); return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / a.length); };
+  const N = 50;
+  const median = a => { const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  const STAT = { mean, median, max: a => Math.max(...a) };
+  // the shop: lognormal orders with mean 800 and σ 600 (median 640), as in the standard-error article
+  const SIG = Math.sqrt(Math.log(1 + 0.75 ** 2)), MU = Math.log(800) - SIG * SIG / 2;
+  const order = () => Math.exp(MU + SIG * gauss());
+  const TRUTH = { mean: 800, median: Math.exp(MU), max: null };
+
+  // 1. guess, then one resample as 50 tiles
+  let S = Array.from({ length: N }, order), seen = 0, lostSum = 0;
+  document.querySelectorAll('[data-g]').forEach(b => b.addEventListener('click', () => {
+    const k = +b.dataset.g;
+    document.querySelectorAll('[data-g]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    $('#g-after').hidden = false;
+    $('#g-msg').textContent = [
+      L('Здається, що 50 витягів із 50 зачеплять майже кожне замовлення. Але на кожному витягу конкретне замовлення оминають з імовірністю 49/50, а за 50 витягів — (49/50)⁵⁰ ≈ 0,364.', 'It seems that 50 draws out of 50 will touch almost every order. But on each draw a given order is missed with probability 49/50, and over 50 draws with probability (49/50)⁵⁰ ≈ 0.364.'),
+      L('Набагато більше. На кожному витягу конкретне замовлення оминають з імовірністю 49/50, а за 50 витягів — (49/50)⁵⁰ ≈ 0,364.', 'Far more. On each draw a given order is missed with probability 49/50, and over 50 draws with probability (49/50)⁵⁰ ≈ 0.364.'),
+      L('Так. На кожному витягу конкретне замовлення оминають з імовірністю 49/50, а за 50 витягів — (49/50)⁵⁰ ≈ 0,364.', 'Yes. On each draw a given order is missed with probability 49/50, and over 50 draws with probability (49/50)⁵⁰ ≈ 0.364.'),
+      L('Трохи менше. На кожному витягу конкретне замовлення оминають з імовірністю 49/50, а за 50 витягів — (49/50)⁵⁰ ≈ 0,364.', 'A bit less. On each draw a given order is missed with probability 49/50, and over 50 draws with probability (49/50)⁵⁰ ≈ 0.364.')][k];
+    if (!seen) tiles();
+  }));
+  function tiles() {
+    const c = new Array(N).fill(0);
+    for (let i = 0; i < N; i++) c[Math.floor(Math.random() * N)]++;
+    const lost = c.filter(x => !x).length, many = c.filter(x => x > 1).length;
+    seen++; lostSum += lost;
+    $('#tiles').innerHTML = c.map((x, i) => `<span class="${x ? x > 1 ? 'many' : '' : 'out'}" title="${money(S[i])}">${x || ''}</span>`).join('');
+    $('#t-msg').textContent = L(`Не потрапили: ${lost} з 50 (${nf(100 * lost / N, 0)}%). Двічі й більше: ${many}. `, `Left out: ${lost} of 50 (${nf(100 * lost / N, 0)}%). Twice or more: ${many}. `)
+      + (seen > 1 ? L(`У середньому за ${seen} перевибірок: ${nf(100 * lostSum / seen / N, 1)}%.`, `Average over ${seen} resamples: ${nf(100 * lostSum / seen / N, 1)}%.`) : '');
+  }
+  $('#t-new').onclick = tiles;
+
+  // 2. a thousand resamples vs a thousand real new weeks
+  const REAL = { mean: [], median: [], max: [] };
+  for (let r = 0; r < 1000; r++) { const s = Array.from({ length: N }, order); for (const k in REAL) REAL[k].push(STAT[k](s)); }
+  let st = 'mean', BOOT = null;
+  const RANGE = { mean: [300, 1500], median: [300, 1500], max: [0, 8000] };
+  function run() {
+    BOOT = { mean: [], median: [], max: [] };
+    for (let b = 0; b < 1000; b++) { const x = Array.from({ length: N }, () => S[Math.floor(Math.random() * N)]); for (const k in BOOT) BOOT[k].push(STAT[k](x)); }
+    draw();
+  }
+  function draw() {
+    const val = STAT[st](S), real = sd(REAL[st]);
+    $('#b-true').textContent = '± ' + money(real);
+    $('#b-form').textContent = st === 'mean' ? '± ' + money(Math.sqrt(N / (N - 1)) * sd(S) / Math.sqrt(N)) : L('немає', 'none');
+    if (!BOOT) {
+      $('#b-boot').textContent = '–';
+      $('#b-msg').textContent = L(`У вашому тижні ${st === 'mean' ? 'середній чек' : st === 'median' ? 'медіанний чек' : 'найбільше замовлення'} — ${money(val)}. Натисніть «Перевибрати ×1000».`,
+        `In your week the ${st === 'mean' ? 'average order' : st === 'median' ? 'median order' : 'largest order'} is ${money(val)}. Press "Resample ×1000".`);
+    } else {
+      const boot = sd(BOOT[st]), ratio = boot / real;
+      $('#b-boot').textContent = '± ' + money(boot);
+      if (st === 'max') {
+        const same = BOOT.max.filter(v => v === val).length;
+        $('#b-msg').textContent = L(`У ${int(same / 10)}% перевибірок найбільше замовлення те саме, ${money(val)}, і жодна не перевищила його. А справжній новий тиждень перевершує ваш рекорд у половині випадків. Розкид перевибірок — ${nf(ratio, 2)} від справжнього, у типовому тижні близько третини.`,
+          `In ${int(same / 10)}% of resamples the largest order is the same ${money(val)}, and none goes above it. Yet a real new week beats your record in half of cases. The resamples show ${nf(ratio, 2)} of the real spread; in a typical week it is about a third.`);
+      } else {
+        $('#b-msg').textContent = L(`Розкид перевибірок — ${nf(ratio, 2)} від справжнього, хоча жодного нового замовлення не було. Натисніть «Інші 50 замовлень» кілька разів: зазвичай виходить від 0,7 до ${st === 'mean' ? '1,3' : '1,4'}, бо й ваші 50 замовлень — лише одна вибірка.`,
+          `The spread of the resamples is ${nf(ratio, 2)} of the real one, with not a single new order. Press "Another 50 orders" a few times: it usually lands between 0.7 and ${st === 'mean' ? '1.3' : '1.4'}, because your 50 orders are just one sample too.`);
+      }
+    }
+    const s = setup($('#b-cv')); if (!s) return;
+    const { g, w, h } = s, pl = 12, pr = 12, pt = 26, pb = 22, [lo, hi] = RANGE[st], bins = 60, bw = (hi - lo) / bins;
+    const X = v => pl + (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo) * (w - pl - pr), px = (w - pl - pr) / bins, H = h - pt - pb;
+    const count = a => { const c = new Array(bins).fill(0); a.forEach(v => { c[Math.max(0, Math.min(bins - 1, Math.floor((v - lo) / bw)))]++; }); return c; };
+    const cr = count(REAL[st]), cb = BOOT ? count(BOOT[st]) : null;
+    const peak = Math.max(...cr, ...(cb || [0]));
+    g.clearRect(0, 0, w, h);
+    const bars = (c, col, a) => { g.globalAlpha = a; g.fillStyle = col; c.forEach((n, i) => { if (n) { const bh = n / peak * H; g.fillRect(pl + i * px, h - pb - bh, Math.max(1, px - 1), bh); } }); g.globalAlpha = 1; };
+    if (cb) { bars(cr, C.muted, 0.35); bars(cb, C.ink, 0.7); }
+    g.fillStyle = C.muted; g.textAlign = 'center';
+    const ticks = st === 'max' ? (w < 500 ? [0, 4000, 8000] : [0, 2000, 4000, 6000, 8000]) : (w < 500 ? [300, 800, 1300] : [300, 500, 800, 1100, 1500]);
+    ticks.forEach(t => { g.textAlign = t === lo ? 'left' : t === hi ? 'right' : 'center'; g.fillText(money(t) + (t === hi ? '+' : ''), t === lo ? pl : t === hi ? w - pr : X(t), h - 6); });
+    const vline = (v, dash, label, right) => {
+      g.strokeStyle = C.ink; g.lineWidth = 2; g.setLineDash(dash ? [5, 4] : []); g.beginPath(); g.moveTo(X(v), pt - 4); g.lineTo(X(v), h - pb); g.stroke(); g.setLineDash([]); g.lineWidth = 1;
+      g.fillStyle = C.ink; g.textAlign = right ? 'left' : 'right'; g.fillText(label, X(v) + (right ? 5 : -5), pt - 8);
+    };
+    if (TRUTH[st] !== null) { const t = TRUTH[st]; vline(t, true, L('правда', 'truth'), t > val); }
+    vline(val, false, L('ваш тиждень', 'your week'), TRUTH[st] === null || val >= TRUTH[st]);
+  }
+  document.querySelectorAll('[data-st]').forEach(b => b.addEventListener('click', () => {
+    st = b.dataset.st;
+    document.querySelectorAll('[data-st]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    draw();
+  }));
+  $('#b-run').onclick = run;
+  $('#b-new').onclick = () => { S = Array.from({ length: N }, order); seen = 0; lostSum = 0; if (!$('#g-after').hidden) tiles(); if (BOOT) run(); else draw(); };
+
+  // table: share left out, distinct values and the chance the maximum survives, exact
+  $('#t-body').innerHTML = [10, 50, 1000, Infinity].map(n => {
+    const p = n === Infinity ? Math.exp(-1) : (1 - 1 / n) ** n;
+    return `<tr><td>${n === Infinity ? '∞' : int(n)}</td><td>${nf(100 * p, 1)}%</td><td>${n === Infinity ? nf(100 * (1 - p), 1) + '%' : nf(n * (1 - p), 1)}</td><td>${nf(100 * (1 - p), 1)}%</td></tr>`;
+  }).join('');
+
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(draw, 100); });
+  draw();
+})();
+</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Sections"><a href="https://mathparadoxes.com/en/#all">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/" aria-current="page">Glossary</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+<script>
+(function () {
+  var btn = document.querySelector(".mp-sx-btn");
+  if (!btn) return;
+  var T = JSON.parse(btn.dataset.t), lang = document.documentElement.dataset.lang === "en" ? "en" : "uk";
+  var data = null, loading = null, box = null, input, list, tabs, foot, tab = "", act = 0, opts = [], back = null;
+  var W = { n: 3, on: 2.5, k: 2, d: 1, x: 0.8, o: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
+  // small words that may match nothing without dropping the result ("задача про монети")
+  var STOP = ["и", "та", "в", "у", "на", "з", "из", "до", "для", "про", "як", "що", "the", "a", "an", "of", "in", "on", "and", "to", "for", "how", "what"];
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  btn.querySelector("kbd").textContent = mac ? "⌘K" : "Ctrl K";
+
+  function norm(s) {
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’'ʼ`ъ]/g, "")
+      .replace(/[іыий]/g, "и").replace(/[єэё]/g, "е").replace(/ґ/g, "г");
+  }
+  function words(s) { return norm(s).split(/[^0-9a-zа-я]+/).filter(Boolean); }
+  // one edit apart: a letter swapped, missing, extra or two letters transposed
+  function near(a, b) {
+    var la = a.length, lb = b.length, i = 0;
+    if (Math.abs(la - lb) > 1) return false;
+    while (i < la && i < lb && a[i] === b[i]) i++;
+    if (la === lb) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+    return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+  }
+  // how well a query word q fits a word w of the text: whole word, its start, the same stem (Ukrainian endings), a typo
+  function hit(q, w) {
+    if (w === q) return 1;
+    if (w.lastIndexOf(q, 0) === 0) return 0.85;
+    if (q.length >= 4) {
+      if (q.length >= 5 && w.lastIndexOf(q.slice(0, Math.max(4, q.length - 2)), 0) === 0) return 0.6;
+      for (var d = -1; d <= 1; d++) if (near(q, w.slice(0, q.length + d))) return 0.45;
+    }
+    return q.length >= 3 && w.indexOf(q) > 0 ? 0.35 : 0;
+  }
+  // the score of an item, and in it.low the weakest word match (a typo or a piece of a word is weak)
+  function score(it, qs, phrase) {
+    var total = 0;
+    it.low = 1;
+    for (var i = 0; i < qs.length; i++) {
+      var best = 0, bestF;
+      for (var f in W) {
+        var ws = it.w[f];
+        for (var j = 0; j < ws.length; j++) { var h = hit(qs[i], ws[j]) * W[f]; if (h > best) { best = h; bestF = f; } }
+      }
+      if (!best && STOP.indexOf(qs[i]) === -1) return 0;
+      if (best) it.low = Math.min(it.low, best / W[bestF]);
+      total += best;
+    }
+    var name = it.w.nn, alt = it.w.no;
+    if (name.lastIndexOf(phrase, 0) === 0 || alt.lastIndexOf(phrase, 0) === 0) total += 2;
+    else if (name.indexOf(phrase) !== -1 || alt.indexOf(phrase) !== -1) total += 1;
+    return total + (it.t === "p" ? 0.2 : it.t === "h" ? -0.2 : 0);
+  }
+  function load() {
+    if (!loading) loading = fetch(btn.dataset.src).then(function (r) { return r.json(); }).then(function (j) {
+      data = j.items;
+      // a chapter's line under the name is only its course and number, so "парадокси" does not find all 21 chapters
+      data.forEach(function (it) {
+        it.w = { n: words(it.n), on: words(it.on || ""), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), o: words(it.o || ""),
+                 nn: words(it.n).join(" "), no: words(it.on || "").join(" ") };
+      });
+    });
+    return loading;
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done(it) {
+    if (it.t === "p") return !!get("mp-solved:" + it.s);
+    if (it.t !== "c") return false;
+    var d = []; try { d = JSON.parse(get("mp-course:" + it.s) || "[]"); } catch (e) {}
+    return d.length > 0;
+  }
+  function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+  // the text with the words that match the query in <mark>
+  function marked(text, qs) {
+    var out = document.createDocumentFragment(), parts = String(text).split(/([0-9A-Za-zА-Яа-яЄєІіЇїҐґЁё’'ʼ]+)/);
+    parts.forEach(function (p, i) {
+      if (!p) return;
+      var w = i % 2 && words(p), on = w && qs.length && w.some(function (x) { return qs.some(function (q) { return hit(q, x) >= 0.45; }); });
+      out.appendChild(on ? el("mark", null, p) : document.createTextNode(p));
+    });
+    return out;
+  }
+  function icon(it) {
+    var s = el("span", "mp-sx-ic mp-sx-" + it.t);
+    s.style.setProperty("--tint", it.tint || "var(--soft)");  // not the page's own --tint
+    if (it.t === "p") { var b = s.appendChild(el("span", "mp-bars")); for (var i = 1; i <= 3; i++) b.appendChild(el("i", i <= it.lv ? "on" : "")); }
+    else s.textContent = it.t === "g" ? "Aa" : it.t === "c" ? "≡" : "§";
+    return s;
+  }
+  function row(it, qs) {
+    var a = el("a", "mp-sx-it"); a.href = it.u; a.setAttribute("role", "option"); a.id = "mp-sx-o" + opts.length;
+    var tx = el("span", "mp-sx-tx"), n = el("b"), d = el("span");
+    n.appendChild(marked(it.n, qs)); d.appendChild(marked(it.d || "", qs)); tx.append(n, d);
+    a.append(icon(it), tx);
+    if (done(it)) { var ok = el("span", "mp-sx-ok", "✓"); ok.title = T.solved; a.appendChild(ok); }
+    opts.push(a);
+    return a;
+  }
+  function head(text) { return el("li", "mp-sx-h", text); }
+  function wrap(a) { var li = el("li"); li.setAttribute("role", "presentation"); li.appendChild(a); return li; }
+  function render() {
+    var q = input.value.trim(), qs = words(q), phrase = qs.join(" ");
+    list.textContent = ""; opts = []; act = 0;
+    tabs.hidden = !qs.length;
+    if (!qs.length) {
+      var recent = []; try { recent = JSON.parse(get("mp-recent") || "[]"); } catch (e) {}
+      recent = recent.slice(0, 5).map(function (r) {
+        var it = data && data.filter(function (x) { return (x.t === "p" && x.s === r.s) || (x.t === "c" && "course:" + x.s === r.s); })[0];
+        return it || { t: r.c ? "c" : "p", s: r.s, n: r.n[lang], u: r.u[lang] };
+      });
+      if (recent.length) { list.appendChild(head(T.recent)); recent.forEach(function (it) { list.appendChild(wrap(row(it, []))); }); }
+      var li = el("li", "mp-sx-try"); li.appendChild(el("span", null, T.try + ": "));
+      T.ideas.forEach(function (w, i) {
+        var b = el("button", null, w); b.type = "button";
+        b.addEventListener("click", function () { input.value = w; render(); input.focus(); });
+        if (i) li.appendChild(document.createTextNode(" · "));
+        li.appendChild(b);
+      });
+      list.appendChild(li);
+      return mark();
+    }
+    if (!data) { list.appendChild(el("li", "mp-sx-msg", T.load)); return; }
+    var found = data.map(function (it) { return { it: it, s: score(it, qs, phrase) }; }).filter(function (r) { return r.s > 0; });
+    // typos and pieces of words count only when nothing matches by whole words, their starts or stems
+    if (found.some(function (r) { return r.it.low >= 0.6; })) found = found.filter(function (r) { return r.it.low >= 0.6; });
+    found.sort(function (a, b) { return b.s - a.s; });
+    var count = { "": found.length, p: 0, c: 0, g: 0 };
+    found.forEach(function (r) { count[GROUP[r.it.t]]++; });
+    [].forEach.call(tabs.children, function (b) {
+      b.lastChild.textContent = count[b.dataset.k] ? " " + count[b.dataset.k] : "";
+      b.setAttribute("aria-pressed", b.dataset.k === tab);
+      b.disabled = !count[b.dataset.k] && b.dataset.k !== tab;
+    });
+    if (tab) found = found.filter(function (r) { return GROUP[r.it.t] === tab; });
+    if (!found.length) {
+      var m = el("li", "mp-sx-msg", T.none + " "), a = el("a", null, T.every);
+      a.href = document.querySelector(".mp-nav-list a:not(.mp-cont)").href; m.appendChild(a); list.appendChild(m);
+      return mark();
+    }
+    // groups in the order of their best match; with no tab chosen each shows its first 6
+    var order = [], by = {};
+    found.forEach(function (r) { var g = GROUP[r.it.t]; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(r.it); });
+    order.forEach(function (g) {
+      if (!tab) list.appendChild(head(T[g]));
+      var items = tab ? by[g] : by[g].slice(0, 6);
+      items.forEach(function (it) { list.appendChild(wrap(row(it, qs))); });
+      if (!tab && by[g].length > 6) {
+        var more = el("button", "mp-sx-more", "+" + (by[g].length - 6) + " →"); more.type = "button";
+        more.addEventListener("click", function () { tab = g; render(); input.focus(); });
+        var li = el("li"); li.appendChild(more); list.appendChild(li);
+      }
+    });
+    mark();
+  }
+  function mark() {
+    opts.forEach(function (o, i) { o.setAttribute("aria-selected", i === act); });
+    if (opts[act]) { input.setAttribute("aria-activedescendant", opts[act].id); opts[act].scrollIntoView({ block: "nearest" }); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function build() {
+    box = el("div", "mp-sx"); box.hidden = true;
+    box.innerHTML = '<div class="mp-sx-box" role="dialog" aria-modal="true"><div class="mp-sx-head">' + btn.querySelector("svg").outerHTML +
+      '<input type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="mp-sx-list" aria-autocomplete="list">' +
+      '<button type="button" class="mp-sx-x"></button></div><div class="mp-sx-tabs"></div><ul class="mp-sx-list" id="mp-sx-list" role="listbox"></ul>' +
+      '<div class="mp-sx-foot"></div></div>';
+    document.body.appendChild(box);
+    input = box.querySelector("input"); list = box.querySelector("ul"); tabs = box.querySelector(".mp-sx-tabs"); foot = box.querySelector(".mp-sx-foot");
+    box.firstChild.setAttribute("aria-label", T.btn); input.placeholder = T.ph; input.setAttribute("aria-label", T.btn);
+    var x = box.querySelector(".mp-sx-x"); x.textContent = "Esc"; x.setAttribute("aria-label", T.close);
+    foot.textContent = T.keys;
+    [["", T.all], ["p", T.p], ["c", T.c], ["g", T.g]].forEach(function (k) {
+      var b = el("button", null, k[1]); b.type = "button"; b.dataset.k = k[0]; b.appendChild(el("span"));
+      b.addEventListener("click", function () { tab = k[0]; render(); input.focus(); });
+      tabs.appendChild(b);
+    });
+    input.addEventListener("input", function () { tab = ""; render(); });
+    box.addEventListener("click", function (e) { if (e.target === box || e.target === x) close(); });
+    box.addEventListener("mousemove", function (e) {
+      var o = e.target.closest(".mp-sx-it"), i = opts.indexOf(o);
+      if (i !== -1 && i !== act) { act = i; mark(); }
+    });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (opts.length) { act = (act + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length; mark(); }
+      } else if (e.key === "Enter" && opts[act]) { e.preventDefault(); opts[act].click(); }
+    });
+  }
+  function open(q) {
+    if (!box) build();
+    if (!box.hidden) return input.focus();
+    back = document.activeElement; box.hidden = false; document.documentElement.classList.add("mp-sx-on");
+    if (q != null) input.value = q;
+    input.focus(); input.select(); render();
+    load().then(render, function () { list.textContent = ""; list.appendChild(el("li", "mp-sx-msg", T.fail)); loading = null; });
+  }
+  function close() {
+    if (!box || box.hidden) return;
+    box.hidden = true; document.documentElement.classList.remove("mp-sx-on");
+    if (back && back.focus) back.focus();
+  }
+  btn.addEventListener("click", function () { open(); });
+  btn.addEventListener("pointerenter", load, { once: true });
+  btn.addEventListener("focus", load, { once: true });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target, typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box && !box.hidden ? close() : open(); }
+    else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); open(); }
+    else if (e.key === "Escape" && box && !box.hidden) { e.preventDefault(); close(); }
+    else if (e.key === "Tab" && box && !box.hidden) {
+      // keep the focus inside the palette
+      var f = [].slice.call(box.querySelectorAll("input, button:not([disabled]), a[href]"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+    }
+  });
+  var q = new URLSearchParams(location.search).get("q");
+  if (q) open(q);
+})();
+</script>
+</body>
+</html>
