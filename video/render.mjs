@@ -9,6 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { soundtrack } from './sound.mjs';
 import { clips } from './voice.mjs';
+import { withIntro } from './intro.mjs';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 GlobalFonts.registerFromPath(`${dir}/fonts/Unbounded.ttf`, 'Unbounded');
@@ -17,7 +18,8 @@ GlobalFonts.registerFromPath(`${dir}/fonts/JetBrainsMono.ttf`, 'JetBrains Mono')
 
 const [name = 'birthday', which = 'all'] = process.argv.slice(2);
 const fi = process.argv.indexOf('--frames');
-const scene = await import(`./${name}.mjs`);
+const mod = await import(`./${name}.mjs`);
+const scene = mod.INTRO ? withIntro(mod) : mod;
 const { W, H } = scene;
 const FPS = 30;
 const langs = which === 'all' ? ['uk', 'en'] : [which];

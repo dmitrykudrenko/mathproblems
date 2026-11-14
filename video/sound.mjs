@@ -31,6 +31,7 @@ export function soundtrack(cues, duration) {
     if (kind === 'pop') add(t, .4, t2 => tone(392 * 2 ** (p / 4), .09, .3)(t2) + tone(784 * 2 ** (p / 4), .05, .1)(t2));
     if (kind === 'beep') add(t, .5, tone(p ? 1046.5 : 659.25, p ? .18 : .1, .25));
     if (kind === 'pluck') add(t, .2, tone(1400 + 25 * p, .03, .05));
+    if (kind === 'chime') [1046.5, 1318.5, 1568].forEach((f, k) => add(t + k * .03, 1.2, tone(f, .35, .12)));
     if (kind === 'whoosh') {
       let lp = 0;
       add(t, .5, t2 => { lp += .08 * (noise() - lp); return lp * .5 * Math.sin(Math.PI * t2 / .5); });

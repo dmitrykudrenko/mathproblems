@@ -54,7 +54,7 @@ export const VOICE = {
     'Зупиніть відео і вгадайте.',
     'Підказка: рахуйте не людей, а пари. Кожен новий гість утворює пару з усіма, хто вже в кімнаті.',
     "Десять людей — це вже сорок п'ять пар. І кожна пара — ще один шанс на збіг.",
-    'То скільки людей треба? Напишіть відповідь у коментарях, а перевірте себе на матпарадоксес крапка ком.',
+    'То скільки людей треба? Напишіть відповідь у коментарях, а перевірити себе можна на сайті — посилання на екрані.',
   ],
   en: [
     'A year has three hundred sixty-five days.',
@@ -63,8 +63,15 @@ export const VOICE = {
     'Pause the video and make your guess.',
     "Here's a hint: count pairs, not people. Every newcomer makes a pair with everyone already in the room.",
     'Ten people already make forty-five pairs. And every pair is one more chance of a match.',
-    'So how many people does it take? Drop your answer in the comments, then check it at math paradoxes dot com.',
+    'So how many people does it take? Drop your answer in the comments, and check it on the site. The link is on screen.',
   ],
+};
+
+// Branded sting before the first scene (intro.mjs); the tint is the problem's own colour.
+export const INTRO = {
+  tint: '#B8EB8F',
+  uk: { title: 'Парадокс днів народження' },
+  en: { title: 'The birthday paradox' },
 };
 
 const OPTIONS = ['23', '57', '183', '253'];
@@ -288,10 +295,10 @@ export function draw(ctx, t, lang) {
   const L = T[lang];
   ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H);
 
-  // soft tint wash at the top, the problem's own colour
-  const g = ctx.createLinearGradient(0, 0, 0, 700);
-  g.addColorStop(0, C.tint); g.addColorStop(1, C.paper);
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, 700);
+  // the problem's own colour over the whole frame, fading to paper
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, C.tint); g.addColorStop(.55, '#EEF5EA'); g.addColorStop(1, C.paper);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
   // brand + kicker (whole video)
   text(ctx, 'MATHPARADOXES.COM', 80, 250, { font: `600 26px ${F.mono}`, color: C.muted, alpha: easeOut(prog(t, .1, .5)) });
@@ -299,7 +306,7 @@ export function draw(ctx, t, lang) {
   // A: the year
   const aYear = life(t, 0, S.question + .2);
   text(ctx, L.kicker, 80, 340, { font: `600 30px ${F.mono}`, color: C.hit, alpha: life(t, .2, S.hint) });
-  text(ctx, L.year, 80, 470, { font: `800 76px ${F.display}`, alpha: aYear, dy: 30 * (1 - easeOut(prog(t, 0, .6))) });
+  text(ctx, L.year, 80, 470, { font: `800 76px ${F.display}`, maxW: 920, lh: 94, alpha: aYear, dy: 30 * (1 - easeOut(prog(t, 0, .6))) });
 
   // B, C: question stays while options and countdown run
   const aQ = life(t, S.question, S.hint);
