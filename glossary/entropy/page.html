@@ -1,0 +1,347 @@
+<style>
+/* Layout: glossary article in three layers: the lopsided coin and a guess-the-number game that counts bits (plain words),
+   the entropy curve with a toss simulation, the formula and everyday uses (rigorous), fewer questions than log2 n and history (deeper). */
+:root { --tint: #ECEAF8; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+.ex { font-variant-numeric: tabular-nums; background: var(--paper); border-radius: 10px; padding: 10px 12px; font-size: .95rem; overflow-wrap: anywhere; }
+.after { display: grid; gap: 14px; }
+.after[hidden] { display: none; }
+.after .big { font-size: 1.25rem; font-weight: 800; }
+.after .big em { color: var(--signal); font-style: normal; }
+.gl-btns button[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.grid100 { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; max-width: 520px; }
+.grid100 button { all: unset; box-sizing: border-box; text-align: center; font-size: .8rem; font-variant-numeric: tabular-nums; font-weight: 600; background: var(--paper); border-radius: 6px; padding: 6px 0; cursor: pointer; border: 1.5px solid transparent; transition: opacity .2s; }
+.grid100 button.out { opacity: .2; }
+.grid100 button.x { border-color: var(--ink); }
+.grid100 button.win { background: var(--ink); color: var(--paper); }
+.g-ask { display: grid; gap: 10px; }
+.g-ask input[type="range"] { width: 100%; }
+.log { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: .92rem; font-variant-numeric: tabular-nums; }
+.log li { display: flex; justify-content: space-between; gap: 12px; background: var(--paper); border-radius: 8px; padding: 6px 10px; }
+.log li b { white-space: nowrap; }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.tosses { font-family: var(--f-mono, ui-monospace, monospace); font-size: .9rem; letter-spacing: .12em; background: var(--paper); border-radius: 10px; padding: 10px 12px; overflow-wrap: anywhere; word-break: break-all; }
+.tosses i { font-style: normal; color: var(--signal); font-weight: 700; }
+.tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .95rem; }
+.tbl th, .tbl td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.tbl th { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+@media (max-width: 560px) { .three { grid-template-columns: 1fr; } .grid100 button { font-size: .7rem; padding: 5px 0; } .tbl { font-size: .85rem; } .tbl th, .tbl td { padding: 6px 4px; } .tbl th { font-size: .68rem; } }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="{{HOME}}">{{BRAND}}</a>
+    <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="{{GLOSSARY}}"><span class="uk">Словник</span><span class="en">Glossary</span></a> / <span class="uk">Ентропія</span><span class="en">Entropy</span></p>
+
+  <header class="gl-head">
+    <span class="eyebrow"><span class="uk">Словник · ентропія і біт</span><span class="en">Glossary · entropy and the bit</span></span>
+    <h1><span class="uk">Яка монета розповідає більше: чесна чи та, що майже завжди падає гербом?</span><span class="en">Which coin tells you more: a fair one, or one that almost always lands heads?</span></h1>
+    <p class="lead uk">Обидві монети можуть упасти будь-яким боком, і кожне підкидання відповідає на те саме питання: герб чи решка. Здається, що й інформації вони дають порівну. Але з кривою монетою ви заздалегідь ставите на герб і майже ніколи не помиляєтеся, тож підкидання розповідає вам дуже мало. Ентропія міряє саме це: скільки ви не знали до відповіді. А біт — її одиниця: одна відповідь «так» чи «ні», коли обидві однаково ймовірні.</p>
+    <p class="lead en">Both coins can land either way, and every toss answers the same question: heads or tails. It seems they should tell you the same amount. But with the lopsided coin you bet on heads in advance and are almost never wrong, so the toss tells you very little. Entropy measures exactly this: how much you didn't know before the answer. The bit is its unit: one answer, yes or no, when both are equally likely.</p>
+  </header>
+
+  <section class="gl-layers">
+  <div class="mp-layer" data-layer="easy">
+  <section class="gl-sec" id="coins">
+    <h2><span class="uk">Дві монети</span><span class="en">Two coins</span></h2>
+    <p class="uk">Монета А чесна: герб і решка по 50%. Монета Б погнута і падає гербом у 99 випадках зі 100. Друг підкидає монету в іншій кімнаті й кричить вам результат.</p>
+    <p class="en">Coin A is fair: heads and tails 50% each. Coin B is bent and lands heads 99 times out of 100. A friend tosses a coin in the next room and shouts the result to you.</p>
+    <div class="gl-panel">
+      <p><b><span class="uk">Скільки підкидань монети Б дадуть вам стільки ж інформації, скільки одне підкидання монети А?</span><span class="en">How many tosses of coin B tell you as much as a single toss of coin A?</span></b></p>
+      <div class="gl-btns" role="group" aria-label="Ваш варіант" data-aria-en="Your guess">
+        <button type="button" class="btn ghost" data-g="0"><span class="uk">Одне: це теж «герб чи решка»</span><span class="en">One: it's still heads or tails</span></button>
+        <button type="button" class="btn ghost" data-g="1"><span class="uk">Два-три</span><span class="en">Two or three</span></button>
+        <button type="button" class="btn ghost" data-g="2"><span class="uk">Понад десять</span><span class="en">More than ten</span></button>
+      </div>
+      <div class="after" id="coin-after" hidden>
+        <p id="coin-msg" aria-live="polite"></p>
+        <p class="big"><span class="uk">Близько <em>12</em>: одне підкидання монети Б несе лише 0,08 біта.</span><span class="en">About <em>12</em>: one toss of coin B carries only 0.08 bits.</span></p>
+        <p class="uk">Інформація — це не кількість можливих відповідей, а те, наскільки відповідь вас здивувала. Чесна монета щоразу ставить вас перед повною невідомістю: вгадати неможливо, і кожен результат — справжня новина. З монетою Б ви кажете «герб» ще до підкидання й маєте рацію в 99 разах зі 100. Рідкісна решка — велика новина, але вона трапляється раз на сотню підкидань, тож у середньому монета Б майже нічого не повідомляє.</p>
+        <p class="en">Information is not the number of possible answers but how much the answer surprised you. A fair coin leaves you completely in the dark every time: you can't guess, and each result is real news. With coin B you say "heads" before the toss and you're right 99 times out of 100. A rare tails is big news, but it comes once in a hundred tosses, so on average coin B tells you almost nothing.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="gl-sec" id="game">
+    <h2><span class="uk">Вгадайте число і порахуйте біти</span><span class="en">Guess the number and count the bits</span></h2>
+    <p class="uk">Комп'ютер загадав ціле число від 1 до 100. Ставте питання двох видів: «воно більше за X?» або «це X?». Повзунок або клік по клітинці обирає X. Перш ніж питати, подивіться, скільки біта це питання дасть у середньому: що ближче «так» і «ні» до порівну, то більше. Спробуйте спершу питати навмання, а потім ділити навпіл.</p>
+    <p class="en">The computer has picked a whole number from 1 to 100. Ask two kinds of questions: "is it more than X?" or "is it X?". The slider or a click on a cell picks X. Before you ask, see how many bits the question will give on average: the closer yes and no are to fifty-fifty, the more. Try asking at random first, then try halving.</p>
+    <div class="gl-panel">
+      <div class="grid100" id="g-grid" aria-label="Числа, що ще можливі" data-aria-en="Numbers still possible"></div>
+      <div class="g-ask">
+        <label class="gl-note" for="g-x">X = <b id="g-xv"></b></label>
+        <input type="range" id="g-x" min="1" max="100" step="1" value="37">
+        <div class="gl-btns">
+          <button type="button" class="btn ghost" id="g-more"><span class="uk">Більше за X?</span><span class="en">More than X?</span></button>
+          <button type="button" class="btn ghost" id="g-is"><span class="uk">Це X?</span><span class="en">Is it X?</span></button>
+          <button type="button" class="btn ghost" id="g-new"><span class="uk">Нове число</span><span class="en">New number</span></button>
+        </div>
+        <p class="gl-note" id="g-prev" aria-live="polite"></p>
+      </div>
+      <div class="three">
+        <div class="gl-stat"><span><span class="uk">Питань</span><span class="en">Questions</span></span><b id="g-q">0</b></div>
+        <div class="gl-stat"><span><span class="uk">Біт отримано</span><span class="en">Bits gained</span></span><b id="g-b">0</b></div>
+        <div class="gl-stat"><span><span class="uk">Чисел лишилось</span><span class="en">Numbers left</span></span><b id="g-left">100</b></div>
+      </div>
+      <p id="g-msg" aria-live="polite"></p>
+      <ul class="log" id="g-log"></ul>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Біт — одна чесна відповідь «так чи ні»</span><span class="en">A bit is one fair yes-or-no answer</span></h2>
+    <p class="uk">Питання, на яке «так» і «ні» однаково ймовірні, відкидає рівно половину варіантів. Це і є 1 біт. Два таких питання лишають чверть, три — восьму частину. Тому 20 вдалих питань вибирають один варіант із 2<sup>20</sup> = <b>1 048 576</b>, тобто з мільйона. Звідси сила гри «20 питань»: загадати можна майже будь-що.</p>
+    <p class="en">A question where yes and no are equally likely throws away exactly half the options. That is 1 bit. Two such questions leave a quarter, three leave an eighth. So 20 good questions pick one option out of 2<sup>20</sup> = <b>1,048,576</b>, a million. That is the power of the game "Twenty Questions": you can think of almost anything.</p>
+    <p class="uk">Питання «це 37?» теж має дві відповіді, але майже завжди чуєте «ні», і це «ні» відкидає лише одне число зі ста. Воно дає ті самі 0,08 біта, що й монета Б. Ентропія — це скільки біт у середньому несе відповідь, або, що те саме, скільки чесних питань «так чи ні» в середньому треба, щоб її дізнатися. Для 100 рівноймовірних чисел це 6,64 біта, тож ділення навпіл ніколи не потребує більше <b>7</b> питань.</p>
+    <p class="en">The question "is it 37?" also has two answers, but you almost always hear "no", and that "no" throws away just one number out of a hundred. It gives the same 0.08 bits as coin B. Entropy is how many bits an answer carries on average or, equivalently, how many fair yes-or-no questions it takes on average to learn it. For 100 equally likely numbers it is 6.64 bits, so halving never needs more than <b>7</b> questions.</p>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="strict">
+  <section class="gl-sec" id="curve">
+    <h2><span class="uk">Крива ентропії монети</span><span class="en">The entropy curve of a coin</span></h2>
+    <p class="uk">Рухайте повзунок: це ймовірність герба. Крива показує, скільки біта несе одне підкидання. Вона найвища посередині, на чесній монеті, і падає до нуля з обох боків: монета, що завжди падає гербом, не каже нічого. Потім підкиньте монету 100 000 разів і порівняйте середнє здивування з формулою.</p>
+    <p class="en">Move the slider: it is the chance of heads. The curve shows how many bits one toss carries. It peaks in the middle, at the fair coin, and drops to zero at both ends: a coin that always lands heads tells you nothing. Then toss the coin 100,000 times and compare the average surprise with the formula.</p>
+    <div class="gl-panel">
+      <label class="gl-note" for="c-p"><span class="uk">Ймовірність герба</span><span class="en">Chance of heads</span>: <b id="c-pv"></b></label>
+      <input type="range" id="c-p" min="0" max="100" step="1" value="99">
+      <canvas class="gl-canvas" id="c-cv" style="height:260px" aria-label="Ентропія монети залежно від імовірності герба" data-aria-en="Entropy of a coin against the chance of heads"></canvas>
+      <div class="three">
+        <div class="gl-stat"><span><span class="uk">Біта за підкидання</span><span class="en">Bits per toss</span></span><b id="c-h">–</b></div>
+        <div class="gl-stat"><span><span class="uk">Здивування: герб / решка</span><span class="en">Surprise: heads / tails</span></span><b id="c-s">–</b></div>
+        <div class="gl-stat"><span><span class="uk">Підкидань на 1 біт</span><span class="en">Tosses per bit</span></span><b id="c-n">–</b></div>
+      </div>
+      <button type="button" class="btn ghost" id="c-go" style="justify-self:start"><span class="uk">Підкинути 100 000 разів</span><span class="en">Toss 100,000 times</span></button>
+      <p class="tosses" id="c-seq" aria-live="polite"></p>
+      <p id="c-msg" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Формула: середнє здивування</span><span class="en">The formula: average surprise</span></h2>
+    <div class="gl-panel">
+      <p class="uk">Подія з імовірністю p, коли стається, приносить −log<sub>2</sub> p біта. Що рідша подія, то більше здивування: результат із шансом 1/2 дає 1 біт, із шансом 1/8 — 3 біти. Ентропія — це здивування, усереднене за всіма результатами з їхніми ймовірностями:</p>
+      <p class="en">An event with probability p, when it happens, brings −log<sub>2</sub> p bits. The rarer the event, the bigger the surprise: an outcome with chance 1/2 gives 1 bit, one with chance 1/8 gives 3 bits. Entropy is the surprise averaged over all outcomes, weighted by their probabilities:</p>
+      <p class="ex">H = −Σ p<sub>i</sub> · log<sub>2</sub> p<sub>i</sub></p>
+      <p class="uk">Для монети Б: 0,99 · 0,0145 + 0,01 · 6,64 ≈ 0,08 біта. Решка дивує на 6,64 біта, рівно як угадане з першої спроби число від 1 до 100, але трапляється так рідко, що майже не важить у середньому. Якщо ж n варіантів однаково ймовірні, формула дає просто H = log<sub>2</sub> n, і це найбільша можлива ентропія для n варіантів.</p>
+      <p class="en">For coin B: 0.99 · 0.0145 + 0.01 · 6.64 ≈ 0.08 bits. Tails surprises you by 6.64 bits, exactly as much as guessing a number from 1 to 100 at the first try, but it is so rare that it barely counts on average. If n options are equally likely, the formula is simply H = log<sub>2</sub> n, the largest entropy n options can have.</p>
+      <table class="tbl">
+        <thead><tr><th><span class="uk">Що дізнаємося</span><span class="en">What we learn</span></th><th><span class="uk">Варіантів</span><span class="en">Options</span></th><th><span class="uk">Ентропія, біт</span><span class="en">Entropy, bits</span></th></tr></thead>
+        <tbody>
+          <tr><td><span class="uk">Чесна монета</span><span class="en">A fair coin</span></td><td>2</td><td>1</td></tr>
+          <tr><td><span class="uk">Кубик</span><span class="en">A die</span></td><td>6</td><td><span class="uk">2,58</span><span class="en">2.58</span></td></tr>
+          <tr><td><span class="uk">Карта з колоди</span><span class="en">A card from a deck</span></td><td>52</td><td><span class="uk">5,70</span><span class="en">5.70</span></td></tr>
+          <tr><td><span class="uk">Число від 1 до 100</span><span class="en">A number from 1 to 100</span></td><td>100</td><td><span class="uk">6,64</span><span class="en">6.64</span></td></tr>
+          <tr><td><span class="uk">Людина серед 8 млрд</span><span class="en">One person among 8 billion</span></td><td><span class="uk">8 млрд</span><span class="en">8 billion</span></td><td><span class="uk">32,9</span><span class="en">32.9</span></td></tr>
+        </tbody>
+      </table>
+      <p class="gl-note"><span class="uk">Останній рядок означає: будь-яку людину на Землі можна знайти за 33 вдалих питання «так чи ні».</span><span class="en">The last row means that anyone on Earth can be found with 33 good yes-or-no questions.</span></p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Рідкісне дивує сильно, але рідко</span><span class="en">The rare surprises a lot, but rarely</span></h2>
+    <p class="uk">Шанс угадати всі 6 чисел у лотереї «6 з 49» — 1 з 13 983 816. Повідомлення «ви виграли» несе 23,7 біта, стільки ж, скільки 24 чесних підкидання монети. «Ви програли» — близько 0,0000001 біта: ви це й так знали. Саме тому новина — це те, чого не чекали. Прогноз «завтра в Сахарі сухо» майже нічого не повідомляє, хоч і завжди правдивий.</p>
+    <p class="en">The chance of matching all 6 numbers in a 6-out-of-49 lottery is 1 in 13,983,816. The message "you won" carries 23.7 bits, as much as 24 fair coin tosses. "You lost" carries about 0.0000001 bits: you knew it anyway. That is why news is what nobody expected. A forecast of "dry in the Sahara tomorrow" tells you almost nothing, even though it is always right.</p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Де рахують біти</span><span class="en">Where bits get counted</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="uk">Добре питання ділить навпіл</span><span class="en">A good question splits in half</span></b><span><span class="uk">Шукаєте, після якої зміни зламався сайт: перевіряйте середину проміжку, а не останню зміну. Те саме з опитуваннями: питання, на яке всі відповідають «так», нічого не дає.</span><span class="en">Looking for the change that broke a website: test the middle of the range, not the latest change. The same goes for surveys: a question everyone answers "yes" teaches you nothing.</span></span></li>
+      <li><b><span class="uk">Сила пароля</span><span class="en">Password strength</span></b><span><span class="uk">8 випадкових малих латинських літер — 37,6 біта. 4 випадкові слова зі списку Diceware на 7776 слів — 51,7 біта, і їх легше запам'ятати. Рахується лише випадковість: «Password1» має майже нуль біт, бо його вгадують першим.</span><span class="en">8 random lowercase letters give 37.6 bits. 4 random words from the 7,776-word Diceware list give 51.7 bits and are easier to remember. Only randomness counts: "Password1" has almost zero bits, because it is guessed first.</span></span></li>
+      <li><b><span class="uk">Стиснення тексту</span><span class="en">Text compression</span></b><span><span class="uk">Для 26 літер і пробілу log<sub>2</sub> 27 ≈ 4,75 біта на знак. Але наступну літеру часто можна вгадати. Шеннон у 1951 році просив людей угадувати текст літера за літерою і оцінив ентропію англійської мови в 0,6–1,3 біта на літеру. Тому архіватори стискають текст у кілька разів.</span><span class="en">For 26 letters and a space, log<sub>2</sub> 27 ≈ 4.75 bits per character. But the next letter is often guessable. In 1951 Shannon had people guess text letter by letter and put the entropy of English at 0.6–1.3 bits per letter. That is why archivers shrink text several times over.</span></span></li>
+      <li><b><span class="uk">Дерева рішень і Wordle</span><span class="en">Decision trees and Wordle</span></b><span><span class="uk">Алгоритми машинного навчання обирають ознаку, яка найбільше знижує ентропію відповіді: це називають приростом інформації. Так само шукають найкраще перше слово у Wordle: те, чиї підказки найрівніше ділять можливі слова.</span><span class="en">Machine learning algorithms pick the feature that lowers the entropy of the answer the most: this is called information gain. The best first word in Wordle is found the same way: the one whose clues split the possible words most evenly.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="deep">
+  <section class="gl-sec">
+    <h2><span class="uk">Менше питань, ніж log<sub>2</sub> n</span><span class="en">Fewer questions than log<sub>2</sub> n</span></h2>
+    <div class="gl-panel">
+      <p class="uk">Погода буває чотирьох видів, тож здається, що треба 2 питання: log<sub>2</sub> 4 = 2. Але якщо сонце буває в половині днів, хмари в чверті, дощ і сніг по 1/8, вигідніше питати по черзі: «сонце?», потім «хмарно?», потім «дощ?». Сонячний день упізнаємо за одне питання, хмарний за два, решту за три. У середньому виходить 1,75 питання, і це рівно ентропія такої погоди.</p>
+      <p class="en">Weather comes in four kinds, so it seems to take 2 questions: log<sub>2</sub> 4 = 2. But if it is sunny half the days, cloudy a quarter, rain and snow 1/8 each, it pays to ask in turn: "sunny?", then "cloudy?", then "rain?". A sunny day takes one question, a cloudy one two, the rest three. On average that is 1.75 questions, which is exactly the entropy of this weather.</p>
+      <table class="tbl">
+        <thead><tr><th><span class="uk">Погода</span><span class="en">Weather</span></th><th><span class="uk">Ймовірність</span><span class="en">Chance</span></th><th><span class="uk">Питань</span><span class="en">Questions</span></th><th><span class="uk">Здивування, біт</span><span class="en">Surprise, bits</span></th></tr></thead>
+        <tbody>
+          <tr><td><span class="uk">Сонце</span><span class="en">Sunny</span></td><td>1/2</td><td>1</td><td>1</td></tr>
+          <tr><td><span class="uk">Хмарно</span><span class="en">Cloudy</span></td><td>1/4</td><td>2</td><td>2</td></tr>
+          <tr><td><span class="uk">Дощ</span><span class="en">Rain</span></td><td>1/8</td><td>3</td><td>3</td></tr>
+          <tr><td><span class="uk">Сніг</span><span class="en">Snow</span></td><td>1/8</td><td>3</td><td>3</td></tr>
+        </tbody>
+      </table>
+      <p class="uk">Шеннон довів, що в середньому менше за ентропію питань не буває, а наблизитися до неї можна завжди. Код Морзе діє за тим самим принципом: найчастішій англійській літері E дістався найкоротший знак, одна крапка. Девід Гаффмен у 1952 році показав, як будувати найкоротший такий код для будь-яких частот, і його метод досі працює всередині ZIP, JPEG і MP3.</p>
+      <p class="en">Shannon proved that on average you can never do with fewer questions than the entropy, and that you can always get close to it. Morse code works on the same principle: E, the most frequent English letter, got the shortest sign, a single dot. In 1952 David Huffman showed how to build the shortest such code for any frequencies, and his method still runs inside ZIP, JPEG and MP3.</p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="uk">Звідки слова «біт» і «ентропія»</span><span class="en">Where the words "bit" and "entropy" come from</span></h2>
+    <p class="uk">Клод Шеннон з Bell Labs опублікував «Математичну теорію зв'язку» у 1948 році. Там уперше біт став одиницею інформації, а саме слово, скорочення від binary digit, Шеннон приписав колезі Джону Тьюкі. Назву «ентропія» він узяв із фізики, бо формула збігається з ентропією Больцмана і Гіббса. За переказом Майрона Трайбуса (Scientific American, 1971), назву підказав Джон фон Нейман: мовляв, ніхто насправді не знає, що таке ентропія, тож у суперечці ви завжди матимете перевагу. Чи було саме так, достеменно невідомо, але історія прижилася.</p>
+    <p class="en">Claude Shannon of Bell Labs published "A Mathematical Theory of Communication" in 1948. There the bit first became the unit of information, and Shannon credited the word itself, short for binary digit, to his colleague John Tukey. He took the name "entropy" from physics, because the formula matches the entropy of Boltzmann and Gibbs. According to Myron Tribus (Scientific American, 1971), the name was suggested by John von Neumann: nobody really knows what entropy is, so in a debate you will always have the advantage. Whether it really happened that way is uncertain, but the story stuck.</p>
+  </section>
+  </div>
+  </section>
+
+  <!--PROBLEMS-->
+
+  <!--TERMS-->
+
+  <footer>
+    <span class="uk">Математичні парадокси · автор <a href="{{HOME}}#author">Дмитро Кудренко</a></span><span class="en">Math paradoxes · by <a href="{{HOME}}#author">Dmytro Kudrenko</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const en = document.documentElement.dataset.lang === 'en', L = (uk, e) => en ? e : uk;
+  const $ = s => document.querySelector(s);
+  if (en) document.querySelectorAll('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn));
+  const css = getComputedStyle(document.documentElement);
+  const C = { ink: css.getPropertyValue('--ink').trim() || '#151515', muted: css.getPropertyValue('--muted').trim() || '#5F5F5F',
+              line: css.getPropertyValue('--line').trim() || '#E4E4E4', hit: css.getPropertyValue('--signal').trim() || '#D9318F' };
+  const nf = (v, d = 0) => v.toLocaleString(en ? 'en-US' : 'uk-UA', { minimumFractionDigits: d, maximumFractionDigits: d });
+  // entropy of a yes/no answer with chance p, in bits
+  const H2 = p => p <= 0 || p >= 1 ? 0 : -p * Math.log2(p) - (1 - p) * Math.log2(1 - p);
+  const bits = v => nf(v, v > 0 && v < 0.01 ? 4 : 2) + L(' біта', v === 1 ? ' bit' : ' bits');
+  function setup(cv) {
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (!r.width) return null;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.font = '12px Inter, system-ui, sans-serif';
+    return { g, w: r.width, h: r.height };
+  }
+
+  // 1. two coins: guess first
+  document.querySelectorAll('[data-g]').forEach(b => b.addEventListener('click', () => {
+    const k = +b.dataset.g;
+    document.querySelectorAll('[data-g]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    $('#coin-after').hidden = false;
+    $('#coin-msg').textContent = [
+      L('Так здається: відповідь та сама, «герб чи решка». Але відповідь, яку ви знали наперед, нічого нового не каже.', 'That is how it looks: the answer is the same, heads or tails. But an answer you knew in advance tells you nothing new.'),
+      L('Ближче, але ще замало. Монета Б набагато передбачуваніша, ніж здається.', 'Closer, but still too few. Coin B is far more predictable than it seems.'),
+      L('Так. Передбачувана відповідь майже нічого не повідомляє.', 'Yes. A predictable answer tells you almost nothing.')][k];
+  }));
+
+  // 2. guess the number, counting bits per answer
+  const N = 100, grid = $('#g-grid');
+  let alive, secret, asked, gained, done;
+  grid.innerHTML = Array.from({ length: N }, (_, i) => `<button type="button" data-n="${i + 1}">${i + 1}</button>`).join('');
+  const cells = [...grid.children];
+  const qs = k => en ? k + (k === 1 ? ' question' : ' questions') : k + ' ' + (k % 10 === 1 && k % 100 !== 11 ? 'питання' : k % 10 >= 2 && k % 10 <= 4 && (k % 100 < 12 || k % 100 > 14) ? 'питання' : 'питань');
+  const count = () => alive.filter(Boolean).length;
+  function newGame() {
+    alive = Array(N + 1).fill(true); alive[0] = false;
+    secret = 1 + Math.floor(Math.random() * N); asked = 0; gained = 0; done = false;
+    $('#g-log').innerHTML = ''; $('#g-msg').textContent = '';
+    drawGame();
+  }
+  function preview() {
+    const x = +$('#g-x').value, m = count();
+    let more = 0; for (let i = x + 1; i <= N; i++) more += alive[i];
+    const hm = H2(more / m), hi = H2(alive[x] ? 1 / m : 0);
+    $('#g-xv').textContent = x;
+    $('#g-prev').textContent = done ? '' : L(`Із ${m} можливих чисел більші за ${x}: ${more}. «Більше за ${x}?» дасть у середньому ${bits(hm)}, «Це ${x}?» — ${bits(hi)}.`,
+      `Of the ${m} possible numbers, ${more} are more than ${x}. "More than ${x}?" gives ${bits(hm)} on average, "Is it ${x}?" gives ${bits(hi)}.`);
+    cells.forEach((c, i) => c.classList.toggle('x', i + 1 === x));
+  }
+  function drawGame() {
+    cells.forEach((c, i) => { c.classList.toggle('out', !alive[i + 1]); c.classList.toggle('win', done && i + 1 === secret); });
+    $('#g-q').textContent = asked;
+    $('#g-b').textContent = nf(gained, 2) + ' / ' + nf(Math.log2(N), 2);
+    $('#g-left').textContent = count();
+    preview();
+  }
+  function ask(kind) {
+    if (done) return;
+    const x = +$('#g-x').value, m0 = count();
+    let yes;
+    if (kind === 'more') { yes = secret > x; for (let i = 1; i <= N; i++) if ((i > x) !== yes) alive[i] = false; }
+    else { yes = secret === x; for (let i = 1; i <= N; i++) if ((i === x) !== yes) alive[i] = false; }
+    const m1 = count(), got = Math.log2(m0 / m1);
+    asked++; gained += got;
+    const q = kind === 'more' ? L(`Більше за ${x}?`, `More than ${x}?`) : L(`Це ${x}?`, `Is it ${x}?`);
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${asked}. ${q} ${yes ? L('Так', 'Yes') : L('Ні', 'No')}. ${L('Лишилось', 'Left')}: ${m1}</span><b>+${bits(got)}</b>`;
+    $('#g-log').prepend(li);
+    if (m1 === 1) {
+      done = true;
+      $('#g-msg').textContent = (kind === 'is' && yes)
+        ? L(`Вгадали: ${secret}, поставивши ${qs(asked)}. Разом рівно log₂ 100 ≈ 6,64 біта, хоч би як ви питали. Різниця лише в тому, скільки питань на це пішло.`,
+            `Got it: ${secret}, in ${qs(asked)}. Altogether exactly log₂ 100 ≈ 6.64 bits, however you asked. The only difference is how many questions it took.`)
+        : L(`Лишилося одне число: ${secret}. Ви знайшли його, поставивши ${qs(asked)}. Ділення навпіл ніколи не потребує більше 7.`,
+            `One number left: ${secret}. You know it after ${qs(asked)}. Halving never needs more than 7.`);
+    }
+    drawGame();
+  }
+  $('#g-x').addEventListener('input', preview);
+  grid.addEventListener('click', e => { const b = e.target.closest('[data-n]'); if (b) { $('#g-x').value = b.dataset.n; preview(); } });
+  $('#g-more').onclick = () => ask('more');
+  $('#g-is').onclick = () => ask('is');
+  $('#g-new').onclick = newGame;
+
+  // 3. coin entropy curve and a toss simulation
+  let sim = null;
+  function drawCurve() {
+    const p = +$('#c-p').value / 100, h = H2(p);
+    $('#c-pv').textContent = nf(p * 100) + '%';
+    $('#c-h').textContent = nf(h, h > 0 && h < 0.01 ? 4 : 3);
+    const s = q => q <= 0 ? '–' : nf(-Math.log2(q), 2);
+    $('#c-s').textContent = s(p) + ' / ' + s(1 - p);
+    $('#c-n').textContent = h > 0 ? nf(1 / h, 1) : '∞';
+    if (sim && sim.p !== p) { sim = null; $('#c-seq').textContent = ''; $('#c-msg').textContent = ''; }
+    const st = setup($('#c-cv')); if (!st) return;
+    const { g, w, h: ht } = st, pl = 40, pr = 14, pt = 14, pb = 28;
+    const X = q => pl + q * (w - pl - pr), Y = v => ht - pb - v * (ht - pt - pb);
+    g.clearRect(0, 0, w, ht);
+    g.strokeStyle = C.line; g.fillStyle = C.muted; g.textAlign = 'right';
+    [0, 0.5, 1].forEach(v => { g.beginPath(); g.moveTo(pl, Y(v)); g.lineTo(w - pr, Y(v)); g.stroke(); g.fillText(nf(v, v % 1 ? 1 : 0), pl - 6, Y(v) + 4); });
+    g.textAlign = 'center';
+    [0, 25, 50, 75, 100].forEach(v => g.fillText(v + '%', X(v / 100), ht - 8));
+    g.strokeStyle = C.ink; g.lineWidth = 2; g.beginPath();
+    for (let i = 0; i <= 200; i++) { const q = i / 200; i ? g.lineTo(X(q), Y(H2(q))) : g.moveTo(X(q), Y(H2(q))); }
+    g.stroke(); g.lineWidth = 1;
+    g.strokeStyle = C.muted; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(X(p), Y(0)); g.lineTo(X(p), Y(h)); g.stroke(); g.setLineDash([]);
+    g.fillStyle = C.ink; g.beginPath(); g.arc(X(p), Y(h), 5, 0, 7); g.fill();
+    g.textAlign = p > 0.7 ? 'right' : 'left'; g.font = '600 12px Inter, system-ui, sans-serif';
+    g.fillText(nf(h, 3) + L(' біта', ' bits'), X(p) + (p > 0.7 ? -10 : 10), Y(h) - 8);
+    g.font = '12px Inter, system-ui, sans-serif';
+  }
+  $('#c-p').addEventListener('input', drawCurve);
+  $('#c-go').onclick = () => {
+    const p = +$('#c-p').value / 100, n = 100000, h = H2(p);
+    let heads = 0, surprise = 0, seq = '';
+    const hd = L('Г', 'H'), tl = L('Р', 'T');
+    for (let i = 0; i < n; i++) {
+      const isH = Math.random() < p;
+      heads += isH; surprise += -Math.log2(isH ? p : 1 - p);
+      if (i < 60) seq += isH ? hd : '<i>' + tl + '</i>';
+    }
+    sim = { p };
+    $('#c-seq').innerHTML = L('Перші 60: ', 'First 60: ') + seq;
+    $('#c-msg').textContent = L(
+      `Гербів: ${nf(heads)} з ${nf(n)}. Середнє здивування: ${nf(surprise / n, 3)} біта на підкидання, формула дає ${nf(h, 3)}. Тож усі ${nf(n)} підкидань можна записати приблизно в ${nf(Math.ceil(n * h))} біт замість ${nf(n)}.`,
+      `Heads: ${nf(heads)} of ${nf(n)}. Average surprise: ${nf(surprise / n, 3)} bits per toss; the formula gives ${nf(h, 3)}. So all ${nf(n)} tosses can be written down in about ${nf(Math.ceil(n * h))} bits instead of ${nf(n)}.`);
+  };
+
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawCurve, 100); });
+  newGame(); drawCurve();
+})();
+</script>

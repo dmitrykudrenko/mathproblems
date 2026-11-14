@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/glossary/absolute-vs-relative-risk/", "en": "/glossary/absolute-vs-relative-risk/en/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = null;
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  // the gate card sits after round 1; once it hides, the browser would keep the bottom of the page in view, so jump to round 2
+  function toRounds(b) {
+    var r = b.closest(".sp-gate") && document.querySelector(".sp-rounds");
+    if (r) requestAnimationFrame(function () { r.scrollIntoView({ block: "start" }); });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+    if (on) toRounds(b);
+  });
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else { window.mpSolve(); toRounds(b); }
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+
+<title>Absolute vs Relative Risk Explained, With a Simulation</title>
+<meta name="description" content="A drug &quot;halves the risk&quot; and helps one person in a thousand. Switch the headline to 1,000 people and count how many must be treated.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/glossary/absolute-vs-relative-risk/en/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/glossary/absolute-vs-relative-risk/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/glossary/absolute-vs-relative-risk/en/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/glossary/absolute-vs-relative-risk/en/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/en/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="Absolute vs Relative Risk Explained, With a Simulation">
+<meta property="og:description" content="A drug &quot;halves the risk&quot; and helps one person in a thousand. Switch the headline to 1,000 people and count how many must be treated.">
+<meta property="og:url" content="https://mathparadoxes.com/glossary/absolute-vs-relative-risk/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Absolute and relative risk: how many people does a pill that halves the risk help?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Absolute vs Relative Risk Explained, With a Simulation">
+<meta name="twitter:description" content="A drug &quot;halves the risk&quot; and helps one person in a thousand. Switch the headline to 1,000 people and count how many must be treated.">
+<meta name="twitter:image" content="https://mathparadoxes.com/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/glossary/absolute-vs-relative-risk/en/#page", "url": "https://mathparadoxes.com/glossary/absolute-vs-relative-risk/en/", "name": "Absolute vs Relative Risk Explained, With a Simulation", "description": "A drug \"halves the risk\" and helps one person in a thousand. Switch the headline to 1,000 people and count how many must be treated.", "inLanguage": "en", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "explanation"], "about": [{"@type": "DefinedTerm", "name": "Absolute risk", "description": "The share of people who meet an event: for example, 2 in 1,000, or 0.2%.", "inDefinedTermSet": "https://mathparadoxes.com/glossary/en/"}, {"@type": "DefinedTerm", "name": "Relative risk", "description": "How many times bigger or smaller the risk is in one group than in another: 1 in 1,000 against 2 in 1,000 is half.", "inDefinedTermSet": "https://mathparadoxes.com/glossary/en/"}], "datePublished": "2026-11-14", "dateModified": "2026-11-14", "author": {"@id": "https://mathparadoxes.com/#author"}, "isPartOf": {"@type": "WebSite", "name": "Math paradoxes", "url": "https://mathparadoxes.com/en/"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/en/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Math paradoxes", "item": "https://mathparadoxes.com/en/"}, {"@type": "ListItem", "position": 2, "name": "Glossary", "item": "https://mathparadoxes.com/glossary/en/"}, {"@type": "ListItem", "position": 3, "name": "Absolute and relative risk", "item": "https://mathparadoxes.com/glossary/absolute-vs-relative-risk/en/"}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: glossary article in three layers: the 1995 pill scare as a guess with 7,000 dots, then 1,000 people under a
+   treatment with a headline toggle (relative vs absolute) and the number needed to treat (plain words); definitions,
+   the same −50% from different starting risks, benefit in percent vs harm in pieces, when to use which, odd
+   consequences (rigorous); the formulas, odds ratio vs relative risk and a little history (deeper). */
+:root { --tint: #E7F0F4; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-top: 16px; }
+.ex { font-variant-numeric: tabular-nums; background: var(--paper); border-radius: 10px; padding: 10px 12px; font-size: .95rem; overflow-wrap: anywhere; }
+.after { display: grid; gap: 14px; }
+.after[hidden] { display: none; }
+.big { font-size: 1.25rem; font-weight: 800; }
+.big em { color: var(--signal); font-style: normal; }
+.gl-btns .btn.ok { background: var(--ink); color: #fff; border-color: var(--ink); }
+.gl-btns .btn.no { border-color: var(--signal); color: var(--signal); }
+.seg-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg-btns button { font: inherit; font-size: .9rem; font-weight: 600; background: var(--paper); color: var(--ink); border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.seg-btns button:hover { border-color: var(--ink); }
+.seg-btns button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.ctl { display: grid; gap: 6px; }
+.ctl input { width: 100%; }
+.news { background: var(--paper); border-radius: 14px; padding: 16px 18px; display: grid; gap: 4px; border-left: 4px solid var(--ink); }
+.news small { color: var(--muted); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.news b { font-size: clamp(1.15rem, 3vw, 1.5rem); font-weight: 800; line-height: 1.25; }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.three .gl-stat b { font-size: 1.35rem; overflow-wrap: anywhere; }
+.key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .88rem; color: var(--muted); }
+.key i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.tw { overflow-x: auto; }
+table.tb { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .92rem; background: var(--paper); border-radius: 10px; overflow: hidden; }
+table.tb th, table.tb td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); }
+table.tb th:first-child, table.tb td:first-child { text-align: left; }
+table.tb th { font-size: .78rem; color: var(--muted); font-weight: 700; }
+table.tb tr:last-child td { border-bottom: 0; }
+table.tb .hit { color: var(--signal); font-weight: 800; }
+@media (max-width: 860px) { .three { grid-template-columns: 1fr; } }
+@media (max-width: 420px) { table.tb th, table.tb td { padding: 6px 4px; font-size: .8rem; } table.tb th:first-child, table.tb td:first-child { padding-left: 8px; } }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=0215c449">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="https://mathparadoxes.com/en/"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+    <nav class="mp-nav" aria-label="Sections" data-t="{&quot;cont&quot;: &quot;Continue&quot;, &quot;course&quot;: &quot;Continue the course&quot;}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Menu"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Continue: <b></b></a><a href="https://mathparadoxes.com/en/#all">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/" aria-current="page">Glossary</a></div><button type="button" class="mp-sx-btn" aria-haspopup="dialog" aria-label="Search" data-src="https://mathparadoxes.com/en/search.json" data-t="{&quot;btn&quot;: &quot;Search&quot;, &quot;ph&quot;: &quot;A puzzle, course or term&quot;, &quot;all&quot;: &quot;All&quot;, &quot;p&quot;: &quot;Puzzles&quot;, &quot;c&quot;: &quot;Courses&quot;, &quot;g&quot;: &quot;Glossary&quot;, &quot;recent&quot;: &quot;Recently opened&quot;, &quot;try&quot;: &quot;Try&quot;, &quot;none&quot;: &quot;Nothing found. Try another word or&quot;, &quot;every&quot;: &quot;browse all puzzles&quot;, &quot;keys&quot;: &quot;↑↓ choose · Enter open · Esc close&quot;, &quot;solved&quot;: &quot;solved&quot;, &quot;load&quot;: &quot;Loading…&quot;, &quot;fail&quot;: &quot;Couldn&#x27;t load the search. Check your connection.&quot;, &quot;close&quot;: &quot;Close&quot;, &quot;course&quot;: &quot;Course&quot;, &quot;chapter&quot;: &quot;chapter %d of %d&quot;, &quot;glossary&quot;: &quot;Glossary&quot;, &quot;ideas&quot;: [&quot;probability&quot;, &quot;A/B test&quot;, &quot;Monty Hall&quot;, &quot;median&quot;, &quot;interview&quot;, &quot;auction&quot;]}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="mp-sx-lbl">Search</span><kbd>/</kbd></button></nav>
+  <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="https://mathparadoxes.com/glossary/absolute-vs-relative-risk/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="https://mathparadoxes.com/glossary/absolute-vs-relative-risk/en/" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+  <p class="crumbs"><a href="https://mathparadoxes.com/glossary/en/"><span class="en">Glossary</span></a> / <span class="en">Absolute and relative risk</span></p>
+
+  <header class="gl-head">
+    <span class="eyebrow"><span class="en">Glossary · absolute and relative risk</span></span>
+    <h1><span class="en">A pill halves the risk. How many people does it help?</span></h1>
+    
+    <p class="lead en">"Cuts the risk by 50%" sounds like rescue for half of us. But if two in a thousand fall ill without the pill and one with it, a thousand people swallow it and it helps one. Both descriptions are true. The first is relative risk: how many times the danger changed. The second is absolute: how many people it actually touches. Headlines love the first; decisions should rest on the second.</p>
+  </header>
+
+  <section class="gl-layers">
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">In plain words</span><span class="mp-layer-desc">pictures, analogies, small numbers</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“In plain words” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec" id="scare">
+    <h2><span class="en">Pills that "double the risk"</span></h2>
+    
+    <p class="en">October 1995, Britain. The Committee on Safety of Medicines sends an urgent letter to 190,000 doctors, pharmacists and public health directors and makes an emergency announcement to the media: third-generation contraceptive pills double, that is, raise by 100%, the risk of blood clots in the legs and lungs compared with the previous generation of pills.</p>
+    <div class="gl-panel">
+      <p><b><span class="en">Take 7,000 women on the new pills. How many of them get a clot precisely because their pills are new rather than old?</span></b></p>
+      <div class="gl-btns" id="sc-g" role="group" aria-label="Ваш варіант" data-aria-en="Your guess">
+        <button type="button" class="btn ghost" data-g="0"><span class="en">About 3,500</span></button>
+        <button type="button" class="btn ghost" data-g="1"><span class="en">About 700</span></button>
+        <button type="button" class="btn ghost" data-g="2"><span class="en">About 70</span></button>
+        <button type="button" class="btn ghost" data-g="3"><span class="en">One</span></button>
+      </div>
+      <div class="after" id="sc-after" hidden>
+        <p id="sc-msg" aria-live="polite"></p>
+        <p class="big"><span class="en">One extra clot: in <em>one</em> woman out of 7,000.</span></p>
+        <canvas class="gl-canvas" id="sc-cv" style="height:300px" aria-label="7 000 жінок: тромб в однієї на старих таблетках і у двох на нових" data-aria-en="7,000 women: one clot on the old pills and two on the new ones"></canvas>
+        <p class="key"><span><i style="background:var(--ink)"></i><span class="en">would have had a clot on the old pills too</span></span><span><i style="background:var(--signal)"></i><span class="en">the extra clot due to the new pills</span></span></p>
+        
+        <p class="en">The studies behind the warning had found that about one woman in 7,000 on the old pills had a clot, and two on the new ones. The risk really did double: +100% relative risk. But the absolute risk rose by 1 in 7,000, less than two hundredths of a percent. Try to find those two dots among the seven thousand.</p>
+        
+        <p class="en">That did not calm frightened women: many simply stopped taking the pill. By one estimate, England and Wales saw about 13,000 more abortions the following year, and about 800 extra conceptions among girls under 16. The irony is that pregnancy and abortion themselves raise the risk of clots more than the new pills did. A later analysis by Del Bono, Francesconi and Best estimated that in the five months after the warning, conception rates rose by more than 7% and abortion rates by more than 9%.</p>
+        <p class="gl-note"><span class="en">Sources: G. Gigerenzer et al., "Helping Doctors and Patients Make Sense of Health Statistics", Psychological Science in the Public Interest 8(2), 2008; A. Furedi, "The public health implications of the 1995 ‘pill scare’", Human Reproduction Update 5(6), 1999; E. Del Bono, M. Francesconi, N. Best, ISER Working Paper 2011-16.</span></p>
+      </div>
+    </div>
+  <script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "glossary-absolute-vs-relative-risk" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+  <section class="gl-sec" id="grid">
+    <h2><span class="en">A thousand people and one headline</span></h2>
+    
+    <p class="en">Each dot is a person. Choose how many in a thousand fall ill without the treatment and how the treatment changes the risk. Then switch the headline: the same result can be told as "minus 50%" or as "one in a thousand". Below is how many people must be treated to help one.</p>
+    <div class="gl-panel">
+      <div class="seg-btns" id="g-pre" role="group" aria-label="Приклади" data-aria-en="Examples">
+        <button type="button" data-b="1" data-c="-50" aria-pressed="true"><span class="en">A rare disease</span></button>
+        <button type="button" data-b="6" data-c="-50" aria-pressed="false"><span class="en">A common disease</span></button>
+        <button type="button" data-b="0" data-c="100" aria-pressed="false"><span class="en">A side effect</span></button>
+      </div>
+      <div class="gl-two">
+        <label class="ctl"><span><span class="en">Ill without the treatment</span>: <b id="g-bv"></b></span><input type="range" id="g-b" min="0" max="8" step="1" value="1"></label>
+        <label class="ctl"><span><span class="en">The treatment changes the risk by</span>: <b id="g-chv"></b></span><input type="range" id="g-c" min="-90" max="200" step="10" value="-50"></label>
+      </div>
+      <div class="seg-btns" id="g-mode" role="group" aria-label="Як подати новину" data-aria-en="How to tell the news">
+        <button type="button" data-m="rel" aria-pressed="true"><span class="en">The news headline</span></button>
+        <button type="button" data-m="abs" aria-pressed="false"><span class="en">The same per 1,000 people</span></button>
+      </div>
+      <div class="news"><small id="g-tag"></small><b id="g-head" aria-live="polite"></b></div>
+      <canvas class="gl-canvas" id="g-cv" style="height:260px" aria-label="1 000 людей: хто захворіє з ліками і без" data-aria-en="1,000 people: who falls ill with and without the treatment"></canvas>
+      <p class="key" id="g-key"></p>
+      <div class="three">
+        <div class="gl-stat"><span><span class="en">Relative change in risk</span></span><b id="g-rel">–</b></div>
+        <div class="gl-stat"><span><span class="en">Absolute change</span></span><b id="g-abs">–</b></div>
+        <div class="gl-stat"><span id="g-nntl"></span><b class="hit" id="g-nnt">–</b></div>
+      </div>
+      <p id="g-msg"></p>
+    </div>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Rigorous</span><span class="mp-layer-desc">tables, charts, formulas</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Rigorous” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec">
+    <h2><span class="en">What absolute and relative risk are</span></h2>
+    <div class="gl-two">
+      <div class="gl-panel">
+        <h3><span class="en">Absolute risk</span></h3>
+        
+        <p class="en">The share of people who meet the event over some period: fall ill, get a side effect, buy. It is said as "so many in a thousand" or as a percentage.</p>
+        <p class="ex"><span class="en">without: 2 in 1,000 = 0.2% · with: 1 in 1,000 = 0.1%<br>absolute difference: 0.2% − 0.1% = <b>0.1 <a href="https://mathparadoxes.com/glossary/percentage-points/en/" class="gl-term">percentage points</a></b></span></p>
+      </div>
+      <div class="gl-panel">
+        <h3><span class="en">Relative risk</span></h3>
+        
+        <p class="en">The ratio of two absolute risks: how many times bigger or smaller the risk is in one group than in another. The number of people cancels out of it; only "so many times" is left.</p>
+        <p class="ex"><span class="en">0.1% ÷ 0.2% = <b>0.5</b> → the risk is halved, "down 50%"</span></p>
+      </div>
+    </div>
+    
+    <p class="en">A third number joins the two and best answers "so what does it <a href="https://mathparadoxes.com/glossary/median-vs-mean/en/" class="gl-term">mean</a> for me?": the number needed to treat (NNT), how many people must take the treatment for one of them to avoid the illness. It is one divided by the absolute difference: 1 ÷ 0.001 = 1,000. If the treatment raises the risk, the same number is called the number needed to harm (NNH).</p>
+  </section>
+
+  <section class="gl-sec" id="same">
+    <h2><span class="en">The same "minus 50%", different worlds</span></h2>
+    
+    <p class="en">Relative risk doesn't know where you started. The treatment is the same in every row: it halves the risk, a 50% cut. Yet its benefit differs by a factor of hundreds.</p>
+    <div class="tw">
+      <table class="tb">
+        <thead><tr><th><span class="en">Ill without</span></th><th><span class="en">With</span></th><th><span class="en">Absolute</span></th><th>NNT</th></tr></thead>
+        <tbody>
+          <tr><td><span class="en">1 in 1,000</span></td><td><span class="en">0.5</span></td><td><span class="en">−0.05 pts</span></td><td class="hit"><span class="en">2,000</span></td></tr>
+          <tr><td><span class="en">10 in 1,000</span></td><td>5</td><td><span class="en">−0.5 pts</span></td><td>200</td></tr>
+          <tr><td><span class="en">100 in 1,000</span></td><td>50</td><td><span class="en">−5 pts</span></td><td>20</td></tr>
+          <tr><td><span class="en">300 in 1,000</span></td><td>150</td><td><span class="en">−15 pts</span></td><td><span class="en">≈ 7</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="gl-note"><span class="en">"pts" are percentage points: the difference of two percentages, not a percentage of a percentage.</span></p>
+  </section>
+
+  <section class="gl-sec" id="mixed">
+    <h2><span class="en">Benefit in percent, harm in pieces</span></h2>
+    
+    <p class="en">The slyest trick is to give the benefit as a relative number and the harm as an absolute one. "The drug cuts the risk of cancer by 48%, and clots occur in only 1% of those who take it" sounds like an obvious yes. Here is a real drug facts box for tamoxifen, from a trial of 13,000 women at high risk of breast cancer, over five years:</p>
+    <div class="tw">
+      <table class="tb">
+        <thead><tr><th></th><th><span class="en">Placebo</span></th><th><span class="en">Drug</span></th><th><span class="en">Change</span></th><th><span class="en">Per 1,000</span></th></tr></thead>
+        <tbody>
+          <tr><td><span class="en">Invasive breast cancer</span></td><td>33</td><td>17</td><td>−48%</td><td><span class="en">16 fewer</span></td></tr>
+          <tr><td><span class="en">Clot in a leg or lung</span></td><td>5</td><td>10</td><td>+100%</td><td><span class="en">5 more</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <p class="en">Now both rows are in the same units. "Minus 48%" and "plus 100%" push in different directions, while 16 and 5 per thousand can honestly go on the same scales: for roughly every 63 women taking the drug, one fewer cancer; for every 200, one more clot. Which matters more is for the person to decide with a doctor. But you can only decide when both numbers are absolute.</p>
+    <p class="gl-note"><span class="en">Source: the "Prescription drug facts" box by L. Schwartz, S. Woloshin and H. G. Welch (2007), reproduced in G. Gigerenzer et al., Psychological Science in the Public Interest 8(2), 2008. Relative numbers and NNT are computed from it.</span></p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">When to use which</span></h2>
+    
+    <p class="en">The rule: relative risk tells how strong an effect is; absolute risk tells how much it matters to you.</p>
+    <ul class="gl-when">
+      <li><b><span class="en">Whether to take a drug or a vaccine</span></b><span><span class="en">Absolute risk and NNT, for the benefit and the side effects separately. "By 50%" without the starting risk says nothing.</span></span></li>
+      <li><b><span class="en">Whether an effect is strong in itself</span></b><span><span class="en">Relative. It is often similar across groups with different starting risks, which is why studies compare treatments with it.</span></span></li>
+      <li><b><span class="en">A headline saying "twice as dangerous"</span></b><span><span class="en">Ask "out of how many?". Doubling a one-in-a-million risk gives one in five hundred thousand.</span></span></li>
+      <li><b><span class="en">An A/B test in marketing</span></b><span><span class="en">"Conversion +20%" is a relative change. From 5% to 6% it is just one point, that is, 10 extra purchases per thousand visitors.</span></span></li>
+      <li><b><span class="en">Budgets and planning</span></b><span><span class="en">Absolute. A hospital, an insurer or a warehouse needs to know how many cases there will be, not by what factor they grew.</span></span></li>
+      <li><b><span class="en">Benefit against harm</span></b><span><span class="en">Both in the same units, best in people per thousand. Mixed units are a sign someone is persuading you.</span></span></li>
+    </ul>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">Three more strange consequences</span></h2>
+    <ul class="gl-when">
+      <li><b><span class="en">Minus 50% and plus 1% are the same fact</span></b><span><span class="en">A new operation lowers mortality from 2% to 1%. Deaths fell by 50%. But survivors went from 98% to 99%, only 1% more. A relative change depends on what you count: deaths or lives.</span></span></li>
+      <li><b><span class="en">Relative risk has a ceiling</span></b><span><span class="en">If an event already happens to 60% of people, it cannot become three times as common: there is no more than 100%. The largest possible rise is 1/0.6 ≈ 1.67 times. Loud "five times" claims only happen with rare events.</span></span></li>
+      <li><b><span class="en">The rarer the event, the louder the percentage</span></b><span><span class="en">From one case in a thousand to two is +100%. The same "+1 in a thousand" on top of 300 cases is only +0.3%. Relative numbers inflate small risks and hide changes in big ones.</span></span></li>
+    </ul>
+  </section>
+  </div>
+
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Deeper</span><span class="mp-layer-desc">generalisations, theory, history</span><button type="button" class="mp-layer-hide">Hide on all puzzles</button></div>
+    <p class="mp-layer-stub">“Deeper” is hidden on all puzzles. <button type="button" class="mp-layer-show">Show</button></p>
+  <section class="gl-sec">
+    <h2><span class="en">The formulas</span></h2>
+    
+    <p class="en">Let p₀ be the risk without the treatment and p₁ the risk with it (shares from 0 to 1).</p>
+    <div class="gl-panel">
+      <p class="ex"><span class="en">relative risk</span> RR = p₁ / p₀ · <span class="en">relative risk reduction</span> RRR = 1 − RR</p>
+      <p class="ex"><span class="en">absolute risk reduction</span> ARR = p₀ − p₁ = RRR · p₀ · NNT = 1 / ARR = 1 / (RRR · p₀)</p>
+      
+      <p class="en">The last formula is the whole paradox: the benefit to one person is the strength of the treatment times the starting risk. A headline reports only the first factor. For the current slider position above: RR = <b id="th-rr-en">–</b>, ARR = <b id="th-arr-en">–</b>, NNT = <b id="th-nnt-en">–</b>.</p>
+    </div>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">The odds ratio is not the relative risk</span></h2>
+    
+    <p class="en">Medical papers often show one more number, the odds ratio (OR). Odds are p / (1 − p), "how many cases per non-case". For rare events the OR almost equals the relative risk: from 2 to 1 in a thousand, OR = 0.4995 against RR = 0.5. For common events they part ways. If the risk falls from 40% to 20%, the risk has halved (RR = 0.5), but the odds went from 0.4/0.6 to 0.2/0.8, so OR = 0.375. Anyone who reads the OR as a relative risk sees "minus 62.5%" instead of "minus 50%".</p>
+  </section>
+
+  <section class="gl-sec">
+    <h2><span class="en">A little history</span></h2>
+    
+    <p class="en">The number needed to treat was proposed in 1988 by Andreas Laupacis, David Sackett and Robin Roberts in the New England Journal of Medicine, as a measure clearer to doctors than relative risk reduction. Gerd Gigerenzer, who made the 1995 British story a textbook case, points out it was not the first: similar pill scares happened in 1970 and 1977, and after each one the number of abortions rose. His advice to a news reader is short: whenever you hear "so many times", ask "how many in a thousand?".</p>
+  </section>
+  </div>
+  </section>
+
+  <section class="gl-sec"><h2>Where it shows up</h2>
+    <div class="mp-related-grid">
+      <a class="mp-related-card" href="https://mathparadoxes.com/false-positive/en/"><h3>The false positive paradox</h3><p>1% of people have a disease. The test is 99% accurate, and you test positive. What is the chance you&#x27;re really ill?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/small-numbers/en/"><h3>The most dangerous equation</h3><p>Disease is rarest in quiet rural counties. Clean air? Or something else?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/prosecutors-fallacy/en/"><h3>The prosecutor&#x27;s fallacy</h3><p>Blood at a burglary matches the defendant. Such a match occurs in one adult in 10,000, and the city has 500,000 adults. How likely is he to be innocent?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/ab-test/en/"><h3>The A/A test: two identical pages</h3><p>The same page is shown as &quot;<span class="vl">A</span>&quot; and as &quot;<span class="vl">B</span>&quot;, converting at 5%, with 1,000 visitors each. How often will one of two identical pages &quot;win&quot; by 20% or more?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/persuadables/en/"><h3>Who gets the coupon?</h3><p>A perfect model finds the 250 likeliest buyers, and they get discount coupons. How many purchases does that add?</p></a>
+      <a class="mp-related-card" href="https://mathparadoxes.com/potato-paradox/en/"><h3>The potato paradox</h3><p>100&nbsp;kg of potatoes are 99% water. Overnight some of the water evaporates, and now they are 98% water. How much do the potatoes weigh?</p></a>
+    </div></section>
+
+  <section class="gl-sec"><h2>More on “Percentages and risk”</h2>
+    <ul class="gl-cards">
+      <li class="gl-card" id="percentage-points"><a href="https://mathparadoxes.com/glossary/percentage-points/en/"><h3>Percentage points</h3><p>The difference between two percentages: going from 1% to 2% is +1 percentage point, even though the share itself rose by 100%.</p><p class="gl-hook">“Conversion up 1%” and “conversion doubled” describe different events, while “up 100%” can mean just 10 more buyers in a thousand.</p></a></li>
+    </ul>
+    <p class="gl-all"><a href="https://mathparadoxes.com/glossary/en/#risk">All terms →</a></p></section>
+
+  <footer>
+    <span class="en">Math paradoxes · by <a href="https://mathparadoxes.com/en/#author">Dmytro Kudrenko</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(() => {
+  const en = document.documentElement.dataset.lang === 'en', L = (uk, e) => en ? e : uk;
+  const $ = s => document.querySelector(s), $$ = s => document.querySelectorAll(s);
+  if (en) $$('[data-aria-en]').forEach(x => x.setAttribute('aria-label', x.dataset.ariaEn));
+  const css = getComputedStyle(document.documentElement);
+  const C = { ink: css.getPropertyValue('--ink').trim() || '#151515', muted: css.getPropertyValue('--muted').trim() || '#5F5F5F',
+              line: css.getPropertyValue('--line').trim() || '#E4E4E4', hit: css.getPropertyValue('--signal').trim() || '#D9318F' };
+  const nf = (v, d = 0) => v.toLocaleString(en ? 'en-US' : 'uk-UA', { maximumFractionDigits: d });
+  function setup(cv, h) {
+    const w = cv.getBoundingClientRect().width, dpr = window.devicePixelRatio || 1;
+    if (!w) return null;
+    if (h) cv.style.height = h + 'px';
+    const hh = cv.getBoundingClientRect().height;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(hh * dpr);
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { g, w, h: hh };
+  }
+  // seeded shuffle so the same people get ill every time the picture redraws
+  function shuffled(n, seed) {
+    const a = Array.from({ length: n }, (_, i) => i);
+    let s = seed;
+    const rnd = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
+    for (let i = n - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+
+  // 1995: 7,000 women, one clot on the old pills, two on the new ones
+  const SC = shuffled(7000, 1995);
+  let scShown = false;
+  function drawScare() {
+    if (!scShown) return;
+    const cv = $('#sc-cv'), w = cv.getBoundingClientRect().width; if (!w) return;
+    const cols = Math.max(50, Math.min(140, Math.floor((w - 16) / 4.2))), cell = (w - 16) / cols, rows = Math.ceil(7000 / cols);
+    const s = setup(cv, Math.round(rows * cell + 16)); if (!s) return;
+    const { g } = s, P = i => [8 + (i % cols + 0.5) * cell, 8 + (Math.floor(i / cols) + 0.5) * cell];
+    g.clearRect(0, 0, s.w, s.h);
+    g.fillStyle = C.line;
+    for (let i = 0; i < 7000; i++) { const [x, y] = P(i); g.fillRect(x - cell * 0.32, y - cell * 0.32, cell * 0.64, cell * 0.64); }
+    [[SC[0], C.ink], [SC[1], C.hit]].forEach(([i, col]) => {
+      const [x, y] = P(i);
+      g.fillStyle = col; g.beginPath(); g.arc(x, y, Math.max(2, cell * 0.5), 0, 7); g.fill();
+      g.strokeStyle = col; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 9, 0, 7); g.stroke(); g.lineWidth = 1;
+    });
+  }
+  $$('#sc-g button').forEach(b => b.addEventListener('click', () => {
+    const k = +b.dataset.g;
+    $$('#sc-g button').forEach(x => { x.classList.remove('ok', 'no'); if (+x.dataset.g === 3) x.classList.add('ok'); });
+    if (k !== 3) b.classList.add('no');
+    $('#sc-msg').textContent = k === 3
+      ? L('Так. «Удвічі» тут означає з однієї жінки до двох на сім тисяч.', 'Yes. "Double" here means from one woman to two in seven thousand.')
+      : L('Так здається, коли чуєш «удвічі». Але подвоїли дуже маленьке число.', 'That is how "double" feels. But what doubled was a very small number.');
+    $('#sc-after').hidden = false; scShown = true; drawScare();
+  }));
+
+  // 1,000 people: starting risk per 1,000 and a relative change
+  const BASES = [1, 2, 5, 10, 20, 50, 100, 200, 400];
+  const G = shuffled(1000, 7);
+  let mode = 'rel';
+  const pct = v => (v > 0 ? '+' : v < 0 ? '−' : '') + nf(Math.abs(v), 1) + '%';
+  const per = v => nf(v, v < 10 && v % 1 ? 1 : 0);
+  function drawGrid() {
+    const b = BASES[+$('#g-b').value], c = +$('#g-c').value, a = Math.min(1000, Math.round(b * (100 + c)) / 100), d = a - b;
+    $('#g-bv').textContent = L(`${per(b)} з 1 000`, `${per(b)} in 1,000`);
+    $('#g-chv').textContent = c === 0 ? L('не змінюють', 'no change') : pct(c);
+    $$('#g-pre button').forEach(x => x.setAttribute('aria-pressed', +x.dataset.b === +$('#g-b').value && +x.dataset.c === c));
+    // headline
+    const head = c === 0 ? L('Ліки ніяк не впливають на ризик', 'The treatment does nothing to the risk')
+      : mode === 'rel'
+        ? (c < 0 ? L(`Нові ліки знижують ризик на ${nf(-c)}%!`, `New drug cuts the risk by ${nf(-c)}%!`)
+                 : c >= 100 && c % 100 === 0 ? L(`Ліки підвищують ризик у ${nf(c / 100 + 1)} рази!`, `Drug makes the risk ${nf(c / 100 + 1)} times higher!`)
+                 : L(`Ліки підвищують ризик на ${nf(c)}%!`, `Drug raises the risk by ${nf(c)}%!`))
+        : L(`Ризик з ліками: ${per(a)} на 1 000 замість ${per(b)}`, `Risk with the drug: ${per(a)} in 1,000 instead of ${per(b)}`);
+    $('#g-tag').textContent = mode === 'rel' ? L('Відносний ризик', 'Relative risk') : L('Абсолютний ризик', 'Absolute risk');
+    $('#g-head').textContent = head;
+    $('#g-rel').textContent = c === 0 ? '0%' : pct(c);
+    $('#g-abs').textContent = (d > 0 ? '+' : d < 0 ? '−' : '') + nf(Math.abs(d) / 10, 2) + L(' п.', ' pts');
+    $('#g-nntl').textContent = d <= 0 ? L('Скільки лікувати, щоб допомогти одному', 'Treat this many to help one') : L('Скільки лікувати, щоб зашкодити одному', 'Treat this many to harm one');
+    const nnt = d === 0 ? Infinity : 1000 / Math.abs(d);
+    $('#g-nnt').textContent = isFinite(nnt) ? nf(Math.round(nnt)) : '∞';
+    $('#g-msg').textContent = c === 0 ? L('Зсуньте другий повзунок.', 'Move the second slider.')
+      : d < 0
+        ? L(`${per(b)} з тисячі захворіли б і так. Ліки вберігають ${per(-d)} з них, решті ${per(a)} не допомагають, а ${nf(1000 - b)} людей не захворіли б і без ліків. Щоб одна людина уникла хвороби, ліки мають прийняти ${nf(Math.round(nnt))}.`,
+            `${per(b)} in a thousand would fall ill anyway. The treatment spares ${per(-d)} of them, the other ${per(a)} fall ill regardless, and ${nf(1000 - b)} people would have stayed well without it. For one person to avoid the illness, ${nf(Math.round(nnt))} have to take it.`)
+        : L(`Додаткових випадків побічної дії на кожну тисячу людей, які приймають ліки: ${per(d)}. Тобто один випадок на кожні ${nf(Math.round(nnt))} людей.`,
+            `For every thousand people on the drug, ${per(d)} get the side effect because of it. One such person per ${nf(Math.round(nnt))}.`);
+    $('#g-key').innerHTML = d < 0
+      ? `<span><i style="background:${C.ink}"></i>${L('хворіють і з ліками', 'ill even with the treatment')}</span><span><i style="background:${C.hit}"></i>${L('ліки вберегли', 'spared by the treatment')}</span><span><i style="background:${C.line}"></i>${L('не захворіли б і так', 'would have stayed well anyway')}</span>`
+      : `<span><i style="background:${C.ink}"></i>${L('захворіли б і без ліків', 'would fall ill anyway')}</span><span><i style="background:${C.hit}"></i>${L('додаткові випадки через ліки', 'extra cases due to the treatment')}</span><span><i style="background:${C.line}"></i>${L('здорові', 'well')}</span>`;
+    // formulas in the deep layer
+    const rr = nf(a / b, 3), arr = nf(Math.abs(d) / 1000, 4) + ' (' + nf(Math.abs(d) / 10, 2) + L(' п.)', ' pts)'), nt = isFinite(nnt) ? nf(nnt, 1) : '∞';
+    [['#th-rr', rr], ['#th-rr-en', rr], ['#th-arr', arr], ['#th-arr-en', arr], ['#th-nnt', nt], ['#th-nnt-en', nt]].forEach(([id, v]) => { const x = $(id); if (x) x.textContent = v; });
+    // the grid
+    const cv = $('#g-cv'), w = cv.getBoundingClientRect().width; if (!w) return;
+    const cols = w >= 1000 ? 100 : w >= 560 ? 50 : 40, cell = (w - 16) / cols, rows = 1000 / cols;
+    const s = setup(cv, Math.round(rows * cell + 16)); if (!s) return;
+    const { g } = s, nb = Math.round(b), na = Math.round(a), r = Math.max(2, cell * 0.36);
+    g.clearRect(0, 0, s.w, s.h);
+    const col = new Array(1000).fill(C.line);
+    if (d < 0) { for (let k = 0; k < nb; k++) col[G[k]] = k < na ? C.ink : C.hit; }
+    else { for (let k = 0; k < na; k++) col[G[k]] = k < nb ? C.ink : C.hit; }
+    for (let i = 0; i < 1000; i++) {
+      const x = 8 + (i % cols + 0.5) * cell, y = 8 + (Math.floor(i / cols) + 0.5) * cell;
+      g.fillStyle = col[i]; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    }
+  }
+  $('#g-b').addEventListener('input', drawGrid);
+  $('#g-c').addEventListener('input', drawGrid);
+  $$('#g-pre button').forEach(x => x.addEventListener('click', () => { $('#g-b').value = x.dataset.b; $('#g-c').value = x.dataset.c; drawGrid(); }));
+  $$('#g-mode button').forEach(x => x.addEventListener('click', () => {
+    mode = x.dataset.m; $$('#g-mode button').forEach(y => y.setAttribute('aria-pressed', y === x)); drawGrid();
+  }));
+  const redraw = () => { drawGrid(); drawScare(); };
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redraw, 100); });
+  redraw();
+})();
+</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Sections"><a href="https://mathparadoxes.com/en/#all">Puzzles</a><a href="https://mathparadoxes.com/courses/en/">Courses</a><a href="https://mathparadoxes.com/glossary/en/" aria-current="page">Glossary</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+<script>
+(function () {
+  var btn = document.querySelector(".mp-sx-btn");
+  if (!btn) return;
+  var T = JSON.parse(btn.dataset.t), lang = document.documentElement.dataset.lang === "en" ? "en" : "uk";
+  var data = null, loading = null, box = null, input, list, tabs, foot, tab = "", act = 0, opts = [], back = null;
+  var W = { n: 3, on: 2.5, k: 2, d: 1, x: 0.8, o: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
+  // small words that may match nothing without dropping the result ("задача про монети")
+  var STOP = ["и", "та", "в", "у", "на", "з", "из", "до", "для", "про", "як", "що", "the", "a", "an", "of", "in", "on", "and", "to", "for", "how", "what"];
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  btn.querySelector("kbd").textContent = mac ? "⌘K" : "Ctrl K";
+
+  function norm(s) {
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’'ʼ`ъ]/g, "")
+      .replace(/[іыий]/g, "и").replace(/[єэё]/g, "е").replace(/ґ/g, "г");
+  }
+  function words(s) { return norm(s).split(/[^0-9a-zа-я]+/).filter(Boolean); }
+  // one edit apart: a letter swapped, missing, extra or two letters transposed
+  function near(a, b) {
+    var la = a.length, lb = b.length, i = 0;
+    if (Math.abs(la - lb) > 1) return false;
+    while (i < la && i < lb && a[i] === b[i]) i++;
+    if (la === lb) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+    return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+  }
+  // how well a query word q fits a word w of the text: whole word, its start, the same stem (Ukrainian endings), a typo
+  function hit(q, w) {
+    if (w === q) return 1;
+    if (w.lastIndexOf(q, 0) === 0) return 0.85;
+    if (q.length >= 4) {
+      if (q.length >= 5 && w.lastIndexOf(q.slice(0, Math.max(4, q.length - 2)), 0) === 0) return 0.6;
+      for (var d = -1; d <= 1; d++) if (near(q, w.slice(0, q.length + d))) return 0.45;
+    }
+    return q.length >= 3 && w.indexOf(q) > 0 ? 0.35 : 0;
+  }
+  // the score of an item, and in it.low the weakest word match (a typo or a piece of a word is weak)
+  function score(it, qs, phrase) {
+    var total = 0;
+    it.low = 1;
+    for (var i = 0; i < qs.length; i++) {
+      var best = 0, bestF;
+      for (var f in W) {
+        var ws = it.w[f];
+        for (var j = 0; j < ws.length; j++) { var h = hit(qs[i], ws[j]) * W[f]; if (h > best) { best = h; bestF = f; } }
+      }
+      if (!best && STOP.indexOf(qs[i]) === -1) return 0;
+      if (best) it.low = Math.min(it.low, best / W[bestF]);
+      total += best;
+    }
+    var name = it.w.nn, alt = it.w.no;
+    if (name.lastIndexOf(phrase, 0) === 0 || alt.lastIndexOf(phrase, 0) === 0) total += 2;
+    else if (name.indexOf(phrase) !== -1 || alt.indexOf(phrase) !== -1) total += 1;
+    return total + (it.t === "p" ? 0.2 : it.t === "h" ? -0.2 : 0);
+  }
+  function load() {
+    if (!loading) loading = fetch(btn.dataset.src).then(function (r) { return r.json(); }).then(function (j) {
+      data = j.items;
+      // a chapter's line under the name is only its course and number, so "парадокси" does not find all 21 chapters
+      data.forEach(function (it) {
+        it.w = { n: words(it.n), on: words(it.on || ""), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), o: words(it.o || ""),
+                 nn: words(it.n).join(" "), no: words(it.on || "").join(" ") };
+      });
+    });
+    return loading;
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done(it) {
+    if (it.t === "p") return !!get("mp-solved:" + it.s);
+    if (it.t !== "c") return false;
+    var d = []; try { d = JSON.parse(get("mp-course:" + it.s) || "[]"); } catch (e) {}
+    return d.length > 0;
+  }
+  function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+  // the text with the words that match the query in <mark>
+  function marked(text, qs) {
+    var out = document.createDocumentFragment(), parts = String(text).split(/([0-9A-Za-zА-Яа-яЄєІіЇїҐґЁё’'ʼ]+)/);
+    parts.forEach(function (p, i) {
+      if (!p) return;
+      var w = i % 2 && words(p), on = w && qs.length && w.some(function (x) { return qs.some(function (q) { return hit(q, x) >= 0.45; }); });
+      out.appendChild(on ? el("mark", null, p) : document.createTextNode(p));
+    });
+    return out;
+  }
+  function icon(it) {
+    var s = el("span", "mp-sx-ic mp-sx-" + it.t);
+    s.style.setProperty("--tint", it.tint || "var(--soft)");  // not the page's own --tint
+    if (it.t === "p") { var b = s.appendChild(el("span", "mp-bars")); for (var i = 1; i <= 3; i++) b.appendChild(el("i", i <= it.lv ? "on" : "")); }
+    else s.textContent = it.t === "g" ? "Aa" : it.t === "c" ? "≡" : "§";
+    return s;
+  }
+  function row(it, qs) {
+    var a = el("a", "mp-sx-it"); a.href = it.u; a.setAttribute("role", "option"); a.id = "mp-sx-o" + opts.length;
+    var tx = el("span", "mp-sx-tx"), n = el("b"), d = el("span");
+    n.appendChild(marked(it.n, qs)); d.appendChild(marked(it.d || "", qs)); tx.append(n, d);
+    a.append(icon(it), tx);
+    if (done(it)) { var ok = el("span", "mp-sx-ok", "✓"); ok.title = T.solved; a.appendChild(ok); }
+    opts.push(a);
+    return a;
+  }
+  function head(text) { return el("li", "mp-sx-h", text); }
+  function wrap(a) { var li = el("li"); li.setAttribute("role", "presentation"); li.appendChild(a); return li; }
+  function render() {
+    var q = input.value.trim(), qs = words(q), phrase = qs.join(" ");
+    list.textContent = ""; opts = []; act = 0;
+    tabs.hidden = !qs.length;
+    if (!qs.length) {
+      var recent = []; try { recent = JSON.parse(get("mp-recent") || "[]"); } catch (e) {}
+      recent = recent.slice(0, 5).map(function (r) {
+        var it = data && data.filter(function (x) { return (x.t === "p" && x.s === r.s) || (x.t === "c" && "course:" + x.s === r.s); })[0];
+        return it || { t: r.c ? "c" : "p", s: r.s, n: r.n[lang], u: r.u[lang] };
+      });
+      if (recent.length) { list.appendChild(head(T.recent)); recent.forEach(function (it) { list.appendChild(wrap(row(it, []))); }); }
+      var li = el("li", "mp-sx-try"); li.appendChild(el("span", null, T.try + ": "));
+      T.ideas.forEach(function (w, i) {
+        var b = el("button", null, w); b.type = "button";
+        b.addEventListener("click", function () { input.value = w; render(); input.focus(); });
+        if (i) li.appendChild(document.createTextNode(" · "));
+        li.appendChild(b);
+      });
+      list.appendChild(li);
+      return mark();
+    }
+    if (!data) { list.appendChild(el("li", "mp-sx-msg", T.load)); return; }
+    var found = data.map(function (it) { return { it: it, s: score(it, qs, phrase) }; }).filter(function (r) { return r.s > 0; });
+    // typos and pieces of words count only when nothing matches by whole words, their starts or stems
+    if (found.some(function (r) { return r.it.low >= 0.6; })) found = found.filter(function (r) { return r.it.low >= 0.6; });
+    found.sort(function (a, b) { return b.s - a.s; });
+    var count = { "": found.length, p: 0, c: 0, g: 0 };
+    found.forEach(function (r) { count[GROUP[r.it.t]]++; });
+    [].forEach.call(tabs.children, function (b) {
+      b.lastChild.textContent = count[b.dataset.k] ? " " + count[b.dataset.k] : "";
+      b.setAttribute("aria-pressed", b.dataset.k === tab);
+      b.disabled = !count[b.dataset.k] && b.dataset.k !== tab;
+    });
+    if (tab) found = found.filter(function (r) { return GROUP[r.it.t] === tab; });
+    if (!found.length) {
+      var m = el("li", "mp-sx-msg", T.none + " "), a = el("a", null, T.every);
+      a.href = document.querySelector(".mp-nav-list a:not(.mp-cont)").href; m.appendChild(a); list.appendChild(m);
+      return mark();
+    }
+    // groups in the order of their best match; with no tab chosen each shows its first 6
+    var order = [], by = {};
+    found.forEach(function (r) { var g = GROUP[r.it.t]; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(r.it); });
+    order.forEach(function (g) {
+      if (!tab) list.appendChild(head(T[g]));
+      var items = tab ? by[g] : by[g].slice(0, 6);
+      items.forEach(function (it) { list.appendChild(wrap(row(it, qs))); });
+      if (!tab && by[g].length > 6) {
+        var more = el("button", "mp-sx-more", "+" + (by[g].length - 6) + " →"); more.type = "button";
+        more.addEventListener("click", function () { tab = g; render(); input.focus(); });
+        var li = el("li"); li.appendChild(more); list.appendChild(li);
+      }
+    });
+    mark();
+  }
+  function mark() {
+    opts.forEach(function (o, i) { o.setAttribute("aria-selected", i === act); });
+    if (opts[act]) { input.setAttribute("aria-activedescendant", opts[act].id); opts[act].scrollIntoView({ block: "nearest" }); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function build() {
+    box = el("div", "mp-sx"); box.hidden = true;
+    box.innerHTML = '<div class="mp-sx-box" role="dialog" aria-modal="true"><div class="mp-sx-head">' + btn.querySelector("svg").outerHTML +
+      '<input type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="mp-sx-list" aria-autocomplete="list">' +
+      '<button type="button" class="mp-sx-x"></button></div><div class="mp-sx-tabs"></div><ul class="mp-sx-list" id="mp-sx-list" role="listbox"></ul>' +
+      '<div class="mp-sx-foot"></div></div>';
+    document.body.appendChild(box);
+    input = box.querySelector("input"); list = box.querySelector("ul"); tabs = box.querySelector(".mp-sx-tabs"); foot = box.querySelector(".mp-sx-foot");
+    box.firstChild.setAttribute("aria-label", T.btn); input.placeholder = T.ph; input.setAttribute("aria-label", T.btn);
+    var x = box.querySelector(".mp-sx-x"); x.textContent = "Esc"; x.setAttribute("aria-label", T.close);
+    foot.textContent = T.keys;
+    [["", T.all], ["p", T.p], ["c", T.c], ["g", T.g]].forEach(function (k) {
+      var b = el("button", null, k[1]); b.type = "button"; b.dataset.k = k[0]; b.appendChild(el("span"));
+      b.addEventListener("click", function () { tab = k[0]; render(); input.focus(); });
+      tabs.appendChild(b);
+    });
+    input.addEventListener("input", function () { tab = ""; render(); });
+    box.addEventListener("click", function (e) { if (e.target === box || e.target === x) close(); });
+    box.addEventListener("mousemove", function (e) {
+      var o = e.target.closest(".mp-sx-it"), i = opts.indexOf(o);
+      if (i !== -1 && i !== act) { act = i; mark(); }
+    });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (opts.length) { act = (act + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length; mark(); }
+      } else if (e.key === "Enter" && opts[act]) { e.preventDefault(); opts[act].click(); }
+    });
+  }
+  function open(q) {
+    if (!box) build();
+    if (!box.hidden) return input.focus();
+    back = document.activeElement; box.hidden = false; document.documentElement.classList.add("mp-sx-on");
+    if (q != null) input.value = q;
+    input.focus(); input.select(); render();
+    load().then(render, function () { list.textContent = ""; list.appendChild(el("li", "mp-sx-msg", T.fail)); loading = null; });
+  }
+  function close() {
+    if (!box || box.hidden) return;
+    box.hidden = true; document.documentElement.classList.remove("mp-sx-on");
+    if (back && back.focus) back.focus();
+  }
+  btn.addEventListener("click", function () { open(); });
+  btn.addEventListener("pointerenter", load, { once: true });
+  btn.addEventListener("focus", load, { once: true });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target, typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box && !box.hidden ? close() : open(); }
+    else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); open(); }
+    else if (e.key === "Escape" && box && !box.hidden) { e.preventDefault(); close(); }
+    else if (e.key === "Tab" && box && !box.hidden) {
+      // keep the focus inside the palette
+      var f = [].slice.call(box.querySelectorAll("input, button:not([disabled]), a[href]"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+    }
+  });
+  var q = new URLSearchParams(location.search).get("q");
+  if (q) open(q);
+})();
+</script>
+</body>
+</html>
