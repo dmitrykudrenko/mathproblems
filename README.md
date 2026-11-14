@@ -1,6 +1,6 @@
 # mathproblems
 
-**English.** The source of https://mathparadoxes.com/en/: interactive explainers of maths puzzles where intuition gives the wrong answer, in English and Ukrainian. There are 72 puzzles (the 100 prisoners, the German tank problem, the bus paradox, Monty Hall…), a glossary of 22 terms and 6 themed courses.
+**English.** The source of https://mathparadoxes.com/: interactive explainers of maths puzzles where intuition gives the wrong answer, in English and Ukrainian. There are 72 puzzles (the 100 prisoners, the German tank problem, the bus paradox, Monty Hall…), a glossary of 22 terms and 6 themed courses.
 
 Every puzzle page follows the same path: you lock in a guess first (the answer stays hidden until you do), play a small version by hand, run thousands of simulations in the browser, then read why in layers: plain words, then tables, charts and formulas, then some theory and history. Harder variants come last. Some pages also offer the simulation as a short JavaScript and Python snippet to run yourself.
 
@@ -17,33 +17,35 @@ The rest of this README is in Ukrainian and documents the build in detail. Autho
 
 Інтерактивні пояснення математичних задач, у яких інтуїція помиляється. Українською та англійською.
 
-Сайт: https://mathparadoxes.com/
+Сайт: https://mathparadoxes.com/ (англійська) і https://mathparadoxes.com/uk/ (українська).
+
+**Адреси.** Англійська — мова за замовчуванням і живе в корені (`/monty-hall/`), українська має префікс `/uk/` (`/uk/monty-hall/`, `/uk/glossary/…`, `/uk/courses/…`). До листопада 2026 було навпаки: українська в корені, англійська з суфіксом `/en/`. Старі адреси працюють і далі: збірка кладе на кожну стару `…/en/` сторінку-перенаправлення на нову (зберігає `?…` і `#…`; `write_redirects` у build.py), а стару українську `/x/` тепер займає англійська сторінка, з якої скрипт мови веде українських відвідувачів на `/uk/x/`. RSS: `/feed.xml` — англійська, `/uk/feed.xml` — українська; старий `/en/feed.xml` — копія англійської (XML на GitHub Pages не перенаправиш), записи зберегли старі `guid`. Картинки (`og-*.png`) спільні для обох мов і лежать без префікса (`/monty-hall/og-uk.png`).
 
 | Задача | UA | EN |
 |---|---|---|
-| Парадокс Монті Голла | [/monty-hall/](https://mathparadoxes.com/monty-hall/) | [/monty-hall/en/](https://mathparadoxes.com/monty-hall/en/) |
-| Задача про ряску в озері | [/duckweed-lake/](https://mathparadoxes.com/duckweed-lake/) | [/duckweed-lake/en/](https://mathparadoxes.com/duckweed-lake/en/) |
-| Парадокс днів народження | [/birthday/](https://mathparadoxes.com/birthday/) | [/birthday/en/](https://mathparadoxes.com/birthday/en/) |
-| Парадокс хибнопозитивного тесту | [/false-positive/](https://mathparadoxes.com/false-positive/) | [/false-positive/en/](https://mathparadoxes.com/false-positive/en/) |
-| Правило 37%: задача про секретаря | [/secretary-problem/](https://mathparadoxes.com/secretary-problem/) | [/secretary-problem/en/](https://mathparadoxes.com/secretary-problem/en/) |
-| Парадокс Сімпсона | [/simpson-paradox/](https://mathparadoxes.com/simpson-paradox/) | [/simpson-paradox/en/](https://mathparadoxes.com/simpson-paradox/en/) |
-| Парадокс двох дітей | [/two-children/](https://mathparadoxes.com/two-children/) | [/two-children/en/](https://mathparadoxes.com/two-children/en/) |
-| Голка Бюффона | [/buffon-needle/](https://mathparadoxes.com/buffon-needle/) | [/buffon-needle/en/](https://mathparadoxes.com/buffon-needle/en/) |
-| Парадокс дружби | [/friendship-paradox/](https://mathparadoxes.com/friendship-paradox/) | [/friendship-paradox/en/](https://mathparadoxes.com/friendship-paradox/en/) |
-| Мотузка навколо Землі | [/rope-around-earth/](https://mathparadoxes.com/rope-around-earth/) | [/rope-around-earth/en/](https://mathparadoxes.com/rope-around-earth/en/) |
-| 100 в'язнів і 100 коробок | [/hundred-prisoners/](https://mathparadoxes.com/hundred-prisoners/) | [/hundred-prisoners/en/](https://mathparadoxes.com/hundred-prisoners/en/) |
-| Тест когнітивної рефлексії | [/cognitive-reflection/](https://mathparadoxes.com/cognitive-reflection/) | [/cognitive-reflection/en/](https://mathparadoxes.com/cognitive-reflection/en/) |
-| Скільки наліпок на альбом | [/coupon-collector/](https://mathparadoxes.com/coupon-collector/) | [/coupon-collector/en/](https://mathparadoxes.com/coupon-collector/en/) |
-| Регресія до середнього | [/regression-to-mean/](https://mathparadoxes.com/regression-to-mean/) | [/regression-to-mean/en/](https://mathparadoxes.com/regression-to-mean/en/) |
-| Парадокс двох конвертів | [/two-envelopes/](https://mathparadoxes.com/two-envelopes/) | [/two-envelopes/en/](https://mathparadoxes.com/two-envelopes/en/) |
-| Серії в підкиданні монети | [/coin-streaks/](https://mathparadoxes.com/coin-streaks/) | [/coin-streaks/en/](https://mathparadoxes.com/coin-streaks/en/) |
-| Парадокс Бертрана | [/bertrand-paradox/](https://mathparadoxes.com/bertrand-paradox/) | [/bertrand-paradox/en/](https://mathparadoxes.com/bertrand-paradox/en/) |
-| Гра Пенні | [/penney-game/](https://mathparadoxes.com/penney-game/) | [/penney-game/en/](https://mathparadoxes.com/penney-game/en/) |
-| Парадокс автобуса | [/inspection-paradox/](https://mathparadoxes.com/inspection-paradox/) | [/inspection-paradox/en/](https://mathparadoxes.com/inspection-paradox/en/) |
-| Задача про німецькі танки | [/german-tank-problem/](https://mathparadoxes.com/german-tank-problem/) | [/german-tank-problem/en/](https://mathparadoxes.com/german-tank-problem/en/) |
-| Санкт-Петербурзький парадокс | [/st-petersburg-paradox/](https://mathparadoxes.com/st-petersburg-paradox/) | [/st-petersburg-paradox/en/](https://mathparadoxes.com/st-petersburg-paradox/en/) |
-| Закон Бенфорда | [/benford-law/](https://mathparadoxes.com/benford-law/) | [/benford-law/en/](https://mathparadoxes.com/benford-law/en/) |
-| Отруєне вино і щури | [/poisoned-wine/](https://mathparadoxes.com/poisoned-wine/) | [/poisoned-wine/en/](https://mathparadoxes.com/poisoned-wine/en/) |
+| Парадокс Монті Голла | [/uk/monty-hall/](https://mathparadoxes.com/uk/monty-hall/) | [/monty-hall/](https://mathparadoxes.com/monty-hall/) |
+| Задача про ряску в озері | [/uk/duckweed-lake/](https://mathparadoxes.com/uk/duckweed-lake/) | [/duckweed-lake/](https://mathparadoxes.com/duckweed-lake/) |
+| Парадокс днів народження | [/uk/birthday/](https://mathparadoxes.com/uk/birthday/) | [/birthday/](https://mathparadoxes.com/birthday/) |
+| Парадокс хибнопозитивного тесту | [/uk/false-positive/](https://mathparadoxes.com/uk/false-positive/) | [/false-positive/](https://mathparadoxes.com/false-positive/) |
+| Правило 37%: задача про секретаря | [/uk/secretary-problem/](https://mathparadoxes.com/uk/secretary-problem/) | [/secretary-problem/](https://mathparadoxes.com/secretary-problem/) |
+| Парадокс Сімпсона | [/uk/simpson-paradox/](https://mathparadoxes.com/uk/simpson-paradox/) | [/simpson-paradox/](https://mathparadoxes.com/simpson-paradox/) |
+| Парадокс двох дітей | [/uk/two-children/](https://mathparadoxes.com/uk/two-children/) | [/two-children/](https://mathparadoxes.com/two-children/) |
+| Голка Бюффона | [/uk/buffon-needle/](https://mathparadoxes.com/uk/buffon-needle/) | [/buffon-needle/](https://mathparadoxes.com/buffon-needle/) |
+| Парадокс дружби | [/uk/friendship-paradox/](https://mathparadoxes.com/uk/friendship-paradox/) | [/friendship-paradox/](https://mathparadoxes.com/friendship-paradox/) |
+| Мотузка навколо Землі | [/uk/rope-around-earth/](https://mathparadoxes.com/uk/rope-around-earth/) | [/rope-around-earth/](https://mathparadoxes.com/rope-around-earth/) |
+| 100 в'язнів і 100 коробок | [/uk/hundred-prisoners/](https://mathparadoxes.com/uk/hundred-prisoners/) | [/hundred-prisoners/](https://mathparadoxes.com/hundred-prisoners/) |
+| Тест когнітивної рефлексії | [/uk/cognitive-reflection/](https://mathparadoxes.com/uk/cognitive-reflection/) | [/cognitive-reflection/](https://mathparadoxes.com/cognitive-reflection/) |
+| Скільки наліпок на альбом | [/uk/coupon-collector/](https://mathparadoxes.com/uk/coupon-collector/) | [/coupon-collector/](https://mathparadoxes.com/coupon-collector/) |
+| Регресія до середнього | [/uk/regression-to-mean/](https://mathparadoxes.com/uk/regression-to-mean/) | [/regression-to-mean/](https://mathparadoxes.com/regression-to-mean/) |
+| Парадокс двох конвертів | [/uk/two-envelopes/](https://mathparadoxes.com/uk/two-envelopes/) | [/two-envelopes/](https://mathparadoxes.com/two-envelopes/) |
+| Серії в підкиданні монети | [/uk/coin-streaks/](https://mathparadoxes.com/uk/coin-streaks/) | [/coin-streaks/](https://mathparadoxes.com/coin-streaks/) |
+| Парадокс Бертрана | [/uk/bertrand-paradox/](https://mathparadoxes.com/uk/bertrand-paradox/) | [/bertrand-paradox/](https://mathparadoxes.com/bertrand-paradox/) |
+| Гра Пенні | [/uk/penney-game/](https://mathparadoxes.com/uk/penney-game/) | [/penney-game/](https://mathparadoxes.com/penney-game/) |
+| Парадокс автобуса | [/uk/inspection-paradox/](https://mathparadoxes.com/uk/inspection-paradox/) | [/inspection-paradox/](https://mathparadoxes.com/inspection-paradox/) |
+| Задача про німецькі танки | [/uk/german-tank-problem/](https://mathparadoxes.com/uk/german-tank-problem/) | [/german-tank-problem/](https://mathparadoxes.com/german-tank-problem/) |
+| Санкт-Петербурзький парадокс | [/uk/st-petersburg-paradox/](https://mathparadoxes.com/uk/st-petersburg-paradox/) | [/st-petersburg-paradox/](https://mathparadoxes.com/st-petersburg-paradox/) |
+| Закон Бенфорда | [/uk/benford-law/](https://mathparadoxes.com/uk/benford-law/) | [/benford-law/](https://mathparadoxes.com/benford-law/) |
+| Отруєне вино і щури | [/uk/poisoned-wine/](https://mathparadoxes.com/uk/poisoned-wine/) | [/poisoned-wine/](https://mathparadoxes.com/poisoned-wine/) |
 
 ## Структура
 
@@ -68,7 +70,7 @@ docs/          готовий сайт (GitHub Pages публікує з main:/d
 
 ## Сторінка після підтвердження підписки
 
-`pages/subscribed/` → https://mathparadoxes.com/subscribed/ (англійська: `/subscribed/en/`). Сюди веде посилання «Підтвердити підписку» з листа розсилки. Сторінка не індексується і не потрапляє в sitemap; `picks` у `meta.json` задає три задачі, які вона пропонує.
+`pages/subscribed/` → https://mathparadoxes.com/subscribed/ (українська: `/uk/subscribed/`). Сюди веде посилання «Підтвердити підписку» з листа розсилки. Сторінка не індексується і не потрапляє в sitemap; `picks` у `meta.json` задає три задачі, які вона пропонує.
 
 ## Збірка
 
@@ -165,7 +167,7 @@ python3 tools/check.py
 
 ### Пошук
 
-Кнопка «Пошук» у верхньому меню кожної сторінки (а також `/` чи Ctrl/⌘K, або `?q=…` в адресі) відкриває палітру над сторінкою: задачі, курси, окремі розділи курсів і статті словника, з вкладками «Усе / Задачі / Курси / Словник», підсвіченими словами й позначкою ✓ для розв'язаного. Без запиту палітра показує нещодавно відкриті сторінки. Індекс `docs/search.json` і `docs/en/search.json` збірка складає сама (`search_index` у `build.py`) і вантажить при першому наведенні на кнопку. У ньому лише текст без спойлерів: назва з `card.title`, питання з `share`, теги, теми, рівень і `about.name`, і все це ще й іншою мовою: запит будь-якою мовою знаходить сторінку, а показує її мовою сайту («Monty Hall» на українській версії, «медіана» на англійській); `description` і відповіді туди не потрапляють. Пошук прощає закінчення, одну помилку, апостроф, і/и/ї/й та е/є; одруківки й шматки слів враховує лише тоді, коли точніших збігів немає. Головна має JSON-LD `SearchAction` з адресою `?q=`.
+Кнопка «Пошук» у верхньому меню кожної сторінки (а також `/` чи Ctrl/⌘K, або `?q=…` в адресі) відкриває палітру над сторінкою: задачі, курси, окремі розділи курсів і статті словника, з вкладками «Усе / Задачі / Курси / Словник», підсвіченими словами й позначкою ✓ для розв'язаного. Без запиту палітра показує нещодавно відкриті сторінки. Індекс `docs/uk/search.json` і `docs/search.json` збірка складає сама (`search_index` у `build.py`) і вантажить при першому наведенні на кнопку. У ньому лише текст без спойлерів: назва з `card.title`, питання з `share`, теги, теми, рівень і `about.name`, і все це ще й іншою мовою: запит будь-якою мовою знаходить сторінку, а показує її мовою сайту («Monty Hall» на українській версії, «медіана» на англійській); `description` і відповіді туди не потрапляють. Пошук прощає закінчення, одну помилку, апостроф, і/и/ї/й та е/є; одруківки й шматки слів враховує лише тоді, коли точніших збігів немає. Головна має JSON-LD `SearchAction` з адресою `?q=`.
 
 ### Шари в 4-му раунді
 
@@ -238,7 +240,7 @@ Claspo пропустили цього відвідувача), блок хов�
 - Внутрішні посилання: блок «Ще задачі» під кожною задачею має 6 карток, підібраних за спільними темами (`topics`),
   тегами картки й рівнем. На кожну задачу ведуть щонайменше 3 і зазвичай не більше 8–9 таких блоків, щоб жодна сторінка не лишилася без посилань.
 - `sitemap.xml` з альтернативними мовами.
-- RSS задач для розсилок і читалок: https://mathparadoxes.com/feed.xml (uk) і https://mathparadoxes.com/en/feed.xml, нові зверху за `published`.
+- RSS задач для розсилок і читалок: https://mathparadoxes.com/feed.xml (en) і https://mathparadoxes.com/uk/feed.xml (до листопада 2026 українська була на `/feed.xml`, англійська на `/en/feed.xml`, яка лишилася копією), нові зверху за `published`.
   У пункті лише `share` (назва й питання), OG-картинка й теги картки, без відповіді. Сторінки посилаються на фід через `<link rel="alternate">`.
 - Мова: обраний вручну мовний варіант зберігається в cookie `mp_lang` на рік. Без cookie перша мова браузера
   uk/ru/be дає українську, en — англійську, інакше вирішує часовий пояс. Боти й прев'ю-краулери не перенаправляються.

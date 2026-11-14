@@ -8,9 +8,10 @@ Each problem lives in problems/<slug>/:
 
 The build writes one page per language so search engines index a clean page per URL:
 
-    docs/index.html, docs/en/index.html                 catalogue
-    docs/<slug>/index.html, docs/<slug>/en/index.html   problem pages
-    docs/feed.xml, docs/en/feed.xml                     RSS of the problems, newest first
+    docs/index.html, docs/uk/index.html                 catalogue (English at the root, Ukrainian under uk/)
+    docs/<slug>/index.html, docs/uk/<slug>/index.html   problem pages
+    docs/<x>/en/index.html                              redirects from the old English URLs
+    docs/feed.xml, docs/uk/feed.xml                     RSS of the problems, newest first (docs/en/feed.xml: a copy)
     docs/sitemap.xml, docs/robots.txt, docs/favicon.svg
 
 Usage:  python3 build.py [--base-url https://example.com/]
@@ -37,7 +38,14 @@ CUSTOM_DOMAIN = "mathparadoxes.com"  # written to docs/CNAME for GitHub Pages
 # IndexNow key (Bing, Yandex and others): served as docs/<key>.txt, used by tools/indexnow.py
 INDEXNOW_KEY = "8ade1159e80343c9902c820ee44bd4ce"
 LANGS = ("uk", "en")
-LANG_PATH = {"uk": "", "en": "en/"}
+# English is the default and lives at the root; Ukrainian pages carry a uk/ prefix (docs/uk/<slug>/).
+# Until 2026-11 it was the other way round (docs/<slug>/en/): OLD_LANG_PATH keeps those URLs working as redirects
+# (see write_redirects). RSS items keep their old ids (guid), so feed readers see nothing new.
+LANG_PATH = {"uk": "uk/", "en": ""}
+OLD_LANG_PATH = {"uk": "", "en": "en/"}
+FEED_PATH = {"uk": "uk/feed.xml", "en": "feed.xml"}
+# feeds that moved: GitHub Pages cannot redirect an XML file, so the old address gets a copy of the same feed
+OLD_FEED_PATH = {"en": "en/feed.xml"}
 LOCALE = {"uk": "uk_UA", "en": "en_US"}
 # hreflang x-default: the version for visitors whose language is neither; LANG_SCRIPT sends them to English too
 X_DEFAULT = "en"
@@ -1316,7 +1324,7 @@ def head(lang, urls, title, description, image, image_alt, ld, base, slug=None, 
 <meta name="theme-color" content="#2A3DD1">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="{base}favicon.svg" type="image/svg+xml">
-<link rel="alternate" type="application/rss+xml" title="{SITE_NAME[lang]}" href="{base}{LANG_PATH[lang]}feed.xml">
+<link rel="alternate" type="application/rss+xml" title="{SITE_NAME[lang]}" href="{base}{FEED_PATH[lang]}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{SITE_NAME[lang]}">
 <meta property="og:title" content="{e(st)}">
@@ -1424,7 +1432,15 @@ NAV_SCRIPT = """<script>
   if (!nav) return;
   var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
   try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
-  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t);
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t), old = false;
+  // items saved before 2026-11 carry the old URLs (Ukrainian at /x/, English at /x/en/): move them to /uk/x/ and /x/
+  list.forEach(function (p) {
+    if (p.u && p.u.uk && !/^https?:\\/\\/[^\\/]+\\/uk\\//.test(p.u.uk)) {
+      p.u = { uk: p.u.uk.replace(/^(https?:\\/\\/[^\\/]+\\/)/, "$1uk/"), en: String(p.u.en).replace(/en\\/$/, "") };
+      old = true;
+    }
+  });
+  if (old && !me) try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
   // a puzzle or course page puts itself first in the list of recently opened ones
   if (me) {
     list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
@@ -1455,7 +1471,7 @@ NAV_SCRIPT = """<script>
 # ---------- search ----------
 # A search button in the top bar of every page opens a palette over the page ("/" or Ctrl/⌘K, or ?q=… in the URL)
 # that finds puzzles, courses, their chapters and glossary articles. The index, docs/search.json and
-# docs/en/search.json, loads on the first hover or open. It holds only spoiler-free text: the card title, the
+# docs/uk/search.json, loads on the first hover or open. It holds only spoiler-free text: the card title, the
 # `share` question, tags and topics, never the description or the answer. Each item also carries all of these in
 # the other language, so a query in either language finds it ("Monty Hall" on the Ukrainian site, "медіана" on
 # the English one), and the result shows in the page's language. Matching forgives word endings,
@@ -1496,7 +1512,7 @@ def search_index(lang, metas, base):
     items = []
     for s, m in metas:
         ml = m[lang]
-        items.append({"t": "p", "s": s, "u": base + s + "/" + LANG_PATH[lang], "n": ml["card"]["title"],
+        items.append({"t": "p", "s": s, "u": base + LANG_PATH[lang] + s + "/", "n": ml["card"]["title"],
                       "d": ml["share"]["description"], "lv": m["level"], "tint": tint(PROBLEMS / s / "page.html"),
                       "k": " ".join(ml["card"].get("tags", []) + [TOPICS[t][lang] for t in m["topics"]]
                                     + [m.get("about", {}).get("name", ""), LEVELS[m["level"]][lang][0]]),
@@ -1768,10 +1784,12 @@ def with_site_nav(doc, lang, path):
     """The menu in the top bar and the links at the bottom of the page (see SITE_NAV)."""
     base, t = SITE_NAV["base"], NAV_TEXT[lang]
     rel = path.relative_to(DOCS).parts
-    page = rel[1:] in (("index.html",), ("en", "index.html"))  # docs/<x>/index.html or docs/<x>/en/index.html
-    home = rel in (("index.html",), ("en", "index.html"))
+    if rel[0] == LANG_PATH["uk"].strip("/"):
+        rel = rel[1:]
+    page = rel[1:] == ("index.html",)  # docs/<x>/index.html or docs/uk/<x>/index.html
+    home = rel == ("index.html",)
     me = SITE_NAV["problems"].get(rel[0]) if page else None
-    if rel[0] == "courses" and rel[2:] in (("index.html",), ("en", "index.html")):
+    if rel[0] == "courses" and rel[2:] == ("index.html",):
         me = SITE_NAV["courses"].get(rel[1])  # a course's own page, not its subpages
     here = "courses" if rel[0] == "courses" else "glossary" if rel[0] == "glossary" else "problems" if home or me else ""
     words = e(json.dumps({"cont": t["continue"], "course": t["course"]}, ensure_ascii=False))
@@ -1811,7 +1829,7 @@ def build_problem(slug, base, metas, books, related):
     src = (src_dir / "page.html").read_text(encoding="utf-8")
     rest = src[src.index("<style>"):]
     page_base = base + slug + "/"
-    urls = {l: page_base + LANG_PATH[l] for l in LANGS}
+    urls = {l: base + LANG_PATH[l] + slug + "/" for l in LANGS}
     hub = {l: base + LANG_PATH[l] for l in LANGS}
     for lang in LANGS:
         m, other = meta[lang], ("en" if lang == "uk" else "uk")
@@ -1871,13 +1889,13 @@ def build_problem(slug, base, metas, books, related):
         items = []
         for s in related:
             rm = dict(metas)[s][lang]
-            items.append((base + s + "/" + LANG_PATH[lang], rm["card"]["title"], rm.get("share", {}).get("description", rm["card"]["text"])))
+            items.append((base + LANG_PATH[lang] + s + "/", rm["card"]["title"], rm.get("share", {}).get("description", rm["card"]["text"])))
         body = with_related(body, related_block(lang, items, hub[lang], glossary_url(base, lang)))
-        body = with_books(body, books_block(lang, refs, books, base + "books/" + LANG_PATH[lang]))
+        body = with_books(body, books_block(lang, refs, books, base + LANG_PATH[lang] + "books/"))
         body = with_terms(body, lang, TERMS, base)  # last: its script must not be taken for the page script above
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static data-spoil>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
                f'</head>\n<body>\n{body.strip()}\n{LEVEL_SCRIPT}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
-        write(DOCS / slug / LANG_PATH[lang] / "index.html", doc)
+        write(DOCS / LANG_PATH[lang] / slug / "index.html", doc)
     for f in (src_dir / "assets").iterdir() if (src_dir / "assets").exists() else []:
         if f.suffix in {".png", ".jpg", ".svg", ".webp"} and not f.name.startswith("og-src"):
             shutil.copy(f, DOCS / slug / f.name)
@@ -1945,7 +1963,7 @@ def build_hub(problems, base):
             body = body.replace("{{LIST:%s}}" % k, e(LIST_TEXT[lang][k]))
         for n in LEVELS:
             body = body.replace("{{LEVEL:%d}}" % n, level_badge(lang, n, urls[lang]))
-        body = body.replace("{{BOOKS}}", base + "books/" + LANG_PATH[lang])
+        body = body.replace("{{BOOKS}}", base + LANG_PATH[lang] + "books/")
         body = body.replace("{{GLOSSARY}}", glossary_url(base, lang))
         body = body.replace("<!--COURSES-->", courses_block(lang, base)).replace("{{COURSES}}", course_url(base, lang))
         body = body.replace("{{HOME_BASE}}", base).replace("{{HOME}}", urls[lang]).replace("{{FIRST}}", problems[0][2][lang])
@@ -1996,8 +2014,7 @@ def build_subscribed(problems, base):
     src_dir = PAGES / "subscribed"
     meta = json.loads((src_dir / "meta.json").read_text(encoding="utf-8"))
     src = (src_dir / "page.html").read_text(encoding="utf-8")
-    page_base = base + "subscribed/"
-    urls = {l: page_base + LANG_PATH[l] for l in LANGS}
+    urls = {l: base + LANG_PATH[l] + "subscribed/" for l in LANGS}
     home = {l: base + LANG_PATH[l] for l in LANGS}
     by_slug = {p[0]: p for p in problems}
     for lang in LANGS:
@@ -2017,7 +2034,7 @@ def build_subscribed(problems, base):
         h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["title"], ld, base, robots="noindex")
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
                f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{CF_ANALYTICS}\n</body>\n</html>\n')
-        write(DOCS / "subscribed" / LANG_PATH[lang] / "index.html", doc)
+        write(DOCS / LANG_PATH[lang] / "subscribed" / "index.html", doc)
 
 
 SHELF_TEXT = {"uk": ("Є українською", "Лише англійською"), "en": (None, None)}
@@ -2029,8 +2046,7 @@ def build_books(problems, base, books):
     src_dir = PAGES / "books"
     meta = json.loads((src_dir / "meta.json").read_text(encoding="utf-8"))
     src = (src_dir / "page.html").read_text(encoding="utf-8")
-    page_base = base + "books/"
-    urls = {l: page_base + LANG_PATH[l] for l in LANGS}
+    urls = {l: base + LANG_PATH[l] + "books/" for l in LANGS}
     home = {l: base + LANG_PATH[l] for l in LANGS}
     cites = {}  # book id -> [(problem, ref)] in site order
     for p in problems:
@@ -2090,7 +2106,7 @@ def build_books(problems, base, books):
         h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["og_alt"], ld, base)
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
                f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{CF_ANALYTICS}\n</body>\n</html>\n')
-        write(DOCS / "books" / LANG_PATH[lang] / "index.html", doc)
+        write(DOCS / LANG_PATH[lang] / "books" / "index.html", doc)
     return urls
 
 
@@ -2151,7 +2167,7 @@ def load_glossary():
 
 
 def glossary_url(base, lang, page=None):
-    return base + "glossary/" + (page + "/" if page else "") + LANG_PATH[lang]
+    return base + LANG_PATH[lang] + "glossary/" + (page + "/" if page else "")
 
 
 def link_terms(html, lang, terms, base, done, used, card):
@@ -2286,7 +2302,7 @@ def build_glossary(problems, base):
             h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["og_alt"], ld, base)
             doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
                    f'{style}\n{css_link(base)}\n</head>\n<body>\n{body.strip()}\n{CF_ANALYTICS}\n</body>\n</html>\n')
-            write(DOCS / "glossary" / name / LANG_PATH[lang] / "index.html", doc)
+            write(DOCS / LANG_PATH[lang] / "glossary" / name / "index.html", doc)
         out.append((urls, meta["updated"]))
     src = (GLOSSARY / "index.html").read_text(encoding="utf-8")
     meta = json.loads((GLOSSARY / "index.json").read_text(encoding="utf-8"))
@@ -2310,7 +2326,7 @@ def build_glossary(problems, base):
         h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["og_alt"], ld, base)
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
                f'{style}\n{css_link(base)}\n</head>\n<body>\n{body.strip()}\n{CF_ANALYTICS}\n</body>\n</html>\n')
-        write(DOCS / "glossary" / LANG_PATH[lang] / "index.html", doc)
+        write(DOCS / LANG_PATH[lang] / "glossary" / "index.html", doc)
     out.insert(0, (urls, max(p["updated"] for p in pages.values())))
     return out
 
@@ -2415,7 +2431,7 @@ def load_courses():
 
 
 def course_url(base, lang, name=None):
-    return base + "courses/" + (name + "/" if name else "") + LANG_PATH[lang]
+    return base + LANG_PATH[lang] + "courses/" + (name + "/" if name else "")
 
 
 def other_course(mo, lang, base, where):
@@ -2497,7 +2513,7 @@ def build_course_subpages(name, cmeta, pmeta, base):
         meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
         src = (d / "page.html").read_text(encoding="utf-8")
         curl = {l: course_url(base, l, name) for l in LANGS}
-        urls = {l: base + "courses/" + name + "/" + d.name + "/" + LANG_PATH[l] for l in LANGS}
+        urls = {l: course_url(base, l, name) + d.name + "/" for l in LANGS}
         for lang in LANGS:
             m, other, t = meta[lang], ("en" if lang == "uk" else "uk"), COURSE_TEXT[lang]
             body = LangStripper(src, other).strip()
@@ -2523,7 +2539,7 @@ def build_course_subpages(name, cmeta, pmeta, base):
             body = re.sub(r"/\*PUZZLES:([\w,\s-]+)\*/", puzzles, body)
             body = re.sub(r"\{\{CH:([\w-]+)\}\}", lambda mo: curl[lang] + "#" + mo.group(1), body)
             body = re.sub(r"\{\{C:([\w/-]+)\}\}", lambda mo: other_course(mo, lang, base, f"courses/{name}/{d.name}/page.html"), body)
-            body = body.replace("{{BOOKS}}", base + "books/" + LANG_PATH[lang])
+            body = body.replace("{{BOOKS}}", base + LANG_PATH[lang] + "books/")
             body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
             body = body.replace("{{COURSES}}", course_url(base, lang)).replace("{{COURSE}}", curl[lang])
             body = body.replace("{{GLOSSARY}}", glossary_url(base, lang))
@@ -2531,8 +2547,9 @@ def build_course_subpages(name, cmeta, pmeta, base):
             body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
             style = body[:body.index("</style>") + len("</style>")]
             body = body[len(style):]
-            img = urls[lang] + f"og-{lang}.png" if (d / "assets" / f"og-{lang}.png").exists() else (
-                curl[lang] + f"og-{lang}.png" if (COURSES / name / "assets" / f"og-{lang}.png").exists() else base + f"og-{lang}.png")
+            # images are shared by both languages and stay in courses/<name>/[<subpage>/], outside the uk/ prefix
+            img = (base + f"courses/{name}/{d.name}/og-{lang}.png" if (d / "assets" / f"og-{lang}.png").exists() else
+                   base + f"courses/{name}/og-{lang}.png" if (COURSES / name / "assets" / f"og-{lang}.png").exists() else base + f"og-{lang}.png")
             ld = {"@context": "https://schema.org", "@graph": [
                 {"@type": "WebPage", "@id": urls[lang] + "#page", "url": urls[lang], "name": m["title"], "description": m["description"],
                  "inLanguage": lang, "isAccessibleForFree": True, "author": {"@id": base + "#author"}, "image": img,
@@ -2553,7 +2570,7 @@ def build_course_subpages(name, cmeta, pmeta, base):
                 script += "\n" + TERM_SCRIPT % json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
             doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
                    f'{style}\n{css_link(base)}\n</head>\n<body>\n{script}\n{body.strip()}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
-            write(DOCS / "courses" / name / d.name / LANG_PATH[lang] / "index.html", doc)
+            write(DOCS / LANG_PATH[lang] / "courses" / name / d.name / "index.html", doc)
         for f in (d / "assets").iterdir() if (d / "assets").exists() else []:
             if f.suffix == ".png" and f.name.startswith("og-"):
                 shutil.copy(f, DOCS / "courses" / name / d.name / f.name)
@@ -2607,10 +2624,10 @@ def build_courses(problems, base):
                 return pmeta[mo.group(1)][2][lang]
             body = re.sub(r"\{\{P:([\w-]+)\}\}", purl, body)
             # {{SUB:check}}: a subpage of this course (courses/<name>/check/)
-            body = re.sub(r"\{\{SUB:([\w-]+)\}\}", lambda mo: base + "courses/" + name + "/" + mo.group(1) + "/" + LANG_PATH[lang], body)
+            body = re.sub(r"\{\{SUB:([\w-]+)\}\}", lambda mo: course_url(base, lang, name) + mo.group(1) + "/", body)
             # {{C:ab-testing}}: another course or its subpage ({{C:ab-testing/check}}), for links like {{C:ab-testing}}#ch-5
             body = re.sub(r"\{\{C:([\w/-]+)\}\}", lambda mo: other_course(mo, lang, base, f"courses/{name}/page.html"), body)
-            body = body.replace("{{BOOKS}}", base + "books/" + LANG_PATH[lang])
+            body = body.replace("{{BOOKS}}", base + LANG_PATH[lang] + "books/")
             num = {c["id"]: i + 1 for i, c in enumerate(meta["chapters"])}
             for c in meta["chapters"]:
                 if not c.get("needs"):
@@ -2638,7 +2655,7 @@ def build_courses(problems, base):
             body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
             style = body[:body.index("</style>") + len("</style>")]
             body = body[len(style):]
-            img = urls[lang] + f"og-{lang}.png" if (COURSES / name / "assets" / f"og-{lang}.png").exists() else base + f"og-{lang}.png"
+            img = base + f"courses/{name}/og-{lang}.png" if (COURSES / name / "assets" / f"og-{lang}.png").exists() else base + f"og-{lang}.png"
             ld = {"@context": "https://schema.org", "@graph": [
                 {"@type": ["Course", "LearningResource"], "@id": urls[lang] + "#course", "url": urls[lang], "name": m["name"],
                  "description": m["description"], "inLanguage": lang, "isAccessibleForFree": True,
@@ -2661,7 +2678,7 @@ def build_courses(problems, base):
                 script += "\n" + TERM_SCRIPT % json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
             doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
                    f'{style}\n{css_link(base)}\n</head>\n<body>\n{body.strip()}\n{script}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
-            write(DOCS / "courses" / name / LANG_PATH[lang] / "index.html", doc)
+            write(DOCS / LANG_PATH[lang] / "courses" / name / "index.html", doc)
         for f in (COURSES / name / "assets").iterdir() if (COURSES / name / "assets").exists() else []:
             if f.suffix == ".png" and f.name.startswith("og-"):
                 shutil.copy(f, DOCS / "courses" / name / f.name)
@@ -2692,7 +2709,7 @@ def build_courses(problems, base):
         h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["og_alt"], ld, base)
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
                f'{style}\n{css_link(base)}\n</head>\n<body>\n{body.strip()}\n{CF_ANALYTICS}\n</body>\n</html>\n')
-        write(DOCS / "courses" / LANG_PATH[lang] / "index.html", doc)
+        write(DOCS / LANG_PATH[lang] / "courses" / "index.html", doc)
     out.insert(0, (urls, max(cm["updated"] for _, cm in COURSE_LIST)))
     return out
 
@@ -2705,7 +2722,7 @@ NOT_FOUND_TEXT = {
 
 def build_404(problems, base):
     """docs/404.html, which GitHub Pages serves for any missing URL. Both languages are in the page;
-    a /en/ path or an English-first browser shows the English one. Not indexed."""
+    a /uk/ path or a Ukrainian-first browser shows the Ukrainian one, anything else the English one. Not indexed."""
     parts = []
     for lang in LANGS:
         eyebrow, title, text, home = NOT_FOUND_TEXT[lang]
@@ -2720,27 +2737,27 @@ def build_404(problems, base):
     <p><a class="btn" href="{base + LANG_PATH[lang]}">{home}</a> &nbsp; <a href="{glossary_url(base, lang)}">{GLOSSARY_TEXT[lang][0]} →</a></p>
   </section>""")
     doc = f"""<!doctype html>
-<html lang="uk" data-lang="uk">
+<html lang="en" data-lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
 (function () {{
-  var d = document.documentElement, en = /\\/en(\\/|$)/.test(location.pathname);
-  if (!en) {{
+  var d = document.documentElement, uk = /^\\/uk(\\/|$)/.test(location.pathname);
+  if (!uk) {{
     var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), l = (navigator.languages || [navigator.language || ""])[0] || "";
-    en = m ? m[1] === "en" : !/^(uk|ru|be)/i.test(l);
+    uk = m ? m[1] === "uk" : /^(uk|ru|be)/i.test(l);
   }}
-  if (en) {{ d.lang = "en"; d.dataset.lang = "en"; document.title = "Page not found · {SITE_NAME["en"]}"; }}
+  if (uk) {{ d.lang = "uk"; d.dataset.lang = "uk"; document.title = "Сторінку не знайдено · {SITE_NAME["uk"]}"; }}
 }})();
 </script>
-<title>Сторінку не знайдено · {SITE_NAME["uk"]}</title>
+<title>Page not found · {SITE_NAME["en"]}</title>
 <meta name="robots" content="noindex">
 <link rel="icon" href="{base}favicon.svg" type="image/svg+xml">
 {FONTS}
 {RESET}
 <style>
-:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk {{ display: none !important; }}
+:root:not([data-lang="uk"]) .uk, :root[data-lang="uk"] .en {{ display: none !important; }}
 body {{ padding-inline: max(16px, env(safe-area-inset-left, 0px)); }}
 .wrap {{ max-width: 860px; margin: 0 auto; padding-block: 20px 64px; }}
 .nf {{ display: grid; gap: 18px; margin-top: 48px; }}
@@ -2752,8 +2769,8 @@ body {{ padding-inline: max(16px, env(safe-area-inset-left, 0px)); }}
 </head>
 <body>
 <div class="wrap">
-  <a class="brand uk" href="{base}">{BRAND_MARK}{SITE_NAME["uk"]}</a>
-  <a class="brand en" href="{base}en/">{BRAND_MARK}{SITE_NAME["en"]}</a>
+  <a class="brand uk" href="{base}{LANG_PATH["uk"]}">{BRAND_MARK}{SITE_NAME["uk"]}</a>
+  <a class="brand en" href="{base}{LANG_PATH["en"]}">{BRAND_MARK}{SITE_NAME["en"]}</a>
   {parts[0]}
   {parts[1]}
 </div>
@@ -2768,17 +2785,52 @@ def rss_date(day):
     return format_datetime(datetime.fromisoformat(day).replace(tzinfo=timezone.utc))
 
 
+REDIRECT = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{title}</title>
+<link rel="canonical" href="{url}">
+<meta http-equiv="refresh" content="0; url={url}">
+<script>location.replace({js} + location.search + location.hash);</script>
+</head>
+<body><p><a href="{url}">{url}</a></p></body>
+</html>
+"""
+
+
+def write_redirects(base):
+    """Old English URLs (<x>/en/, before 2026-11) lead to the new ones (<x>/): every English page gets a small
+    redirect page at its old address, which keeps the query and the #anchor. GitHub Pages has no server redirects;
+    search engines treat an instant meta refresh as a permanent one. The old Ukrainian URLs (<x>/) now hold the
+    English page, and LANG_SCRIPT sends Ukrainian visitors on to uk/<x>/."""
+    n = 0
+    for page in sorted(DOCS.rglob("index.html")):
+        rel = page.relative_to(DOCS).parent
+        if rel.parts[:1] == (LANG_PATH["uk"].strip("/"),) or not page.read_text(encoding="utf-8").startswith('<!doctype html>\n<html lang="en"'):
+            continue
+        url = base + "".join(p + "/" for p in rel.parts)
+        old = DOCS / rel / OLD_LANG_PATH["en"] / "index.html"
+        assert not old.exists(), old
+        title = re.search(r"<title>(.*?)</title>", page.read_text(encoding="utf-8"), re.S).group(1)
+        old.parent.mkdir(parents=True, exist_ok=True)
+        old.write_text(REDIRECT.format(title=title, url=e(url), js=json.dumps(url)), encoding="utf-8")
+        n += 1
+    print(f"{n} redirects from the old English URLs")
+
+
 def build_feeds(metas, base):
     """RSS per language for newsletters and feed readers. Items carry only `share` (the question),
     never the description, because a feed preview must not give the answer away."""
     hub_meta = json.loads((HUB / "meta.json").read_text(encoding="utf-8"))
     items = sorted(metas, key=lambda sm: (sm[1]["published"], sm[1].get("order", 99)), reverse=True)
     for lang in LANGS:
-        feed_url = base + LANG_PATH[lang] + "feed.xml"
+        feed_url = base + FEED_PATH[lang]
         entries = []
         for slug, meta in items:
             m = meta[lang]
-            url = base + slug + "/" + LANG_PATH[lang]
+            url = base + LANG_PATH[lang] + slug + "/"
+            guid = base + slug + "/" + OLD_LANG_PATH[lang]  # the URL before 2026-11: readers know the item by it
             img = base + slug + f"/og-{lang}.png"
             size = (DOCS / slug / f"og-{lang}.png").stat().st_size
             # editors that read images only from the item HTML get the illustration from here
@@ -2787,7 +2839,7 @@ def build_feeds(metas, base):
             tags = "".join(f"\n      <category>{e(t)}</category>" for t in m["card"]["tags"])
             entries.append(
                 f"    <item>\n      <title>{e(m['share']['title'])}</title>\n      <link>{url}</link>\n"
-                f"      <guid isPermaLink=\"true\">{url}</guid>\n"
+                f"      <guid isPermaLink=\"true\">{guid}</guid>\n"
                 f"      <description>{e(m['share']['description'])}</description>\n"
                 f"      <content:encoded><![CDATA[{body}]]></content:encoded>\n"
                 f"      <pubDate>{rss_date(meta['published'])}</pubDate>\n"
@@ -2797,7 +2849,8 @@ def build_feeds(metas, base):
                 f"        <media:description>{e(m['og_alt'])}</media:description>\n      </media:content>\n"
                 f"      <media:thumbnail url=\"{img}\" width=\"1200\" height=\"630\"/>\n    </item>")
         last = max(meta["updated"] for _, meta in items)
-        (DOCS / LANG_PATH[lang] / "feed.xml").write_text(
+        (DOCS / FEED_PATH[lang]).parent.mkdir(parents=True, exist_ok=True)
+        (DOCS / FEED_PATH[lang]).write_text(
             '<?xml version="1.0" encoding="UTF-8"?>\n'
             '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xmlns:content="http://purl.org/rss/1.0/modules/content/">\n'
             f"  <channel>\n    <title>{SITE_NAME[lang]}</title>\n    <link>{base}{LANG_PATH[lang]}</link>\n"
@@ -2807,7 +2860,10 @@ def build_feeds(metas, base):
             f"    <image>\n      <url>{base}og-{lang}.png</url>\n      <title>{SITE_NAME[lang]}</title>\n"
             f"      <link>{base}{LANG_PATH[lang]}</link>\n    </image>\n"
             + "\n".join(entries) + "\n  </channel>\n</rss>\n", encoding="utf-8")
-        print(f"{LANG_PATH[lang]}feed.xml ({len(entries)} items)")
+        for old in [OLD_FEED_PATH[lang]] if lang in OLD_FEED_PATH else []:
+            (DOCS / old).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(DOCS / FEED_PATH[lang], DOCS / old)
+        print(f"{FEED_PATH[lang]} ({len(entries)} items)")
 
 
 def build(base, out=None):
@@ -2838,7 +2894,7 @@ def build(base, out=None):
             if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", cm.get(k, "")):
                 raise SystemExit(f"courses/{name}/meta.json: \"{k}\" must be a YYYY-MM-DD date")
     SITE_NAV.update(base=base, problems={s: {"s": s, "n": {l: m[l]["card"]["title"] for l in LANGS},
-                                               "u": {l: base + s + "/" + LANG_PATH[l] for l in LANGS}} for s, m in metas},
+                                               "u": {l: base + LANG_PATH[l] + s + "/" for l in LANGS}} for s, m in metas},
                     courses={c: {"s": "course:" + c, "n": {l: cm[l]["name"] for l in LANGS},
                                  "u": {l: course_url(base, l, c) for l in LANGS},
                                  "c": [ch["id"] for ch in cm["chapters"] if ch.get("check", True)]} for c, cm in COURSE_LIST})
@@ -2852,6 +2908,7 @@ def build(base, out=None):
     courses = build_courses(problems, base)
     build_feeds(metas, base)
     build_search(metas, base)
+    write_redirects(base)
 
     today = date.today().isoformat()
     entries = []
