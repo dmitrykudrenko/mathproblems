@@ -1,11 +1,13 @@
 // Narration clips, one per VOICE line, in this order of preference:
 // 1. a recording in voice/<scene>-<lang>-<i>.(wav|m4a|mp3|aiff);
-// 2. ElevenLabs, when video/.env (or the environment) has ELEVENLABS_API_KEY and a voice id
+// 2. ElevenLabs, when the environment, video/.env or ~/.config/mathparadoxes/video.env (shared by
+//    all worktrees) has ELEVENLABS_API_KEY and a voice id
 //    for the language (ELEVENLABS_VOICE_UK / ELEVENLABS_VOICE_EN); clips are cached by text;
 // 3. the macOS system voice, a placeholder for checking the timing only.
 import { execFileSync } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
+import os from 'os';
 
 const SYSTEM = { uk: 'Lesya', en: 'Samantha' };
 const MODEL = 'eleven_multilingual_v2';
@@ -15,11 +17,12 @@ const duration = f => Number(execFileSync('ffprobe',
 
 function env(dir) {
   const e = { ...process.env };
-  if (fs.existsSync(`${dir}/.env`))
-    for (const l of fs.readFileSync(`${dir}/.env`, 'utf8').split('\n')) {
-      const m = l.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
-      if (m && !e[m[1]]) e[m[1]] = m[2].replace(/^["']|["']$/g, '');
-    }
+  for (const f of [`${dir}/.env`, `${os.homedir()}/.config/mathparadoxes/video.env`])
+    if (fs.existsSync(f))
+      for (const l of fs.readFileSync(f, 'utf8').split('\n')) {
+        const m = l.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+        if (m && m[2] && !e[m[1]]) e[m[1]] = m[2].replace(/^["']|["']$/g, '');
+      }
   return e;
 }
 
