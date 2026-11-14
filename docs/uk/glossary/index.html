@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/uk/glossary/", "en": "/glossary/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = null;
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  // the gate card sits after round 1; once it hides, the browser would keep the bottom of the page in view, so jump to round 2
+  function toRounds(b) {
+    var r = b.closest(".sp-gate") && document.querySelector(".sp-rounds");
+    if (r) requestAnimationFrame(function () { r.scrollIntoView({ block: "start" }); });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+    if (on) toRounds(b);
+  });
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else { window.mpSolve(); toRounds(b); }
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+
+<title>Словник теорії ймовірностей і статистики — з симуляціями</title>
+<meta name="description" content="Медіана, сподівання, дисперсія, кореляція, нормальний розподіл, логарифм та інші терміни, пояснені через парадокси й симуляції.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/uk/glossary/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/uk/glossary/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/glossary/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/glossary/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/uk/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Словник теорії ймовірностей і статистики — з симуляціями">
+<meta property="og:description" content="Медіана, сподівання, дисперсія, кореляція, нормальний розподіл, логарифм та інші терміни, пояснені через парадокси й симуляції.">
+<meta property="og:url" content="https://mathparadoxes.com/uk/glossary/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Математичні парадокси: словник термінів">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Словник теорії ймовірностей і статистики — з симуляціями">
+<meta name="twitter:description" content="Медіана, сподівання, дисперсія, кореляція, нормальний розподіл, логарифм та інші терміни, пояснені через парадокси й симуляції.">
+<meta name="twitter:image" content="https://mathparadoxes.com/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["CollectionPage", "DefinedTermSet"], "@id": "https://mathparadoxes.com/uk/glossary/", "url": "https://mathparadoxes.com/uk/glossary/", "name": "Словник теорії ймовірностей і статистики — з симуляціями", "description": "Медіана, сподівання, дисперсія, кореляція, нормальний розподіл, логарифм та інші терміни, пояснені через парадокси й симуляції.", "inLanguage": "uk", "author": {"@id": "https://mathparadoxes.com/#author"}, "hasDefinedTerm": [{"@type": "DefinedTerm", "name": "Медіана", "description": "Число посередині: якщо всіх вишикувати за зростанням, половина буде нижче, половина вище.", "url": "https://mathparadoxes.com/uk/glossary/median-vs-mean/"}, {"@type": "DefinedTerm", "name": "Середнє", "description": "Сума всіх значень, поділена на їхню кількість: скільки дісталося б кожному, якби поділити порівну.", "url": "https://mathparadoxes.com/uk/glossary/median-vs-mean/"}, {"@type": "DefinedTerm", "name": "Математичне сподівання", "description": "Середній результат, якого можна чекати, якщо повторювати те саме дуже багато разів.", "url": "https://mathparadoxes.com/uk/glossary/expected-value/"}, {"@type": "DefinedTerm", "name": "Кореляція", "description": "Число від −1 до +1, що показує, наскільки дві величини рухаються разом.", "url": "https://mathparadoxes.com/uk/glossary/correlation/"}, {"@type": "DefinedTerm", "name": "Дисперсія і стандартне відхилення", "description": "Міра розкиду: наскільки значення в середньому відходять від середнього. Стандартне відхилення — корінь з дисперсії, у тих самих одиницях.", "url": "https://mathparadoxes.com/uk/glossary/variance/"}, {"@type": "DefinedTerm", "name": "Нормальний розподіл", "description": "Розподіл у формі дзвона: більшість значень біля середнього, а що далі від нього, то рідше.", "url": "https://mathparadoxes.com/uk/glossary/normal-distribution/"}, {"@type": "DefinedTerm", "name": "Закон великих чисел", "description": "Що більше повторень, то ближче частка результату до його справжньої ймовірності.", "url": "https://mathparadoxes.com/uk/glossary/law-of-large-numbers/"}, {"@type": "DefinedTerm", "name": "Умовна ймовірність", "description": "Шанс події за умови, що вже відомо щось інше.", "url": "https://mathparadoxes.com/uk/glossary/conditional-probability/"}, {"@type": "DefinedTerm", "name": "Незалежність", "description": "Події незалежні, якщо знання про одну не змінює шансів іншої.", "url": "https://mathparadoxes.com/uk/glossary/independence/"}, {"@type": "DefinedTerm", "name": "Логарифм", "description": "Скільки разів треба помножити основу саму на себе, щоб отримати число: log₂ 8 = 3, бо 2 · 2 · 2 = 8.", "url": "https://mathparadoxes.com/uk/glossary/logarithm/"}, {"@type": "DefinedTerm", "name": "Зміщена вибірка", "description": "Вибірка, у яку одні потрапляють частіше за інших, тож вона погано описує всіх.", "url": "https://mathparadoxes.com/uk/glossary/sampling-bias/"}, {"@type": "DefinedTerm", "name": "p-значення", "description": "Як часто сам лише випадок дав би розрив щонайменше такий, як у вас, якби різниці насправді не було.", "url": "https://mathparadoxes.com/uk/glossary/p-value/"}, {"@type": "DefinedTerm", "name": "Шанс перемогти", "description": "Число з байєсівських дашбордів: наскільки ймовірно, що B кращий за A, з огляду на дані й початкове припущення.", "url": "https://mathparadoxes.com/uk/glossary/confidence-vs-chance-to-beat/"}, {"@type": "DefinedTerm", "name": "Довірчий інтервал", "description": "Діапазон навколо виміряного числа, побудований методом, що накриває справжнє значення в обраній частці вибірок, наприклад у 95%.", "url": "https://mathparadoxes.com/uk/glossary/confidence-interval/"}, {"@type": "DefinedTerm", "name": "Статистична потужність", "description": "Імовірність, що тест помітить справжній ефект заданого розміру. Потужність 80% означає: один робочий ефект із п'яти тест пропустить.", "url": "https://mathparadoxes.com/uk/glossary/statistical-power/"}, {"@type": "DefinedTerm", "name": "Стандартна похибка", "description": "Наскільки зазвичай промахується середнє чи частка, пораховані з вибірки: σ, поділене на корінь з розміру вибірки.", "url": "https://mathparadoxes.com/uk/glossary/standard-error/"}, {"@type": "DefinedTerm", "name": "Комбінаторика", "description": "Наука про те, скількома способами можна впорядкувати або вибрати речі: перестановки n!, сполучення C(n, k).", "url": "https://mathparadoxes.com/uk/glossary/combinatorics/"}, {"@type": "DefinedTerm", "name": "Гармонічний ряд", "description": "Сума 1 + ½ + ⅓ + ¼ + …: вона росте без меж, але неймовірно повільно.", "url": "https://mathparadoxes.com/uk/glossary/harmonic-series/"}, {"@type": "DefinedTerm", "name": "Теорема Баєса", "description": "Правило, як змінювати впевненість, коли з'являються нові докази: апріорні шанси × сила доказу.", "url": "https://mathparadoxes.com/uk/glossary/bayes-theorem/"}, {"@type": "DefinedTerm", "name": "Експоненційне зростання", "description": "Зростання, за якого величина щоразу множиться на те саме число, тож подвоюється через рівні проміжки часу.", "url": "https://mathparadoxes.com/uk/glossary/exponential-growth/"}, {"@type": "DefinedTerm", "name": "Випадкове блукання", "description": "Рух, у якому кожен наступний крок робиться навмання: вперед чи назад, ліворуч чи праворуч.", "url": "https://mathparadoxes.com/uk/glossary/random-walk/"}, {"@type": "DefinedTerm", "name": "Пуассонівський потік", "description": "Потік незалежних випадкових подій зі сталою середньою частотою: дзвінки, клацання лічильника, краплі дощу.", "url": "https://mathparadoxes.com/uk/glossary/poisson-process/"}, {"@type": "DefinedTerm", "name": "Біноміальний розподіл", "description": "Скільки успіхів буде в n незалежних спробах, якщо в кожній шанс той самий p.", "url": "https://mathparadoxes.com/uk/glossary/binomial-distribution/"}, {"@type": "DefinedTerm", "name": "Рівновага Неша", "description": "Набір стратегій, у якому нікому не вигідно змінити свою, поки інші не змінюють своїх.", "url": "https://mathparadoxes.com/uk/glossary/nash-equilibrium/"}, {"@type": "DefinedTerm", "name": "Домінантна стратегія", "description": "Варіант, який дає гравцеві більше за будь-який інший його варіант, хоч би що обрали інші.", "url": "https://mathparadoxes.com/uk/glossary/dominant-strategy/"}, {"@type": "DefinedTerm", "name": "Зворотна індукція", "description": "Розв'язування гри з кінця: спершу останній хід, потім передостанній, і так до першого.", "url": "https://mathparadoxes.com/uk/glossary/backward-induction/"}, {"@type": "DefinedTerm", "name": "Спільне знання", "description": "Усі знають факт, усі знають, що всі знають, і так без кінця.", "url": "https://mathparadoxes.com/uk/glossary/common-knowledge/"}, {"@type": "DefinedTerm", "name": "Інваріант", "description": "Величина, яку не змінює жоден дозволений хід: якщо на старті й у цілі вона різна, мети не досягти.", "url": "https://mathparadoxes.com/uk/glossary/invariant/"}, {"@type": "DefinedTerm", "name": "Ентропія", "description": "Скільки відповідей «так чи ні» (бітів) у середньому треба, щоб дізнатися результат: що менш передбачуваний результат, то більша ентропія.", "url": "https://mathparadoxes.com/uk/glossary/entropy/"}, {"@type": "DefinedTerm", "name": "Відсоткові пункти", "description": "Різниця між двома відсотками: з 1% до 2% — це +1 відсотковий пункт, хоча сама частка зросла на 100%.", "url": "https://mathparadoxes.com/uk/glossary/percentage-points/"}, {"@type": "DefinedTerm", "name": "Мінімальний помітний ефект (MDE)", "description": "Найменший справжній ефект, який тест заданого розміру знайде з імовірністю 80% (зазвичай за рівня значущості 5%). Менші ефекти тест здебільшого пропустить.", "url": "https://mathparadoxes.com/uk/glossary/minimum-detectable-effect/"}, {"@type": "DefinedTerm", "name": "Бутстреп", "description": "Спосіб дізнатися похибку будь-якої цифри без формули: багато разів витягнути з власних даних вибірку того самого розміру з поверненням і подивитися, як стрибає результат.", "url": "https://mathparadoxes.com/uk/glossary/bootstrap/"}, {"@type": "DefinedTerm", "name": "Принцип Діріхле", "description": "Якщо предметів більше, ніж скриньок, у якійсь скриньці опиниться щонайменше два.", "url": "https://mathparadoxes.com/uk/glossary/pigeonhole-principle/"}, {"@type": "DefinedTerm", "name": "Абсолютний ризик", "description": "Яка частка людей зазнає події: наприклад, 2 з 1 000, тобто 0,2%.", "url": "https://mathparadoxes.com/uk/glossary/absolute-vs-relative-risk/"}, {"@type": "DefinedTerm", "name": "Відносний ризик", "description": "У скільки разів ризик в одній групі більший чи менший, ніж в іншій: 1 з 1 000 проти 2 з 1 000 — удвічі менший.", "url": "https://mathparadoxes.com/uk/glossary/absolute-vs-relative-risk/"}, {"@type": "DefinedTerm", "name": "Холдаут-група", "description": "Невелика випадкова частка клієнтів, яка довго не бачить жодної із запущених змін, щоб порівняння з нею показало, що всі зміни дали разом.", "url": "https://mathparadoxes.com/uk/glossary/holdout/"}]}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/uk/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: the glossary contents. One card per term from glossary/terms.json; shared glossary styles come from site.css. */
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=0215c449">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="https://mathparadoxes.com/uk/"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+    <nav class="mp-nav" aria-label="Розділи" data-t="{&quot;cont&quot;: &quot;Продовжити&quot;, &quot;course&quot;: &quot;Продовжити курс&quot;}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Меню"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Продовжити: <b></b></a><a href="https://mathparadoxes.com/uk/#all">Задачі</a><a href="https://mathparadoxes.com/uk/courses/">Курси</a><a href="https://mathparadoxes.com/uk/glossary/" aria-current="page">Словник</a></div><button type="button" class="mp-sx-btn" aria-haspopup="dialog" aria-label="Пошук" data-src="https://mathparadoxes.com/uk/search.json" data-t="{&quot;btn&quot;: &quot;Пошук&quot;, &quot;ph&quot;: &quot;Задача, курс або термін&quot;, &quot;all&quot;: &quot;Усе&quot;, &quot;p&quot;: &quot;Задачі&quot;, &quot;c&quot;: &quot;Курси&quot;, &quot;g&quot;: &quot;Словник&quot;, &quot;recent&quot;: &quot;Нещодавно відкриті&quot;, &quot;try&quot;: &quot;Спробуйте&quot;, &quot;none&quot;: &quot;Нічого не знайшлося. Спробуйте інше слово або&quot;, &quot;every&quot;: &quot;подивіться всі задачі&quot;, &quot;keys&quot;: &quot;↑↓ вибрати · Enter відкрити · Esc закрити&quot;, &quot;solved&quot;: &quot;розв&#x27;язано&quot;, &quot;load&quot;: &quot;Завантаження…&quot;, &quot;fail&quot;: &quot;Не вдалося завантажити пошук. Перевірте з&#x27;єднання.&quot;, &quot;close&quot;: &quot;Закрити&quot;, &quot;course&quot;: &quot;Курс&quot;, &quot;chapter&quot;: &quot;розділ %d з %d&quot;, &quot;glossary&quot;: &quot;Словник&quot;, &quot;ideas&quot;: [&quot;ймовірність&quot;, &quot;A/B-тест&quot;, &quot;Монті Голл&quot;, &quot;медіана&quot;, &quot;співбесіда&quot;, &quot;аукціон&quot;]}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="mp-sx-lbl">Пошук</span><kbd>/</kbd></button></nav>
+  <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="https://mathparadoxes.com/uk/glossary/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="https://mathparadoxes.com/glossary/" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+
+  <header class="gl-head">
+    <span class="eyebrow"><span class="uk">Словник</span></span>
+    <h1><span class="uk">Терміни, у яких теж є парадокси</span></h1>
+    <p class="lead uk">Медіана, сподівання, кореляція: ці слова трапляються в поясненнях задач і здаються сухими. Але кожне з них має свою пастку для інтуїції. Тут їх можна покрутити руками на симуляціях і побачити, коли яке число брати.</p>
+    
+  </header>
+
+<details class="gl-toc-box"><summary><b>Зміст</b><span class="words">Середні та розкид · Ймовірність · Дані та експерименти · Зростання і випадковість у часі · Ігри та логіка · Відсотки і ризик</span></summary><nav class="gl-toc" aria-label="Словник"><div class="gl-toc-col"><a class="gl-toc-lab" href="#averages">Середні та розкид</a><a href="#mean">Середнє</a><a href="#median">Медіана</a><a href="#expected-value">Математичне сподівання</a><a href="#variance">Дисперсія і стандартне відхилення</a><a href="#normal-distribution">Нормальний розподіл</a></div><div class="gl-toc-col"><a class="gl-toc-lab" href="#probability">Ймовірність</a><a href="#combinatorics">Комбінаторика</a><a href="#conditional-probability">Умовна ймовірність</a><a href="#independence">Незалежність</a><a href="#bayes-theorem">Теорема Баєса</a><a href="#binomial-distribution">Біноміальний розподіл</a><a href="#entropy">Ентропія</a></div><div class="gl-toc-col"><a class="gl-toc-lab" href="#data">Дані та експерименти</a><a href="#sampling-bias">Зміщена вибірка</a><a href="#law-of-large-numbers">Закон великих чисел</a><a href="#correlation">Кореляція</a><a href="#standard-error">Стандартна похибка</a><a href="#confidence-interval">Довірчий інтервал</a><a href="#p-value">p-значення</a><a href="#chance-to-beat">Шанс перемогти</a><a href="#statistical-power">Статистична потужність</a><a href="#mde">Мінімальний помітний ефект (MDE)</a><a href="#bootstrap">Бутстреп</a><a href="#holdout">Холдаут-група</a></div><div class="gl-toc-col"><a class="gl-toc-lab" href="#growth">Зростання і випадковість у часі</a><a href="#exponential-growth">Експоненційне зростання</a><a href="#logarithm">Логарифм</a><a href="#harmonic-series">Гармонічний ряд</a><a href="#random-walk">Випадкове блукання</a><a href="#poisson-process">Пуассонівський потік</a></div><div class="gl-toc-col"><a class="gl-toc-lab" href="#games">Ігри та логіка</a><a href="#dominant-strategy">Домінантна стратегія</a><a href="#nash-equilibrium">Рівновага Неша</a><a href="#backward-induction">Зворотна індукція</a><a href="#common-knowledge">Спільне знання</a><a href="#invariant">Інваріант</a><a href="#pigeonhole-principle">Принцип Діріхле</a></div><div class="gl-toc-col"><a class="gl-toc-lab" href="#risk">Відсотки і ризик</a><a href="#percentage-points">Відсоткові пункти</a><a href="#absolute-risk">Абсолютний ризик</a><a href="#relative-risk">Відносний ризик</a></div></nav></details>
+  <section class="gl-sec gl-group" id="averages"><h2>Середні та розкид</h2><p>Одним числом описують цілу купу даних: зарплати, час у дорозі, виграш у грі. Яке саме середнє взяли і наскільки дані розкидані навколо нього, вирішує, чи це число каже правду, чи вводить в оману.</p>
+    <ul class="gl-cards">
+      <li class="gl-card" id="mean"><a href="https://mathparadoxes.com/uk/glossary/median-vs-mean/"><h3>Середнє</h3><p>Сума всіх значень, поділена на їхню кількість: скільки дісталося б кожному, якби поділити порівну.</p><p class="gl-hook">Майже кожна людина має більше ніг, ніж у середньому: середнє трохи менше за дві.</p></a></li>
+      <li class="gl-card" id="median"><a href="https://mathparadoxes.com/uk/glossary/median-vs-mean/"><h3>Медіана</h3><p>Число посередині: якщо всіх вишикувати за зростанням, половина буде нижче, половина вище.</p><p class="gl-hook">До бару заходить мільйонер, і середній дохід відвідувачів злітає, а медіана ледь ворухнеться.</p></a></li>
+      <li class="gl-card" id="expected-value"><a href="https://mathparadoxes.com/uk/glossary/expected-value/"><h3>Математичне сподівання</h3><p>Середній результат, якого можна чекати, якщо повторювати те саме дуже багато разів.</p><p class="gl-hook">У грального кубика сподівання 3,5, хоча такої грані немає.</p></a></li>
+      <li class="gl-card" id="variance"><a href="https://mathparadoxes.com/uk/glossary/variance/"><h3>Дисперсія і стандартне відхилення</h3><p>Міра розкиду: наскільки значення в середньому відходять від середнього. Стандартне відхилення&nbsp;— корінь з дисперсії, у тих самих одиницях.</p><p class="gl-hook">Два міста з однаковою середньою температурою: в одному весь рік близько +15, в іншому то −20, то +50.</p></a></li>
+      <li class="gl-card" id="normal-distribution"><a href="https://mathparadoxes.com/uk/glossary/normal-distribution/"><h3>Нормальний розподіл</h3><p>Розподіл у формі дзвона: більшість значень біля середнього, а що далі від нього, то рідше.</p><p class="gl-hook">Кожна кулька на дошці Гальтона падає навмання, а тисячі кульок щоразу складаються в той самий дзвін.</p></a></li>
+    </ul></section>
+  <section class="gl-sec gl-group" id="probability"><h2>Ймовірність</h2><p>Як рахувати шанси, коли варіантів дуже багато або коли з&#x27;являється нова інформація. Саме тут інтуїція помиляється найчастіше: аналізи на хворобу, ігрові шоу, збіги днів народження.</p>
+    <ul class="gl-cards">
+      <li class="gl-card" id="combinatorics"><a href="https://mathparadoxes.com/uk/glossary/combinatorics/"><h3>Комбінаторика</h3><p>Наука про те, скількома способами можна впорядкувати або вибрати речі: перестановки n!, сполучення C(n, k).</p><p class="gl-hook">Добре перетасована колода майже напевно лежить у порядку, якого ще не бачив ніхто й ніколи.</p></a></li>
+      <li class="gl-card" id="conditional-probability"><a href="https://mathparadoxes.com/uk/glossary/conditional-probability/"><h3>Умовна ймовірність</h3><p>Шанс події за умови, що вже відомо щось інше.</p><p class="gl-hook">Майже всі баскетболісти НБА високі, але майже всі високі люди не баскетболісти.</p></a></li>
+      <li class="gl-card" id="independence"><a href="https://mathparadoxes.com/uk/glossary/independence/"><h3>Незалежність</h3><p>Події незалежні, якщо знання про одну не змінює шансів іншої.</p><p class="gl-hook">Після п&#x27;яти орлів поспіль решка не стає ймовірнішою: монета нічого не пам&#x27;ятає.</p></a></li>
+      <li class="gl-card" id="bayes-theorem"><a href="https://mathparadoxes.com/uk/glossary/bayes-theorem/"><h3>Теорема Баєса</h3><p>Правило, як змінювати впевненість, коли з&#x27;являються нові докази: апріорні шанси × сила доказу.</p><p class="gl-hook">Два слабкі докази разом бувають сильними, а один яскравий нічого не важить, якщо твердження було малоймовірним.</p></a></li>
+      <li class="gl-card" id="binomial-distribution"><a href="https://mathparadoxes.com/uk/glossary/binomial-distribution/"><h3>Біноміальний розподіл</h3><p>Скільки успіхів буде в n незалежних спробах, якщо в кожній шанс той самий p.</p><p class="gl-hook">Підкиньте монетку 100 разів: рівно 50 орлів&nbsp;— найімовірніший результат, але випадає він лише в 8 випадках зі 100.</p></a></li>
+      <li class="gl-card" id="entropy"><a href="https://mathparadoxes.com/uk/glossary/entropy/"><h3>Ентропія</h3><p>Скільки відповідей «так чи ні» (бітів) у середньому треба, щоб дізнатися результат: що менш передбачуваний результат, то більша ентропія.</p><p class="gl-hook">Монета, що падає гербом у 99% випадків, теж може впасти будь-яким боком, але одне її підкидання несе лише 0,08 біта: у 12 разів менше, ніж чесна.</p></a></li>
+    </ul></section>
+  <section class="gl-sec gl-group" id="data"><h2>Дані та експерименти</h2><p>Як за вибіркою судити про всіх і не обдурити себе. Ці слова стоять за кожним «науково доведено», опитуванням перед виборами і «конверсія виросла на 5%» в A/B-тесті.</p>
+    <ul class="gl-cards">
+      <li class="gl-card" id="sampling-bias"><a href="https://mathparadoxes.com/uk/glossary/sampling-bias/"><h3>Зміщена вибірка</h3><p>Вибірка, у яку одні потрапляють частіше за інших, тож вона погано описує всіх.</p><p class="gl-hook">1936 року журнал опитав мільйони американців і все одно помилився з переможцем виборів.</p></a></li>
+      <li class="gl-card" id="law-of-large-numbers"><a href="https://mathparadoxes.com/uk/glossary/law-of-large-numbers/"><h3>Закон великих чисел</h3><p>Що більше повторень, то ближче частка результату до його справжньої ймовірності.</p><p class="gl-hook">Частка орлів підповзає до 50%, а різниця між орлами й решками в штуках зазвичай росте.</p></a></li>
+      <li class="gl-card" id="correlation"><a href="https://mathparadoxes.com/uk/glossary/correlation/"><h3>Кореляція</h3><p>Число від −1 до +1, що показує, наскільки дві величини рухаються разом.</p><p class="gl-hook">Улітку ростуть і продаж морозива, і кількість утоплень. Морозиво тут ні до чого: обох розганяє спека.</p></a></li>
+      <li class="gl-card" id="standard-error"><a href="https://mathparadoxes.com/uk/glossary/standard-error/"><h3>Стандартна похибка</h3><p>Наскільки зазвичай промахується середнє чи частка, пораховані з вибірки: σ, поділене на корінь з розміру вибірки.</p><p class="gl-hook">Щоб удвічі зменшити похибку, треба вчетверо більше даних.</p></a></li>
+      <li class="gl-card" id="confidence-interval"><a href="https://mathparadoxes.com/uk/glossary/confidence-interval/"><h3>Довірчий інтервал</h3><p>Діапазон навколо виміряного числа, побудований методом, що накриває справжнє значення в обраній частці вибірок, наприклад у 95%.</p><p class="gl-hook">Із двадцяти чесних 95% інтервалів у середньому один промахується, і жоден не знає, чи це він.</p></a></li>
+      <li class="gl-card" id="p-value"><a href="https://mathparadoxes.com/uk/glossary/p-value/"><h3>p-значення</h3><p>Як часто сам лише випадок дав би розрив щонайменше такий, як у вас, якби різниці насправді не було.</p><p class="gl-hook">Коли ефекту немає зовсім, p &lt; 0,05 випадає так само часто, як p між 0,50 і 0,55.</p></a></li>
+      <li class="gl-card" id="chance-to-beat"><a href="https://mathparadoxes.com/uk/glossary/confidence-vs-chance-to-beat/"><h3>Шанс перемогти</h3><p>Число з байєсівських дашбордів: наскільки ймовірно, що <span class="vl">B</span> кращий за <span class="vl">A</span>, з огляду на дані й початкове припущення.</p><p class="gl-hook">«Шанс 97%» каже правду, лише коли кожна ваша ідея щось змінює; якщо чотири з п&#x27;яти марні, <span class="vl">B</span> кращий лише в третині таких тестів.</p></a></li>
+      <li class="gl-card" id="statistical-power"><a href="https://mathparadoxes.com/uk/glossary/statistical-power/"><h3>Статистична потужність</h3><p>Імовірність, що тест помітить справжній ефект заданого розміру. Потужність 80% означає: один робочий ефект із п&#x27;яти тест пропустить.</p><p class="gl-hook">Слабкий A/B-тест, який таки знайшов ефект, майже завжди його перебільшує: справжні +10% на дашборді стають +24%.</p></a></li>
+      <li class="gl-card" id="mde"><a href="https://mathparadoxes.com/uk/glossary/minimum-detectable-effect/"><h3>Мінімальний помітний ефект (MDE)</h3><p>Найменший справжній ефект, який тест заданого розміру знайде з імовірністю 80% (зазвичай за рівня значущості 5%). Менші ефекти тест здебільшого пропустить.</p><p class="gl-hook">Магазину з 1000 відвідувачів на день, щоб надійно помітити +2% до конверсії, треба тестувати сім років.</p></a></li>
+      <li class="gl-card" id="bootstrap"><a href="https://mathparadoxes.com/uk/glossary/bootstrap/"><h3>Бутстреп</h3><p>Спосіб дізнатися похибку будь-якої цифри без формули: багато разів витягнути з власних даних вибірку того самого розміру з поверненням і подивитися, як стрибає результат.</p><p class="gl-hook">Кожна перевибірка губить третину ваших даних і дублює інші, а розкид таких копій показує справжню похибку.</p></a></li>
+      <li class="gl-card" id="holdout"><a href="https://mathparadoxes.com/uk/glossary/holdout/"><h3>Холдаут-група</h3><p>Невелика випадкова частка клієнтів, яка довго не бачить жодної із запущених змін, щоб порівняння з нею показало, що всі зміни дали разом.</p><p class="gl-hook">Двадцять змін за рік, і кожна виграла свій A/B-тест, разом майже +50%, а клієнти, які не бачили жодної з них, купують лише приблизно на 7% менше.</p></a></li>
+    </ul></section>
+  <section class="gl-sec gl-group" id="growth"><h2>Зростання і випадковість у часі</h2><p>Що буває, коли щось множиться, накопичується або блукає крок за кроком: ряска на озері, епідемія, гравець у казино, черга до каси. Інтуїція звикла до прямих ліній, а тут усе рухається кривими.</p>
+    <ul class="gl-cards">
+      <li class="gl-card" id="exponential-growth"><a href="https://mathparadoxes.com/uk/glossary/exponential-growth/"><h3>Експоненційне зростання</h3><p>Зростання, за якого величина щоразу множиться на те саме число, тож подвоюється через рівні проміжки часу.</p><p class="gl-hook">Одне зернятко на першій клітинці шахівниці й подвоєння на кожній наступній: на останній клітинці стільки рису, скільки світ вирощує понад 300 років.</p></a></li>
+      <li class="gl-card" id="logarithm"><a href="https://mathparadoxes.com/uk/glossary/logarithm/"><h3>Логарифм</h3><p>Скільки разів треба помножити основу саму на себе, щоб отримати число: log₂ 8 = 3, бо 2 · 2 · 2 = 8.</p><p class="gl-hook">Аркуш паперу, складений навпіл 42 рази, був би товщим за відстань до Місяця.</p></a></li>
+      <li class="gl-card" id="harmonic-series"><a href="https://mathparadoxes.com/uk/glossary/harmonic-series/"><h3>Гармонічний ряд</h3><p>Сума 1 + ½ + ⅓ + ¼ + …: вона росте без меж, але неймовірно повільно.</p><p class="gl-hook">Однакові книжки можна скласти так, що верхня нависатиме над краєм столу як завгодно далеко.</p></a></li>
+      <li class="gl-card" id="random-walk"><a href="https://mathparadoxes.com/uk/glossary/random-walk/"><h3>Випадкове блукання</h3><p>Рух, у якому кожен наступний крок робиться навмання: вперед чи назад, ліворуч чи праворуч.</p><p class="gl-hook">П&#x27;яний завжди дійде додому, а птах, що літає навмання, може не повернутися ніколи.</p></a></li>
+      <li class="gl-card" id="poisson-process"><a href="https://mathparadoxes.com/uk/glossary/poisson-process/"><h3>Пуассонівський потік</h3><p>Потік незалежних випадкових подій зі сталою середньою частотою: дзвінки, клацання лічильника, краплі дощу.</p><p class="gl-hook">У 1944 році лондонцям здавалося, що німецькі літаючі бомби влучають прицільно, а це була звичайна випадкова купчастість.</p></a></li>
+    </ul></section>
+  <section class="gl-sec gl-group" id="games"><h2>Ігри та логіка</h2><p>Коли результат залежить не лише від вас, а й від того, що зроблять інші і що вони знають, звичайна арифметика вигоди перестає працювати. Ці ідеї пояснюють, коли один вибір кращий за будь-якого розкладу, де рівновага, як міркувати від кінця, чому «всі знають» ще не означає «всі знають, що всі знають», а ще як довести «неможливо» або «точно збіжиться», нічого не перебираючи.</p>
+    <ul class="gl-cards">
+      <li class="gl-card" id="dominant-strategy"><a href="https://mathparadoxes.com/uk/glossary/dominant-strategy/"><h3>Домінантна стратегія</h3><p>Варіант, який дає гравцеві більше за будь-який інший його варіант, хоч би що обрали інші.</p><p class="gl-hook">Знижка вигідна кав&#x27;ярні, хоч би що зробила сусідня, але коли знижують обидві, кожна заробляє втричі менше, ніж якби обидві тримали ціну.</p></a></li>
+      <li class="gl-card" id="nash-equilibrium"><a href="https://mathparadoxes.com/uk/glossary/nash-equilibrium/"><h3>Рівновага Неша</h3><p>Набір стратегій, у якому нікому не вигідно змінити свою, поки інші не змінюють своїх.</p><p class="gl-hook">У дилемі в&#x27;язня обидва зраджують, хоча мовчати вигідніше обом: рівновага не означає найкращий результат.</p></a></li>
+      <li class="gl-card" id="backward-induction"><a href="https://mathparadoxes.com/uk/glossary/backward-induction/"><h3>Зворотна індукція</h3><p>Розв&#x27;язування гри з кінця: спершу останній хід, потім передостанній, і так до першого.</p><p class="gl-hook">У грі-стоніжці логіка велить забрати копійки на першому ж ході, хоча, граючи довше, обидва отримали б сотні, і живі люди так майже не роблять.</p></a></li>
+      <li class="gl-card" id="common-knowledge"><a href="https://mathparadoxes.com/uk/glossary/common-knowledge/"><h3>Спільне знання</h3><p>Усі знають факт, усі знають, що всі знають, і так без кінця.</p><p class="gl-hook">Два генерали можуть обмінятися тисячею підтверджень і все одно не мати спільного знання, тож жоден не наважиться атакувати першим.</p></a></li>
+      <li class="gl-card" id="invariant"><a href="https://mathparadoxes.com/uk/glossary/invariant/"><h3>Інваріант</h3><p>Величина, яку не змінює жоден дозволений хід: якщо на старті й у цілі вона різна, мети не досягти.</p><p class="gl-hook">З шахівниці вирізали два протилежні кути, і 31 доміно вже не накриє 62 клітинки, хоч як їх класти.</p></a></li>
+      <li class="gl-card" id="pigeonhole-principle"><a href="https://mathparadoxes.com/uk/glossary/pigeonhole-principle/"><h3>Принцип Діріхле</h3><p>Якщо предметів більше, ніж скриньок, у якійсь скриньці опиниться щонайменше два.</p><p class="gl-hook">У Києві щонайменше троє людей мають рівно однакову кількість волосин на голові, хоча ніхто їх не рахував.</p></a></li>
+    </ul></section>
+  <section class="gl-sec gl-group" id="risk"><h2>Відсотки і ризик</h2><p>Ті самі числа можна подати як «+100%» або як «ще одна людина з тисячі», і обидва варіанти правдиві. Ці слова допомагають читати новини про ліки, ставки й конверсії, не лякаючись і не радіючи дарма.</p>
+    <ul class="gl-cards">
+      <li class="gl-card" id="percentage-points"><a href="https://mathparadoxes.com/uk/glossary/percentage-points/"><h3>Відсоткові пункти</h3><p>Різниця між двома відсотками: з 1% до 2%&nbsp;— це +1 відсотковий пункт, хоча сама частка зросла на 100%.</p><p class="gl-hook">«Конверсія зросла на 1%» і «конверсія подвоїлася» описують різні події, а «зросла на 100%» може означати лише 10 покупців на тисячу.</p></a></li>
+      <li class="gl-card" id="absolute-risk"><a href="https://mathparadoxes.com/uk/glossary/absolute-vs-relative-risk/"><h3>Абсолютний ризик</h3><p>Яка частка людей зазнає події: наприклад, 2 з 1&nbsp;000, тобто 0,2%.</p><p class="gl-hook">Ліки, що вдвічі знижують ризик, можуть допомогти лише одному з тисячі тих, хто їх приймає.</p></a></li>
+      <li class="gl-card" id="relative-risk"><a href="https://mathparadoxes.com/uk/glossary/absolute-vs-relative-risk/"><h3>Відносний ризик</h3><p>У скільки разів ризик в одній групі більший чи менший, ніж в іншій: 1 з 1&nbsp;000 проти 2 з 1&nbsp;000&nbsp;— удвічі менший.</p><p class="gl-hook">Смертність падає з 2% до 1%: смертей на 50% менше, а тих, хто вижив, лише на 1% більше.</p></a></li>
+    </ul></section>
+
+  <footer>
+    <span class="uk">Математичні парадокси · автор <a href="https://mathparadoxes.com/uk/#author">Дмитро Кудренко</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Розділи"><a href="https://mathparadoxes.com/uk/#all">Задачі</a><a href="https://mathparadoxes.com/uk/courses/">Курси</a><a href="https://mathparadoxes.com/uk/glossary/" aria-current="page">Словник</a></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t), old = false;
+  // items saved before 2026-11 carry the old URLs (Ukrainian at /x/, English at /x/en/): move them to /uk/x/ and /x/
+  list.forEach(function (p) {
+    if (p.u && p.u.uk && !/^https?:\/\/[^\/]+\/uk\//.test(p.u.uk)) {
+      p.u = { uk: p.u.uk.replace(/^(https?:\/\/[^\/]+\/)/, "$1uk/"), en: String(p.u.en).replace(/en\/$/, "") };
+      old = true;
+    }
+  });
+  if (old && !me) try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+<script>
+(function () {
+  var btn = document.querySelector(".mp-sx-btn");
+  if (!btn) return;
+  var T = JSON.parse(btn.dataset.t), lang = document.documentElement.dataset.lang === "en" ? "en" : "uk";
+  var data = null, loading = null, box = null, input, list, tabs, foot, tab = "", act = 0, opts = [], back = null;
+  var W = { n: 3, on: 2.5, k: 2, d: 1, x: 0.8, o: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
+  // small words that may match nothing without dropping the result ("задача про монети")
+  var STOP = ["и", "та", "в", "у", "на", "з", "из", "до", "для", "про", "як", "що", "the", "a", "an", "of", "in", "on", "and", "to", "for", "how", "what"];
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  btn.querySelector("kbd").textContent = mac ? "⌘K" : "Ctrl K";
+
+  function norm(s) {
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’'ʼ`ъ]/g, "")
+      .replace(/[іыий]/g, "и").replace(/[єэё]/g, "е").replace(/ґ/g, "г");
+  }
+  function words(s) { return norm(s).split(/[^0-9a-zа-я]+/).filter(Boolean); }
+  // one edit apart: a letter swapped, missing, extra or two letters transposed
+  function near(a, b) {
+    var la = a.length, lb = b.length, i = 0;
+    if (Math.abs(la - lb) > 1) return false;
+    while (i < la && i < lb && a[i] === b[i]) i++;
+    if (la === lb) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+    return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+  }
+  // how well a query word q fits a word w of the text: whole word, its start, the same stem (Ukrainian endings), a typo
+  function hit(q, w) {
+    if (w === q) return 1;
+    if (w.lastIndexOf(q, 0) === 0) return 0.85;
+    if (q.length >= 4) {
+      if (q.length >= 5 && w.lastIndexOf(q.slice(0, Math.max(4, q.length - 2)), 0) === 0) return 0.6;
+      for (var d = -1; d <= 1; d++) if (near(q, w.slice(0, q.length + d))) return 0.45;
+    }
+    return q.length >= 3 && w.indexOf(q) > 0 ? 0.35 : 0;
+  }
+  // the score of an item, and in it.low the weakest word match (a typo or a piece of a word is weak)
+  function score(it, qs, phrase) {
+    var total = 0;
+    it.low = 1;
+    for (var i = 0; i < qs.length; i++) {
+      var best = 0, bestF;
+      for (var f in W) {
+        var ws = it.w[f];
+        for (var j = 0; j < ws.length; j++) { var h = hit(qs[i], ws[j]) * W[f]; if (h > best) { best = h; bestF = f; } }
+      }
+      if (!best && STOP.indexOf(qs[i]) === -1) return 0;
+      if (best) it.low = Math.min(it.low, best / W[bestF]);
+      total += best;
+    }
+    var name = it.w.nn, alt = it.w.no;
+    if (name.lastIndexOf(phrase, 0) === 0 || alt.lastIndexOf(phrase, 0) === 0) total += 2;
+    else if (name.indexOf(phrase) !== -1 || alt.indexOf(phrase) !== -1) total += 1;
+    return total + (it.t === "p" ? 0.2 : it.t === "h" ? -0.2 : 0);
+  }
+  function load() {
+    if (!loading) loading = fetch(btn.dataset.src).then(function (r) { return r.json(); }).then(function (j) {
+      data = j.items;
+      // a chapter's line under the name is only its course and number, so "парадокси" does not find all 21 chapters
+      data.forEach(function (it) {
+        it.w = { n: words(it.n), on: words(it.on || ""), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), o: words(it.o || ""),
+                 nn: words(it.n).join(" "), no: words(it.on || "").join(" ") };
+      });
+    });
+    return loading;
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done(it) {
+    if (it.t === "p") return !!get("mp-solved:" + it.s);
+    if (it.t !== "c") return false;
+    var d = []; try { d = JSON.parse(get("mp-course:" + it.s) || "[]"); } catch (e) {}
+    return d.length > 0;
+  }
+  function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+  // the text with the words that match the query in <mark>
+  function marked(text, qs) {
+    var out = document.createDocumentFragment(), parts = String(text).split(/([0-9A-Za-zА-Яа-яЄєІіЇїҐґЁё’'ʼ]+)/);
+    parts.forEach(function (p, i) {
+      if (!p) return;
+      var w = i % 2 && words(p), on = w && qs.length && w.some(function (x) { return qs.some(function (q) { return hit(q, x) >= 0.45; }); });
+      out.appendChild(on ? el("mark", null, p) : document.createTextNode(p));
+    });
+    return out;
+  }
+  function icon(it) {
+    var s = el("span", "mp-sx-ic mp-sx-" + it.t);
+    s.style.setProperty("--tint", it.tint || "var(--soft)");  // not the page's own --tint
+    if (it.t === "p") { var b = s.appendChild(el("span", "mp-bars")); for (var i = 1; i <= 3; i++) b.appendChild(el("i", i <= it.lv ? "on" : "")); }
+    else s.textContent = it.t === "g" ? "Aa" : it.t === "c" ? "≡" : "§";
+    return s;
+  }
+  function row(it, qs) {
+    var a = el("a", "mp-sx-it"); a.href = it.u; a.setAttribute("role", "option"); a.id = "mp-sx-o" + opts.length;
+    var tx = el("span", "mp-sx-tx"), n = el("b"), d = el("span");
+    n.appendChild(marked(it.n, qs)); d.appendChild(marked(it.d || "", qs)); tx.append(n, d);
+    a.append(icon(it), tx);
+    if (done(it)) { var ok = el("span", "mp-sx-ok", "✓"); ok.title = T.solved; a.appendChild(ok); }
+    opts.push(a);
+    return a;
+  }
+  function head(text) { return el("li", "mp-sx-h", text); }
+  function wrap(a) { var li = el("li"); li.setAttribute("role", "presentation"); li.appendChild(a); return li; }
+  function render() {
+    var q = input.value.trim(), qs = words(q), phrase = qs.join(" ");
+    list.textContent = ""; opts = []; act = 0;
+    tabs.hidden = !qs.length;
+    if (!qs.length) {
+      var recent = []; try { recent = JSON.parse(get("mp-recent") || "[]"); } catch (e) {}
+      recent = recent.slice(0, 5).map(function (r) {
+        var it = data && data.filter(function (x) { return (x.t === "p" && x.s === r.s) || (x.t === "c" && "course:" + x.s === r.s); })[0];
+        return it || { t: r.c ? "c" : "p", s: r.s, n: r.n[lang], u: r.u[lang] };
+      });
+      if (recent.length) { list.appendChild(head(T.recent)); recent.forEach(function (it) { list.appendChild(wrap(row(it, []))); }); }
+      var li = el("li", "mp-sx-try"); li.appendChild(el("span", null, T.try + ": "));
+      T.ideas.forEach(function (w, i) {
+        var b = el("button", null, w); b.type = "button";
+        b.addEventListener("click", function () { input.value = w; render(); input.focus(); });
+        if (i) li.appendChild(document.createTextNode(" · "));
+        li.appendChild(b);
+      });
+      list.appendChild(li);
+      return mark();
+    }
+    if (!data) { list.appendChild(el("li", "mp-sx-msg", T.load)); return; }
+    var found = data.map(function (it) { return { it: it, s: score(it, qs, phrase) }; }).filter(function (r) { return r.s > 0; });
+    // typos and pieces of words count only when nothing matches by whole words, their starts or stems
+    if (found.some(function (r) { return r.it.low >= 0.6; })) found = found.filter(function (r) { return r.it.low >= 0.6; });
+    found.sort(function (a, b) { return b.s - a.s; });
+    var count = { "": found.length, p: 0, c: 0, g: 0 };
+    found.forEach(function (r) { count[GROUP[r.it.t]]++; });
+    [].forEach.call(tabs.children, function (b) {
+      b.lastChild.textContent = count[b.dataset.k] ? " " + count[b.dataset.k] : "";
+      b.setAttribute("aria-pressed", b.dataset.k === tab);
+      b.disabled = !count[b.dataset.k] && b.dataset.k !== tab;
+    });
+    if (tab) found = found.filter(function (r) { return GROUP[r.it.t] === tab; });
+    if (!found.length) {
+      var m = el("li", "mp-sx-msg", T.none + " "), a = el("a", null, T.every);
+      a.href = document.querySelector(".mp-nav-list a:not(.mp-cont)").href; m.appendChild(a); list.appendChild(m);
+      return mark();
+    }
+    // groups in the order of their best match; with no tab chosen each shows its first 6
+    var order = [], by = {};
+    found.forEach(function (r) { var g = GROUP[r.it.t]; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(r.it); });
+    order.forEach(function (g) {
+      if (!tab) list.appendChild(head(T[g]));
+      var items = tab ? by[g] : by[g].slice(0, 6);
+      items.forEach(function (it) { list.appendChild(wrap(row(it, qs))); });
+      if (!tab && by[g].length > 6) {
+        var more = el("button", "mp-sx-more", "+" + (by[g].length - 6) + " →"); more.type = "button";
+        more.addEventListener("click", function () { tab = g; render(); input.focus(); });
+        var li = el("li"); li.appendChild(more); list.appendChild(li);
+      }
+    });
+    mark();
+  }
+  function mark() {
+    opts.forEach(function (o, i) { o.setAttribute("aria-selected", i === act); });
+    if (opts[act]) { input.setAttribute("aria-activedescendant", opts[act].id); opts[act].scrollIntoView({ block: "nearest" }); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function build() {
+    box = el("div", "mp-sx"); box.hidden = true;
+    box.innerHTML = '<div class="mp-sx-box" role="dialog" aria-modal="true"><div class="mp-sx-head">' + btn.querySelector("svg").outerHTML +
+      '<input type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="mp-sx-list" aria-autocomplete="list">' +
+      '<button type="button" class="mp-sx-x"></button></div><div class="mp-sx-tabs"></div><ul class="mp-sx-list" id="mp-sx-list" role="listbox"></ul>' +
+      '<div class="mp-sx-foot"></div></div>';
+    document.body.appendChild(box);
+    input = box.querySelector("input"); list = box.querySelector("ul"); tabs = box.querySelector(".mp-sx-tabs"); foot = box.querySelector(".mp-sx-foot");
+    box.firstChild.setAttribute("aria-label", T.btn); input.placeholder = T.ph; input.setAttribute("aria-label", T.btn);
+    var x = box.querySelector(".mp-sx-x"); x.textContent = "Esc"; x.setAttribute("aria-label", T.close);
+    foot.textContent = T.keys;
+    [["", T.all], ["p", T.p], ["c", T.c], ["g", T.g]].forEach(function (k) {
+      var b = el("button", null, k[1]); b.type = "button"; b.dataset.k = k[0]; b.appendChild(el("span"));
+      b.addEventListener("click", function () { tab = k[0]; render(); input.focus(); });
+      tabs.appendChild(b);
+    });
+    input.addEventListener("input", function () { tab = ""; render(); });
+    box.addEventListener("click", function (e) { if (e.target === box || e.target === x) close(); });
+    box.addEventListener("mousemove", function (e) {
+      var o = e.target.closest(".mp-sx-it"), i = opts.indexOf(o);
+      if (i !== -1 && i !== act) { act = i; mark(); }
+    });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (opts.length) { act = (act + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length; mark(); }
+      } else if (e.key === "Enter" && opts[act]) { e.preventDefault(); opts[act].click(); }
+    });
+  }
+  function open(q) {
+    if (!box) build();
+    if (!box.hidden) return input.focus();
+    back = document.activeElement; box.hidden = false; document.documentElement.classList.add("mp-sx-on");
+    if (q != null) input.value = q;
+    input.focus(); input.select(); render();
+    load().then(render, function () { list.textContent = ""; list.appendChild(el("li", "mp-sx-msg", T.fail)); loading = null; });
+  }
+  function close() {
+    if (!box || box.hidden) return;
+    box.hidden = true; document.documentElement.classList.remove("mp-sx-on");
+    if (back && back.focus) back.focus();
+  }
+  btn.addEventListener("click", function () { open(); });
+  btn.addEventListener("pointerenter", load, { once: true });
+  btn.addEventListener("focus", load, { once: true });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target, typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box && !box.hidden ? close() : open(); }
+    else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); open(); }
+    else if (e.key === "Escape" && box && !box.hidden) { e.preventDefault(); close(); }
+    else if (e.key === "Tab" && box && !box.hidden) {
+      // keep the focus inside the palette
+      var f = [].slice.call(box.querySelectorAll("input, button:not([disabled]), a[href]"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+    }
+  });
+  var q = new URLSearchParams(location.search).get("q");
+  if (q) open(q);
+})();
+</script>
+</body>
+</html>
