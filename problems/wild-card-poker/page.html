@@ -1,0 +1,971 @@
+<title>Покер із джокером</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same running order as the other pages. A five-card hand with a joker is this problem's signature object. */
+:root {
+  --tint: #E4EFE0;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #B86E00;
+  --hit-soft: #FFF1D6;
+  --felt: #1F6B45;
+  --red: #C8322B;
+  --joker: #6B3FA0;
+  --joker-soft: #EEE6F7;
+  --win: #157F51;
+  --loss: #BF3E28;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg a { border: 0; background: none; cursor: pointer; color: var(--ink); text-decoration: none; }
+.seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--ink); }
+.odd.sig b { color: var(--signal, #D9318F); }
+.odd > span { font-size: .82rem; color: var(--muted); }
+.table { background: var(--felt); border-radius: 18px; padding: 22px 16px; display: grid; gap: 14px; justify-items: center; }
+.table .cap { font-family: var(--f-mono); font-size: .76rem; color: #DDEFE4; min-height: 3.9em; text-align: center; max-width: 40ch; }
+.subs { display: grid; gap: 8px; width: 100%; max-width: 330px; }
+.sub { display: grid; grid-template-columns: auto auto 1fr; gap: 8px; align-items: center; background: rgba(255, 255, 255, .1); border-radius: 10px; padding: 6px 10px; color: #fff; font-size: .9rem; }
+.sub .ar { font-family: var(--f-mono); color: #DDEFE4; }
+
+/* a playing card; the joker is purple */
+.hand { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.pc { width: 50px; height: 70px; border-radius: 8px; border: 1.5px solid var(--line); background: #fff; color: var(--ink); display: grid; place-items: center; align-content: center; gap: 2px; font-family: var(--f-mono); font-weight: 600; line-height: 1; flex: none; }
+.pc b { font-size: 1.15rem; }
+.pc i { font-style: normal; font-size: 1.1rem; }
+.pc.r { color: var(--red); }
+.pc.j { background: var(--joker); border-color: var(--joker); color: #fff; }
+.pc.j b { font-size: 1.3rem; }
+.pc.j i { font-size: .56rem; letter-spacing: .06em; text-transform: uppercase; }
+.pc.sm { width: 34px; height: 46px; border-radius: 6px; }
+.pc.sm b { font-size: .86rem; }
+.pc.sm i { font-size: .8rem; }
+.pc.sm.j i { font-size: .44rem; }
+.pc.as { box-shadow: 0 0 0 3px var(--joker); }
+.cardrow { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #fff; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(1.7rem, 4.5vw, 2.6rem); line-height: 1.05; }
+.big.sig { color: var(--signal, #D9318F); }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: #fff; }
+.vl2 { font-family: var(--f-mono); font-weight: 600; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.15rem; line-height: 1.25; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.opts { display: grid; gap: 10px; }
+.opts button { text-align: left; border: 1.5px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; cursor: pointer; font-weight: 600; display: grid; gap: 2px; }
+.opts button small { font-weight: 400; color: var(--muted); font-size: .84rem; }
+.opts button:hover { border-color: var(--ink); }
+.opts button[aria-pressed="true"] { border-color: var(--day); box-shadow: inset 0 0 0 1px var(--day); }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 150px 1fr 76px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+.crow .mono { text-align: right; }
+.crow .sub2 { grid-column: 1 / -1; font-family: var(--f-mono); font-size: .72rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-top: 4px; }
+
+/* ---------- play ---------- */
+.room { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.room .stage { display: grid; gap: 16px; }
+.felt { background: var(--felt); border-radius: 14px; padding: 16px 10px; min-height: 102px; display: grid; place-items: center; }
+.felt .ph { color: #DDEFE4; font-size: .88rem; text-align: center; }
+.choices { display: grid; gap: 8px; }
+.choices button { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; text-align: left; border: 1.5px solid var(--line); background: var(--surface); border-radius: 12px; padding: 8px 12px; cursor: pointer; }
+.choices button:hover:not(:disabled) { border-color: var(--joker); }
+.choices button:disabled { cursor: default; }
+.choices button[aria-pressed="true"] { border-color: var(--joker); background: var(--joker-soft); }
+.choices button.dim { opacity: .5; }
+.choices .nm { font-weight: 600; }
+.choices .tg { font-family: var(--f-mono); font-size: .7rem; color: var(--joker); letter-spacing: .04em; text-transform: uppercase; }
+.msg { min-height: 3em; font-weight: 500; }
+.duo { display: grid; gap: 12px; }
+.drow { display: grid; gap: 4px; }
+.drow .top { display: flex; justify-content: space-between; gap: 10px; font-size: .9rem; flex-wrap: wrap; }
+.drow .top b { font-family: var(--f-mono); }
+.drow .rk { font-family: var(--f-mono); font-size: .7rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.drow .bar { height: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; position: relative; overflow: hidden; }
+.drow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c, var(--ink)); }
+.drow .bar i + i { background: var(--joker); }
+
+/* ---------- tables ---------- */
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+td.ok { color: var(--win); font-weight: 600; white-space: nowrap; }
+td.bad { color: var(--loss); font-weight: 600; }
+tr.hl td { background: var(--hit-soft); }
+td.rk { font-family: var(--f-mono); color: var(--muted); width: 2.2em; }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.loop { display: grid; gap: 12px; }
+.loop .log { font-size: .92rem; }
+.tiles { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.35rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); overflow-wrap: anywhere; }
+.tile .s { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); overflow-wrap: anywhere; }
+.tiles.row3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.cases { display: grid; gap: 10px; }
+.case { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; font-size: .9rem; }
+.case b { font-family: var(--f-mono); font-size: .86rem; }
+.case span { color: var(--muted); font-size: .88rem; }
+
+/* ---------- going further ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-block .stage { display: grid; gap: 14px; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 96px 1fr 70px; }
+  td, th { padding: 7px 5px; }
+  .tiles.row3 { grid-template-columns: 1fr; }
+  .pc { width: 44px; height: 62px; }
+  .hand { gap: 4px; }
+  .choices button { grid-template-columns: auto 1fr; }
+  .choices .tg { grid-column: 2; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+<div class="topbar">
+  <span class="brand">52 + ★ · rarer = stronger · ?</span>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="#uk" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="#en" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <h1 class="uk"><span class="kw">Покер із джокером</span> Сильніша та рука, що рідша. Додаймо джокер. <span class="q sp-before">Що тепер частіше: трійка чи дві пари?</span><span class="q sp-after">Трійка частіша, хоча й б'є дві пари.</span></h1>
+    <h1 class="en"><span class="kw">Wild-card poker</span> The rarer hand is the stronger one. Now add a joker. <span class="q sp-before">Which is more common: three of a kind or two pair?</span><span class="q sp-after">Three of a kind, even though it beats two pair.</span></h1>
+    <p class="lead uk sp-before">У покері сильніша рука та, яку важче отримати: без джокера трійка трапляється більш ніж удвічі рідше за дві пари, тому й б'є їх. Тепер у колоді джокер, який може стати будь-якою картою, і власник робить з нього найсильнішу руку. Чи лишиться трійка рідшою за дві пари? Зафіксуйте відповідь, а потім перевірте: роздайте карти, порахуйте всі 2 869 685 рук і прочитайте пояснення.</p>
+    <p class="lead uk sp-after">Без джокера трійка трапляється більш ніж удвічі рідше за дві пари. Але пара, дві зайві карти й джокер можуть стати і трійкою, і двома парами, і власник обирає вищу руку. Таких рук 82 368, вони всі йдуть до трійки, і з джокером трійок 137 280, а двох пар 123 552. Поставте дві пари вище, і ці руки підуть до них: тепер частішими стануть уже дві пари. Жоден порядок рук не дає правила «рідша — сильніша».</p>
+    <p class="lead en sp-before">In poker the stronger hand is the one that is harder to get: without a joker three of a kind turns up less than half as often as two pair, and that is why it beats it. Now the deck has a joker that can become any card, and its holder makes the strongest hand from it. Does three of a kind stay rarer than two pair? Lock in your answer, then check it: deal some cards, count all 2,869,685 hands and read the explanation.</p>
+    <p class="lead en sp-after">Without a joker, three of a kind turns up less than half as often as two pair. But a pair, two odd cards and a joker can become either three of a kind or two pair, and the holder picks the higher hand. There are 82,368 such hands, all of them go to three of a kind, and with the joker there are 137,280 three-of-a-kinds against 123,552 two pairs. Put two pair higher and those hands go to it instead: now two pair is the commoner one. No order of hands keeps the rule "rarer is stronger".</p>
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span><span class="en">Make a guess</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span><span class="en">Just show me the answer</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd sig"><b><span class="uk">137 280</span><span class="en">137,280</span></b><span><span class="uk">трійок з джокером</span><span class="en">three-of-a-kinds with a joker</span></span></div>
+      <div class="odd"><b><span class="uk">123 552</span><span class="en">123,552</span></b><span><span class="uk">двох пар, хоча вони слабші</span><span class="en">two pairs, though weaker</span></span></div>
+      <div class="odd"><b><span class="uk">0 з 40 320</span><span class="en">0 of 40,320</span></b><span><span class="uk">порядків, де сильніша рука рідша</span><span class="en">orders where stronger means rarer</span></span></div>
+    </div>
+  </div>
+  <div class="table" aria-hidden="true">
+    <div class="hand" id="hero-hand"></div>
+    <div class="subs" id="hero-subs"></div>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span><span class="en">The puzzle</span></span>
+    <h2><span class="uk">Колода, джокер і правило рідкості</span><span class="en">A deck, a joker and the rarity rule</span></h2>
+    <p class="lead uk">Покер обходиться без довільних рішень: порядок рук ніхто не вигадував, його задає рідкість. Що рідше випадає, те сильніше. Перевіримо, чи переживе це правило один джокер.</p>
+    <p class="lead en">Poker does without arbitrary choices: nobody invented the order of hands, rarity sets it. Whatever is dealt less often is stronger. Let us see whether this rule survives a single joker.</p>
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Звичайна колода</span><span class="en">An ordinary deck</span></h3>
+        <p class="uk">52 карти, кожному гравцеві 5. Різних рук 2 598 960, і порядок рук точно повторює їхню рідкість: старшої карти найбільше, стрит-флешів найменше. Трійок 54 912, двох пар 123 552, тому трійка б'є дві пари.</p>
+        <p class="en">52 cards, 5 to each player. There are 2,598,960 different hands, and the order of hands follows their rarity exactly: high card is the most common, straight flush the rarest. There are 54,912 three-of-a-kinds and 123,552 two pairs, so three of a kind beats two pair.</p></div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Додаємо джокер</span><span class="en">Add a joker</span></h3>
+        <p class="uk">Тепер у колоді 53 карти і 2 869 685 різних рук по 5. Джокер може стати будь-якою з 52 карт, навіть копією карти, що вже є в руці. Тому з'являється нова рука, п'ять однакових, і вона найсильніша.</p>
+        <p class="en">Now the deck has 53 cards and 2,869,685 different five-card hands. The joker can become any of the 52 cards, even a copy of one already in the hand. So a new hand appears, five of a kind, and it is the strongest.</p></div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Власник обирає</span><span class="en">The holder chooses</span></h3>
+        <p class="uk">Хто отримав джокер, робить з нього найсильнішу руку, яку дозволяє порядок. Наприклад, з карт 7, 7, король, 4 і джокера можна скласти і трійку сімок, і дві пари: сімки й королі.</p>
+        <p class="en">Whoever gets the joker turns it into the strongest hand the order allows. For example, the cards 7, 7, king, 4 and a joker can make either three sevens or two pair: sevens and kings.</p></div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span><span class="en">The question</span></h3>
+        <p class="uk">Порядок рук лишаємо звичайним: трійка вища за дві пари. Яка з цих двох рук тепер трапляється частіше?</p>
+        <p class="en">We keep the usual order of hands: three of a kind ranks above two pair. Which of the two hands turns up more often now?</p></div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція каже</span><span class="en">Intuition says</span></span>
+        <p class="q"><span class="uk">«Без джокера двох пар більш ніж удвічі більше. Один джокер на колоду цього не переверне»</span><span class="en">"Without a joker there are more than twice as many two pairs. One joker in the deck won't turn that round"</span></p>
+        <p class="uk">Насправді переверне. Рука з парою і джокером може стати і трійкою, і двома парами, а власник обирає трійку, бо вона вища. Таких рук 82 368, і з ними трійок стає 137 280 проти 123 552 двох пар.</p>
+        <p class="en">In fact it will. A hand with a pair and a joker can become either three of a kind or two pair, and the holder picks three of a kind because it ranks higher. There are 82,368 such hands, and with them three-of-a-kinds reach 137,280 against 123,552 two pairs.</p>
+      </div>
+      <div class="card">
+        <h3><span class="uk">Руки без джокера</span><span class="en">Hands without a joker</span></h3>
+        <p class="note" style="margin:6px 0 10px"><span class="uk">Від найсильнішої до найслабшої, з 2 598 960 рук.</span><span class="en">From strongest to weakest, out of 2,598,960 hands.</span></p>
+        <div class="tbl-wrap"><table id="nat"></table></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span><span class="en">Round 1 · Guess</span></span>
+    <h2><span class="uk">Що з джокером частіше: трійка чи дві пари?</span><span class="en">With a joker, which is more common: three of a kind or two pair?</span></h2>
+    <p class="lead uk">Колода з 52 карт і одного джокера, по 5 карт, порядок рук звичайний. Власник джокера завжди робить найсильнішу руку. Оберіть відповідь.</p>
+    <p class="lead en">A 52-card deck plus one joker, 5 cards each, the usual order of hands. The joker's holder always makes the strongest hand. Pick an answer.</p>
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <span class="note"><span class="uk">Якої руки серед 2 869 685 буде більше?</span><span class="en">Which hand will there be more of among the 2,869,685?</span></span>
+      <div class="opts" id="g-opts"></div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться розбір вашої відповіді.</p>
+      <p class="note en">A breakdown of your answer will appear here.</p>
+    </div>
+  </div>
+</section>
+
+<!-- rounds 2–5 and the facts give the answer away, so they open only after a guess, "go on", or "always show all rounds" -->
+<section class="round sp-gate" id="next">
+  <div class="card gate">
+    <span class="kicker"><span class="uk">Далі розв'язок</span><span class="en">Next: the solution</span></span>
+    <h3><span class="uk">Далі пояснення, і в ньому спойлери</span><span class="en">Next comes the explanation, with spoilers</span></h3>
+    <p class="uk">Наступні раунди показують, яка рука частіша: роздачі з джокером, точний підрахунок усіх рук і пояснення. Спершу відповісти в раунді 1 чи йти далі?</p>
+    <p class="en">The next rounds show which hand is more common: deals with a joker, an exact count of every hand and the explanation. Answer round 1 first, or go on?</p>
+    <div class="actions"><a class="btn pri" href="#guess"><span class="uk">Відповісти в раунді 1</span><span class="en">Answer round 1</span></a><button type="button" class="btn ghost" data-solve><span class="uk">Йти далі</span><span class="en">Go on</span></button></div>
+    <button type="button" class="sp-skip" data-rounds="open"><span class="uk">Завжди показувати всі раунди, я не боюся спойлерів</span><span class="en">Always show all rounds, I don't mind spoilers</span></button>
+  </div>
+</section>
+
+<div class="sp-rounds">
+<p class="note rounds-on"><span class="uk">Ви обрали завжди показувати всі раунди.</span><span class="en">You chose to always show all rounds.</span> <button type="button" class="sp-skip" data-rounds="gate"><span class="uk">Ховати їх до відповіді</span><span class="en">Hide them until I answer</span></button></p>
+
+<!-- ROUND 2: deal -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span><span class="en">Round 2 · Game</span></span>
+    <h2><span class="uk">Роздайте собі карти</span><span class="en">Deal yourself some cards</span></h2>
+    <p class="lead uk">Карти роздаються з колоди на 53 карти. Коли прийде джокер, оберіть, чим він стане: гра покаже всі руки, які він може дати. Справа рахунок рук. Роздайте тисячі рук одразу, а потім поставте дві пари вище за трійку й порахуйте знову.</p>
+    <p class="lead en">Cards are dealt from a 53-card deck. When the joker comes, choose what it becomes: the game shows every hand it can make. On the right is the count of hands. Deal thousands of hands at once, then put two pair above three of a kind and count again.</p>
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div>
+        <p class="note" style="margin-bottom:8px"><span class="uk">Порядок рук:</span><span class="en">Order of hands:</span></p>
+        <div class="presets" id="g-ord"></div>
+      </div>
+      <div class="felt" id="g-hand"></div>
+      <div class="choices" id="g-choices"></div>
+      <p class="msg" id="g-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn pri" id="g-deal" type="button"><span class="uk">Роздати</span><span class="en">Deal</span></button>
+        <button class="btn pri" id="g-1k" type="button"><span class="uk">1 000 рук</span><span class="en">1,000 hands</span></button>
+        <button class="btn hit" id="g-10k" type="button"><span class="uk">10 000 рук</span><span class="en">10,000 hands</span></button>
+      </div>
+      <p class="note"><span class="uk">У швидких роздачах джокер щоразу стає найсильнішою рукою, як і в справжній грі.</span><span class="en">In the quick deals the joker always becomes the strongest hand, as in a real game.</span></p>
+    </div>
+    <div class="card" style="display:grid;gap:14px;align-content:start">
+      <h3><span class="uk">Рахунок</span><span class="en">The count</span></h3>
+      <p class="note" id="s-n"></p>
+      <div class="duo" id="s-duo"></div>
+      <p class="note" id="s-txt"></p>
+      <div class="tbl-wrap"><table id="s-tbl"></table></div>
+      <div class="actions"><button class="btn ghost" id="s-reset" type="button"><span class="uk">Скинути рахунок</span><span class="en">Reset the count</span></button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: exact count and simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span><span class="en">Round 3 · Simulation</span></span>
+    <h2><span class="uk">Перерахувати й переставити. І знову</span><span class="en">Recount and rerank. And again</span></h2>
+    <p class="lead uk">Здається, біду легко виправити: порахуйте руки з джокером і впорядкуйте їх за новою рідкістю. Спробуйте. Таблиця — точний підрахунок усіх 2 869 685 рук для поточного порядку, від найсильнішої руки до найслабшої. Колонка праворуч перевіряє, чи рука рідша за ту, що під нею.</p>
+    <p class="lead en">It seems easy to fix: count the hands with the joker and order them by the new rarity. Try it. The table is an exact count of all 2,869,685 hands for the current order, from the strongest hand to the weakest. The right-hand column checks whether a hand is rarer than the one below it.</p>
+  </div>
+  <div class="sim-grid">
+    <div class="card loop">
+      <div class="actions"><button class="btn pri" id="loop-go" type="button"><span class="uk">Переставити за рідкістю й перерахувати</span><span class="en">Rerank by rarity and recount</span></button></div>
+      <p class="log" id="loop-log" aria-live="polite"></p>
+      <div class="tbl-wrap"><table id="loop-tbl"></table></div>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="k"><span class="uk">Усіх порядків восьми нижчих рук</span><span class="en">All orders of the eight lower hands</span></div><div class="v mono" id="all-n">–</div><div class="s"><span class="uk">стрит-флеш і п'ять однакових лишаються вгорі</span><span class="en">straight flush and five of a kind stay on top</span></div></div>
+      <div class="tile" style="--c:var(--signal,#D9318F)"><div class="k"><span class="uk">Порядків, де кожна сильніша рука рідша</span><span class="en">Orders where every stronger hand is rarer</span></div><div class="v mono" id="all-ok">–</div><div class="s" id="all-s"></div></div>
+      <div class="tile"><div class="k"><span class="uk">Найменше зламаних пар рук</span><span class="en">Fewest broken pairs of hands</span></div><div class="v mono" id="all-min">–</div><div class="s" id="all-mins"></div></div>
+      <button class="btn ghost" id="all-go" type="button"><span class="uk">Перевірити всі порядки ще раз</span><span class="en">Check every order again</span></button>
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px;display:grid;gap:12px">
+    <h3><span class="uk">Мільйон роздач</span><span class="en">A million deals</span></h3>
+    <p class="note"><span class="uk">Точні числа вище рахує перебір усіх рук. Перевіримо їх випадковими роздачами: кожну роздачу оцінюємо за обома порядками, а джокер щоразу стає найсильнішою рукою.</span><span class="en">The exact numbers above come from going through every hand. Let us check them with random deals: each deal is scored under both orders, and the joker always becomes the strongest hand.</span></p>
+    <div class="actions" style="align-items:center"><button class="btn pri" id="mc-go" type="button"><span class="uk">Роздати ще мільйон</span><span class="en">Deal another million</span></button><span class="note" id="mc-prog"></span></div>
+    <div class="tbl-wrap"><table id="mc-tbl"></table></div>
+    <p class="note"><span class="uk">Частки в симуляції тримаються біля точних із похибкою близько 0,02 п. п. За звичайного порядку трійка частіша за дві пари, а якщо поміняти їх місцями, частішими стають дві пари.</span><span class="en">The simulated shares stay near the exact ones, within about 0.02 pp. Under the usual order three of a kind is more common than two pair, and if you swap them, two pair becomes the commoner one.</span></p>
+  </div>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Пояснення</span><span class="en">Round 4 · Explanations</span></span>
+    <h2><span class="uk">Рейтинг сам змінює те, що рейтингує</span><span class="en">The ranking changes what it ranks</span></h2>
+    <p class="lead uk">Без джокера рука просто є тим, чим є, і її рідкість від порядку не залежить. З джокером частина рук може стати кількома різними руками, і власник обирає вищу. Тож порядок вирішує, скільки рук якого виду буде, а скільки рук якого виду — це те, з чого ми хотіли вивести порядок.</p>
+    <p class="lead en">Without a joker a hand simply is what it is, and its rarity does not depend on the order. With a joker some hands can become several different hands, and the holder picks the higher one. So the order decides how many hands of each kind there are, and how many hands of each kind there are is exactly what we wanted to derive the order from.</p>
+  </div>
+  <div class="mp-layer" data-layer="easy">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Головне за хвилину</span><span class="en">The core in a minute</span></span>
+      <h3><span class="uk">Спірні руки йдуть до того, хто вище</span><span class="en">The undecided hands go to whoever ranks higher</span></h3>
+      <div class="cardrow" id="ex-hand"></div>
+      <p class="uk">Пара сімок, король, четвірка й джокер. Джокер-сімка дає трійку, джокер-король дає дві пари. Власник обирає те, що вище в рейтингу. Таких «спірних» рук 82 368. Без них трійок 54 912, а двох пар 123 552.</p>
+      <p class="en">A pair of sevens, a king, a four and a joker. Joker as a seven gives three of a kind; joker as a king gives two pair. The holder picks whichever ranks higher. There are 82,368 such "undecided" hands. Without them there are 54,912 three-of-a-kinds and 123,552 two pairs.</p>
+      <div class="presets" id="sw-ord"></div>
+      <div class="duo" id="sw-bars"></div>
+      <p class="uk">Хоч яку з двох рук поставити вище, спірні руки дістануться їй, і вона обжене іншу. Ця картка пояснює лише пару «трійка — дві пари». Чому не допомагає жоден інший порядок усіх рук, показує наступний шар пояснень.</p>
+      <p class="en">Whichever of the two hands you put higher, the undecided hands go to it, and it overtakes the other. This card explains only the pair "three of a kind vs two pair". Why no other order of all the hands helps either is shown in the next layer of explanations.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Петля без кінця</span><span class="en">A loop with no end</span></span>
+      <h3><span class="uk">Порядок → рахунок → порядок</span><span class="en">Order → count → order</span></h3>
+      <p class="uk">Правило «рідша — сильніша» просить: спершу порахуй руки, потім упорядкуй. Але з джокером рахунок залежить від порядку. Поставили трійку вище — вона частішала. Поставили вище дві пари — частішали вони. Виходить замкнене коло: хоч яку руку підняти, саме підйом робить її звичайнішою.</p>
+      <p class="en">The rule "rarer is stronger" asks: first count the hands, then order them. But with a joker the count depends on the order. Put three of a kind higher and it becomes more common. Put two pair higher and that becomes more common. It is a closed loop: whichever hand you lift, the lift itself makes it more ordinary.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Що вище</span><span class="en">Which is higher</span></th><th class="num"><span class="uk">Трійок</span><span class="en">Three of a kind</span></th><th class="num"><span class="uk">Двох пар</span><span class="en">Two pair</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="uk">трійка</span><span class="en">three of a kind</span></td><td class="num bad"><span class="uk">137 280</span><span class="en">137,280</span></td><td class="num"><span class="uk">123 552</span><span class="en">123,552</span></td></tr>
+            <tr><td><span class="uk">дві пари</span><span class="en">two pair</span></td><td class="num"><span class="uk">54 912</span><span class="en">54,912</span></td><td class="num bad"><span class="uk">205 920</span><span class="en">205,920</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="uk">Червоним — рука, що стоїть вище, але трапляється частіше. Щоразу це та, яку поставили вище. Петля ходить між двома порядками й ніколи не зупиняється.</p>
+      <p class="en">In red is the hand that ranks higher yet turns up more often. Each time it is the one that was put higher. The loop swings between two orders and never comes to rest.</p>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+  <div class="why-grid">
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Доведення на трьох випадках</span><span class="en">A proof in three cases</span></span>
+      <h3><span class="uk">Чому не рятує жоден порядок</span><span class="en">Why no order can save it</span></h3>
+      <p class="uk">Подивимося лише на пару, трійку й дві пари. Спірна рука (пара, дві зайві карти, джокер) може стати будь-якою з трьох: джокер-сімка дає трійку, джокер-король дає дві пари, джокер-двійка лишає просто пару. Власник бере ту, що вища, а решта порядку на ці руки не впливає. Тож усе вирішує, яка з трьох рук стоїть найвище.</p>
+      <p class="en">Look only at one pair, three of a kind and two pair. An undecided hand (a pair, two odd cards, a joker) can become any of the three: joker as a seven gives three of a kind, joker as a king gives two pair, joker as a deuce leaves just a pair. The holder takes the highest, and the rest of the order does not affect these hands. So everything turns on which of the three ranks highest.</p>
+      <div class="cases">
+        <div class="case"><b><span class="uk">1. Найвище пара</span><span class="en">1. One pair is highest</span></b><span class="uk">Спірні руки лишаються парами. Пар тоді щонайменше 1 098 240, а трійок і двох пар щонайбільше 57 408 і 126 360: пара вища, але найчастіша з трьох.</span><span class="en">The undecided hands stay pairs. There are then at least 1,098,240 pairs, against at most 57,408 three-of-a-kinds and 126,360 two pairs: one pair is highest yet the most common of the three.</span></div>
+        <div class="case"><b><span class="uk">2. Найвище трійка</span><span class="en">2. Three of a kind is highest</span></b><span class="uk">Трійок щонайменше 54 912 + 82 368 = 137 280, а двох пар щонайбільше 123 552 + 2 808 = 126 360. Вища трійка частіша за нижчі дві пари.</span><span class="en">Three of a kind: at least 54,912 + 82,368 = 137,280; two pair: at most 123,552 + 2,808 = 126,360. The higher three of a kind is more common than the lower two pair.</span></div>
+        <div class="case"><b><span class="uk">3. Найвище дві пари</span><span class="en">3. Two pair is highest</span></b><span class="uk">Двох пар щонайменше 123 552 + 82 368 = 205 920, трійок щонайбільше 54 912 + 2 496 = 57 408. Вищі дві пари частіші за нижчу трійку.</span><span class="en">Two pair: at least 123,552 + 82,368 = 205,920; three of a kind: at most 54,912 + 2,496 = 57,408. The higher two pair is more common than the lower three of a kind.</span></div>
+      </div>
+      <p class="uk">Інших випадків немає, тож у кожному порядку якась сильніша рука трапляється частіше за слабшу. Решта порядку може зсунути лише кілька тисяч рук: 2 808 рук «дві пари й джокер» можуть стати двома парами або фул-хаусом, 2 496 рук «трійка, зайва карта й джокер» — трійкою, фул-хаусом чи каре. Звідси «щонайменше» і «щонайбільше», і висновок від них не змінюється. Комп'ютерна перевірка всіх 40 320 порядків у раунді 3 це підтверджує. Найменше зламаних пар, одна, мають рівно два порядки: звичайний і той, де поміняли трійку з двома парами.</p>
+      <p class="en">There are no other cases, so in every order some stronger hand turns up more often than a weaker one. The rest of the order can shift only a few thousand hands: 2,808 "two pair and joker" hands can become two pair or a full house, and 2,496 "three of a kind, odd card and joker" hands can become three of a kind, a full house or four of a kind. Hence "at least" and "at most", and they do not change the conclusion. The computer check of all 40,320 orders in round 3 confirms it. The fewest broken pairs, one, occur in exactly two orders: the usual one and the one with three of a kind and two pair swapped.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span><span class="en">For formula lovers</span></span>
+      <h3><span class="uk">Звідки 54 912, 123 552 і 82 368</span><span class="en">Where 54,912, 123,552 and 82,368 come from</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Трійка без джокера: ранг трійки, 3 масті з 4, два інші ранги, масть кожного.</span><span class="en">Three of a kind without a joker: the rank of the three, 3 suits of 4, two other ranks, a suit for each.</span></p>
+          <math display="block"><mn>13</mn><mo>·</mo><mrow><mo>(</mo><mfrac linethickness="0"><mn>4</mn><mn>3</mn></mfrac><mo>)</mo></mrow><mo>·</mo><mrow><mo>(</mo><mfrac linethickness="0"><mn>12</mn><mn>2</mn></mfrac><mo>)</mo></mrow><mo>·</mo><msup><mn>4</mn><mn>2</mn></msup><mo>=</mo><mn>54912</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Дві пари без джокера: два ранги пар, масті кожної пари, ранг і масть п'ятої карти.</span><span class="en">Two pair without a joker: the two ranks of the pairs, the suits of each pair, the rank and suit of the fifth card.</span></p>
+          <math display="block"><mrow><mo>(</mo><mfrac linethickness="0"><mn>13</mn><mn>2</mn></mfrac><mo>)</mo></mrow><mo>·</mo><msup><mrow><mo>(</mo><mfrac linethickness="0"><mn>4</mn><mn>2</mn></mfrac><mo>)</mo></mrow><mn>2</mn></msup><mo>·</mo><mn>11</mn><mo>·</mo><mn>4</mn><mo>=</mo><mn>123552</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Спірні руки: пара, дві карти інших рангів і джокер.</span><span class="en">Undecided hands: a pair, two cards of other ranks and the joker.</span></p>
+          <math display="block"><mn>13</mn><mo>·</mo><mrow><mo>(</mo><mfrac linethickness="0"><mn>4</mn><mn>2</mn></mfrac><mo>)</mo></mrow><mo>·</mo><mrow><mo>(</mo><mfrac linethickness="0"><mn>12</mn><mn>2</mn></mfrac><mo>)</mo></mrow><mo>·</mo><msup><mn>4</mn><mn>2</mn></msup><mo>=</mo><mn>82368</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Трійка вища за дві пари:</span><span class="en">Three of a kind above two pair:</span></p>
+          <math display="block"><mn>54912</mn><mo>+</mo><mn>82368</mn><mo>=</mo><mrow class="hl"><mn>137280</mn></mrow><mo>&gt;</mo><mn>123552</mn></math>
+        </div>
+      </div>
+      <p class="uk">Ще 2 496 рук із джокером (трійка, зайва карта, джокер) дістаються каре, а не трійці: каре вище. Тому до трійки з рук із джокером доходять рівно спірні 82 368.</p>
+      <p class="en">Another 2,496 joker hands (three of a kind, an odd card, the joker) go to four of a kind, not to three of a kind, since four of a kind ranks higher. So the joker hands that reach three of a kind are exactly the 82,368 undecided ones.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Усі руки з джокером</span><span class="en">Every hand with the joker</span></span>
+      <h3><span class="uk">Що може дати джокер</span><span class="en">What the joker can make</span></h3>
+      <p class="uk">Рук із джокером 270 725: джокер і будь-які 4 карти з 52. Перебір усіх 52 замін джокера ділить їх на групи за тим, які руки досяжні. Порядок вирішує лише долю груп, що мають вибір.</p>
+      <p class="en">There are 270,725 hands with the joker: the joker plus any 4 of the 52 cards. Trying all 52 replacements for the joker splits them into groups by which hands are reachable. The order decides only the fate of the groups that have a choice.</p>
+      <div class="tbl-wrap"><table id="grp-tbl"></table></div>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Нерухома точка</span><span class="en">A fixed point</span></span>
+      <h3><span class="uk">Порядок, який відтворює сам себе</span><span class="en">An order that reproduces itself</span></h3>
+      <p class="uk">Крок «порахувати за порядком і переставити за рідкістю» перетворює один порядок на інший. Узгоджений порядок — це той, який цей крок лишає на місці: перерахунок дає ту саму рідкість, з якої порядок і вийшов. Для звичайної колоди такий порядок є, і це звичний порядок покеру. З джокером його немає: крок лише перекидає трійку й дві пари туди й назад.</p>
+      <p class="en">The step "count under the order, then rerank by rarity" turns one order into another. A consistent order is one this step leaves in place: the recount gives the same rarity the order came from. For an ordinary deck such an order exists, and it is the familiar order of poker. With a joker there is none: the step only flips three of a kind and two pair back and forth.</p>
+      <p class="uk">Схожа пастка в <a href="../intransitive-dice/">кубиках Ефрона</a> і в <a href="../condorcet-paradox/">парадоксі Кондорсе</a>: розумна вимога до рейтингу, а виконати її не може жоден рейтинг. Там винні цикли перемог у парах, тут — те, що рейтинг змінює дані, на яких стоїть.</p>
+      <p class="en">A similar trap sits in <a href="../intransitive-dice/">Efron's dice</a> and in the <a href="../condorcet-paradox/">Condorcet paradox</a>: a reasonable demand on a ranking that no ranking can meet. There the culprit is a cycle of pairwise wins; here it is a ranking that changes the data it stands on.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Теорія й історія</span><span class="en">Theory and history</span></span>
+      <h3><span class="uk">Гадбуа, Емерт і Умбах, 1996</span><span class="en">Gadbois, Emert and Umbach, 1996</span></h3>
+      <p class="uk">Стів Гадбуа описав парадокс у статті «Poker with Wild Cards — A Paradox?» (Mathematics Magazine, 1996, т. 69, с. 283–285) і порахував колоду з двома джокерами. Того ж року Джон Емерт і Дейл Умбах з Університету Болла незалежно дійшли висновку, що з дикими картами немає порядку, у якому цінніші руки трапляються рідше (Chance, 1996, т. 9, № 3). Вони ж помітили, що звичайний порядок має найменше суперечностей, — це видно і в раунді 3.</p>
+      <p class="en">Steve Gadbois described the paradox in "Poker with Wild Cards — A Paradox?" (Mathematics Magazine, 1996, vol. 69, pp. 283–285) and counted a deck with two jokers. The same year John Emert and Dale Umbach of Ball State University independently concluded that with wild cards there is no order in which more valuable hands occur less often (Chance, 1996, vol. 9, no. 3). They also noticed that the usual order has the fewest inconsistencies, as round 3 shows too.</p>
+      <p class="uk">Емерт і Умбах запропонували інше правило: рахувати не те, чим рука стала, а те, чим вона може стати. Таке «включне» число не залежить від вибору гравців, тож петлі немає. Ціна — порядок трохи відходить від звичного, і з більшою кількістю диких карт флеш піднімається вище.</p>
+      <p class="en">Emert and Umbach proposed another rule: count not what a hand became but what it could become. Such an "inclusion" count does not depend on the players' choices, so there is no loop. The price is an order that drifts a little from the usual one, and with more wild cards the flush moves up.</p>
+    </div>
+
+  </div>
+  </div>
+
+</section>
+
+<!-- ROUND 5: going further -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Ускладнюємо</span><span class="en">Round 5 · Going further</span></span>
+    <h2><span class="uk">Два джокери, дикі двійки й домашні правила</span><span class="en">Two jokers, deuces wild and house rules</span></h2>
+    <p class="lead uk">Більше диких карт — більше зламаних пар рук. А правила, якими грають насправді, обходять парадокс різними способами.</p>
+    <p class="lead en">More wild cards mean more broken pairs of hands. And the rules people really play by dodge the paradox in different ways.</p>
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card stage">
+        <h3><span class="uk">Яка колода і який порядок</span><span class="en">Which deck and which order</span></h3>
+        <div class="presets" id="v-deck"></div>
+        <div class="presets" id="v-ord"></div>
+        <div class="tbl-wrap"><table id="v-tbl"></table></div>
+        <p class="note" id="v-note"></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Математика</span><span class="en">The maths</span></span>
+        <h3><span class="uk">Що ламається з більшою кількістю диких карт</span><span class="en">What breaks with more wild cards</span></h3>
+        <p class="uk">З двома джокерами (54 карти, 3 162 510 рук) суперечностей щонайменше три. Трійок 232 968 проти 123 552 двох пар. Пара стає частішою за старшу карту: 1 437 936 проти 1 302 540. А фул-хаус і каре трапляються рівно однаково часто, по 9 360 разів, тож «рідша» тут не визначає жодну з них.</p>
+        <p class="en">With two jokers (54 cards, 3,162,510 hands) there are at least three inconsistencies. Three of a kind: 232,968 against 123,552 two pairs. One pair becomes more common than high card: 1,437,936 against 1,302,540. And full house and four of a kind turn up exactly equally often, 9,360 times each, so "rarer" cannot pick either of them.</p>
+        <p class="uk">Якщо поставити пару нижче старшої карти, ті самі спірні руки підуть до старшої карти, і її стане 1 642 236 проти 1 098 240 пар. Знову та сама петля, тепер унизу таблиці.</p>
+        <p class="en">If you put one pair below high card, the same undecided hands go to high card, which rises to 1,642,236 against 1,098,240 pairs. The same loop again, now at the bottom of the table.</p>
+        <p class="uk">З дикими двійками (52 карти, чотири двійки замінюють будь-яку карту) каре трапляється 31 552 рази, а фул-хаус лише 12 672 і флеш 14 472, хоча каре вище за обидва. З 40 320 порядків восьми нижчих рук узгодженого немає ні тут, ні з двома джокерами, а звичайний порядок знову серед найменш зламаних: 3 зламані пари з двома джокерами, 4 з дикими двійками.</p>
+        <p class="en">With deuces wild (52 cards, the four 2s stand for any card) four of a kind turns up 31,552 times, against only 12,672 full houses and 14,472 flushes, though four of a kind beats both. Of the 40,320 orders of the eight lower hands none is consistent, either here or with two jokers, and the usual order is again among the least broken: 3 broken pairs with two jokers, 4 with deuces wild.</p>
+      </div>
+    </div>
+
+    <div class="card esc-text">
+      <span class="kicker"><span class="uk">Логіка</span><span class="en">The logic</span></span>
+      <h3><span class="uk">Коли мірило стає метою</span><span class="en">When the measure becomes the target</span></h3>
+      <p class="uk">Порядок рук мав лише описувати рідкість. Але щойно він став правилом гри, гравці почали під нього підлаштовуватися, і рідкість змінилася. Це покерна версія закону Гудгарта: коли показник стає метою, він перестає добре вимірювати те, що вимірював. Економіст Чарлз Гудгарт сформулював цю думку 1975 року для грошової політики, а відомого вигляду їй надала антропологиня Мерилін Стратерн.</p>
+      <p class="en">The order of hands was only meant to describe rarity. But as soon as it became the rule of the game, the players adapted to it, and the rarity changed. It is the poker version of Goodhart's law: when a measure becomes a target, it stops measuring well what it used to measure. The economist Charles Goodhart put the idea forward in 1975 for monetary policy, and the anthropologist Marilyn Strathern gave it its well-known form.</p>
+      <p class="uk">Загальний урок: якщо правило винагороджує щось за рідкість, а люди можуть вибирати, рідкість треба міряти до того, як вони почали вибирати, або на тому, чого вибір не змінює. Саме так зробили Емерт і Умбах: вони рахують, чим рука може стати, а не чим її зробили.</p>
+      <p class="en">The general lesson: if a rule rewards something for being rare and people can choose, rarity has to be measured before they start choosing, or on something the choice does not change. That is exactly what Emert and Umbach did: they count what a hand could become, not what it was made into.</p>
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Практика</span><span class="en">In practice</span></span>
+      <h3><span class="uk">Як грають насправді</span><span class="en">How people actually play</span></h3>
+      <p class="note" style="margin:6px 0 12px"><span class="uk">Числа для колоди з одним джокером; кожне правило перевірено перебором усіх 2 869 685 рук.</span><span class="en">Numbers for a deck with one joker; each rule was checked by going through all 2,869,685 hands.</span></p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Правило</span><span class="en">The rule</span></th><th><span class="uk">Що робить</span><span class="en">What it does</span></th><th><span class="uk">Що з парадоксом</span><span class="en">What happens to the paradox</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="uk">Звичайний порядок, заданий наперед</span><span class="en">The usual order, fixed in advance</span></td><td><span class="uk">Порядок не перераховують: трійка вища, бо так написано в правилах.</span><span class="en">The order is never recounted: three of a kind is higher because the rules say so.</span></td><td><span class="uk">Лишається одна зламана пара: трійка частіша за дві пари. Менше не дає жоден порядок.</span><span class="en">One broken pair remains: three of a kind is commoner than two pair. No order does better.</span></td></tr>
+            <tr><td><span class="uk">«Баг», звичне правило казино</span><span class="en">The "bug", the usual casino rule</span></td><td><span class="uk">Джокер може бути лише тузом або картою, що завершує стрит, флеш чи стрит-флеш.</span><span class="en">The joker may only be an ace or a card that completes a straight, flush or straight flush.</span></td><td><span class="uk">Парадокс зникає: звичайний порядок знову узгоджений (трійок 63 360, двох пар 138 600), а п'ять однакових лише одна рука — п'ять тузів.</span><span class="en">The paradox goes away: the usual order is consistent again (63,360 three-of-a-kinds, 138,600 two pairs), and five of a kind is a single hand, five aces.</span></td></tr>
+            <tr><td><span class="uk">Включний порядок Емерта й Умбаха</span><span class="en">Emert and Umbach's inclusion order</span></td><td><span class="uk">Рідкість рахують за тим, чим рука може стати, а не чим стала.</span><span class="en">Rarity is counted by what a hand could become, not what it became.</span></td><td><span class="uk">Петлі немає, бо число не залежить від вибору. Порядок трохи відрізняється від звичного.</span><span class="en">No loop, because the count does not depend on choices. The order differs a little from the usual one.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span><span class="en">Bonus · Fun facts</span></span>
+    <h2><span class="uk">Що розповісти друзям</span><span class="en">Things to tell your friends</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1996</span>
+        <h3><span class="uk">Двічі за один рік</span><span class="en">Twice in one year</span></h3>
+        <p class="uk">Стів Гадбуа (Mathematics Magazine) і Джон Емерт з Дейлом Умбахом (журнал Chance) незалежно описали парадокс 1996 року. Того ж року про нього розповідало радіо NPR.</p>
+        <p class="en">Steve Gadbois (Mathematics Magazine) and John Emert with Dale Umbach (the journal Chance) independently described the paradox in 1996. NPR radio reported on it the same year.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">1949</span>
+        <h3><span class="uk">Скарні помітив раніше</span><span class="en">Scarne noticed earlier</span></h3>
+        <p class="uk">За словами популяризатора математики Іварса Петерсона, схоже спостереження про дикі карти є ще в книжці гравця й фокусника Джона Скарні «Scarne on Cards», уперше виданій 1949 року.</p>
+        <p class="en">According to the mathematics writer Ivars Peterson, a similar observation about wild cards already appears in "Scarne on Cards" by the gambler and magician John Scarne, first published in 1949.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">13</span>
+        <h3><span class="uk">Найрідша рука</span><span class="en">The rarest hand</span></h3>
+        <p class="uk">З одним джокером п'ять однакових виходять лише з каре і джокера: 13 рук з 2 869 685. Це майже в 16 разів рідше, ніж стрит-флеш (204 руки з джокером).</p>
+        <p class="en">With one joker, five of a kind comes only from four of a kind plus the joker: 13 hands of 2,869,685. That is almost 16 times rarer than a straight flush (204 hands with the joker).</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">9 360</span><span class="en">9,360</span></span>
+        <h3><span class="uk">Нічия в рідкості</span><span class="en">A tie in rarity</span></h3>
+        <p class="uk">З двома джокерами фул-хаусів і каре рівно однаково: по 9 360 з 3 162 510 рук. За рідкістю між ними не обрати взагалі.</p>
+        <p class="en">With two jokers there are exactly as many full houses as four-of-a-kinds: 9,360 each out of 3,162,510 hands. Rarity cannot choose between them at all.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n">× 2,5</span>
+        <h3><span class="uk">Дикі двійки</span><span class="en">Deuces wild</span></h3>
+        <p class="uk">Коли всі двійки дикі, каре трапляється в 2,5 раза частіше за фул-хаус: 31 552 проти 12 672 рук із 2 598 960. І все одно каре вище.</p>
+        <p class="en">When all the deuces are wild, four of a kind turns up 2.5 times as often as a full house: 31,552 against 12,672 hands of 2,598,960. And four of a kind still ranks higher.</p>
+      </article>
+      <article class="fact">
+        <span class="fact-n"><span class="uk">3 044</span><span class="en">3,044</span></span>
+        <h3><span class="uk">Колода на 761 ранг</span><span class="en">A deck with 761 ranks</span></h3>
+        <p class="uk">Крістофер Вільямсон (arXiv, 2025) рахував покер з колодами з різною кількістю рангів. За його підсумком, порядок рук перестає мінятися лише з 761 рангу, тобто з колоди на 3 044 карти.</p>
+        <p class="en">Christopher Williamson (arXiv, 2025) worked out poker for decks with different numbers of ranks. By his account, the order of hands stops changing only from 761 ranks, that is, a 3,044-card deck.</p>
+      </article>
+  </div>
+</section>
+</div>
+
+<footer>
+  <span class="uk">З джокером трійка трапляється частіше за дві пари (137 280 проти 123 552), хоча б'є їх. Поміняйте їх місцями, і частішими стануть дві пари. Жоден порядок рук не робить кожну сильнішу руку рідшою.</span>
+  <span class="en">With a joker three of a kind turns up more often than two pair (137,280 against 123,552), yet beats it. Swap them and two pair becomes the commoner one. No order of hands makes every stronger hand rarer.</span>
+  <code class="mono">rank → count → rank → …</code>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const STATIC = document.documentElement.hasAttribute('data-static');
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? s : s.replace('.', ',');
+const pct = (x, d = 2) => dec((100 * x).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+
+/* ---------- cards and hands ---------- */
+// cards 0–51: rank c >> 2 (0 is a two, 12 an ace), suit c & 3; 52 is the joker
+const JOKER = 52;
+const RANKS = { uk: ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'В', 'Д', 'К', 'Т'], en: ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'] };
+const SUITS = ['♠', '♥', '♦', '♣'];
+const CAT = {
+  uk: ['старша карта', 'пара', 'дві пари', 'трійка', 'стрит', 'флеш', 'фул-хаус', 'каре', 'стрит-флеш', 'п\'ять однакових'],
+  en: ['high card', 'one pair', 'two pair', 'three of a kind', 'straight', 'flush', 'full house', 'four of a kind', 'straight flush', 'five of a kind']
+};
+const cat = k => CAT[lang][k];
+const Cat = k => { const s = cat(k); return s[0].toUpperCase() + s.slice(1); };
+const STD = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], SWAP = [0, 1, 3, 2, 4, 5, 6, 7, 8, 9];
+const above = (a, b, o) => o.indexOf(a) > o.indexOf(b);
+function kind(h) {
+  const n = Array(13).fill(0); h.forEach(c => n[c >> 2]++);
+  const k = n.filter(x => x).sort((a, b) => b - a);
+  const flush = h.every(c => (c & 3) === (h[0] & 3));
+  const r = h.map(c => c >> 2).sort((a, b) => a - b);
+  const straight = k.length === 5 && (r[4] - r[0] === 4 || r.join() === '0,1,2,3,12');
+  return k[0] === 5 ? 9 : straight && flush ? 8 : k[0] === 4 ? 7 : k[0] === 3 && k[1] === 2 ? 6 : flush ? 5 : straight ? 4 : k[0] === 3 ? 3 : k[0] === 2 && k[1] === 2 ? 2 : k[0] === 2 ? 1 : 0;
+}
+// every hand a deal can end up as: {kind: the card the joker becomes (null without a joker)}; prefers a card not already in the hand
+function reach(hand) {
+  const rest = hand.filter(c => c !== JOKER), m = new Map();
+  if (rest.length === 5) { m.set(kind(rest), null); return m; }
+  for (let c = 0; c < 52; c++) {
+    const k = kind([...rest, c]);
+    if (!m.has(k) || (rest.includes(m.get(k)) && !rest.includes(c))) m.set(k, c);
+  }
+  return m;
+}
+const best = (ks, o) => ks.reduce((a, b) => above(b, a, o) ? b : a);
+function deal(deck) {
+  for (let j = 0; j < 5; j++) { const k = j + Math.floor(Math.random() * (deck.length - j)); const t = deck[j]; deck[j] = deck[k]; deck[k] = t; }
+  return deck.slice(0, 5);
+}
+function cardHTML(c, o = {}) {
+  const sm = o.sm ? ' sm' : '';
+  if (c === JOKER) return '<span class="pc j' + sm + '"><b>★</b><i>' + L('джокер', 'joker') + '</i></span>';
+  const s = c & 3;
+  return '<span class="pc' + (s === 1 || s === 2 ? ' r' : '') + sm + (o.as ? ' as' : '') + '"><b>' + RANKS[lang][c >> 2] + '</b><i>' + SUITS[s] + '</i></span>';
+}
+const cardTxt = c => RANKS[lang][c >> 2] + SUITS[c & 3];
+
+/* ---------- exact counts ---------- */
+// Every five-card hand grouped by the set of hands it can end up as (bit k = hand kind k), with how many hands are in the group.
+// Found by going through every hand and every replacement of each wild card (checked twice, in Python and in Node).
+const GROUPS = {
+  j1: [[1, 1302540], [2, 1098240], [3, 169848], [4, 123552], [14, 82368], [8, 54912], [19, 10332], [16, 10200], [32, 5108], [64, 3744], [68, 2808], [35, 2696], [200, 2496], [128, 624], [307, 164], [256, 40], [640, 13]],
+  j2: [[1, 1302540], [2, 1098240], [3, 339696], [14, 164736], [4, 123552], [8, 54912], [19, 20664], [15, 13320], [16, 10200], [68, 5616], [35, 5392], [32, 5108], [200, 4992], [31, 3840], [64, 3744], [206, 3744], [47, 888], [128, 624], [307, 328], [319, 256], [712, 52], [256, 40], [640, 26]],
+  d: [[1, 799680], [2, 760320], [3, 464688], [14, 253440], [4, 95040], [15, 59400], [8, 42240], [19, 34272], [31, 19800], [206, 19008], [68, 9504], [200, 8448], [16, 8160], [35, 7376], [47, 3960], [64, 3168], [32, 3136], [223, 1968], [319, 1320], [207, 1200], [511, 656], [307, 544], [128, 528], [239, 400], [712, 288], [718, 288], [640, 48], [1023, 48], [256, 32]]
+};
+const TOTAL = g => GROUPS[g].reduce((s, x) => s + x[1], 0);
+const bits = m => STD.filter(k => m >> k & 1);
+function freq(g, o) {
+  const f = Array(10).fill(0);
+  GROUPS[g].forEach(([m, w]) => { f[best(bits(m), o)] += w; });
+  return f;
+}
+// pairs (stronger, weaker) where the stronger hand is not rarer
+function broken(f, o) {
+  const b = [];
+  for (let i = 0; i < o.length; i++) for (let j = i + 1; j < o.length; j++) if (f[o[j]] > 0 && f[o[j]] >= f[o[i]]) b.push([o[j], o[i]]);
+  return b;
+}
+const NATURAL = [1302540, 1098240, 123552, 54912, 10200, 5108, 3744, 624, 40, 0];
+
+/* ---------- hero ---------- */
+const HERO = [20, 21, 46, 11, JOKER];      // 7♠ 7♥ K♦ 4♣ joker
+function heroDraw() {
+  const ok = !window.mpSolved || mpSolved();
+  $('#hero-hand').innerHTML = HERO.map(c => cardHTML(c)).join('');
+  $('#hero-subs').innerHTML = [[22, 3], [47, 2]].map(([c, k]) => '<div class="sub">' + cardHTML(JOKER, { sm: true }) + '<span class="ar">→ ' + cardTxt(c) + '</span><span>' + Cat(k) + '</span></div>').join('');
+  $('#hero-cap').textContent = !ok
+    ? L('Джокер може стати сімкою або королем. Власник обере вищу руку. Що це робить з рідкістю трійки?', 'The joker can become a seven or a king. Its holder will pick the higher hand. What does that do to the rarity of three of a kind?')
+    : L('Власник щоразу обирає трійку, бо вона вища, і трійка стає частішою за дві пари: 137 280 проти 123 552.', 'The holder always picks three of a kind because it ranks higher, and three of a kind becomes more common than two pair: 137,280 against 123,552.');
+}
+
+/* ---------- puzzle: the hands without a joker ---------- */
+function natDraw() {
+  $('#nat').innerHTML = '<thead><tr><th>' + L('Рука', 'Hand') + '</th><th class="num">' + L('Скільки', 'How many') + '</th><th class="num">' + L('Частка', 'Share') + '</th></tr></thead><tbody>' +
+    STD.slice(0, 9).reverse().map(k => '<tr' + (k === 2 || k === 3 ? ' class="hl"' : '') + '><td>' + Cat(k) + '</td><td class="num">' + fmt(NATURAL[k]) + '</td><td class="num">' + pct(NATURAL[k] / 2598960, 3) + '</td></tr>').join('') + '</tbody>';
+}
+
+/* ---------- round 1: guess ---------- */
+// three answers of the same shape, a short claim plus a reason, so the right one does not stand out
+const OPTS = [
+  { k: 'two-pair', uk: ['Дві пари, як і без джокера', 'джокер додає трохи і трійок, і двох пар, а двох пар було більш ніж удвічі більше'], en: ['Two pair, as without the joker', 'the joker adds a few of each, and two pair started out more than twice as common'] },
+  { k: 'two-pair-more', uk: ['Дві пари, і з ще більшим відривом', 'джокер поруч із парою легко робить другу пару'], en: ['Two pair, by an even wider margin', 'a joker next to a pair easily makes a second pair'] },
+  { k: 'trips', uk: ['Трійка', 'власник джокера обирає сильнішу руку, а сильніша тут трійка'], en: ['Three of a kind', 'the joker\'s holder picks the stronger hand, and here that is three of a kind'] }
+];
+let gPick = null;
+function guessText() {
+  $('#g-opts').innerHTML = OPTS.map((o, i) => '<button type="button" data-k="' + o.k + '" aria-pressed="' + (o.k === gPick) + '"><span><span class="vl">' + (lang === 'en' ? 'ABC'[i] : 'АБВ'[i]) + '</span> ' + o[lang][0] + '</span><small>' + o[lang][1] + '</small></button>').join('');
+  if (gPick === null) return;
+  const verdict = {
+    'two-pair': L('Так думає більшість: двох пар було більш ніж удвічі більше, і один джокер ніби мало що змінює. Але джокер поруч із парою дає вибір між трійкою і двома парами, а власник бере трійку, бо вона вища. Таких рук 82 368, і всі вони йдуть до трійки.', 'Most people think so: two pair started out more than twice as common, and one joker seems to change little. But a joker next to a pair gives a choice between three of a kind and two pair, and the holder takes three of a kind because it ranks higher. There are 82,368 such hands, and all of them go to three of a kind.'),
+    'two-pair-more': L('Джокер справді може зробити другу пару. Але з тих самих карт він може зробити і трійку, а власник бере вищу руку. Тож усі 82 368 таких рук ідуть до трійки, і саме вона обганяє дві пари. Ваша відповідь була б правильною, якби дві пари стояли вище за трійку.', 'The joker can indeed make a second pair. But from the same cards it can also make three of a kind, and the holder takes the higher hand. So all 82,368 such hands go to three of a kind, and that is what overtakes two pair. Your answer would be right if two pair ranked above three of a kind.'),
+    'trips': L('Точно. Пара, дві зайві карти й джокер можуть стати і трійкою, і двома парами, і власник бере трійку. Ці 82 368 рук додаються до 54 912 звичайних трійок, і разом 137 280 — більше за 123 552 двох пар. Сильніша рука стала частішою.', 'Exactly. A pair, two odd cards and a joker can become either three of a kind or two pair, and the holder takes three of a kind. Those 82,368 hands join the 54,912 ordinary three-of-a-kinds, and together the 137,280 outnumber the 123,552 two pairs. The stronger hand has become the commoner one.')
+  }[gPick];
+  const f = freq('j1', STD), mx = 137280;
+  const rows = [
+    [L('Без джокера', 'No joker')],
+    [Cat(2), 123552, 'var(--muted)'], [Cat(3), 54912, 'var(--muted)'],
+    [L('З джокером', 'With the joker')],
+    [Cat(2), f[2], 'var(--ink)'], [Cat(3), f[3], tokSig()]
+  ];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Трійок і двох пар з джокером', 'Three-of-a-kinds and two pairs with a joker') + '</span><p class="big sig mono">' + fmt(f[3]) + ' &gt; ' + fmt(f[2]) + '</p>' +
+    '<p>' + verdict + '</p><div class="compare">' + rows.map(r => r.length === 1 ? '<div class="crow"><span class="sub2">' + r[0] + '</span></div>'
+      : '<div class="crow"><span>' + r[0] + '</span><div class="bar"><i style="--c:' + r[2] + ';width:' + (100 * r[1] / mx) + '%"></i></div><span class="mono">' + fmt(r[1]) + '</span></div>').join('') + '</div>' +
+    '<p class="note">' + L('А якщо поставити дві пари вище за трійку, ті самі руки підуть до двох пар, і частішими стануть уже вони. Раунди 2–4 показують, що жоден порядок рук цього не виправляє.', 'And if you put two pair above three of a kind, the same hands go to two pair, and that becomes the commoner one. Rounds 2–4 show that no order of hands fixes this.') + '</p>';
+}
+function tokSig() { return getComputedStyle(document.documentElement).getPropertyValue('--signal').trim() || '#D9318F'; }
+$('#g-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gPick = b.dataset.k; guessText(); window.mpSolve && mpSolve(gPick); });
+
+/* ---------- round 2: deal yourself ---------- */
+const ORD_BTN = () => [['std', L('трійка вища за дві пари', 'three of a kind above two pair')], ['swap', L('дві пари вищі за трійку', 'two pair above three of a kind')]];
+const game = { ord: 'std', t: Array(10).fill(0), n: 0, hand: null, reach: null, pick: null };
+const gOrder = () => game.ord === 'std' ? STD : SWAP;
+const DECK = () => Array.from({ length: 53 }, (_, i) => i);
+function gameDeal() {
+  game.hand = deal(DECK()); game.reach = reach(game.hand); game.pick = null;
+  if (!game.hand.includes(JOKER)) { game.pick = [...game.reach.keys()][0]; game.t[game.pick]++; game.n++; }
+  gameDraw();
+}
+function gameBulk(times) {
+  const d = DECK(), o = gOrder();
+  let h, r;
+  for (let i = 0; i < times; i++) { h = deal(d); r = reach(h); const k = best([...r.keys()], o); game.t[k]++; game.n++; }
+  game.hand = h.slice(); game.reach = r; game.pick = best([...r.keys()], o);
+  gameDraw();
+}
+function gameDraw() {
+  const o = gOrder();
+  $('#g-ord').innerHTML = ORD_BTN().map(b => '<button type="button" data-o="' + b[0] + '" aria-pressed="' + (game.ord === b[0]) + '">' + b[1] + '</button>').join('');
+  const pending = game.hand && game.pick === null;
+  const asCard = game.hand && game.pick !== null && game.reach.get(game.pick);
+  $('#g-hand').innerHTML = !game.hand ? '<p class="ph">' + L('Натисніть «Роздати»', 'Press "Deal"') + '</p>'
+    : '<div class="hand">' + game.hand.map(c => c === JOKER && asCard != null ? cardHTML(asCard, { as: true }) : cardHTML(c)).join('') + '</div>';
+  const hasJ = game.hand && game.hand.includes(JOKER);
+  if (hasJ) {
+    const ks = [...game.reach.keys()].sort((a, b) => o.indexOf(b) - o.indexOf(a)), top = ks[0];
+    $('#g-choices').innerHTML = ks.map(k => '<button type="button" data-k="' + k + '"' + (pending ? '' : ' disabled') + ' aria-pressed="' + (game.pick === k) + '"' + (!pending && game.pick !== k ? ' class="dim"' : '') + '>' +
+      '<span class="cardrow">' + cardHTML(JOKER, { sm: true }) + '<span class="mono">→</span>' + cardHTML(game.reach.get(k), { sm: true }) + '</span><span class="nm">' + Cat(k) + '</span><span class="tg">' + (k === top ? L('найсильніша', 'strongest') : '') + '</span></button>').join('');
+  } else $('#g-choices').innerHTML = '';
+  let m;
+  if (!game.hand) m = L('Роздайте руку. Джокер приходить приблизно в одній роздачі з десяти.', 'Deal a hand. The joker comes in about one deal in ten.');
+  else if (!hasJ) m = L('Без джокера: ', 'No joker: ') + cat(game.pick) + '.';
+  else if (pending) m = L('Джокер! Оберіть, чим він стане.', 'The joker! Choose what it becomes.');
+  else {
+    const top = best([...game.reach.keys()], o);
+    m = game.pick === top ? L('Джокер став картою ' + cardTxt(game.reach.get(game.pick)) + ': ' + cat(game.pick) + ', найсильніше, що дає ця рука.', 'The joker became ' + cardTxt(game.reach.get(game.pick)) + ': ' + cat(game.pick) + ', the strongest this hand can make.')
+      : L('Ви зіграли «' + cat(game.pick) + '», хоча могли «' + cat(top) + '». Справжній гравець так не зробить, але рахунок записує ваш вибір.', 'You played "' + cat(game.pick) + '" though you could have had "' + cat(top) + '". A real player would not, but the count records your choice.');
+  }
+  $('#g-msg').textContent = m;
+  ['#g-deal', '#g-1k', '#g-10k'].forEach(s => { $(s).disabled = pending; });
+  scoreDraw();
+}
+function scoreDraw() {
+  const o = gOrder(), t = game.t, n = game.n, hi = above(3, 2, o) ? 3 : 2, lo = 5 - hi;
+  $('#s-n').textContent = L('Роздано рук: ', 'Hands dealt: ') + fmt(n);
+  const mx = Math.max(t[2], t[3], 1);
+  $('#s-duo').innerHTML = [hi, lo].map(k => '<div class="drow"><div class="top"><span>' + Cat(k) + ' <span class="rk">' + (k === hi ? L('вища', 'higher') : L('нижча', 'lower')) + '</span></span><b>' + fmt(t[k]) + (n ? ' · ' + pct(t[k] / n) : '') + '</b></div>' +
+    '<div class="bar"><i style="width:' + (100 * t[k] / mx) + '%"></i></div></div>').join('');
+  $('#s-txt').textContent = n < 3000 ? L('Обидві руки трапляються приблизно раз на 20 роздач, тож для чесного порівняння потрібні тисячі рук.', 'Each of the two hands comes about once in 20 deals, so a fair comparison needs thousands of hands.')
+    : t[hi] > t[lo] ? L('Вища рука «' + cat(hi) + '» трапилася частіше за нижчу. Сильніша рука не рідша.', 'The higher hand, ' + cat(hi) + ', came up more often than the lower one. The stronger hand is not rarer.')
+    : L('Поки що вища рука рідша. Роздайте ще: у великих числах вона обжене нижчу.', 'So far the higher hand is rarer. Deal more: with large numbers it overtakes the lower one.');
+  $('#s-tbl').innerHTML = '<thead><tr><th>' + L('Рука, від сильнішої', 'Hand, strongest first') + '</th><th class="num">' + L('Скільки', 'How many') + '</th></tr></thead><tbody>' +
+    o.slice().reverse().map(k => '<tr' + (k === 2 || k === 3 ? ' class="hl"' : '') + '><td>' + Cat(k) + '</td><td class="num">' + fmt(t[k]) + '</td></tr>').join('') + '</tbody>';
+}
+$('#g-ord').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.dataset.o === game.ord) return; game.ord = b.dataset.o; game.t = Array(10).fill(0); game.n = 0; game.hand = null; gameDraw(); });
+$('#g-choices').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled || game.pick !== null) return; game.pick = +b.dataset.k; game.t[game.pick]++; game.n++; gameDraw(); });
+$('#g-deal').addEventListener('click', gameDeal);
+$('#g-1k').addEventListener('click', () => gameBulk(1000));
+$('#g-10k').addEventListener('click', () => gameBulk(10000));
+$('#s-reset').addEventListener('click', () => { game.t = Array(10).fill(0); game.n = 0; game.hand = null; gameDraw(); });
+
+/* ---------- round 3: rerank by rarity, recount, again ---------- */
+const loop = { step: 0 };
+function rankTable(g, o, f, el) {
+  const tot = TOTAL(g);
+  el.innerHTML = '<thead><tr><th>№</th><th>' + L('Рука', 'Hand') + '</th><th class="num">' + L('Скільки', 'How many') + '</th><th class="num">' + L('Частка', 'Share') + '</th><th>' + L('Рідша за руку нижче?', 'Rarer than the hand below?') + '</th></tr></thead><tbody>' +
+    o.slice().reverse().map((k, i, a) => {
+      const below = a[i + 1], ok = below == null || f[k] < f[below];
+      return '<tr><td class="rk">' + (i + 1) + '</td><td>' + Cat(k) + '</td><td class="num">' + fmt(f[k]) + '</td><td class="num">' + pct(f[k] / tot, 2) + '</td><td class="' + (ok ? 'ok' : 'bad') + '">' + (below == null ? '' : ok ? '✓' : '✗ ' + L('частіша', 'commoner')) + '</td></tr>';
+    }).join('') + '</tbody>';
+}
+function loopDraw() {
+  const o = loop.step % 2 ? SWAP : STD, f = freq('j1', o);
+  rankTable('j1', o, f, $('#loop-tbl'));
+  const n = loop.step + 1;
+  $('#loop-log').textContent = loop.step === 0
+    ? L('Крок 1. Звичайний порядок: трійка вище за дві пари. Але з джокером трійок 137 280, а двох пар 123 552: вища рука частіша. Переставте їх за рідкістю.', 'Step 1. The usual order: three of a kind above two pair. But with the joker there are 137,280 three-of-a-kinds and 123,552 two pairs: the higher hand is the commoner one. Rerank them by rarity.')
+    : loop.step % 2 ? L('Крок ' + n + '. Тепер дві пари вище, бо їх було менше. Перерахунок: двох пар 205 920, трійок 54 912. Знову вища рука частіша. Переставте ще раз.', 'Step ' + n + '. Now two pair is higher, since there were fewer of them. The recount: 205,920 two pairs, 54,912 three-of-a-kinds. Again the higher hand is the commoner one. Rerank once more.')
+    : L('Крок ' + n + '. Ми повернулися до звичайного порядку й тих самих чисел, що на кроці 1. Петля ходить між двома порядками й не зупиняється.', 'Step ' + n + '. We are back at the usual order and the same numbers as in step 1. The loop swings between two orders and never stops.');
+}
+$('#loop-go').addEventListener('click', () => { loop.step++; loopDraw(); });
+
+// every order of the eight lower hands, with straight flush and five of a kind on top
+function perms(a) { return a.length < 2 ? [a] : a.flatMap((x, i) => perms(a.slice(0, i).concat(a.slice(i + 1))).map(p => [x, ...p])); }
+const all = { n: 0, ok: 0, min: 0, minN: 0, minOrders: [] };
+function allRun() {
+  let n = 0, ok = 0, min = Infinity, at = [];
+  perms([0, 1, 2, 3, 4, 5, 6, 7]).forEach(p => {
+    const o = p.concat([8, 9]), b = broken(freq('j1', o), o).length;
+    n++; if (!b) ok++;
+    if (b < min) { min = b; at = [o]; } else if (b === min) at.push(o);
+  });
+  Object.assign(all, { n, ok, min, minN: at.length, minOrders: at });
+  allDraw();
+}
+function allDraw() {
+  $('#all-n').textContent = fmt(all.n);
+  $('#all-ok').textContent = fmt(all.ok);
+  $('#all-s').textContent = L('у кожному якась сильніша рука трапляється не рідше за слабшу', 'in each, some stronger hand turns up at least as often as a weaker one');
+  $('#all-min').textContent = fmt(all.min);
+  const isStd = o => o.every((k, i) => k === STD[i]);
+  $('#all-mins').textContent = L('таких порядків ' + all.minN + ': ', 'there are ' + all.minN + ': ') + all.minOrders.map(o => isStd(o) ? L('звичайний', 'the usual one') : L('трійка й дві пари навпаки', 'three of a kind and two pair swapped')).join(L(' і ', ' and '));
+}
+$('#all-go').addEventListener('click', allRun);
+
+// a million random deals, each scored under both orders
+const mc = { n: 0, j: 0, t: { std: Array(10).fill(0), swap: Array(10).fill(0) }, busy: false };
+function mcRun() {
+  if (mc.busy) return;
+  mc.busy = true; mc.n = 0; mc.j = 0; mc.t = { std: Array(10).fill(0), swap: Array(10).fill(0) };
+  const d = DECK(), N = 1000000, CH = 50000;
+  $('#mc-go').disabled = true;
+  const chunk = () => {
+    for (let i = 0; i < CH; i++) {
+      const h = deal(d), ks = [...reach(h).keys()];
+      if (h.includes(JOKER)) mc.j++;
+      mc.t.std[best(ks, STD)]++; mc.t.swap[best(ks, SWAP)]++; mc.n++;
+    }
+    $('#mc-prog').textContent = fmt(mc.n) + ' / ' + fmt(N);
+    mcDraw();
+    if (mc.n < N) setTimeout(chunk, 0); else { mc.busy = false; $('#mc-go').disabled = false; $('#mc-prog').textContent = L('з них із джокером ', 'of them with the joker ') + fmt(mc.j); }
+  };
+  chunk();
+}
+function mcDraw() {
+  if (!mc.n) return;
+  const tot = TOTAL('j1'), ex = { std: freq('j1', STD), swap: freq('j1', SWAP) };
+  $('#mc-tbl').innerHTML = '<thead><tr><th>' + L('Порядок', 'Order') + '</th><th>' + L('Рука', 'Hand') + '</th><th class="num">' + L('Симуляція', 'Simulation') + '</th><th class="num">' + L('Точно', 'Exact') + '</th></tr></thead><tbody>' +
+    ORD_BTN().map(([id, name]) => {
+      const o = id === 'std' ? STD : SWAP;
+      return [3, 2].sort((a, b) => o.indexOf(b) - o.indexOf(a)).map((k, i) => '<tr' + (i === 0 ? ' class="hl"' : '') + '><td>' + (i === 0 ? name : '') + '</td><td>' + Cat(k) + (i === 0 ? ' · ' + L('вища', 'higher') : '') + '</td><td class="num">' + pct(mc.t[id][k] / mc.n) + '</td><td class="num">' + pct(ex[id][k] / tot) + '</td></tr>').join('');
+    }).join('') + '</tbody>';
+}
+$('#mc-go').addEventListener('click', mcRun);
+
+/* ---------- round 4: the undecided hands ---------- */
+let swOrd = 'std';
+function swDraw() {
+  $('#ex-hand').innerHTML = HERO.map(c => cardHTML(c, { sm: true })).join('');
+  $('#sw-ord').innerHTML = ORD_BTN().map(b => '<button type="button" data-o="' + b[0] + '" aria-pressed="' + (swOrd === b[0]) + '">' + b[1] + '</button>').join('');
+  const o = swOrd === 'std' ? STD : SWAP, hi = above(3, 2, o) ? 3 : 2, own = { 2: 123552, 3: 54912 }, ex = 82368, mx = 123552 + ex;
+  $('#sw-bars').innerHTML = [3, 2].map(k => {
+    const w = own[k] + (k === hi ? ex : 0);
+    return '<div class="drow"><div class="top"><span>' + Cat(k) + ' <span class="rk">' + (k === hi ? L('вища', 'higher') : L('нижча', 'lower')) + '</span></span><b>' + fmt(w) + '</b></div>' +
+      '<div class="bar"><i style="width:' + (100 * own[k] / mx) + '%"></i>' + (k === hi ? '<i style="left:' + (100 * own[k] / mx) + '%;width:' + (100 * ex / mx) + '%"></i>' : '') + '</div></div>';
+  }).join('') + '<p class="note">' + L('Темне — руки без вибору, фіолетове — 82 368 спірних рук із джокером.', 'Dark: hands with no choice; purple: the 82,368 undecided joker hands.') + '</p>';
+}
+$('#sw-ord').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; swOrd = b.dataset.o; swDraw(); });
+
+function grpDraw() {
+  // the joker hands only: subtract the hands without a joker from each single-kind group
+  const rows = GROUPS.j1.map(([m, w]) => { const ks = bits(m); return [ks, ks.length === 1 ? w - NATURAL[ks[0]] : w]; }).filter(r => r[1] > 0)
+    .sort((a, b) => b[0].length - a[0].length || b[1] - a[1]);
+  $('#grp-tbl').innerHTML = '<thead><tr><th>' + L('Джокер може дати', 'The joker can make') + '</th><th class="num">' + L('Рук', 'Hands') + '</th></tr></thead><tbody>' +
+    rows.map(([ks, w]) => '<tr' + (ks.includes(2) && ks.includes(3) ? ' class="hl"' : '') + '><td>' + ks.slice().reverse().map(cat).join(', ') + '</td><td class="num">' + fmt(w) + '</td></tr>').join('') +
+    '<tr><td><b>' + L('Усього', 'Total') + '</b></td><td class="num"><b>' + fmt(rows.reduce((s, r) => s + r[1], 0)) + '</b></td></tr></tbody>';
+}
+
+/* ---------- round 5: other decks ---------- */
+const v = { deck: 'j1', ord: 'std' };
+const DECKS = () => [['j1', L('один джокер', 'one joker')], ['j2', L('два джокери', 'two jokers')], ['d', L('дикі двійки', 'deuces wild')]];
+function vDraw() {
+  $('#v-deck').innerHTML = DECKS().map(b => '<button type="button" data-d="' + b[0] + '" aria-pressed="' + (v.deck === b[0]) + '">' + b[1] + '</button>').join('');
+  $('#v-ord').innerHTML = ORD_BTN().map(b => '<button type="button" data-o="' + b[0] + '" aria-pressed="' + (v.ord === b[0]) + '">' + b[1] + '</button>').join('');
+  const o = v.ord === 'std' ? STD : SWAP, f = freq(v.deck, o), tot = TOTAL(v.deck), b = broken(f, o);
+  $('#v-tbl').innerHTML = '<thead><tr><th>' + L('Рука, від сильнішої', 'Hand, strongest first') + '</th><th class="num">' + L('Скільки', 'How many') + '</th><th>' + L('Не рідша за слабші', 'Not rarer than weaker') + '</th></tr></thead><tbody>' +
+    o.slice().reverse().map(k => { const w = b.filter(p => p[0] === k).map(p => cat(p[1])); return '<tr><td>' + Cat(k) + '</td><td class="num">' + fmt(f[k]) + '</td><td class="' + (w.length ? 'bad' : 'ok') + '">' + (w.length ? w.join(', ') : '✓') + '</td></tr>'; }).join('') + '</tbody>';
+  $('#v-note').textContent = L('Усього рук: ' + fmt(tot) + '. Зламаних пар рук: ' + b.length + '.', 'Hands in all: ' + fmt(tot) + '. Broken pairs of hands: ' + b.length + '.') + ' ' +
+    { j1: L('Один джокер ламає лише пару «трійка — дві пари», і та сама пара ламається навпаки, якщо їх поміняти.', 'One joker breaks only the pair "three of a kind vs two pair", and the same pair breaks the other way if you swap them.'),
+      j2: L('Так рахував Гадбуа: 54 карти. Фул-хаус і каре рівні, по 9 360, тож жоден із них не рідший.', 'This is the deck Gadbois counted: 54 cards. Full house and four of a kind are equal, 9,360 each, so neither is rarer.'),
+      d: L('52 карти, чотири двійки дикі. Каре частіше за фул-хаус і флеш, хоча вище за обидва.', '52 cards, the four deuces are wild. Four of a kind is commoner than full house and flush, though it beats both.') }[v.deck];
+}
+$('#v-deck').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; v.deck = b.dataset.d; vDraw(); });
+$('#v-ord').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; v.ord = b.dataset.o; vDraw(); });
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Покер із джокером', 'Wild-Card Poker');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  heroDraw(); natDraw(); guessText(); gameDraw(); loopDraw(); allDraw(); mcDraw(); swDraw(); grpDraw(); vDraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang === 'en' ? 'en' : 'uk'; applyLang(); });
+document.addEventListener('solved', () => setTimeout(heroDraw, 0));
+
+/* ---------- opening state ---------- */
+allRun();
+applyLang();
+// the million deals start once round 3 comes into view, so the page loads light
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); mcRun(); } });
+  io.observe($('#sim'));
+} else mcRun();
+})();
+</script>
