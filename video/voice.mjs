@@ -4,6 +4,7 @@
 //    all worktrees) has ELEVENLABS_API_KEY and a voice id
 //    for the language (ELEVENLABS_VOICE_UK / ELEVENLABS_VOICE_EN); clips are cached by text;
 // 3. the macOS system voice, a placeholder for checking the timing only.
+// VOICE=draft (environment) skips ElevenLabs: system voice only, for stills while the text still changes.
 import { execFileSync } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
@@ -48,7 +49,7 @@ export async function clips(dir, name, lang, lines) {
     const base = `${dir}/voice/${name}-${lang}-${i}`;
     let file = ['wav', 'm4a', 'mp3', 'aiff'].map(e => `${base}.${e}`).find(f => fs.existsSync(f));
     let source = 'recorded';
-    if (!file && key && voiceId) {
+    if (!file && key && voiceId && E.VOICE !== 'draft') {
       const h = crypto.createHash('sha1').update([MODEL, voiceId, line].join('|')).digest('hex').slice(0, 10);
       file = `${dir}/out/tts/${name}-${lang}-${i}-${h}.mp3`;
       if (!fs.existsSync(file)) await eleven(key, voiceId, line, lines[i - 1] || '', lines[i + 1] || '', file);

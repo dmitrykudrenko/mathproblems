@@ -3,14 +3,19 @@
 // VOICE holds the narration; setTimeline(durations) fits the scenes to the spoken lines,
 // then draw(ctx, t, lang) paints one frame and cues() lists the sound events.
 
-export const W = 1080, H = 1920;
+import {
+  W, H, F, ROW, clamp, prog, easeOut, easeInOut, back, life, rise, rng, text, rrect,
+  background, kicker, optionsGrid, countdown, endCard, optionCues, countdownCues, endCues,
+} from './lib.mjs';
+
+export { W, H };
 export let DURATION = 40;
 
 const C = {
   paper: '#EDEFF5', surface: '#FFFFFF', ink: '#141A30', muted: '#586079',
-  line: '#D3D8E5', day: '#2A3DD1', hit: '#DB9500', cell: '#E1E5F0', tint: '#E6F8D8',
+  line: '#D3D8E5', day: '#2A3DD1', hit: '#DB9500', cell: '#E1E5F0',
+  tint: '#E6F8D8', tintSoft: '#EEF5EA', accent: '#DB9500',
 };
-const F = { display: 'Unbounded', body: 'Onest', mono: 'JetBrains Mono' };
 
 const T = {
   uk: {
@@ -109,49 +114,11 @@ setTimeline([2.6, 6, 5, 2, 7, 6, 6]);
 
 // Seven distinct days for the people who walk in (fixed seed, no match on screen)
 const DAYS = (() => {
-  let s = 20261114;
-  const rnd = () => ((s = (s * 1103515245 + 12345) >>> 0) / 2 ** 32);
+  const rnd = rng(20261114);
   const set = new Set();
   while (set.size < N_PEOPLE) set.add(Math.floor(rnd() * 365));
   return [...set];
 })();
-
-// ---- helpers
-const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
-const prog = (t, a, d) => clamp((t - a) / d);
-const easeOut = x => 1 - (1 - x) ** 3;
-const easeInOut = x => (x < .5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
-const back = x => { const c = 1.7; return 1 + (c + 1) * (x - 1) ** 3 + c * (x - 1) ** 2; };
-// visible from a to b with fade in/out
-const life = (t, a, b, f = .35) => Math.min(easeOut(prog(t, a, f)), 1 - easeInOut(prog(t, b - f, f)));
-
-function wrap(ctx, text, maxW) {
-  const words = text.split(' '), lines = [];
-  let cur = '';
-  for (const w of words) {
-    const test = cur ? cur + ' ' + w : w;
-    if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; } else cur = test;
-  }
-  if (cur) lines.push(cur);
-  return lines;
-}
-
-function text(ctx, s, x, y, { font, color = C.ink, align = 'left', alpha = 1, maxW = 0, lh = 0, dy = 0 }) {
-  if (alpha <= 0) return 0;
-  ctx.save();
-  ctx.globalAlpha *= alpha;
-  ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'alphabetic';
-  const lines = maxW ? wrap(ctx, s, maxW) : [s];
-  lines.forEach((l, i) => ctx.fillText(l, x, y + dy + i * lh));
-  ctx.restore();
-  return lines.length;
-}
-
-function rrect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
-}
 
 // ---- calendar: 12 month columns, days down
 const G = { x: 98, y: 800, cw: 66, ch: 20, gx: 6, gy: 4 };
@@ -195,53 +162,6 @@ function drawCalendar(ctx, t, L, a) {
     rrect(ctx, cx - G.cw / 2 * s, cy - G.ch / 2 * s, G.cw * s, G.ch * s, 5); ctx.fill();
   });
   ctx.restore();
-}
-
-// ---- options
-function optionBox(ctx, i, x, y, w, h, scale, alpha, big = true) {
-  if (alpha <= 0) return;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.translate(x + w / 2, y + h / 2); ctx.scale(scale, scale); ctx.translate(-w / 2, -h / 2);
-  ctx.shadowColor = 'rgba(20,26,48,.08)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 8;
-  ctx.fillStyle = C.surface; rrect(ctx, 0, 0, w, h, 28); ctx.fill();
-  ctx.shadowColor = 'transparent';
-  // thin-framed Latin label, as on the site
-  const lab = 'ABCD'[i], ls = big ? 54 : 34;
-  ctx.strokeStyle = C.muted; ctx.lineWidth = 2.5;
-  rrect(ctx, big ? 28 : 16, big ? 28 : 16, ls, ls, 8); ctx.stroke();
-  text(ctx, lab, (big ? 28 : 16) + ls / 2, (big ? 28 : 16) + ls * .72,
-    { font: `600 ${big ? 30 : 20}px ${F.mono}`, color: C.muted, align: 'center' });
-  text(ctx, OPTIONS[i], w / 2, big ? h / 2 + 48 : h - 30,
-    { font: `800 ${big ? 128 : 54}px ${F.display}`, align: 'center' });
-  ctx.restore();
-}
-
-function drawOptions(ctx, t, a) {
-  const w = 410, h = 260, gap = 30, x0 = (W - 2 * w - gap) / 2, y0 = 780;
-  for (let i = 0; i < 4; i++) {
-    const p = prog(t, S.optAt[i], .5);
-    if (p <= 0) continue;
-    optionBox(ctx, i, x0 + (i % 2) * (w + gap), y0 + Math.floor(i / 2) * (h + gap), w, h, .4 + .6 * back(p), a * clamp(p * 3));
-  }
-}
-
-function drawCountdown(ctx, t, L, a) {
-  if (a <= 0) return;
-  const cx = W / 2, cy = 1490, r = 60;
-  text(ctx, L.pause, cx, 1385, { font: `700 48px ${F.body}`, align: 'center', alpha: a });
-  const p = prog(t, S.count, S.countEnd - S.count);
-  const n = Math.max(1, 4 - Math.floor(p * 4));
-  ctx.save(); ctx.globalAlpha = a;
-  ctx.strokeStyle = C.line; ctx.lineWidth = 12;
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke();
-  ctx.strokeStyle = C.hit; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * (1 - p)); ctx.stroke();
-  ctx.restore();
-  if (p < 1) {
-    const sp = (p * 4) % 1;
-    text(ctx, String(n), cx, cy + 26, { font: `800 76px ${F.display}`, align: 'center', alpha: a * (1 - .3 * sp) });
-  } else text(ctx, '?', cx, cy + 26, { font: `800 76px ${F.display}`, color: C.hit, align: 'center', alpha: a });
 }
 
 // ---- pairs hint: people on a circle, every newcomer joins everyone already there
@@ -293,24 +213,16 @@ function drawPairs(ctx, t, L, a) {
 // ---- frame
 export function draw(ctx, t, lang) {
   const L = T[lang];
-  ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H);
-
-  // the problem's own colour over the whole frame, fading to paper
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, C.tint); g.addColorStop(.55, '#EEF5EA'); g.addColorStop(1, C.paper);
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-
-  // brand + kicker (whole video)
-  text(ctx, 'MATHPARADOXES.COM', 80, 250, { font: `600 26px ${F.mono}`, color: C.muted, alpha: easeOut(prog(t, .1, .5)) });
+  background(ctx, C, t);
 
   // A: the year
   const aYear = life(t, 0, S.question + .2);
-  text(ctx, L.kicker, 80, 340, { font: `600 30px ${F.mono}`, color: C.hit, alpha: life(t, .2, S.hint) });
-  text(ctx, L.year, 80, 470, { font: `800 76px ${F.display}`, maxW: 920, lh: 94, alpha: aYear, dy: 30 * (1 - easeOut(prog(t, 0, .6))) });
+  kicker(ctx, C, L.kicker, life(t, .2, S.hint));
+  text(ctx, L.year, 80, ROW.title, { font: `800 76px ${F.display}`, maxW: 920, lh: 94, alpha: aYear, dy: 30 * (1 - easeOut(prog(t, 0, .6))) });
 
   // B, C: question stays while options and countdown run
   const aQ = life(t, S.question, S.hint);
-  text(ctx, L.question, 80, 430, { font: `700 54px ${F.display}`, maxW: 900, lh: 72, alpha: aQ, dy: 24 * (1 - easeOut(prog(t, S.question, .6))) });
+  text(ctx, L.question, 80, ROW.question, { font: `700 54px ${F.display}`, maxW: 900, lh: 72, alpha: aQ, dy: 24 * (1 - easeOut(prog(t, S.question, .6))) });
 
   drawCalendar(ctx, t, L, 1 - easeInOut(prog(t, S.options - .4, .5)));
   // people counter under the calendar
@@ -318,51 +230,27 @@ export function draw(ctx, t, lang) {
   const aRoom = life(t, S.people, S.options - .2);
   text(ctx, `${L.room}: ${inRoom}`, W - 80, 250, { font: `600 26px ${F.mono}`, color: C.day, align: 'right', alpha: aRoom });
 
-  drawOptions(ctx, t, 1 - easeInOut(prog(t, S.hint - .5, .5)));
-  drawCountdown(ctx, t, L, life(t, S.pause, S.hint));
+  optionsGrid(ctx, C, OPTIONS, S.optAt, t, 1 - easeInOut(prog(t, S.hint - .5, .5)));
+  countdown(ctx, C, L.pause, t, S.count, S.countEnd, life(t, S.pause, S.hint));
 
   // D: hint
   const aH = life(t, S.hint, S.end);
-  text(ctx, L.hintKicker, 80, 340, { font: `600 30px ${F.mono}`, color: C.hit, alpha: aH });
-  text(ctx, L.hint, 80, 470, { font: `800 68px ${F.display}`, maxW: 900, lh: 86, alpha: aH, dy: 24 * (1 - easeOut(prog(t, S.hint, .6))) });
+  kicker(ctx, C, L.hintKicker, aH);
+  text(ctx, L.hint, 80, ROW.title, { font: `800 68px ${F.display}`, maxW: 900, lh: 86, alpha: aH, dy: 24 * (1 - easeOut(prog(t, S.hint, .6))) });
   drawPairs(ctx, t, L, aH);
   text(ctx, L.hintSub, W / 2, 1520, { font: `600 42px ${F.body}`, align: 'center', alpha: life(t, S.hintSub, S.end) });
 
-  // E: end card
-  const aE = easeOut(prog(t, S.end, .6));
-  if (aE > 0) {
-    text(ctx, L.kicker, 80, 340, { font: `600 30px ${F.mono}`, color: C.hit, alpha: aE });
-    text(ctx, L.question, 80, 430, { font: `700 54px ${F.display}`, maxW: 900, lh: 72, alpha: aE });
-    const w = 200, h = 170, gap = 26, x0 = (W - 4 * w - 3 * gap) / 2;
-    for (let i = 0; i < 4; i++) {
-      const p = prog(t, S.end + .3 + i * .12, .4);
-      optionBox(ctx, i, x0 + i * (w + gap), 860, w, h, .6 + .4 * back(p), clamp(p * 3), false);
-    }
-    text(ctx, L.comment, W / 2, 1150, { font: `700 46px ${F.body}`, align: 'center', alpha: easeOut(prog(t, S.end + 1.2, .5)) });
-    const pu = easeOut(prog(t, S.end + 2.2, .5));
-    text(ctx, L.play, W / 2, 1320, { font: `500 40px ${F.body}`, color: C.muted, align: 'center', alpha: pu });
-    if (pu > 0) {
-      ctx.save(); ctx.globalAlpha = pu;
-      ctx.font = `600 44px ${F.mono}`;
-      const tw = ctx.measureText(L.url).width + 70;
-      ctx.fillStyle = C.ink; rrect(ctx, (W - tw) / 2, 1360, tw, 96, 48); ctx.fill();
-      ctx.restore();
-      text(ctx, L.url, W / 2, 1423, { font: `600 44px ${F.mono}`, color: C.paper, align: 'center', alpha: pu });
-    }
-  }
+  endCard(ctx, C, L, OPTIONS, t, S.end);
 }
 
 // ---- sound cues: [time, kind, param]
 export function cues() {
   const c = [[0.05, 'whoosh'], [S.question, 'whoosh']];
   DAYS.forEach((_, i) => c.push([S.people + i * S.peopleStep, 'tick', i]));
-  for (let i = 0; i < 4; i++) c.push([S.optAt[i], 'pop', i]);
-  for (let k = 0; k < 4; k++) c.push([S.count + k, 'beep', 0]);
-  c.push([S.countEnd, 'beep', 1]);
+  c.push(...optionCues(S.optAt), ...countdownCues(S.count, S.countEnd));
   c.push([S.hint, 'whoosh']);
   for (let k = 0; k < N_NODES; k++) c.push([S.nodes + k * S.nodeStep, 'tick', k]);
   for (let k = 1; k < N_NODES; k++) for (let j = 0; j < k; j++) c.push([lineT(k, j) + .3, 'pluck', k * (k - 1) / 2 + j]);
-  c.push([S.end, 'whoosh']);
-  for (let i = 0; i < 4; i++) c.push([S.end + .3 + i * .12, 'pop', i]);
+  c.push(...endCues(S.end, OPTIONS.length));
   return c;
 }
