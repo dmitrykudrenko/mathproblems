@@ -83,6 +83,13 @@ export const INTRO = {
   en: { title: 'The Monty Hall problem' },
 };
 
+// the channel-grid cover (cover.mjs): a frame of the short and a hook that asks, never answers
+export const COVER = {
+  t: 12, crop: [820, 1420],
+  uk: { hook: '*Змінити* двері?' },
+  en: { hook: 'Would you *switch*?' },
+};
+
 // ---- the 100 doors of the hint: one picked, one skipped by the host, 98 opened
 const N = 100, PICK = 23, SKIP = 71;
 const OPEN_ORDER = (() => {

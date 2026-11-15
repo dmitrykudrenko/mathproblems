@@ -79,6 +79,13 @@ export const INTRO = {
   en: { title: 'The birthday paradox' },
 };
 
+// the channel-grid cover (cover.mjs): a frame of the short and a hook that asks, never answers
+export const COVER = {
+  t: 26, crop: [540, 1480],
+  uk: { hook: 'Скільки людей до *спільного дня народження*?' },
+  en: { hook: 'How many people for a *shared birthday*?' },
+};
+
 const OPTIONS = ['23', '57', '183', '253'];
 const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 

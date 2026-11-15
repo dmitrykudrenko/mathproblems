@@ -88,6 +88,13 @@ export const INTRO = {
   en: { title: 'The duckweed lake puzzle' },
 };
 
+// the channel-grid cover (cover.mjs): a frame of the short and a hook that asks, never answers
+export const COVER = {
+  t: 8, crop: [900, 1500],
+  uk: { hook: 'Одне озеро. *Дві* рослини?' },
+  en: { hook: 'One lake. *Two* plants?' },
+};
+
 // round-1 zones of the page, in its order («about half of 30» said as «about 15» to fit a card)
 const OPTIONS = {
   uk: ['Кілька днів', 'Близько 15', 'Помітно менше 30', 'Майже 30'],

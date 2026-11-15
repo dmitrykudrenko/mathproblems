@@ -1,6 +1,7 @@
-// Branded sting, ~1.2 s, before every short: the three-doors mark draws itself on ink,
-// the third door fills, the site name slides out, then the problem's title in its own
-// colour, and the ink panel lifts off the first scene.
+// Branded sting, 0.75 s, before every short: the three-doors mark, the site name and the
+// problem's title in its own colour on ink, then the ink panel lifts off the first scene.
+// It opens already drawn (LEAD skips the draw-on), because the first frame is what a viewer
+// sees while deciding to scroll on, and what Shorts/TikTok take as the default cover.
 // A scene opts in with `export const INTRO = { tint, uk: { title }, en: { title } }`.
 import { loadImage, Path2D } from '@napi-rs/canvas';
 import fs from 'fs';
@@ -18,7 +19,8 @@ async function lockup(lang) {
 }
 const LOCKUP = { uk: await lockup('uk'), en: await lockup('en') };
 
-const T0 = 1.2, WIPE = 0.32;              // main scene starts at T0, under the lifting panel
+const T0 = 0.75, WIPE = 0.32;             // main scene starts at T0, under the lifting panel
+const LEAD = 0.95;                        // sting time at frame 0: everything is drawn by then
 const INK = '#141A30', LIGHT = '#F2F3F7', SIGNAL = '#E86AB0';
 const MARK_W = 130;                       // the mark's share of the lockup, in viewBox units
 
@@ -43,8 +45,8 @@ function wrap(ctx, text, maxW) {
   return cur ? [...out, cur] : out;
 }
 
-function drawIntro(ctx, t, lang, cfg, W, H) {
-  const lift = easeIn(prog(t, T0, WIPE)) * H;
+function drawIntro(ctx, time, lang, cfg, W, H) {
+  const lift = easeIn(prog(time, T0, WIPE)) * H, t = time + LEAD;
   ctx.save();
   ctx.translate(0, -lift);
   ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
@@ -89,7 +91,8 @@ function drawIntro(ctx, t, lang, cfg, W, H) {
     ctx.fillStyle = cfg.tint;
     ctx.fillRect(W / 2 - 60 * a, 960, 120 * a, 6);
     ctx.font = '800 58px Unbounded'; ctx.textAlign = 'center';
-    wrap(ctx, cfg[lang].title, 900).forEach((l, i) => ctx.fillText(l, W / 2, 1070 + i * 74 + 16 * (1 - a)));
+    // 760 px: TikTok's like/comment buttons cover the right edge of the frame
+    wrap(ctx, cfg[lang].title, 760).forEach((l, i) => ctx.fillText(l, W / 2, 1070 + i * 74 + 16 * (1 - a)));
     ctx.restore();
   }
   ctx.restore();
@@ -111,8 +114,7 @@ export function withIntro(scene) {
     },
     cues(lang) {
       return [
-        ...[0, 1, 2].map(i => [0.04 + i * 0.09, 'tick', i * 2]),
-        [0.4, 'chime'],
+        [0, 'chime'],
         [T0 - 0.05, 'whoosh'],
         ...scene.cues(lang).map(([t, k, p]) => [t + T0, k, p]),
       ];
