@@ -219,7 +219,7 @@ export function makeShort(spec) {
   return {
     W, H,
     VOICE: { en: beats.map(b => b.say) },
-    INTRO: { tint: fmt.intro, en: { title: spec.intro } },
+    INTRO: { tint: fmt.intro, series: spec.format, en: { title: spec.intro } },
     COVER: cover,
     get DURATION() { return DURATION; },
     setTimeline, draw, cues,

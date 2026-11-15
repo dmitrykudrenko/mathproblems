@@ -10,7 +10,7 @@ export default makeShort({
   cover: { beat: 1, hook: '*1,400* or 246 tanks a month?' },
   beats: [
     { say: 'Intelligence said fourteen hundred tanks a month. Statisticians said two hundred forty-six. Who was right?',
-      show: { compare: [{ value: '1,400', label: 'intelligence' }, { value: '246', label: 'statisticians', color: 'accent' }] } },
+      show: { title: 'Tanks a month: who was right?', compare: [{ value: '1,400', label: 'intelligence' }, { value: '246', label: 'statisticians', color: 'accent' }] } },
     { say: 'Second World War. The statisticians never saw a factory. Only the serial numbers on a few captured German tanks.',
       show: { title: 'They only had serial numbers', visual: { kind: 'icons', icon: 'tank', items: [{ label: '#4' }, { label: '#10' }, { label: '#15' }, { label: '#60', hi: true }], cols: 2, cellH: 300, scale: 1.1 } } },
     { say: "After the war, the records of Speer's ministry were opened. The real figure: two hundred forty-five.",

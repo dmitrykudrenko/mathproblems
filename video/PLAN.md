@@ -55,7 +55,7 @@ Covers (`cover.mjs`) are on TikTok. YouTube takes custom covers only after the c
 
 ## Formats around the puzzles
 
-Besides the puzzle shorts (question → options → pause → hint), six more formats, built with `beats.mjs` (a short is a list of spoken lines with what the screen shows) and `visuals.mjs` (animated pictures: dots, a map, a doubling tower, icons, a stack, a histogram). Each format has its own colour and kicker.
+Besides the puzzle shorts (question → options → pause → hint), six more formats, built with `beats.mjs` (a short is a list of spoken lines with what the screen shows) and `visuals.mjs` (animated pictures: dots, a map, a doubling tower, icons, a stack, a histogram). Each format has its own colour and kicker, and with the puzzles each is a series (`series.mjs`): its own deep background and label (PUZZLE, MOST GET IT WRONG, GLOSSARY, TRUE STORY, TRY IT, COSTLY MISTAKE, THE VOTE) on the sting and the cover.
 
 | Format | Kicker | What it does | Ends with |
 |---|---|---|---|

@@ -12,6 +12,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { clips } from './voice.mjs';
 import { withIntro } from './intro.mjs';
+import { SERIES, seriesLabel } from './series.mjs';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 GlobalFonts.registerFromPath(`${dir}/fonts/Unbounded.ttf`, 'Unbounded');
@@ -23,7 +24,7 @@ const [name = 'birthday', which = 'all'] = process.argv.slice(2);
 const mod = (m => m.default || m)(await import(`./${name}.mjs`));
 if (!mod.COVER) throw new Error(`${name}.mjs has no COVER`);
 const scene = withIntro(mod), { W, H } = scene, cfg = mod.COVER, tint = mod.INTRO.tint;
-const INK = '#141A30', LIGHT = '#F2F3F7', SIGNAL = '#E86AB0', MUTED = '#9AA3BF';
+const LIGHT = '#F2F3F7', SIGNAL = '#E86AB0', MUTED = '#9AA3BF';
 
 async function lockup(lang, width) {
   const svg = fs.readFileSync(`${dir}/../brand/lockup-${lang}-dark.svg`, 'utf8');
@@ -64,13 +65,15 @@ for (const lang of which === 'all' ? ['uk', 'en'] : [which]) {
   scene.setTimeline(voice.map(v => v.dur));
   scene.draw(fctx, cfg.t, lang);
 
-  ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
+  const series = mod.INTRO.series || 'puzzle', deep = SERIES[series].deep;
+  ctx.fillStyle = deep; ctx.fillRect(0, 0, W, H);
   const glow = ctx.createRadialGradient(W / 2, 1150, 60, W / 2, 1150, 900);
   glow.addColorStop(0, tint + '55'); glow.addColorStop(1, tint + '00');
   ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
 
   const L = await lockup(lang, 360);
-  ctx.drawImage(L.img, (W - L.w) / 2, 280, L.w, L.h);
+  ctx.drawImage(L.img, (W - L.w) / 2, 270, L.w, L.h);
+  seriesLabel(ctx, series, lang, W / 2, 410, 40);
 
   // hook: the largest size that fits in three lines
   const ws = words(cfg[lang].hook);
@@ -83,9 +86,9 @@ for (const lang of which === 'all' ? ['uk', 'en'] : [which]) {
   // hook, card and name centred as one block between the lockup and 1660 px
   const lh = px * 1.12, [y0, y1] = cfg.crop, cw = 920, r = 36, cx = (W - cw) / 2;
   const textH = lines.length * lh, gap = 70;
-  const ch = Math.min((y1 - y0) * cw / W, 1560 - 420 - textH - gap);
+  const ch = Math.min((y1 - y0) * cw / W, 1560 - 490 - textH - gap);
   const block = textH + gap + ch + 90;
-  let y = 400 + Math.max(0, (1660 - 400 - block) / 2) + px;
+  let y = 470 + Math.max(0, (1660 - 470 - block) / 2) + px;
   ctx.textBaseline = 'alphabetic';
   for (const line of lines) {
     const piece = (wd, i) => (i && wd.gap ? ' ' : '') + wd.w;
