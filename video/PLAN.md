@@ -70,23 +70,25 @@ Rules: facts only from the site with its source on screen; never a site puzzle's
 
 ## Queue: formats (English), one a day at 17:00 Lisbon
 
-| Date | Short | Title / caption hook |
-|---|---|---|
-| 11-18 | story-german-tanks | Spies said 1,400 tanks a month. Statisticians said 246. Who was right? |
-| 11-19 | word-mean | Almost everyone has more legs than average |
-| 11-20 | cost-pill-scare | One missing number led to thousands of abortions |
-| 11-21 | wrong-vos-savant | 10,000 letters told her she was wrong. Who was right? |
-| 11-22 | word-logarithm | Fold paper 42 times and reach the Moon |
-| 11-23 | wrong-mammography | 4 in 5 doctors got this wrong. Can you? |
-| 11-24 | story-literary-digest | The biggest poll in history picked the wrong president |
-| 11-25 | wrong-bat-ball | You have 10 seconds: how much is the ball? |
-| 11-26 | word-combinatorics | Your shuffled deck has never existed before |
-| 11-27 | story-london-bombs | Were the bombs on London aimed? |
-| 11-28 | try-birthday-chat | Check your group chat for a shared birthday |
-| 11-29 | try-xkcd-tanks | Count xkcd comics like a WWII statistician |
-| 11-30 | try-monty-cups | Test Monty Hall with three cups tonight |
-| 12-01 | cost-ab-power | Your A/B test said +24%. The truth: +10% (also for LinkedIn) |
-| 12-02 | cost-holdout | 20 winning tests, +49% in the report, +7% in reality (also for LinkedIn) |
+Status 2026-11-15. YouTube: an unverified channel takes about 10 uploads a day; the rest go up after the limit resets (or at once after phone verification, which also unlocks custom covers and clickable links). TikTok schedules at most 10 days ahead. Titles, descriptions, tags and TikTok captions for every short are in `captions.json`.
+
+| Date | Short | YouTube | TikTok |
+|---|---|---|---|
+| 11-18 | story-german-tanks | scheduled | scheduled, cover |
+| 11-19 | word-mean | scheduled | scheduled, cover |
+| 11-20 | cost-pill-scare | scheduled | scheduled, cover |
+| 11-21 | wrong-vos-savant | scheduled | scheduled, cover |
+| 11-22 | word-logarithm | scheduled | scheduled, cover |
+| 11-23 | wrong-mammography | after the upload limit | scheduled, cover |
+| 11-24 | story-literary-digest | after the upload limit | scheduled, cover |
+| 11-25 | wrong-bat-ball | after the upload limit | scheduled, cover |
+| 11-26 | word-combinatorics | after the upload limit | from 11-16 |
+| 11-27 | story-london-bombs | after the upload limit | from 11-17 |
+| 11-28 | try-birthday-chat | after the upload limit | from 11-18 |
+| 11-29 | try-xkcd-tanks | after the upload limit | from 11-19 |
+| 11-30 | try-monty-cups | after the upload limit | from 11-20 |
+| 12-01 | cost-ab-power | after the upload limit | from 11-21 (also LinkedIn) |
+| 12-02 | cost-holdout | after the upload limit | from 11-22 (also LinkedIn) |
 
 Two shorts about one problem stay at least a week apart (birthday 11-15 / 11-28, Monty Hall 11-15 / 11-21 / 11-30, tanks 11-18 / 11-29).
 
