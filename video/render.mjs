@@ -18,7 +18,8 @@ GlobalFonts.registerFromPath(`${dir}/fonts/JetBrainsMono.ttf`, 'JetBrains Mono')
 
 const [name = 'birthday', which = 'all'] = process.argv.slice(2);
 const fi = process.argv.indexOf('--frames');
-const mod = await import(`./${name}.mjs`);
+// a puzzle short exports its parts; a beats short (beats.mjs) exports them as one default object
+const mod = (m => m.default || m)(await import(`./${name}.mjs`));
 const scene = mod.INTRO ? withIntro(mod) : mod;
 const { W, H } = scene;
 const FPS = 30;

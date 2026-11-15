@@ -19,7 +19,8 @@ GlobalFonts.registerFromPath(`${dir}/fonts/Onest.ttf`, 'Onest');
 GlobalFonts.registerFromPath(`${dir}/fonts/JetBrainsMono.ttf`, 'JetBrains Mono');
 
 const [name = 'birthday', which = 'all'] = process.argv.slice(2);
-const mod = await import(`./${name}.mjs`);
+// a puzzle short exports its parts; a beats short (beats.mjs) exports them as one default object
+const mod = (m => m.default || m)(await import(`./${name}.mjs`));
 if (!mod.COVER) throw new Error(`${name}.mjs has no COVER`);
 const scene = withIntro(mod), { W, H } = scene, cfg = mod.COVER, tint = mod.INTRO.tint;
 const INK = '#141A30', LIGHT = '#F2F3F7', SIGNAL = '#E86AB0', MUTED = '#9AA3BF';

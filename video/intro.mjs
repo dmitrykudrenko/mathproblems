@@ -19,7 +19,7 @@ async function lockup(lang) {
 }
 const LOCKUP = { uk: await lockup('uk'), en: await lockup('en') };
 
-const T0 = 0.75, WIPE = 0.32;             // main scene starts at T0, under the lifting panel
+export const T0 = 0.75; const WIPE = 0.32;             // main scene starts at T0, under the lifting panel
 const LEAD = 0.95;                        // sting time at frame 0: everything is drawn by then
 const INK = '#141A30', LIGHT = '#F2F3F7', SIGNAL = '#E86AB0';
 const MARK_W = 130;                       // the mark's share of the lockup, in viewBox units
