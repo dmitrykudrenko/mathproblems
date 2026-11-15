@@ -916,9 +916,11 @@ class LangStripper(HTMLParser):
 
 
 # Runs before the page renders. A language the visitor picked (cookie) wins; otherwise
-# Ukrainian for uk/ru/be browsers or a Ukrainian/neighbouring time zone, English for
-# everyone else. Crawlers and link-preview bots are never redirected, so each URL
-# stays indexable and hreflang does the work for search engines.
+# a uk/ page stays Ukrainian (someone shared or followed a Ukrainian link on purpose,
+# e.g. from DOU, often read in an English browser), and an English page goes to
+# Ukrainian for uk/ru/be browsers or a Ukrainian/neighbouring time zone. Crawlers and
+# link-preview bots are never redirected, so each URL stays indexable and hreflang
+# does the work for search engines.
 LANG_SCRIPT = """<script>
 (function () {
   var COOKIE = "mp_lang", PATH = %(path)s, HERE = %(here)s, ALT = %(alt)s;
@@ -928,6 +930,7 @@ LANG_SCRIPT = """<script>
   });
   if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
   var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want && HERE === "uk") return;
   if (!want) {
     // the first uk/ru/be or en entry in the browser's preference order decides
     var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
