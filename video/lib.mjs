@@ -93,8 +93,12 @@ export function optionBox(ctx, C, label, value, x, y, w, h, scale, alpha, big = 
   const numeric = /^[\d\s.,%/:½⅓⅔¼¾−-]+$/.test(value);
   const family = numeric ? `800 {}px ${F.display}` : `700 {}px ${F.display}`;
   const maxW = w - 2 * pad, top = pad + ls + 8;
-  const px = fitSize(ctx, value, family, numeric ? (big ? 128 : 54) : (big ? 52 : 26), maxW, numeric ? 1 : 2);
+  let px = fitSize(ctx, value, family, numeric ? (big ? 128 : 54) : (big ? 52 : 26), maxW, numeric ? 1 : 2);
   ctx.font = family.replace('{}', px);
+  // a phrase also has to fit in height, below the label
+  while (!numeric && px > 16 && wrap(ctx, value, maxW).length * px * 1.12 > h - top - pad) {
+    px -= 2; ctx.font = family.replace('{}', px);
+  }
   const lines = wrap(ctx, value, maxW), lh = px * 1.12;
   const cy = numeric ? (big ? h / 2 + 48 : h - 30) : top + (h - top - pad) / 2 - (lines.length - 1) * lh / 2 + px * .36;
   lines.forEach((l, i) => text(ctx, l, w / 2, cy + i * lh, { font: family.replace('{}', px), color: C.ink, align: 'center' }));

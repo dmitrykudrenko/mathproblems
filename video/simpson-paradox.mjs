@@ -209,7 +209,7 @@ export function draw(ctx, t, lang) {
 
   drawGrids(ctx, t, L, 1 - easeInOut(prog(t, S.options - .4, .5)), GR.y, 'fill');
 
-  optionsGrid(ctx, C, L.options, S.optAt, t, 1 - easeInOut(prog(t, S.hint - .5, .5)), { y0: 900, h: 300 });
+  optionsGrid(ctx, C, L.options, S.optAt, t, 1 - easeInOut(prog(t, S.hint - .5, .5)), { y0: 800, h: 210 });
   countdown(ctx, C, L.pause, t, S.count, S.countEnd, life(t, S.pause, S.hint));
 
   // D: hint
