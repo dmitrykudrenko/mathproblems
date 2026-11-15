@@ -1,0 +1,1837 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static data-spoil>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/uk/bingo-paradox/", "en": "/bingo-paradox/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = "bingo-paradox";
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  // the gate card sits after round 1; once it hides, the browser would keep the bottom of the page in view, so jump to round 2
+  function toRounds(b) {
+    var r = b.closest(".sp-gate") && document.querySelector(".sp-rounds");
+    if (r) requestAnimationFrame(function () { r.scrollIntoView({ block: "start" }); });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+    if (on) toRounds(b);
+  });
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else { window.mpSolve(); toRounds(b); }
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+<script>
+(function () {
+  function fit() {
+    document.querySelectorAll(".fx math").forEach(function (m) {
+      m.style.fontSize = "";
+      var w = m.clientWidth, s = m.scrollWidth;
+      if (s > w) m.style.fontSize = Math.max(0.7, (w - 2) / s) * parseFloat(getComputedStyle(m).fontSize) + "px";
+    });
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 60); }
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.querySelector(".fx")) return;
+    fit();
+    addEventListener("resize", later);
+    if (document.fonts) document.fonts.ready.then(fit);
+    document.querySelectorAll(".fx").forEach(function (f) { new MutationObserver(later).observe(f, { childList: true, subtree: true, characterData: true }); });
+  });
+})();
+</script>
+<title>Парадокс бінго: чому переможна лінія частіше горизонтальна</title>
+<meta name="description" content="Парадокс бінго: на одній картці рядок і стовпець рівноймовірні, а в залі на 500 карток перший переможець має рядок майже вдвічі частіше. Гра і симуляція.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/uk/bingo-paradox/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/uk/bingo-paradox/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/bingo-paradox/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/bingo-paradox/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/uk/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Парадокс бінго: яка лінія виграє?">
+<meta property="og:description" content="500 карток бінго, виграє перший повний рядок або стовпець. Хтось кричить «Бінго!». Його лінія частіше горизонтальна, вертикальна чи порівну?">
+<meta property="og:url" content="https://mathparadoxes.com/uk/bingo-paradox/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/bingo-paradox/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Картка бінго з літерами B I N G O і вільним центром. У залі 500 карток. Яка лінія виграє першою: рядок чи стовпець?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Парадокс бінго: яка лінія виграє?">
+<meta name="twitter:description" content="500 карток бінго, виграє перший повний рядок або стовпець. Хтось кричить «Бінго!». Його лінія частіше горизонтальна, вертикальна чи порівну?">
+<meta name="twitter:image" content="https://mathparadoxes.com/bingo-paradox/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": ["WebPage", "LearningResource"], "@id": "https://mathparadoxes.com/uk/bingo-paradox/#page", "url": "https://mathparadoxes.com/uk/bingo-paradox/", "name": "Парадокс бінго: чому переможна лінія частіше горизонтальна", "description": "Парадокс бінго: на одній картці рядок і стовпець рівноймовірні, а в залі на 500 карток перший переможець має рядок майже вдвічі частіше. Гра і симуляція.", "inLanguage": "uk", "isAccessibleForFree": true, "learningResourceType": ["interactive simulation", "game", "explanation"], "educationalLevel": "intermediate", "about": {"@type": "Thing", "name": "Bingo (American version)", "sameAs": "https://en.wikipedia.org/wiki/Bingo_(American_version)"}, "image": "https://mathparadoxes.com/bingo-paradox/og-uk.png", "datePublished": "2026-11-15", "dateModified": "2026-11-15", "isPartOf": {"@type": "WebSite", "name": "Математичні парадокси", "url": "https://mathparadoxes.com/uk/"}, "author": {"@id": "https://mathparadoxes.com/#author"}, "workTranslation": {"@id": "https://mathparadoxes.com/bingo-paradox/#page"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/uk/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Математичні парадокси", "item": "https://mathparadoxes.com/uk/"}, {"@type": "ListItem", "position": 2, "name": "Парадокс бінго", "item": "https://mathparadoxes.com/uk/bingo-paradox/"}]}, {"@type": "FAQPage", "@id": "https://mathparadoxes.com/uk/bingo-paradox/#faq", "inLanguage": "uk", "mainEntity": [{"@type": "Question", "name": "Що таке парадокс бінго?", "acceptedAnswer": {"@type": "Answer", "text": "У бінго на 75 куль рядок і стовпець на одній картці закриваються першими однаково часто. Але коли в залі багато карток, перша переможна картка частіше має рядок: у залі на 500 карток лише рядок буває в 63% ігор, лише стовпець у 35%, обидві лінії одразу в 3%."}}, {"@type": "Question", "name": "Чому в бінго частіше виграє горизонтальна лінія?", "acceptedAnswer": {"@type": "Answer", "text": "Стовпцю потрібно п'ять чисел однієї літери, наприклад п'ять чисел B, і на це всі картки залу чекають разом: поки ведучий їх не назве, стовпця немає ні в кого. Рядку потрібне по одному числу кожної літери, і кожній картці свої. Що більше карток, то раніше комусь щастить з рядком."}}, {"@type": "Question", "name": "Наскільки частіше виграє рядок?", "acceptedAnswer": {"@type": "Answer", "text": "Залежить від кількості карток. На одній картці порівну. У залі на 1 000 карток лише рядок буває майже вдвічі частіше, ніж лише стовпець, як і писали Бенджамін, Кізенветер і Вайс у Math Horizons 2017 року. У залі з усіма можливими картками рядок перший у 73,73% ігор."}}, {"@type": "Question", "name": "А якщо рахувати й діагоналі?", "acceptedAnswer": {"@type": "Answer", "text": "Діагоналі, як і рядки, беруть по числу з кожного стовпця й проходять через вільний центр. На одній картці діагональ є лише в 24% перемог, а в залі на 500 карток уже в 46%, тоді як стовпці падають з 42% до 27%."}}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: same running order as the other pages. A 5 × 5 bingo card with coloured B I N G O columns and the caller's board of 75 numbers are this problem's signature objects. */
+:root {
+  --tint: #F7E7DC;
+  --paper: #EDEFF5;
+  --surface: #FFFFFF;
+  --ink: #141A30;
+  --muted: #586079;
+  --line: #D3D8E5;
+  --day: #2A3DD1;
+  --day-ink: #F2F4FF;
+  --hit: #B5531F;
+  --hit-soft: #FBE9DC;
+  --lb: #2F5BD3;
+  --li: #C9472A;
+  --ln: #7A4FB5;
+  --lg: #168050;
+  --lo: #B07A00;
+  --vert: #2A3DD1;
+  --cell: #E1E5F0;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 14px;
+}
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.1rem, 6vw, 4rem); font-weight: 800; }
+h2 { font-size: clamp(1.45rem, 3.4vw, 2.1rem); font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--day); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hit); outline-offset: 3px; border-radius: 6px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 18px 0; }
+.brand { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button, .seg a { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-size: .88rem; color: var(--ink); text-decoration: none; font-weight: 500; }
+.seg button[aria-pressed="true"], .seg a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a { padding: 6px 12px; font-weight: 600; font-size: .82rem; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 48px 40px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero h1 .q { color: var(--day); }
+.hero h1 .kw { display: block; font-family: var(--f-mono); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); margin-bottom: 14px; }
+.hero .lead { margin-top: 20px; }
+.odds { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.odd { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.odd b { font-family: var(--f-display); font-size: 1.5rem; display: block; line-height: 1.1; color: var(--c, var(--ink)); }
+.odd.sig b { color: var(--signal, #D9318F); }
+.odd > span { font-size: .82rem; color: var(--muted); }
+.hero-cal { display: grid; gap: 10px; }
+.hero-cal .cap { font-family: var(--f-mono); font-size: .76rem; color: var(--muted); min-height: 3.9em; }
+.hero-box { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+.ball { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; text-align: center; background: var(--surface); border: 6px solid var(--c, var(--line)); font-family: var(--f-display); font-weight: 800; line-height: 1; color: var(--c, var(--muted)); }
+.ball small { display: block; font-size: .8rem; }
+.ball b { font-size: 1.6rem; }
+
+/* letter chips: B I N G O in their colours (in <code>, so the build never frames B as a variant label) */
+code.lt { font-family: var(--f-display); font-weight: 800; color: var(--c); background: none; padding: 0; font-size: inherit; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { font-family: var(--f-mono); font-weight: 600; font-size: .8rem; padding: 3px 8px; border-radius: 999px; background: var(--c); color: #fff; }
+.tally { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.tally > div { border: 1.5px solid var(--c); border-radius: 10px; padding: 6px 4px; text-align: center; display: grid; gap: 2px; }
+.tally b { font-family: var(--f-display); color: var(--c); font-size: 1.05rem; }
+.tally span { font-family: var(--f-mono); font-size: .9rem; }
+.tally .full { background: color-mix(in srgb, var(--c) 14%, var(--surface)); }
+
+/* ---------- a bingo card ---------- */
+.bcard { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; width: 100%; max-width: 280px; }
+.bcard .hd { font-family: var(--f-display); font-weight: 800; text-align: center; color: var(--c); font-size: 1rem; padding-bottom: 2px; }
+.bcard .c { aspect-ratio: 1; display: grid; place-items: center; border-radius: 6px; border: 1.5px solid var(--line); font-family: var(--f-mono); font-weight: 600; font-size: .86rem; background: var(--surface); position: relative; }
+.bcard .c.on { background: color-mix(in srgb, var(--c) 22%, var(--surface)); border-color: var(--c); }
+.bcard .c.fr { font-size: .5rem; letter-spacing: .02em; color: var(--muted); background: var(--cell); }
+.bcard .c.hl { box-shadow: 0 0 0 2.5px var(--lc, var(--ink)); z-index: 1; }
+.bcard .c.q { color: var(--line); }
+.bcard.sm { max-width: 220px; }
+.bcard.sm .c { font-size: .74rem; border-radius: 5px; }
+
+/* ---------- sections ---------- */
+section.round { padding-block: 56px; border-top: 1px solid var(--line); }
+.round-head { display: grid; gap: 12px; margin-bottom: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--hit); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0; }
+.kicker { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.note { font-size: .84rem; color: var(--muted); }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--paper); font-size: .95rem; }
+.btn.pri { background: var(--day); color: var(--day-ink); }
+.btn.hit { background: var(--hit); color: #fff; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.controls { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; margin-bottom: 18px; }
+.big { font-family: var(--f-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+.big.sig { color: var(--signal, #D9318F); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+.legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.legend > span::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend b { font-weight: inherit; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .86rem; }
+.presets button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.geo { width: 100%; height: auto; display: block; }
+.geo text { font-family: var(--f-mono); font-size: 12px; fill: var(--ink); font-weight: 600; }
+.geo .mut { fill: var(--muted); font-weight: 400; }
+
+/* ---------- puzzle ---------- */
+.setup { display: grid; grid-template-columns: 1.45fr 1fr; gap: 24px; align-items: start; }
+.setup > * { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.steps li > div { display: grid; gap: 6px; min-width: 0; }
+.steps .n { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; color: var(--day); line-height: 1.1; }
+.steps p { color: var(--muted); font-size: .95rem; max-width: 60ch; }
+.side { display: grid; gap: 16px; }
+.ask { background: var(--hit-soft); border-color: transparent; display: grid; gap: 10px; }
+.ask .q { font-family: var(--f-display); font-weight: 800; font-size: 1.15rem; line-height: 1.25; text-wrap: balance; }
+.ask p:not(.q) { font-size: .93rem; }
+.rules { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+
+/* ---------- guess ---------- */
+.guess { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guess > * { min-width: 0; }
+.reveal { display: grid; gap: 12px; align-content: start; }
+.opts { display: grid; gap: 10px; }
+.opts button { text-align: left; border: 1.5px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; cursor: pointer; font-weight: 600; display: grid; gap: 2px; }
+.opts button small { font-weight: 400; color: var(--muted); font-size: .84rem; }
+.opts button:hover { border-color: var(--ink); }
+.opts button[aria-pressed="true"] { border-color: var(--day); box-shadow: inset 0 0 0 1px var(--day); }
+.compare { display: grid; gap: 10px; }
+.crow { display: grid; grid-template-columns: 150px 1fr 52px; gap: 10px; align-items: center; font-size: .88rem; }
+.crow .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; position: relative; overflow: hidden; }
+.crow .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 7px; transition: width .6s ease; }
+
+/* ---------- play ---------- */
+.room { display: grid; grid-template-columns: 1.35fr 1fr; gap: 20px; align-items: start; }
+.room > * { min-width: 0; }
+.stage { display: grid; gap: 16px; }
+.board { display: grid; gap: 4px; }
+.brow { display: grid; grid-template-columns: 22px repeat(15, minmax(0, 1fr)) 26px; gap: 2px; align-items: center; }
+.brow > b { font-family: var(--f-display); font-weight: 800; color: var(--c); font-size: .9rem; }
+.brow > i { font-style: normal; font-family: var(--f-mono); font-size: .62rem; text-align: center; border-radius: 4px; padding: 3px 0; color: var(--muted); background: var(--paper); }
+.brow > i.on { background: var(--c); color: #fff; font-weight: 600; }
+.brow > i.last { box-shadow: 0 0 0 2px var(--ink); }
+.brow > span { font-family: var(--f-mono); font-size: .8rem; text-align: right; font-weight: 600; color: var(--muted); }
+.brow > span.full { color: var(--c); }
+.pcards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.pcards > div { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.msg { min-height: 3em; font-weight: 500; }
+.status { display: flex; gap: 20px; flex-wrap: wrap; align-items: baseline; }
+.status .k { font-size: .8rem; color: var(--muted); display: block; }
+.status b { font-family: var(--f-display); font-size: 1.6rem; font-weight: 800; color: var(--c, var(--ink)); }
+.hist { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+.hist i { width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
+
+/* ---------- simulation ---------- */
+.sim-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
+.sim-grid > * { min-width: 0; }
+.sbars { display: grid; gap: 12px; }
+.sb { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 4px 12px; align-items: center; }
+.sb > span { font-size: .84rem; font-weight: 600; }
+.sb .bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; background: var(--paper); }
+.sb .bar i { display: block; height: 100%; background: var(--c); transition: width .5s ease; }
+.sb small { grid-column: 2; font-family: var(--f-mono); font-size: .74rem; color: var(--muted); }
+.sb.ex > span { color: var(--muted); }
+.tiles { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-content: start; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+.tile .k { font-size: .82rem; color: var(--muted); }
+.tile .v { font-family: var(--f-display); font-size: 1.35rem; font-weight: 800; line-height: 1.15; color: var(--c, var(--ink)); overflow-wrap: anywhere; }
+.tile .s { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); overflow-wrap: anywhere; }
+.tiles.row3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.prog { height: 4px; background: var(--paper); border-radius: 2px; overflow: hidden; width: 160px; }
+.prog i { display: block; height: 100%; background: var(--day); width: 0; }
+
+/* ---------- explanations ---------- */
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.why-grid .card { display: grid; gap: 14px; align-content: start; }
+.why-grid .wide { grid-column: 1 / -1; }
+.why-grid .card > p { color: var(--muted); font-size: .95rem; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.two > div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.two b { font-family: var(--f-display); font-size: 1.3rem; color: var(--c); }
+.two span { font-size: .86rem; color: var(--muted); }
+
+/* ---------- going further ---------- */
+.esc { display: grid; gap: 20px; }
+.esc-block { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
+.esc-block > * { min-width: 0; }
+.esc-text { display: grid; gap: 12px; align-content: start; }
+.esc-text p { color: var(--muted); font-size: .95rem; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+td.num, th.num { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+td.sig { color: var(--signal, #D9318F); font-weight: 600; }
+
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero, .setup, .guess, .room, .sim-grid, .why-grid, .esc-block { grid-template-columns: 1fr; }
+  .hero { padding-block: 32px 28px; gap: 28px; }
+  section.round { padding-block: 40px; }
+}
+@media (max-width: 480px) {
+  .card { padding: 16px; }
+  .crow { grid-template-columns: 104px 1fr 46px; }
+  td, th { padding: 8px 6px; }
+  .tiles.row3 { grid-template-columns: 1fr; }
+  .hero-box { padding: 12px; gap: 12px; }
+  .ball { width: 64px; height: 64px; border-width: 5px; }
+  .ball b { font-size: 1.2rem; }
+  .brow { grid-template-columns: 16px repeat(15, minmax(0, 1fr)) 18px; gap: 1px; }
+  .brow > i { font-size: .5rem; padding: 2px 0; border-radius: 3px; }
+  .brow > b { font-size: .78rem; }
+  .brow > span { font-size: .7rem; }
+  .pcards { gap: 8px; }
+  .bcard { gap: 2px; }
+  .bcard .c { font-size: .7rem; border-radius: 4px; }
+  .bcard.sm .c { font-size: .62rem; }
+  .bcard .hd { font-size: .85rem; }
+  .sb { grid-template-columns: 1fr; }
+  .sb small { grid-column: 1; }
+  .two { grid-template-columns: 1fr; }
+  .tally b { font-size: .95rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=debad5fb">
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <a class="brand" href="https://mathparadoxes.com/uk/" style="text-decoration:none"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+  <nav class="mp-nav" aria-label="Розділи" data-t="{&quot;cont&quot;: &quot;Продовжити&quot;, &quot;course&quot;: &quot;Продовжити курс&quot;}" data-slug="bingo-paradox" data-me="{&quot;s&quot;: &quot;bingo-paradox&quot;, &quot;n&quot;: {&quot;uk&quot;: &quot;Парадокс бінго&quot;, &quot;en&quot;: &quot;The bingo paradox&quot;}, &quot;u&quot;: {&quot;uk&quot;: &quot;https://mathparadoxes.com/uk/bingo-paradox/&quot;, &quot;en&quot;: &quot;https://mathparadoxes.com/bingo-paradox/&quot;}}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Меню"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Продовжити: <b></b></a><a href="https://mathparadoxes.com/uk/#all" aria-current="page">Задачі</a><a href="https://mathparadoxes.com/uk/courses/">Курси</a><a href="https://mathparadoxes.com/uk/glossary/">Словник</a></div><button type="button" class="mp-sx-btn" aria-haspopup="dialog" aria-label="Пошук" data-src="https://mathparadoxes.com/uk/search.json" data-t="{&quot;btn&quot;: &quot;Пошук&quot;, &quot;ph&quot;: &quot;Задача, курс або термін&quot;, &quot;all&quot;: &quot;Усе&quot;, &quot;p&quot;: &quot;Задачі&quot;, &quot;c&quot;: &quot;Курси&quot;, &quot;g&quot;: &quot;Словник&quot;, &quot;recent&quot;: &quot;Нещодавно відкриті&quot;, &quot;try&quot;: &quot;Спробуйте&quot;, &quot;none&quot;: &quot;Нічого не знайшлося. Спробуйте інше слово або&quot;, &quot;every&quot;: &quot;подивіться всі задачі&quot;, &quot;keys&quot;: &quot;↑↓ вибрати · Enter відкрити · Esc закрити&quot;, &quot;solved&quot;: &quot;розв&#x27;язано&quot;, &quot;load&quot;: &quot;Завантаження…&quot;, &quot;fail&quot;: &quot;Не вдалося завантажити пошук. Перевірте з&#x27;єднання.&quot;, &quot;close&quot;: &quot;Закрити&quot;, &quot;course&quot;: &quot;Курс&quot;, &quot;chapter&quot;: &quot;розділ %d з %d&quot;, &quot;glossary&quot;: &quot;Словник&quot;, &quot;ideas&quot;: [&quot;ймовірність&quot;, &quot;A/B-тест&quot;, &quot;Монті Голл&quot;, &quot;медіана&quot;, &quot;співбесіда&quot;, &quot;аукціон&quot;]}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="mp-sx-lbl">Пошук</span><kbd>/</kbd></button></nav>
+  <nav class="seg lang" id="lang" aria-label="Мова / Language">
+    <a href="https://mathparadoxes.com/uk/bingo-paradox/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+    <a href="https://mathparadoxes.com/bingo-paradox/" hreflang="en" lang="en" data-l="en">EN</a>
+  </nav>
+</div>
+
+<header class="hero">
+  <div>
+    <div class="mp-meta"><span class="mp-level"><button type="button" class="mp-level-btn" aria-expanded="false"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span>Шкільна математика</button><span class="mp-level-hint" hidden>Дроби, відсотки, проста ймовірність, степені<a href="https://mathparadoxes.com/uk/?l=2#all">Усі задачі цього рівня →</a></span></span></div>
+    <h1 class="uk"><span class="kw">Парадокс бінго</span> 500 карток у залі, хтось кричить «Бінго!». <span class="q sp-before">Яка в нього лінія?</span><span class="q sp-after">Найчастіше рядок: майже 2 до 1.</span></h1>
+    
+    <p class="lead uk sp-before">Американське бінго: картка 5 × 5, ведучий навмання витягує кулі з числами від 1 до 75, гравці закривають свої числа. Виграє той, хто першим збере повний рядок або повний стовпець. У залі 500 гравців. Перша переможна лінія частіше горизонтальна, вертикальна чи порівну? Зафіксуйте відповідь, а потім перевірте: зіграйте в залі, запустіть тисячі ігор і прочитайте пояснення.</p>
+    <p class="lead uk sp-after">На одній картці рядок і стовпець справді рівноймовірні. Але в залі на 500 карток перша переможна картка має лише рядок у 63% ігор, лише стовпець у 35%, а обидві лінії одразу в 3%. Стовпцю потрібно п'ять чисел однієї літери, і цього всі картки чекають разом. Рядку потрібне по числу кожної літери, а які саме, у кожної картки своє, тож у великому залі комусь щастить раніше.</p>
+    
+    
+    <div class="hero-go sp-before">
+      <a class="btn pri" href="#guess"><span class="uk">Вгадати відповідь</span></a>
+      <button type="button" class="sp-skip" data-solve><span class="uk">Одразу показати відповідь</span></button>
+    </div>
+    <div class="odds sp-after">
+      <div class="odd sig"><b>63%</b><span><span class="uk">лише рядок, 500 карток</span></span></div>
+      <div class="odd"><b>35%</b><span><span class="uk">лише стовпець</span></span></div>
+      <div class="odd"><b>50/50</b><span><span class="uk">на одній картці</span></span></div>
+    </div>
+  </div>
+  <div class="hero-cal" aria-hidden="true">
+    <div class="hero-box">
+      <div class="bcard" id="hero-card"></div>
+      <div class="ball" id="hero-ball"></div>
+    </div>
+    <p class="cap" id="hero-cap"></p>
+  </div>
+</header>
+
+<!-- THE PUZZLE -->
+<section class="round" id="puzzle">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Умова задачі</span></span>
+    <h2><span class="uk">Зал, ведучий і 500 карток</span></h2>
+    <p class="lead uk">Це звичайне американське бінго на 75 куль. Карток у залі багато, і всі різні. Кулі виходять у випадковому порядку, без повторів.</p>
+    
+  </div>
+  <div class="setup">
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3><span class="uk">Картка</span></h3>
+        <p class="uk">П'ять стовпців з літерами <code class="lt" style="--c:var(--lb)">B</code> <code class="lt" style="--c:var(--li)">I</code> <code class="lt" style="--c:var(--ln)">N</code> <code class="lt" style="--c:var(--lg)">G</code> <code class="lt" style="--c:var(--lo)">O</code>. У стовпці <code class="lt" style="--c:var(--lb)">B</code> п'ять різних чисел від 1 до 15, в <code class="lt" style="--c:var(--li)">I</code> від 16 до 30, в <code class="lt" style="--c:var(--ln)">N</code> від 31 до 45, у <code class="lt" style="--c:var(--lg)">G</code> від 46 до 60, в <code class="lt" style="--c:var(--lo)">O</code> від 61 до 75. Центральна клітинка вільна: вона закрита з самого початку.</p>
+        </div></li>
+      <li><span class="n">2</span><div><h3><span class="uk">Ведучий</span></h3>
+        <p class="uk">Ведучий витягує кулі по одній і оголошує їх з літерою: «<code class="lt" style="--c:var(--lg)">G</code> 54!». Кожен, у кого є це число, закриває його на своїй картці.</p>
+        </div></li>
+      <li><span class="n">3</span><div><h3><span class="uk">Перемога</span></h3>
+        <p class="uk">Виграє перша картка, на якій закрито весь рядок (горизонтальна лінія) або весь стовпець (вертикальна). Діагоналі в цьому залі не рахуються. Якщо кілька карток збирають лінію на одній кулі, усі вони виграють.</p>
+        </div></li>
+      <li><span class="n">4</span><div><h3><span class="uk">Питання</span></h3>
+        <p class="uk">У залі 500 гравців, у кожного одна картка. Хтось кричить «Бінго!». Його лінія частіше горизонтальна, вертикальна чи обидва варіанти однаково ймовірні?</p>
+        </div></li>
+    </ol>
+    <div class="side">
+      <div class="card ask sp-after">
+        <span class="kicker"><span class="uk">Інтуїція каже</span></span>
+        <p class="q"><span class="uk">«На картці 5 рядків і 5 стовпців по 5 клітинок. Усе симетрично, тож порівну»</span></p>
+        <p class="uk">Для однієї картки це правда. Але перша переможна картка в залі&nbsp;— не будь-яка картка, а та, якій пощастило найбільше. А рядкам щастить частіше, бо кожна картка чекає своїх чисел, а стовпці всіх карток чекають одного: поки ведучий назве п'ять чисел однієї літери.</p>
+        
+      </div>
+      <div class="card">
+        <h3><span class="uk">Одна з карток у залі</span></h3>
+        <div class="bcard" id="setup-card" style="margin-top:12px"></div>
+        <ul class="rules uk">
+          <li>75 куль, кожна виходить один раз, порядок випадковий.</li>
+          <li>Виграє повний рядок або повний стовпець; центр уже закритий.</li>
+          <li>У залі 500 різних карток.</li>
+        </ul>
+        
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 1: guess -->
+<section class="round" id="guess">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 1 · Вгадайте</span></span>
+    <h2><span class="uk">Яка лінія в першого переможця?</span></h2>
+    <p class="lead uk">500 карток, рядки й стовпці, діагоналі не рахуються. Оберіть відповідь.</p>
+    
+  </div>
+  <div class="guess">
+    <div class="card" style="display:grid;gap:16px;align-content:start">
+      <span class="note"><span class="uk">Хтось у залі кричить «Бінго!». Його лінія частіше…</span></span>
+      <div class="opts" id="g-opts">
+        <button type="button" data-k="h" aria-pressed="false"><span class="uk">Горизонтальна, рядок</span><small><span class="uk">рядок збирає числа з різних стовпців</span></small></button>
+        <button type="button" data-k="same" aria-pressed="false"><span class="uk">Однаково часто</span><small><span class="uk">5 рядків і 5 стовпців по 5 клітинок, усе симетрично</span></small></button>
+        <button type="button" data-k="v" aria-pressed="false"><span class="uk">Вертикальна, стовпець</span><small><span class="uk">у стовпці числа з одного п'ятнадцятка, вони ніби поруч</span></small></button>
+      </div>
+    </div>
+    <div class="card reveal" id="guess-out">
+      <p class="note uk">Тут з'явиться розбір вашої відповіді.</p>
+      
+    </div>
+  </div>
+  <div class="mp-hints sp-before">
+    <span class="kicker">Підказки</span>
+    <p class="mp-hints-intro">Важко вирішити? Відкривайте підказки по одній: спочатку легка, далі сильніша.</p>
+    <ol class="mp-hints-list">
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">1</span><p>Спершу забудьте про зал: на одній картці що частіше закривається першим, рядок чи стовпець? А тепер спитайте себе, що змінюють 500 карток.</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">2</span><p>Дивіться на літери, які оголошує ведучий. Що він мусить назвати, щоб хоч в однієї картки в залі був повний стовпець <span class="vl">B</span>? А щоб хоч в однієї був повний рядок?</p></li>
+    <li class="mp-hint" tabindex="-1" hidden><span class="mp-hint-n">3</span><p>П'ять чисел <span class="vl">B</span>, потрібних для стовпця, ведучий називає для всіх карток одночасно. А рядку потрібне по числу кожної літери, і кожній картці свої. Якій лінії 500 карток дають більше шансів?</p></li>
+    </ol>
+    <button type="button" class="btn ghost mp-hint-next" data-labels="[&quot;Показати підказку 1 з 3 · легка&quot;, &quot;Показати підказку 2 з 3 · середня&quot;, &quot;Показати підказку 3 з 3 · сильна&quot;]">Показати підказку 1 з 3 · легка</button>
+  </div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-hints"), KEY = "mp-hints:" + "bingo-paradox";
+  if (!box) return;
+  var items = [].slice.call(box.querySelectorAll(".mp-hint")), btn = box.querySelector(".mp-hint-next");
+  var labels = JSON.parse(btn.getAttribute("data-labels")), open = 0;
+  try { open = Math.min(items.length, +localStorage.getItem(KEY) || 0); } catch (e) {}
+  function show() {
+    items.forEach(function (li, i) { li.hidden = i >= open; });
+    btn.hidden = open >= items.length;
+    if (!btn.hidden) btn.textContent = labels[open];
+  }
+  btn.addEventListener("click", function () {
+    open++; show();
+    try { localStorage.setItem(KEY, open); } catch (e) {}
+    items[open - 1].focus();
+  });
+  show();
+})();
+</script>
+  <div class="mp-poll sp-after" aria-live="polite" hidden></div>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "bingo-paradox", RULE = {"right": ["h"]}, MIN = 30, T = {"kicker": "Як відповідають інші", "all": "Відповідей: {n}. Правильних серед них {p}.", "yes": "Ви серед тих, хто впорався.", "no": "Не засмучуйтеся: інтуїція підводить більшість.", "bar": "правильно", "note": "Рахуємо лише першу відповідь з кожного браузера, до того як він побачив розв'язок. Анонімно."}, KEY = "mp-voted:" + SLUG;
+  var box = document.querySelector(".mp-poll"), d = document.documentElement, en = d.dataset.lang === "en";
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function key(g) {
+    if (Array.isArray(g)) return g.map(key).join("|");
+    return typeof g === "number" && isFinite(g) ? String(+g.toPrecision(4)) : String(g);
+  }
+  function inRange(r, k) { var x = +k; return Array.isArray(r) ? x >= r[0] && x <= r[1] : r === k; }
+  function right(k) {
+    if (RULE.each) { var p = k.split("|"); return p.length === RULE.each.length && RULE.each.every(function (r, i) { return inRange(r, p[i]); }); }
+    return RULE.right.some(function (r) { return inRange(r, k); });
+  }
+  function fmt(x) { return x.toLocaleString(en ? "en-US" : "uk-UA"); }
+  function show(data, mine) {
+    // "crowd" pages have no right answer: they get the raw counts and draw their own block
+    if (RULE.crowd) { document.dispatchEvent(new CustomEvent("mp-crowd", { detail: { k: data.k || {}, mine: mine } })); return; }
+    var n = 0, ok = 0;
+    Object.keys(data.k || {}).forEach(function (k) { n += data.k[k]; if (right(k)) ok += data.k[k]; });
+    if (n < MIN) return;
+    var p = Math.round(100 * ok / n), html = '<span class="kicker">' + T.kicker + '</span>';
+    html += "<p>" + T.all.replace("{n}", fmt(n)).replace("{p}", '<b class="mp-poll-p">' + p + "%</b>") +
+        (mine ? " " + (right(mine) ? T.yes : T.no) : "") + "</p>" +
+        '<div class="mp-poll-bar" role="img" aria-label="' + p + "% " + T.bar + '"><i style="width:' + p + '%"></i></div>';
+    box.innerHTML = html + '<p class="mp-poll-note">' + T.note + "</p>";
+    box.hidden = false;
+  }
+  function load(mine) {
+    fetch(API + "?s=" + encodeURIComponent(SLUG)).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) show(j, mine); }).catch(function () {});
+  }
+  // a browser that already saw the answer (before this feature, or via "show the answer") only reads the stats
+  if (d.classList.contains("solved") && !get(KEY)) set(KEY, "seen");
+  document.addEventListener("solved", function (e) {
+    var g = e.detail && e.detail.guess;
+    if (get(KEY) || g === undefined || g === null || get("mp-notrack") === "1" || d.classList.contains("rounds-open")) { if (!get(KEY)) set(KEY, "seen"); load(); return; }
+    var k = key(g), h = Math.min(9, Math.max(0, parseInt(get("mp-hints:" + SLUG), 10) || 0));
+    set(KEY, "1");
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: h }) })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) show(j, k); }).catch(function () {});
+  });
+  if (d.classList.contains("solved")) load();
+})();
+</script>
+</section>
+
+<!-- rounds 2–5 and the facts give the answer away, so they open only after a guess, "go on", or "always show all rounds" -->
+<section class="round sp-gate" id="next">
+  <div class="card gate">
+    <span class="kicker"><span class="uk">Далі розв'язок</span></span>
+    <h3><span class="uk">Далі пояснення, і в ньому спойлери</span></h3>
+    <p class="uk">Наступні раунди показують, яка лінія виграє частіше: гра в залі, тисячі ігор і пояснення. Спершу відповісти в раунді 1 чи йти далі?</p>
+    
+    <div class="actions"><a class="btn pri" href="#guess"><span class="uk">Відповісти в раунді 1</span></a><button type="button" class="btn ghost" data-solve><span class="uk">Йти далі</span></button></div>
+    <button type="button" class="sp-skip" data-rounds="open"><span class="uk">Завжди показувати всі раунди, я не боюся спойлерів</span></button>
+  </div>
+</section>
+
+<div class="sp-rounds">
+<p class="note rounds-on"><span class="uk">Ви обрали завжди показувати всі раунди.</span> <button type="button" class="sp-skip" data-rounds="gate"><span class="uk">Ховати їх до відповіді</span></button></p>
+
+<!-- ROUND 2: play in the hall -->
+<section class="round" id="game">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 2 · Гра</span></span>
+    <h2><span class="uk">Зіграйте в залі</span></h2>
+    <p class="lead uk">Ваша картка одна з багатьох. Тягніть кулі по одній і стежте за табло ведучого: скільки чисел кожної літери вже назвали. Коли хтось у залі збере лінію, ви побачите його картку. Потім зіграйте 10 чи 100 ігор одразу й подивіться на рахунок. Спробуйте зал на 1 картку і на 500.</p>
+    
+  </div>
+  <div class="room">
+    <div class="card stage">
+      <div class="presets" id="p-size"></div>
+      <div>
+        <p class="note" style="margin-bottom:6px"><span class="uk">Табло ведучого: названі числа й скільки їх у кожної літери</span></p>
+        <div class="board" id="p-board"></div>
+      </div>
+      <div class="pcards">
+        <div><span class="kicker"><span class="uk">Ваша картка</span></span><div class="bcard sm" id="p-mine"></div></div>
+        <div><span class="kicker" id="p-win-lab"></span><div class="bcard sm" id="p-win"></div></div>
+      </div>
+      <p class="msg" id="p-msg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="btn pri" id="p-step" type="button"><span class="uk">Наступна куля</span></button>
+        <button class="btn pri" id="p-run" type="button"><span class="uk">До першого «Бінго!»</span></button>
+        <button class="btn ghost" id="p-new" type="button"><span class="uk">Нова гра</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="uk">Рахунок залу</span></h3>
+      <p class="note" style="margin-top:4px" id="p-size-note"></p>
+      <div class="status" style="margin-top:12px">
+        <div><span class="k"><span class="uk">Ігор</span></span><b class="mono" id="t-n">0</b></div>
+        <div style="--c:var(--signal,#D9318F)"><span class="k"><span class="uk">Лише рядок</span></span><b class="mono" id="t-h">0</b></div>
+        <div style="--c:var(--vert)"><span class="k"><span class="uk">Лише стовпець</span></span><b class="mono" id="t-v">0</b></div>
+        <div style="--c:var(--muted)"><span class="k"><span class="uk">Обидві</span></span><b class="mono" id="t-b">0</b></div>
+      </div>
+      <p class="note" id="t-txt" style="margin-top:12px"></p>
+      <div class="hist" id="t-hist" aria-hidden="true"></div>
+      <div class="legend">
+        <span style="--c:var(--signal,#D9318F)"><b class="uk">рядок</b></span>
+        <span style="--c:var(--vert)"><b class="uk">стовпець</b></span>
+        <span style="--c:var(--muted)"><b class="uk">обидві на одній кулі</b></span>
+      </div>
+      <div class="actions" style="margin-top:14px">
+        <button class="btn pri" id="p-10" type="button"><span class="uk">10 ігор</span></button>
+        <button class="btn hit" id="p-100" type="button"><span class="uk">100 ігор</span></button>
+        <button class="btn ghost" id="t-reset" type="button"><span class="uk">Скинути</span></button>
+      </div>
+      <p class="note" id="t-hint" style="margin-top:14px"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROUND 3: simulation -->
+<section class="round" id="sim">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 3 · Симуляція</span></span>
+    <h2><span class="uk">Від однієї картки до тисячі</span></h2>
+    <p class="lead uk">Тисячі ігор у залах різного розміру. Кожна смуга ділить ігри на три частини: перший переможець мав лише рядок, рядок і стовпець на одній кулі (різні картки або одна) чи лише стовпець. Нижній рядок&nbsp;— зал, де є кожна можлива картка: його пораховано точно.</p>
+    
+  </div>
+  <div class="card">
+    <div class="controls">
+      <button class="btn pri" id="sim-run"><span class="uk">Ще 2&nbsp;000 ігор</span></button>
+      <div class="prog" aria-hidden="true"><i id="sim-bar"></i></div>
+      <span class="note" id="sim-prog"></span>
+    </div>
+    <div class="sim-grid">
+      <div>
+        <div class="sbars" id="sim-bars"></div>
+        <div class="legend">
+          <span style="--c:var(--signal,#D9318F)"><b class="uk">лише рядок</b></span>
+          <span style="--c:var(--line)"><b class="uk">обидві на одній кулі</b></span>
+          <span style="--c:var(--vert)"><b class="uk">лише стовпець</b></span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile" style="--c:var(--signal,#D9318F)"><div class="k"><span class="uk">500 карток: лише рядок проти лише стовпця</span></div><div class="v mono" id="sim-500">–</div><div class="s" id="sim-500s"></div></div>
+        <div class="tile"><div class="k"><span class="uk">Одна картка</span></div><div class="v mono" id="sim-1">–</div><div class="s"><span class="uk">рядок і стовпець рівні, як і має бути</span></div></div>
+        <div class="tile"><div class="k"><span class="uk">На якій кулі перше «Бінго!», у середньому</span></div><div class="v mono" id="sim-t">–</div><div class="s"><span class="uk">1 картка → 500 карток</span></div></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px" id="sim-cap"></p>
+  </div>
+  <p class="note mp-code-wait sp-before">Після вашої відповіді тут з'явиться код симуляції, який можна запустити в себе.</p>
+  <details class="card mp-code sp-after">
+    <summary><b>Перевірте самі в коді</b></summary>
+    <p class="note">Та сама симуляція коротко і без бібліотек. JavaScript запускається в консолі браузера (F12) або в Node, Python потребує лише стандартної бібліотеки.</p>
+    <div class="mp-code-file"><div class="mp-code-head"><span>JavaScript</span><button type="button" class="btn ghost mp-code-copy" data-k="js" data-done="Скопійовано">Копіювати</button></div><pre><code>// Бінго на 75 куль: 500 карток у залі, виграє перший повний рядок або стовпець. Якою лінією частіше виграє перша картка?
+const CARDS = 500, GAMES = 20000;
+// k різних чисел з n поспіль, починаючи з from, у випадковому порядку
+function pick(from, n, k) {
+  const a = Array.from({ length: n }, (_, i) =&gt; from + i);
+  for (let i = 0; i &lt; k; i++) { const j = i + Math.floor(Math.random() * (n - i)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a.slice(0, k);
+}
+// картка: 5 стовпців B I N G O, у кожному 5 чисел зі свого п&#x27;ятнадцятка; центр вільний (0 = вже закрито)
+const card = () =&gt; [0, 1, 2, 3, 4].map(c =&gt; { const col = pick(15 * c + 1, 15, 5); if (c === 2) col[2] = 0; return col; });
+let onlyH = 0, onlyV = 0, both = 0;
+for (let g = 0; g &lt; GAMES; g++) {
+  const when = [0];                                                    // на якій кулі назвали число
+  pick(1, 75, 75).forEach((b, i) =&gt; { when[b] = i + 1; });
+  let first = 99, h = false, v = false;
+  for (let k = 0; k &lt; CARDS; k++) {
+    const t = card().map(col =&gt; col.map(x =&gt; when[x]));               // t[c][r]
+    const col = Math.min(...t.map(c =&gt; Math.max(...c)));               // перший повний стовпець
+    const row = Math.min(...[0, 1, 2, 3, 4].map(r =&gt; Math.max(...t.map(c =&gt; c[r]))));  // перший повний рядок
+    const m = Math.min(row, col);
+    if (m &lt; first) { first = m; h = row === m; v = col === m; }
+    else if (m === first) { h = h || row === m; v = v || col === m; }  // кілька карток на одній кулі
+  }
+  if (h &amp;&amp; v) both++; else if (h) onlyH++; else onlyV++;
+}
+const p = x =&gt; (100 * x / GAMES).toFixed(1) + &#x27;%&#x27;;
+console.log(&#x27;Лише горизонтальна:&#x27;, p(onlyH), &#x27;· лише вертикальна:&#x27;, p(onlyV), &#x27;· обидві на одній кулі:&#x27;, p(both));
+console.log(&#x27;Для порівняння, 200 000 ігор: 62.6% · 34.7% · 2.7%&#x27;);
+</code></pre></div>
+    <div class="mp-code-file"><div class="mp-code-head"><span>Python</span><button type="button" class="btn ghost mp-code-copy" data-k="py" data-done="Скопійовано">Копіювати</button></div><pre><code># Бінго на 75 куль: 500 карток у залі, виграє перший повний рядок або стовпець. Якою лінією частіше виграє перша картка?
+import random
+
+CARDS, GAMES = 500, 2000                                   # Python повільніший, тож ігор менше: похибка близько 1 п. п.
+
+
+def card():
+    # 5 стовпців B I N G O, у кожному 5 чисел зі свого п&#x27;ятнадцятка; центр вільний (0 = вже закрито)
+    cols = [random.sample(range(15 * c + 1, 15 * c + 16), 5) for c in range(5)]
+    cols[2][2] = 0
+    return cols
+
+
+only_h = only_v = both = 0
+for _ in range(GAMES):
+    order = random.sample(range(1, 76), 75)
+    when = {b: i + 1 for i, b in enumerate(order)}         # на якій кулі назвали число
+    when[0] = 0
+    first, h, v = 99, False, False
+    for _ in range(CARDS):
+        t = [[when[x] for x in col] for col in card()]     # t[c][r]
+        col = min(max(c) for c in t)                       # перший повний стовпець
+        row = min(max(c[r] for c in t) for r in range(5))  # перший повний рядок
+        m = min(row, col)
+        if m &lt; first:
+            first, h, v = m, row == m, col == m
+        elif m == first:                                   # кілька карток на одній кулі
+            h, v = h or row == m, v or col == m
+    if h and v:
+        both += 1
+    elif h:
+        only_h += 1
+    else:
+        only_v += 1
+
+p = lambda x: f&quot;{100 * x / GAMES:.1f}%&quot;
+print(&quot;Лише горизонтальна:&quot;, p(only_h), &quot;· лише вертикальна:&quot;, p(only_v), &quot;· обидві на одній кулі:&quot;, p(both))
+print(&quot;Для порівняння, 200 000 ігор: 62.6% · 34.7% · 2.7%&quot;)
+</code></pre></div>
+  </details>
+<script>
+(function () {
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "bingo-paradox", d = document.querySelector(".mp-code");
+  if (!d) return;
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: "mp-code", k: SLUG + "." + k, h: 0 }) }).catch(function () {});
+  }
+  d.addEventListener("toggle", function () { if (d.open) count("open"); });
+  [].forEach.call(d.querySelectorAll(".mp-code-copy"), function (b) {
+    var label = b.textContent;
+    b.addEventListener("click", function () {
+      var el = b.closest(".mp-code-file").querySelector("code");
+      // without clipboard access the code gets selected, ready for Ctrl+C
+      function select() { var r = document.createRange(), s = getSelection(); r.selectNodeContents(el); s.removeAllRanges(); s.addRange(r); }
+      if (navigator.clipboard) navigator.clipboard.writeText(el.textContent).then(function () {
+        b.textContent = b.dataset.done; setTimeout(function () { b.textContent = label; }, 1500);
+      }, select);
+      else select();
+      count("copy." + b.dataset.k);
+    });
+  });
+})();
+</script>
+</section>
+
+<!-- ROUND 4: explanations -->
+<section class="round" id="why">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 4 · Пояснення</span></span>
+    <h2><span class="uk">Один потяг на всіх і таксі для кожного</span></h2>
+    <p class="lead uk">Інтуїція порівнює рядок і стовпець на одній картці, і там вони справді рівні. Але питання про першу картку в залі, тобто про найщасливішу з 500. А щастя рядків і щастя стовпців влаштоване по-різному.</p>
+    
+  </div>
+  <div class="mp-layer" data-layer="easy">
+    <div class="mp-layer-head"><span class="mp-layer-name">На пальцях</span><span class="mp-layer-desc">картинки, аналогії, маленькі числа</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «На пальцях» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Головне за хвилину</span></span>
+      <h3><span class="uk">Стовпець чекає ведучого, рядок чекає везіння</span></h3>
+      <p class="uk">Ось перші 10 куль однієї гри і табло ведучого після них:</p>
+      
+      <div class="chips" id="ex-chips"></div>
+      <div class="tally" id="ex-tally"></div>
+      <p class="uk">Щоб хоч у когось у залі був повний стовпець <code class="lt" style="--c:var(--lb)">B</code>, ведучий мусить назвати п'ять чисел <code class="lt" style="--c:var(--lb)">B</code> (для <code class="lt" style="--c:var(--ln)">N</code> чотири: центр вільний). Тут жодна літера не набрала п'яти, тож стовпця немає ні в кого: ні в одного з 500 гравців, ні в мільйона. Усі стовпці всього залу чекають одного й того самого: як вийдуть літери.</p>
+      
+      <p class="uk">А рядок уже можливий: кожна літера вийшла хоча б раз. Гравцю, у якого в одному рядку стоять, скажімо, 7, 22, 40, 51 і 68, досить цих куль. Таку комбінацію навряд чи має якась конкретна картка, але на 500 картках 2&nbsp;500 рядків, і кожен&nbsp;— окремий лотерейний квиток. Схоже на вокзал: стовпці їдуть одним потягом, і з 500 пасажирів ніхто не поїде раніше за нього. Рядки ловлять таксі, кожен своє, і з 500 людей хтось зловить таксі дуже швидко.</p>
+      
+      <p class="uk">Ця картка показує, чому стовпці загальмовані, але не рахує, наскільки. Цифри далі, у шарі «Строго».</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Одна картка</span></span>
+      <h3><span class="uk">Чому на одній картці справді порівну</span></h3>
+      <p class="uk">Відобразіть картку відносно діагоналі: рядки стануть стовпцями, а стовпці рядками. Вільний центр лишиться на місці. Для однієї картки байдуже, з якого п'ятнадцятка число: кулі виходять навмання, тож будь-який порядок її 24 чисел однаково ймовірний. Перевернута картка грає так само, як звичайна, лише рядки й стовпці помінялися ролями.</p>
+      
+      <p class="uk">Тому на одній картці лише рядок буває так само часто, як лише стовпець (по 46%), а ще в 7% ігор остання куля закриває рядок і стовпець одночасно: це їхня спільна клітинка.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Зал</span></span>
+      <h3><span class="uk">Перший у натовпі&nbsp;— це найщасливіший</span></h3>
+      <p class="uk">Коли карток багато, виграє не середня картка, а та, якій пощастило найбільше. Тож питання «яка лінія частіше?» стає іншим: «якій лінії легше пощастити хоч в одного з 500?»</p>
+      
+      <p class="uk">Рядкам 500 карток дають 2&nbsp;500 різних спроб. Стовпцям вони дають набагато менше, ніж здається: усі стовпці <code class="lt" style="--c:var(--lb)">B</code> у залі складені з тих самих 15 чисел і стоять у черзі за тими самими кулями. Що більший зал, то більше виграють рядки, і в залі з кожною можливою карткою рядок перший у 74% ігор.</p>
+      
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="strict">
+    <div class="mp-layer-head"><span class="mp-layer-name">Строго</span><span class="mp-layer-desc">таблиці, графіки, формули</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Строго» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card wide">
+      <span class="kicker"><span class="uk">Перегони двох лічильників</span></span>
+      <h3><span class="uk">Коли лінія стає хоча б можливою</span></h3>
+      <svg class="geo" id="race-svg" viewBox="0 0 640 270" role="img" aria-label="Перегони двох лічильників"></svg>
+      <p class="uk">Обидві криві точні, пораховані за кількістю чисел кожної літери серед перших куль. Рожева: ведучий уже назвав хоча б по одному числу <code class="lt" style="--c:var(--lb)">B</code>, <code class="lt" style="--c:var(--li)">I</code>, <code class="lt" style="--c:var(--lg)">G</code> і <code class="lt" style="--c:var(--lo)">O</code>, тож середній рядок (із вільним центром) може бути повним на якійсь картці. Синя: якась літера вийшла п'ять разів (<code class="lt" style="--c:var(--ln)">N</code> чотири), тож повний стовпець може бути хоч десь. Після 10 куль рядок можливий у 66% ігор, стовпець лише у 20%.</p>
+      
+      <p class="uk">Для однієї картки це ще нічого не значить: «можливо десь» не означає «у вас». Але що більше карток, то ближче «можливо» до «вже в когось є». У залі з усіма можливими картками перше «Бінго!» звучить саме тоді, коли одна з кривих спрацює, і рожева перша в 73,73% ігор.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Спільні числа</span></span>
+      <h3><span class="uk">Стовпці різних карток схожі, рядки&nbsp;— ні</span></h3>
+      <div class="two">
+        <div style="--c:var(--vert)"><b>5/3 ≈ 1,7</b><span class="uk">спільних чисел у стовпців <code class="lt" style="--c:var(--lb)">B</code> двох випадкових карток, у середньому</span></div>
+        <div style="--c:var(--signal,#D9318F)"><b>1/3 ≈ 0,3</b><span class="uk">спільних чисел у рядка однієї картки й рядка іншої</span></div>
+      </div>
+      <p class="uk">Кожне з п'яти чисел другого стовпця <code class="lt" style="--c:var(--lb)">B</code> потрапляє в перший з шансом 5 з 15, тож у <a href="https://mathparadoxes.com/uk/glossary/median-vs-mean/" class="mp-term" data-term="mean" aria-expanded="false">середньому</a> 5 · 5/15 = 5/3 спільних. У рядках на кожному місці число мусить збігтися точно, шанс 1 з 15: разом 5/15 = 1/3. Стовпці залу ніби списані один з одного й тому закриваються разом. Рядки майже <a href="https://mathparadoxes.com/uk/glossary/independence/" class="mp-term" data-term="independence" aria-expanded="false">незалежні</a>, і з 2&nbsp;500 незалежних спроб хтось виграє рано.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Для тих, хто любить формули</span></span>
+      <h3><span class="uk">Зал з усіма картками</span></h3>
+      <div class="fx">
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Рядок уже на 4-й кулі: перші чотири кулі — це <code class="lt" style="--c:var(--lb)">B</code>, <code class="lt" style="--c:var(--li)">I</code>, <code class="lt" style="--c:var(--lg)">G</code>, <code class="lt" style="--c:var(--lo)">O</code> у будь-якому порядку.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><msub><mi>H</mi><mn>4</mn></msub><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>60</mn><mn>75</mn></mfrac><mo>·</mo><mfrac><mn>45</mn><mn>74</mn></mfrac><mo>·</mo><mfrac><mn>30</mn><mn>73</mn></mfrac><mo>·</mo><mfrac><mn>15</mn><mn>72</mn></mfrac><mo>≈</mo><mn class="uk">0,042</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Стовпець на 4-й кулі: чотири <code class="lt" style="--c:var(--ln)">N</code> поспіль.</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><msub><mi>V</mi><mn>4</mn></msub><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>15</mn><mn>75</mn></mfrac><mo>·</mo><mfrac><mn>14</mn><mn>74</mn></mfrac><mo>·</mo><mfrac><mn>13</mn><mn>73</mn></mfrac><mo>·</mo><mfrac><mn>12</mn><mn>72</mn></mfrac><mo>≈</mo><mn class="uk">0,0011</mn></math>
+        </div>
+        <div class="fx-row">
+          <p class="fx-cap"><span class="uk">Склавши такі ймовірності для кожної кулі, від 4-ї до 16-ї (пізніше хтось уже точно виграв):</span></p>
+          <math display="block"><mi>P</mi><mo stretchy="false">(</mo><mi>H</mi><mo stretchy="false">)</mo><mo>=</mo><munderover><mo>∑</mo><mrow><mi>n</mi><mo>=</mo><mn>4</mn></mrow><mn>16</mn></munderover><mi>P</mi><mo stretchy="false">(</mo><msub><mi>H</mi><mi>n</mi></msub><mo stretchy="false">)</mo><mo>≈</mo><mrow class="hl"><mn class="uk">0,7373</mn></mrow></math>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+  <div class="mp-layer" data-layer="deep">
+    <div class="mp-layer-head"><span class="mp-layer-name">Глибше</span><span class="mp-layer-desc">узагальнення, теорія, історія</span><button type="button" class="mp-layer-hide">Сховати на всіх задачах</button></div>
+    <p class="mp-layer-stub">Шар «Глибше» приховано на всіх задачах. <button type="button" class="mp-layer-show">Показати</button></p>
+  <div class="why-grid">
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Історія</span></span>
+      <h3><span class="uk">«Баг», який виявився математикою</span></h3>
+      <p class="uk">Джозеф Кізенветер, випускник коледжу Гарві Мадд, працював у компанії, що робила програми для електронного бінго. Клієнт поскаржився на «баг»: переможні картки надто часто горизонтальні. Кізенветер переконався, що програма чесна, а ефект справжній, і розповів про нього математику Артуру Бенджаміну. Бен Вайс запропонував подивитися на зал, де є кожна можлива картка, і 2017 року троє авторів описали парадокс у журналі Math Horizons.</p>
+      
+      <p class="uk">У статті вони пишуть, що програма зіграла 100&nbsp;000 ігор на 1&nbsp;000 картках, і горизонтальних переможців було майже вдвічі більше. Наша симуляція в раунді 3 дає те саме. Для залу з усіма картками без вільного центру вони отримали 75,2% на користь рядка, а з вільним центром 73,73% знайшли Кізенветер і Дік Гесс.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Теорія</span></span>
+      <h3><span class="uk">35 форм і діаграми Феррерса</span></h3>
+      <p class="uk">Щоб порахувати точну ймовірність, автори групують послідовності куль за «формою»: скільки разів до вирішальної кулі вийшла кожна літера. Скажімо, на 10-й кулі рядок дають форми 4311, 4221, 3321 і 3222 (без вільного центру): чотири літери, кожна від 1 до 4 разів. Стовпець дають теж рівно чотири форми.</p>
+      
+      <p class="uk">Це не випадковість. Форми рядків і стовпців відповідають одна одній через діаграми Феррерса: відкиньте з кожної частини по одиниці й поміняйте рядки й стовпці точок місцями. Усіх форм 35, стільки ж, скільки шляхів у сітці 4 × 3, тобто C(7, 3), а розподіл форм за номером кулі дають q-біноміальні коефіцієнти.</p>
+      
+    </div>
+
+  </div>
+  </div>
+
+<script>
+(function run() {
+  if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", run);
+  var API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "bingo-paradox" + "-layer", KEY = "mp-layers-hidden";
+  var layers = [].slice.call(document.querySelectorAll(".mp-layer"));
+  if (!layers.length) return;
+  function get() { try { return (localStorage.getItem(KEY) || "").split(" ").filter(Boolean); } catch (e) { return []; } }
+  function put(a) { try { localStorage.setItem(KEY, a.join(" ")); } catch (e) {} }
+  function paint() { var h = get(); layers.forEach(function (l) { l.classList.toggle("off", h.indexOf(l.dataset.layer) >= 0); }); }
+  function count(k) {
+    var off = false; try { off = localStorage.getItem("mp-notrack") === "1"; } catch (e) {}
+    if (!API || off || !window.fetch) return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ s: SLUG, k: k, h: 0 }) }).catch(function () {});
+  }
+  layers.forEach(function (l) {
+    var name = l.dataset.layer;
+    l.querySelector(".mp-layer-hide").addEventListener("click", function () {
+      var h = get(); if (h.indexOf(name) < 0) { h.push(name); put(h); count("hide." + name); } paint();
+    });
+    l.querySelector(".mp-layer-show").addEventListener("click", function () {
+      put(get().filter(function (x) { return x !== name; })); count("show." + name); paint();
+      window.dispatchEvent(new Event("resize"));  // charts drawn while the layer was hidden had no width
+    });
+  });
+  paint();
+})();
+</script>
+</section>
+
+<!-- ROUND 5: going further -->
+<section class="round" id="more">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Раунд 5 · Ускладнюємо</span></span>
+    <h2><span class="uk">Діагоналі, британське бінго й переможці натовпу</span></h2>
+    <p class="lead uk">Діагоналі грають за правилами рядків. Британське бінго обходить парадокс самими правилами. А ідея «спільне вузьке місце проти власного везіння» працює далеко за межами залу.</p>
+    
+  </div>
+  <div class="esc">
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="uk">Додамо діагоналі</span></h3>
+        <p class="note" style="margin:6px 0 12px"><span class="uk">Частка ігор, у яких лінія такого виду є в першого переможця (сума більша за 100%, бо на одній кулі бувають кілька ліній). 150&nbsp;000 ігор на кожен зал.</span></p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th><span class="uk">Лінія</span></th><th class="num"><span class="uk">1 картка</span></th><th class="num"><span class="uk">500 карток</span></th></tr></thead>
+            <tbody>
+              <tr><td><span class="uk">Рядок</span></td><td class="num">42%</td><td class="num">38%</td></tr>
+              <tr><td><span class="uk">Стовпець</span></td><td class="num">42%</td><td class="num">27%</td></tr>
+              <tr><td><span class="uk">Діагональ</span></td><td class="num">24%</td><td class="num"><b>46%</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Математика</span></span>
+        <h3><span class="uk">Діагональ&nbsp;— це рядок, що йде навскіс</span></h3>
+        <p class="uk">Діагональ, як і рядок, бере по одному числу з кожного стовпця. А обидві діагоналі проходять через вільний центр, тож кожній потрібні лише чотири числа: <code class="lt" style="--c:var(--lb)">B</code>, <code class="lt" style="--c:var(--li)">I</code>, <code class="lt" style="--c:var(--lg)">G</code> і <code class="lt" style="--c:var(--lo)">O</code>. Таких «коротких» ліній на картці три: дві діагоналі й середній рядок.</p>
+        
+        <p class="uk">На одній картці діагоналей лише дві проти десяти рядків і стовпців, тому вони виграють рідко, у 24% ігор. У залі на 500 карток діагоналі ловлять те саме таксі, що й рядки, і ще коротшим шляхом: вони вже в 46% перших перемог. Стовпці, які чекають на п'ять однакових літер, падають з 42% до 27%.</p>
+        
+      </div>
+    </div>
+
+    <div class="card esc-text">
+      <span class="kicker"><span class="uk">Логіка</span></span>
+      <h3><span class="uk">У британському бінго стовпців просто немає</span></h3>
+      <p class="uk">У Великій Британії грають на 90 куль. Квиток там 3 × 9: дев'ять стовпців за десятками (1–9, 10–19 і так далі до 90), у кожному рядку п'ять чисел і чотири порожні клітинки, тож у стовпці щонайбільше три числа. Виграють лише рядки: одна лінія, дві лінії і «фул-хаус», усі 15 чисел квитка. Стовпців і діагоналей серед виграшів немає, тож порівнювати нема з чим: «один потяг на всіх» правилами просто прибрали. Квитки продають смужками по шість, і разом вони містять усі 90 чисел, тож власник смужки закриває якесь число на кожній кулі.</p>
+      
+    </div>
+
+    <div class="card">
+      <span class="kicker"><span class="uk">Практика</span></span>
+      <h3><span class="uk">Переможець натовпу відібраний за особистим везінням</span></h3>
+      <p class="note" style="margin:6px 0 12px"><span class="uk">Правило з бінго: коли учасників багато, перший серед них частіше перемагає тим способом, де результати учасників найбільше різняться. Те, що всім дається однаково, переваги не дає, хоч скільки людей грає.</span></p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><span class="uk">Де</span></th><th><span class="uk">Спільне для всіх</span></th><th><span class="uk">Що з цього випливає</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="uk">Рейтинг фондів за рік</span></td><td><span class="uk">Рух ринку однаковий для всіх фондів з однаковою стратегією.</span></td><td><span class="uk">Верх таблиці займають фонди, чий результат найдальше відхилився від ринку: найризикованіші, не обов'язково найкращі. Звідси й <a href="../winners-curse/">прокляття переможця</a>.</span></td></tr>
+            <tr><td><span class="uk">Багато варіантів в A/B-тесті</span></td><td><span class="uk">Справжній ефект часто майже однаковий у всіх варіантів.</span></td><td><span class="uk">«Переможцем» стає варіант, якому найбільше пощастило з шумом, і на повторному тесті він зазвичай слабшає. Більше в задачі про <a href="../multiple-testing/">множинні перевірки</a>.</span></td></tr>
+            <tr><td><span class="uk">Хто перший з тисячі</span></td><td><span class="uk">Шлях, що залежить від спільної умови (ринку, погоди, черги), відкривається для всіх одночасно.</span></td><td><span class="uk">Перші приходять іншим шляхом, де кожен має власний шанс. Дивлячись на рекордсменів, питайте, яка частина успіху була спільною, а яка особистою.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUN FACTS -->
+<section class="round" id="facts">
+  <div class="round-head">
+    <span class="eyebrow"><span class="uk">Бонус · Цікаві факти</span></span>
+    <h2><span class="uk">Що розповісти друзям</span></h2>
+  </div>
+  <div class="facts">
+      <article class="fact">
+        <span class="fact-n">1929</span>
+        <h3><span class="uk">Спершу була квасоля</span></h3>
+        <p class="uk">Продавець іграшок Едвін Лоу побачив гру «біно» (beano) на ярмарку біля Атланти наприкінці 1929 року: гравці закривали числа квасолинами. За поширеною легендою, коли Лоу грав у неї з друзями, одна гравчиня від радості крикнула «бінго!» замість «біно». Так Лоу й назвав свою версію гри.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">6&nbsp;000</span>
+        <h3><span class="uk">Картки від математика</span></h3>
+        <p class="uk">Як переказують, коли в бінго почали грати сотні людей одразу, на простих картках переможців виявилося забагато. Тоді Лоу найняв математика Колумбійського університету Карла Леффлера, і той склав 6&nbsp;000 різних карток.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n uk">5,5 · 10²⁶</span>
+        <h3><span class="uk">Скільки існує карток</span></h3>
+        <p class="uk">У стовпцях <code class="lt" style="--c:var(--lb)">B</code>, <code class="lt" style="--c:var(--li)">I</code>, <code class="lt" style="--c:var(--lg)">G</code>, <code class="lt" style="--c:var(--lo)">O</code> по 15 · 14 · 13 · 12 · 11 = 360&nbsp;360 впорядкованих наборів, у стовпці <code class="lt" style="--c:var(--ln)">N</code> з вільним центром 15 · 14 · 13 · 12 = 32&nbsp;760. Разом 552&nbsp;446&nbsp;474&nbsp;061&nbsp;128&nbsp;648&nbsp;601&nbsp;600&nbsp;000 різних карток. Зал «з кожною можливою карткою» з раунду 4&nbsp;— суто уявний.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n">× 2</span>
+        <h3><span class="uk">Майже вдвічі</span></h3>
+        <p class="uk">Артур Бенджамін, Джозеф Кізенветер і Бен Вайс описали парадокс у статті «The Bingo Paradox» (Math Horizons, вересень 2017, т. 25, № 1, с. 18–21). Їхня програма зіграла 100&nbsp;000 ігор на 1&nbsp;000 картках, і горизонтальних переможців було майже вдвічі більше, ніж вертикальних.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n uk">73,73%</span>
+        <h3><span class="uk">Точне число</span></h3>
+        <p class="uk">Для залу з усіма картками і вільним центром шанс, що перша лінія&nbsp;— рядок, рівно 73,73% (з округленням). Його незалежно знайшли Джозеф Кізенветер і Дік Гесс, автор книжки задач «The Population Explosion and Other Mathematical Puzzles» (World Scientific, 2016). Наш точний розрахунок у раунді 3 дає те саме.</p>
+        
+      </article>
+      <article class="fact">
+        <span class="fact-n uk">16 куль</span>
+        <h3><span class="uk">Найдовша гра в нескінченному залі</span></h3>
+        <p class="uk">Якщо в залі всі можливі картки, гра не триває довше за 16 куль. Щоб ніхто не мав рядка, якась із літер <code class="lt" style="--c:var(--lb)">B</code>, <code class="lt" style="--c:var(--li)">I</code>, <code class="lt" style="--c:var(--lg)">G</code>, <code class="lt" style="--c:var(--lo)">O</code> ще не виходила; щоб ніхто не мав стовпця, решта три вийшли щонайбільше по 4 рази, а <code class="lt" style="--c:var(--ln)">N</code> щонайбільше 3. Це 15 куль, і 16-та вирішує гру. У звичайному залі на 500 карток перше «Бінго!» звучить у середньому на 13-й кулі.</p>
+        
+      </article>
+  </div>
+</section>
+</div>
+
+<section class="mp-related" id="related">
+  <div class="mp-related-head">
+    <span class="eyebrow">Ще задачі</span>
+    <h2>Інші парадокси</h2>
+  </div>
+  <div class="mp-related-grid">
+    <a class="mp-related-card" href="https://mathparadoxes.com/uk/newcomb-paradox/"><h3>Парадокс Ньюкомба</h3><p>У прозорій скриньці <span class="vl">A</span> $1&nbsp;000. У скриньку <span class="vl">B</span> провидець, що вгадує 99% виборів, поклав мільйон, лише якщо передбачив, що ви візьмете тільки <span class="vl">B</span>. Що ви візьмете: лише <span class="vl">B</span> чи обидві?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/uk/ergodicity/"><h3>Монетка +50 / −40</h3><p>У кожного з 10&nbsp;000 гравців $100, і кожен 100 разів ставить усе на чесну монетку: орел +50%, решка −40%. Яка частка гравців закінчить багатшою, ніж почала?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/uk/hat-check/"><h3>Капелюхи в гардеробі</h3><p>Гардеробник роздає капелюхи гостям навмання. Який шанс, що ніхто не отримає свій? І як він змінюється, якщо гостей не 10, а 100?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/uk/revenue-equivalence/"><h3>Чотири аукціони</h3><p>Четверо розумних покупців, чотири формати аукціону: перша ціна, друга ціна, англійський і голландський. Який принесе продавцю найбільше в середньому?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/uk/coin-streaks/"><h3>Серії в підкиданні монети</h3><p>Якою буває найдовша серія однакових сторін, якщо підкинути чесну монету 100 разів?</p></a>
+    <a class="mp-related-card" href="https://mathparadoxes.com/uk/bertrand-paradox/"><h3>Парадокс Бертрана</h3><p>У колі навмання проводять хорду. Який шанс, що вона довша за сторону вписаного рівностороннього трикутника?</p></a>
+  </div>
+  <p class="mp-related-all"><a href="https://mathparadoxes.com/uk/">Усі задачі →</a> <a href="https://mathparadoxes.com/uk/glossary/">Словник →</a></p>
+</section>
+
+<section class="mp-discuss" id="discuss">
+  <div class="mp-discuss-text">
+    <span class="eyebrow">Обговорення</span>
+    <h2>Що ви думаєте?</h2>
+    <p>Поділіться своїм поясненням, запереченням чи варіантом задачі. Для коментаря потрібен акаунт GitHub.</p>
+    <div class="mp-lvote"><p>Рівень «Шкільна математика» відповідає задачі?</p><div class="mp-lvote-btns"><button type="button" data-vote="harder">Ні, складніше</button><button type="button" data-vote="right">Так</button><button type="button" data-vote="easier">Ні, простіше</button></div><p class="mp-lvote-thanks">Дякуємо! Це допоможе точніше ставити рівні.</p></div>
+<script>
+(function () {
+  var box = document.querySelector(".mp-lvote"), API = "https://mathparadoxes-stats.dmitry-kudrenko.workers.dev/", SLUG = "bingo-paradox" + "-lvl", LEVEL = 2, KEY = "mp-lvote:" + SLUG;
+  if (!box || !window.fetch) return;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done() { box.classList.add("done"); }
+  if (get(KEY)) return done();
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-vote]");
+    if (!b) return;
+    try { localStorage.setItem(KEY, b.dataset.vote); } catch (err) {}
+    done();
+    if (get("mp-notrack") === "1") return;
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ s: SLUG, k: b.dataset.vote + "." + LEVEL, h: 0 }) }).catch(function () {});
+  });
+})();
+</script>
+  </div>
+  <div class="mp-discuss-thread">
+    <script src="https://giscus.app/client.js"
+      data-repo="dmitrykudrenko/mathproblems" data-repo-id="R_kgDOVP1Ehw"
+      data-category="Announcements" data-category-id="DIC_kwDOVP1Eh84DJCIi"
+      data-mapping="specific" data-term="bingo-paradox" data-strict="1"
+      data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top"
+      data-theme="light" data-lang="uk" data-loading="lazy"
+      crossorigin="anonymous" async></script>
+  </div>
+</section>
+
+<section class="mp-subscribe" id="subscribe">
+  <div class="mp-subscribe-text">
+    <span class="eyebrow">Розсилка</span>
+    <h2>Нові задачі, пояснення й обговорення</h2>
+    <p>Я поступово додаю нові задачі, інші способи їх пояснити й розбори дискусій. Залиште email, і я напишу, коли з'явиться щось нове. Без спаму, відписатися можна в один клік.</p>
+  </div>
+  <div class="mp-subscribe-slot" id="mp-subscribe"><p class="mp-subscribe-wait">Форма підписки з'явиться тут найближчим часом.</p></div>
+</section>
+<script>
+(function () {
+  var box = document.getElementById("subscribe"), slot = document.getElementById("mp-subscribe");
+  var wait = slot.querySelector(".mp-subscribe-wait"), done = false;
+  // the form is a Claspo inline widget; drop the placeholder once it is inserted (inside the slot or next to it)
+  function check() {
+    if (done) return;
+    var inSlot = [].some.call(slot.children, function (el) { return el !== wait; });
+    var nextTo = [].some.call(box.children, function (el) { return !/mp-subscribe-(text|slot)/.test(el.className); });
+    if (inSlot || nextTo) { done = true; if (wait) wait.remove(); }
+  }
+  // no form for this visitor (script blocked by an extension, or Claspo's display rules skip them):
+  // hide the whole block instead of promising a form that will not come
+  function giveUp() {
+    if (done) return;
+    done = true; box.hidden = true;
+    if (window.console) console.info("Newsletter form did not load" + (window.claspoBlocked ? ": the Claspo script was blocked" : ""));
+  }
+  check();
+  new MutationObserver(check).observe(box, { childList: true, subtree: true });
+  if (window.claspoBlocked) giveUp();
+  window.addEventListener("claspo-blocked", giveUp);
+  setTimeout(giveUp, 10000);
+})();
+</script>
+
+<footer>
+  <span class="uk">На одній картці рядок і стовпець рівноймовірні, але в залі на 500 карток перший переможець має рядок майже вдвічі частіше: стовпці всіх карток чекають тих самих літер, а рядкам кожної картки щастить по-своєму.</span>
+  
+  <code class="mono">B I N G O</code>
+</footer>
+
+</div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const SIG = () => tok('--signal') || '#D9318F';
+const STATIC = document.documentElement.hasAttribute('data-static');
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const solved = () => !window.mpSolved || mpSolved();
+
+/* ---------- language ---------- */
+let lang = document.documentElement.dataset.lang || 'uk';
+if (!STATIC) try {
+  const saved = localStorage.getItem('mh-lang');
+  if (location.hash === '#en' || location.hash === '#uk') lang = location.hash.slice(1);
+  else if (saved === 'en' || saved === 'uk') lang = saved;
+  else if (!/^(uk|ru|be)/i.test(navigator.language || '')) lang = 'en';
+} catch (e) {}
+const L = (uk, en) => lang === 'en' ? en : uk;
+const dec = s => lang === 'en' ? s : s.replace('.', ',');
+const pct = (x, d = 1) => dec((100 * x).toFixed(d)) + '%';
+const fmt = n => n.toLocaleString(lang === 'en' ? 'en-US' : 'uk-UA');
+const ukPl = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+
+/* ---------- bingo basics ---------- */
+const LET = ['B', 'I', 'N', 'G', 'O'];
+const LCOL = ['var(--lb)', 'var(--li)', 'var(--ln)', 'var(--lg)', 'var(--lo)'];
+const letterOf = b => Math.floor((b - 1) / 15);
+const ballName = b => LET[letterOf(b)] + ' ' + b;
+// a card: 25 numbers, index r * 5 + c; the centre (index 12) is 0, the free square
+function newCard() {
+  const a = new Array(25);
+  for (let c = 0; c < 5; c++) {
+    const pool = Array.from({ length: 15 }, (_, i) => 15 * c + 1 + i);
+    for (let r = 0; r < 5; r++) { const j = r + Math.floor(Math.random() * (15 - r)); [pool[r], pool[j]] = [pool[j], pool[r]]; a[r * 5 + c] = pool[r]; }
+  }
+  a[12] = 0;
+  return a;
+}
+function shuffled75() {
+  const a = Array.from({ length: 75 }, (_, i) => i + 1);
+  for (let i = 74; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+// when[b] = on which ball number b is called (1..75); when[0] = 0, the free square
+function whenOf(order) { const w = new Int16Array(76); order.forEach((b, i) => { w[b] = i + 1; }); return w; }
+// the ball on which the card first completes a line, and which rows / columns complete on it
+function evalCard(card, when) {
+  const rt = [0, 0, 0, 0, 0], ct = [0, 0, 0, 0, 0];
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
+    const t = when[card[r * 5 + c]];
+    if (t > rt[r]) rt[r] = t; if (t > ct[c]) ct[c] = t;
+  }
+  const t = Math.min(...rt, ...ct);
+  return { t, rows: [0, 1, 2, 3, 4].filter(r => rt[r] === t), cols: [0, 1, 2, 3, 4].filter(c => ct[c] === t) };
+}
+// a card as HTML; `upTo` marks numbers called by that ball; `hl` = { rows, cols } to outline
+function cardHTML(card, when, upTo, hl) {
+  let s = LET.map((l, c) => '<span class="hd" style="--c:' + LCOL[c] + '">' + l + '</span>').join('');
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
+    const v = card ? card[r * 5 + c] : null;
+    if (v === null) { s += '<span class="c q">?</span>'; continue; }
+    const free = v === 0, on = free || (when && when[v] && when[v] <= upTo);
+    let lc = '';
+    if (hl) { if (hl.rows.includes(r)) lc = SIG(); else if (hl.cols.includes(c)) lc = 'var(--vert)'; }
+    s += '<span class="c' + (free ? ' fr' : '') + (on && !free ? ' on' : '') + (lc ? ' hl' : '') + '" style="--c:' + LCOL[c] + (lc ? ';--lc:' + lc : '') + '">' + (free ? 'FREE' : v) + '</span>';
+  }
+  return s;
+}
+
+/* ---------- hero: one card keeps getting balls; no lines are judged ---------- */
+const hero = { card: newCard(), order: shuffled75(), i: 0, timer: 0 };
+hero.when = whenOf(hero.order);
+function heroDraw() {
+  $('#hero-card').innerHTML = cardHTML(hero.card, hero.when, hero.i, null);
+  const b = hero.i ? hero.order[hero.i - 1] : 0, bl = $('#hero-ball');
+  bl.style.setProperty('--c', b ? LCOL[letterOf(b)] : 'var(--line)');
+  bl.innerHTML = b ? '<span><small>' + LET[letterOf(b)] + '</small><b>' + b + '</b></span>' : '<span><b>?</b></span>';
+  const hide = window.mpSolved && !mpSolved();
+  $('#hero-cap').textContent = hide
+    ? L('Одна з 500 карток. Куля ' + hero.i + ' з 75. Хтось у залі от-от крикне «Бінго!». Яка в нього буде лінія?', 'One of 500 cards. Ball ' + hero.i + ' of 75. Someone in the hall is about to shout "Bingo!" Which line will they have?')
+    : L('На вашій картці рядок і стовпець рівноймовірні. Але в залі на 500 карток перший переможець має лише рядок у 63% ігор, лише стовпець у 35%.', 'On your card a row and a column are equally likely. But in a hall of 500 cards the first winner has only a row in 63% of games, only a column in 35%.');
+}
+function heroStart() {
+  clearInterval(hero.timer);
+  hero.i = Math.max(hero.i, 6);
+  heroDraw();
+  if (reduce()) return;
+  hero.timer = setInterval(() => {
+    hero.i++;
+    if (hero.i > 30) { hero.card = newCard(); hero.order = shuffled75(); hero.when = whenOf(hero.order); hero.i = 1; }
+    heroDraw();
+  }, 1200);
+}
+
+/* ---------- puzzle: an example card ---------- */
+const setupCard = newCard();
+function setupDraw() { $('#setup-card').innerHTML = cardHTML(setupCard, null, 0, null); }
+
+/* ---------- round 1: guess ---------- */
+// 200,000 simulated games per hall (node), cross-checked by an independent Python simulation
+const RES = { 1: [0.4656, 0.4613, 0.0730], 500: [0.6261, 0.3465, 0.0274] };
+let gPick = null;
+$('#g-opts').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; gPick = b.dataset.k; guessText(); window.mpSolve && mpSolve(gPick); });
+function guessText() {
+  $('#g-opts').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === gPick));
+  if (gPick === null) return;
+  const sig = SIG(), r = RES[500];
+  const verdict = gPick === 'h' ? L('Так. На одній картці рядок і стовпець рівноймовірні, але перша картка в залі — найщасливіша з 500, а рядкам щастить частіше.', 'Yes. On one card a row and a column are equally likely, but the first card in the hall is the luckiest of 500, and rows get lucky more often.')
+    : gPick === 'same' ? L('Так думає більшість, і для однієї картки це правда. Але перша картка в залі — найщасливіша з 500, а рядкам щастить частіше: майже вдвічі.', 'Most people think so, and for one card it is true. But the first card in the hall is the luckiest of 500, and rows get lucky more often: almost twice as often.')
+    : L('Навпаки. Стовпцю потрібно п\'ять чисел однієї літери, і на це всі картки залу чекають разом. Тому вертикальна лінія виграє рідше.', 'The other way round. A column needs five numbers of one letter, and every card in the hall waits for that together. So a vertical line wins less often.');
+  const rows = [[L('Лише рядок', 'Only a row'), r[0], sig], [L('Лише стовпець', 'Only a column'), r[1], 'var(--vert)'], [L('Обидві одразу', 'Both at once'), r[2], 'var(--muted)']];
+  $('#guess-out').innerHTML = '<span class="kicker">' + L('Результат · 500 карток', 'Result · 500 cards') + '</span><p class="big sig">' + L('Рядок', 'A row') + '</p>' +
+    '<p>' + verdict + '</p><div class="compare">' + rows.map(x => '<div class="crow"><span>' + x[0] + '</span><div class="bar"><i style="--c:' + x[2] + ';width:' + (100 * x[1]) + '%"></i></div><span class="mono">' + pct(x[1], 0) + '</span></div>').join('') + '</div>' +
+    '<p class="note">' + L('Частки з 200 000 ігор у залі на 500 карток. На одній картці лише рядок і лише стовпець бувають однаково часто, по 46%. Раунди 2–4 показують, звідки різниця.', 'Shares from 200,000 games in a hall of 500 cards. On one card "only a row" and "only a column" are equally common, 46% each. Rounds 2–4 show where the difference comes from.') + '</p>';
+}
+
+/* ---------- round 2: a game in the hall ---------- */
+const SIZES_P = [1, 10, 100, 500];
+const play = { n: 500, hall: [], order: [], when: null, i: 0, T: 0, winners: [], kind: '', done: false, timer: 0,
+  tally: { n: 0, h: 0, v: 0, b: 0, mine: 0, hist: [] } };
+function playNew() {
+  clearInterval(play.timer); play.timer = 0;
+  play.hall = Array.from({ length: play.n }, newCard);
+  play.order = shuffled75(); play.when = whenOf(play.order);
+  let T = 99, win = [];
+  play.hall.forEach((card, k) => {
+    const e = evalCard(card, play.when);
+    if (e.t < T) { T = e.t; win = [{ k, rows: e.rows, cols: e.cols }]; }
+    else if (e.t === T) win.push({ k, rows: e.rows, cols: e.cols });
+  });
+  const h = win.some(w => w.rows.length), v = win.some(w => w.cols.length);
+  play.T = T; play.winners = win; play.kind = h && v ? 'b' : h ? 'h' : 'v'; play.i = 0; play.done = false;
+}
+function playFinish() {
+  if (play.done) return;
+  play.done = true; play.i = play.T;
+  const t = play.tally; t.n++; t[play.kind]++;
+  if (play.winners.some(w => w.k === 0)) t.mine++;
+  t.hist.push(play.kind); if (t.hist.length > 120) t.hist.shift();
+}
+function playStep() {
+  if (play.done) { playNew(); }
+  play.i++;
+  if (play.i >= play.T) playFinish();
+  playDraw();
+}
+function playRun() {
+  if (play.done) playNew();
+  if (reduce()) { playFinish(); playDraw(); return; }
+  clearInterval(play.timer);
+  play.timer = setInterval(() => {
+    play.i++;
+    if (play.i >= play.T) { clearInterval(play.timer); play.timer = 0; playFinish(); }
+    playDraw();
+  }, 110);
+  playDraw();
+}
+function playMany(k) {
+  clearInterval(play.timer); play.timer = 0;
+  if (!play.done && play.i > 0) playFinish();
+  for (let g = 0; g < k; g++) { playNew(); playFinish(); }
+  playDraw();
+}
+function playDraw() {
+  $('#p-size').innerHTML = '<span class="note">' + L('Карток у залі:', 'Cards in the hall:') + '</span>' +
+    SIZES_P.map(n => '<button type="button" data-n="' + n + '" aria-pressed="' + (n === play.n) + '">' + fmt(n) + '</button>').join('');
+  // the caller's board
+  const counts = [0, 0, 0, 0, 0];
+  for (let j = 0; j < play.i; j++) counts[letterOf(play.order[j])]++;
+  const last = play.i ? play.order[play.i - 1] : 0;
+  $('#p-board').innerHTML = LET.map((l, c) => {
+    let s = '<div class="brow" style="--c:' + LCOL[c] + '"><b>' + l + '</b>';
+    for (let b = 15 * c + 1; b <= 15 * c + 15; b++) {
+      const on = play.when[b] <= play.i;
+      s += '<i class="' + (on ? 'on' : '') + (b === last ? ' last' : '') + '">' + b + '</i>';
+    }
+    const need = c === 2 ? 4 : 5;
+    return s + '<span class="' + (counts[c] >= need ? 'full' : '') + '">' + counts[c] + '</span></div>';
+  }).join('');
+  // your card (card 0) and the winner
+  const fin = play.done;
+  const mine = play.winners.find(w => w.k === 0);
+  $('#p-mine').innerHTML = cardHTML(play.hall[0], play.when, play.i, fin && mine ? mine : null);
+  const w = play.winners[0];
+  $('#p-win-lab').textContent = fin ? L('Перша переможна картка №' + (w.k + 1), 'First winning card #' + (w.k + 1)) : L('Перша переможна картка', 'First winning card');
+  $('#p-win').innerHTML = fin ? cardHTML(play.hall[w.k], play.when, play.i, w) : cardHTML(null);
+  // message
+  let m;
+  const lineName = x => x.rows.length && x.cols.length ? L('рядок і стовпець одразу', 'a row and a column at once') : x.rows.length ? L('рядок ' + (x.rows[0] + 1) + ' (горизонтальна лінія)', 'row ' + (x.rows[0] + 1) + ' (a horizontal line)') : L('стовпець ' + LET[x.cols[0]] + ' (вертикальна лінія)', 'column ' + LET[x.cols[0]] + ' (a vertical line)');
+  if (!play.i) m = L('Нова гра: ' + fmt(play.n) + ' ' + ukPl(play.n, 'картка', 'картки', 'карток') + ' в залі. Тягніть кулю.', 'New game: ' + fmt(play.n) + ' card' + (play.n === 1 ? '' : 's') + ' in the hall. Draw a ball.');
+  else if (!fin) m = L('Куля ' + play.i + ': ' + ballName(last) + '. Поки ніхто в залі не зібрав лінію.', 'Ball ' + play.i + ': ' + ballName(last) + '. Nobody in the hall has a line yet.');
+  else {
+    const more = play.winners.length - 1;
+    m = L('«Бінго!» на ' + play.T + '-й кулі. Картка №' + (w.k + 1) + ': ' + lineName(w) + '.', '"Bingo!" on ball ' + play.T + '. Card #' + (w.k + 1) + ': ' + lineName(w) + '.') +
+      (more ? L(' Ще ' + more + ' ' + ukPl(more, 'картка', 'картки', 'карток') + ' виграли на тій самій кулі.', ' ' + more + ' more card' + (more === 1 ? '' : 's') + ' won on the same ball.') : '') +
+      (mine ? L(' Серед переможців ваша картка!', ' Your card is among the winners!') : '') +
+      ' ' + L('Підсумок гри: ', 'This game counts as: ') + ({ h: L('лише рядок', 'only a row'), v: L('лише стовпець', 'only a column'), b: L('обидві лінії', 'both lines') })[play.kind] + '.';
+  }
+  $('#p-msg').textContent = m;
+  $('#p-step').disabled = !!play.timer; $('#p-run').disabled = !!play.timer;
+  // the score
+  const t = play.tally;
+  $('#p-size-note').textContent = L('Зал на ' + fmt(play.n) + ' ' + ukPl(play.n, 'картку', 'картки', 'карток') + '. Кожна гра рахується за першою кулею, на якій хтось виграв.', 'A hall of ' + fmt(play.n) + ' card' + (play.n === 1 ? '' : 's') + '. Each game counts by the first ball on which anyone won.');
+  $('#t-n').textContent = fmt(t.n); $('#t-h').textContent = fmt(t.h); $('#t-v').textContent = fmt(t.v); $('#t-b').textContent = fmt(t.b);
+  $('#t-txt').textContent = !t.n ? L('Ще не зіграно жодної гри.', 'No games played yet.')
+    : L('Лише рядок: ' + pct(t.h / t.n, 0) + ', лише стовпець: ' + pct(t.v / t.n, 0) + ', обидві: ' + pct(t.b / t.n, 0) + '. Ваша картка виграла ' + t.mine + ' ' + ukPl(t.mine, 'раз', 'рази', 'разів') + '.',
+        'Only a row: ' + pct(t.h / t.n, 0) + ', only a column: ' + pct(t.v / t.n, 0) + ', both: ' + pct(t.b / t.n, 0) + '. Your card won ' + t.mine + ' time' + (t.mine === 1 ? '' : 's') + '.');
+  const hc = { h: SIG(), v: 'var(--vert)', b: 'var(--muted)' };
+  $('#t-hist').innerHTML = t.hist.map(k => '<i style="--c:' + hc[k] + '"></i>').join('');
+  $('#t-hint').textContent = play.n === 1
+    ? L('З однією карткою рядок і стовпець виграють однаково часто, а гра триває довго: у середньому до 43-ї кулі. Тепер оберіть 500 карток.', 'With one card a row and a column win equally often, and the game runs long: to ball 43 on average. Now pick 500 cards.')
+    : L('Подивіться на числа праворуч від табло: стовпець можливий, лише коли якась літера набере 5 (N — 4). Рядку досить, щоб кожна літера вийшла хоч раз. Порівняйте рахунок для 1 і для 500 карток.', 'Look at the numbers to the right of the board: a column is possible only once some letter reaches 5 (N: 4). A row only needs every letter to come out once. Compare the score for 1 card and for 500.');
+}
+$('#p-size').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  play.n = +b.dataset.n; play.tally = { n: 0, h: 0, v: 0, b: 0, mine: 0, hist: [] };
+  playNew(); playDraw();
+});
+$('#p-step').addEventListener('click', playStep);
+$('#p-run').addEventListener('click', playRun);
+$('#p-new').addEventListener('click', () => { clearInterval(play.timer); play.timer = 0; playNew(); playDraw(); });
+$('#p-10').addEventListener('click', () => playMany(10));
+$('#p-100').addEventListener('click', () => playMany(100));
+$('#t-reset').addEventListener('click', () => { play.tally = { n: 0, h: 0, v: 0, b: 0, mine: 0, hist: [] }; playDraw(); });
+
+/* ---------- round 3: halls of every size ---------- */
+// one game: 1,000 fresh cards against one ball order; halls of 1, 10, ... cards are the first n of them
+const SIZES = [1, 10, 50, 100, 500, 1000];
+// the hall with every possible card, exact (Python, fractions): a row first 73.73%, a column first 26.27%, no ties; 8.44 balls on average
+const EXACT = { h: 0.73734, v: 0.26266, b: 0, t: 8.44 };
+const sim = { acc: SIZES.map(() => ({ g: 0, h: 0, v: 0, b: 0, t: 0 })), busy: false, todo: 0 };
+const POOL = new Int16Array(15), WHEN = new Int16Array(76), ORD = new Int16Array(75), RT = new Int16Array(5), CT = new Int16Array(5);
+function simGame() {
+  for (let i = 0; i < 75; i++) ORD[i] = i + 1;
+  for (let i = 74; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const x = ORD[i]; ORD[i] = ORD[j]; ORD[j] = x; }
+  for (let i = 0; i < 75; i++) WHEN[ORD[i]] = i + 1;
+  let best = 99, h = false, v = false, si = 0;
+  for (let k = 1; k <= 1000; k++) {
+    RT.fill(0); CT.fill(0);
+    for (let c = 0; c < 5; c++) {
+      for (let i = 0; i < 15; i++) POOL[i] = 15 * c + 1 + i;
+      for (let r = 0; r < 5; r++) {
+        const j = r + Math.floor(Math.random() * (15 - r)), x = POOL[j]; POOL[j] = POOL[r]; POOL[r] = x;
+        if (c === 2 && r === 2) continue;                       // the free centre is marked from the start
+        const t = WHEN[x]; if (t > RT[r]) RT[r] = t; if (t > CT[c]) CT[c] = t;
+      }
+    }
+    let rt = 99, ct = 99;
+    for (let i = 0; i < 5; i++) { if (RT[i] < rt) rt = RT[i]; if (CT[i] < ct) ct = CT[i]; }
+    const t = rt < ct ? rt : ct;
+    if (t < best) { best = t; h = rt === t; v = ct === t; }
+    else if (t === best) { if (rt === t) h = true; if (ct === t) v = true; }
+    if (k === SIZES[si]) {
+      const a = sim.acc[si]; a.g++; a.t += best;
+      if (h && v) a.b++; else if (h) a.h++; else a.v++;
+      si++;
+    }
+  }
+}
+function simRun(n = 2000) {
+  if (sim.busy) return;
+  sim.busy = true; sim.todo = n; const total = n;
+  $('#sim-run').disabled = true;
+  const chunk = () => {
+    const k = Math.min(50, sim.todo);
+    for (let i = 0; i < k; i++) simGame();
+    sim.todo -= k;
+    $('#sim-bar').style.width = (100 * (total - sim.todo) / total) + '%';
+    simDraw();
+    if (sim.todo > 0) setTimeout(chunk, 0);
+    else { sim.busy = false; $('#sim-run').disabled = false; simDraw(); }
+  };
+  setTimeout(chunk, 0);
+}
+function simDraw() {
+  const bar = (label, h, b, v, sub, ex) => '<div class="sb' + (ex ? ' ex' : '') + '"><span>' + label + '</span><div class="bar">' +
+    '<i style="--c:' + SIG() + ';width:' + (100 * h) + '%"></i><i style="--c:var(--line);width:' + (100 * b) + '%"></i><i style="--c:var(--vert);width:' + (100 * v) + '%"></i></div><small>' + sub + '</small></div>';
+  const g0 = sim.acc[0].g;
+  let s = sim.acc.map((a, i) => {
+    const n = SIZES[i], g = a.g || 1;
+    return bar(fmt(n) + ' ' + L(ukPl(n, 'картка', 'картки', 'карток'), n === 1 ? 'card' : 'cards'), a.h / g, a.b / g, a.v / g,
+      a.g ? L('рядок ', 'row ') + pct(a.h / g) + ' · ' + L('обидві ', 'both ') + pct(a.b / g) + ' · ' + L('стовпець ', 'column ') + pct(a.v / g) : '–');
+  }).join('');
+  s += bar(L('Усі картки', 'Every card'), EXACT.h, EXACT.b, EXACT.v, L('точно: рядок 73,73% · стовпець 26,27%', 'exact: row 73.73% · column 26.27%'), true);
+  $('#sim-bars').innerHTML = s;
+  $('#sim-prog').textContent = sim.busy ? L('Грає… ', 'Playing… ') + fmt(g0) + L(' ігор', ' games') : fmt(g0) + ' ' + L(ukPl(g0, 'гра', 'гри', 'ігор'), g0 === 1 ? 'game' : 'games') + L(' на кожен зал', ' per hall');
+  const a5 = sim.acc[4], a1 = sim.acc[0];
+  if (a5.g) {
+    $('#sim-500').textContent = pct(a5.h / a5.g, 0) + ' : ' + pct(a5.v / a5.g, 0);
+    $('#sim-500s').textContent = L('лише рядок у ' + dec((a5.h / Math.max(1, a5.v)).toFixed(2)) + ' раза частіше', 'only a row ' + (a5.h / Math.max(1, a5.v)).toFixed(2) + ' times as often');
+    $('#sim-1').textContent = pct(a1.h / a1.g, 0) + ' : ' + pct(a1.v / a1.g, 0);
+    $('#sim-t').textContent = dec((a1.t / a1.g).toFixed(1)) + ' → ' + dec((a5.t / a5.g).toFixed(1));
+  }
+  $('#sim-cap').textContent = L('Що більший зал, то довша рожева частина: з 1 картки до 1 000 частка «лише рядок» росте з 46% до 65%, а в залі з усіма картками доходить до 74%. Похибка при 2 000 ігор близько ±1 п. п.; натисніть ще раз, щоб її зменшити.',
+    'The bigger the hall, the longer the pink part: from 1 card to 1,000 the share of "only a row" grows from 46% to 65%, and in a hall with every card it reaches 74%. With 2,000 games the noise is about ±1 point; press again to shrink it.');
+}
+$('#sim-run').addEventListener('click', () => simRun(2000));
+
+/* ---------- round 4: ten balls of one game ---------- */
+const EX = [7, 22, 68, 51, 3, 40, 17, 59, 72, 12];
+function exDraw() {
+  $('#ex-chips').innerHTML = EX.map(b => '<span class="chip" style="--c:' + LCOL[letterOf(b)] + '">' + ballName(b) + '</span>').join('');
+  const cnt = [0, 0, 0, 0, 0]; EX.forEach(b => cnt[letterOf(b)]++);
+  $('#ex-tally').innerHTML = LET.map((l, c) => '<div style="--c:' + LCOL[c] + '"><b>' + l + '</b><span>' + cnt[c] + ' / ' + (c === 2 ? 4 : 5) + '</span></div>').join('');
+}
+// exact chances after k balls (Python, fractions): B, I, G, O all called at least once / some letter called 5 times (N: 4)
+const RACE = { k: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+  row: [.0417, .1261, .2364, .3548, .4686, .5711, .6591, .7325, .7923, .8402, .8780, .9076, .9305, .9480, .9614, .9715, .9791],
+  col: [.0011, .0056, .0166, .0377, .0727, .1248, .1965, .2880, .3970, .5181, .6424, .7591, .8576, .9300, .9742, .9945, 1] };
+function raceDraw() {
+  const W = 640, H = 270, x0 = 46, x1 = W - 20, y0 = 20, y1 = H - 40;
+  const X = k => x0 + (x1 - x0) * (k - 4) / 16, Y = p => y1 - (y1 - y0) * p;
+  let s = '';
+  [0, .25, .5, .75, 1].forEach(p => { s += '<line x1="' + x0 + '" x2="' + x1 + '" y1="' + Y(p) + '" y2="' + Y(p) + '" stroke="var(--line)"/><text x="' + (x0 - 8) + '" y="' + (Y(p) + 4) + '" text-anchor="end" class="mut">' + Math.round(p * 100) + '%</text>'; });
+  [4, 8, 10, 12, 16, 20].forEach(k => { s += '<text x="' + X(k) + '" y="' + (y1 + 18) + '" text-anchor="middle" class="mut">' + k + '</text>'; });
+  s += '<text x="' + ((x0 + x1) / 2) + '" y="' + (H - 4) + '" text-anchor="middle" class="mut">' + L('скільки куль уже назвали', 'balls called so far') + '</text>';
+  s += '<line x1="' + X(10) + '" x2="' + X(10) + '" y1="' + y0 + '" y2="' + y1 + '" stroke="var(--muted)" stroke-dasharray="3 4"/>';
+  const path = arr => RACE.k.map((k, i) => (i ? 'L' : 'M') + X(k).toFixed(1) + ' ' + Y(arr[i]).toFixed(1)).join(' ');
+  s += '<path d="' + path(RACE.row) + '" fill="none" stroke="' + SIG() + '" stroke-width="3"/>';
+  s += '<path d="' + path(RACE.col) + '" fill="none" stroke="var(--vert)" stroke-width="3"/>';
+  s += '<text x="' + (X(10) - 6) + '" y="' + (Y(RACE.row[6]) - 8) + '" text-anchor="end" style="fill:' + SIG() + '">' + L('рядок можливий', 'a row possible') + ' ' + pct(RACE.row[6], 0) + '</text>';
+  s += '<text x="' + (X(10) + 6) + '" y="' + (Y(RACE.col[6]) + 16) + '" style="fill:var(--vert)">' + L('стовпець можливий', 'a column possible') + ' ' + pct(RACE.col[6], 0) + '</text>';
+  $('#race-svg').innerHTML = s;
+}
+
+/* ---------- language ---------- */
+function applyLang() {
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang;
+  if (!STATIC) document.title = L('Парадокс бінго', 'The Bingo Paradox');
+  $('#lang').querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.l === lang));
+  $('#race-svg').setAttribute('aria-label', L('Перегони двох лічильників: коли можливий рядок і коли стовпець', 'A race of two counters: when a row and when a column becomes possible'));
+  heroDraw(); setupDraw(); guessText(); playDraw(); simDraw(); exDraw(); raceDraw();
+}
+$('#lang').addEventListener('click', e => {
+  const a = e.target.closest('a'); if (!a || STATIC) return;
+  e.preventDefault();
+  if (a.dataset.l === lang) return;
+  lang = a.dataset.l;
+  try { localStorage.setItem('mh-lang', lang); } catch (err) {}
+  applyLang();
+});
+document.addEventListener('langchange', () => { lang = document.documentElement.dataset.lang === 'en' ? 'en' : 'uk'; applyLang(); });
+const redraw = () => { heroDraw(); playDraw(); simDraw(); raceDraw(); };
+// the big simulation runs only once the answer is open (or all rounds are shown), never before a guess
+const simStart = () => { if (!sim.acc[0].g && !sim.busy) simRun(2000); };
+document.addEventListener('solved', () => { setTimeout(redraw, 0); setTimeout(simStart, 60); });
+document.addEventListener('rounds', () => { setTimeout(redraw, 0); if (document.documentElement.classList.contains('rounds-open')) setTimeout(simStart, 60); });
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', heroStart);
+
+/* ---------- opening state ---------- */
+playNew();
+applyLang();
+heroStart();
+if (solved() || document.documentElement.classList.contains('rounds-open')) setTimeout(simStart, 60);
+})();
+</script>
+
+<script type="application/json" id="mp-terms">{"mean": {"name": "Середнє", "short": "Сума всіх значень, поділена на їхню кількість: скільки дісталося б кожному, якби поділити порівну.", "hook": "Майже кожна людина має більше ніг, ніж у середньому: середнє трохи менше за дві.", "url": "https://mathparadoxes.com/uk/glossary/median-vs-mean/", "link": "Спробувати на симуляції"}, "independence": {"name": "Незалежність", "short": "Події незалежні, якщо знання про одну не змінює шансів іншої.", "hook": "Після п'яти орлів поспіль решка не стає ймовірнішою: монета нічого не пам'ятає.", "url": "https://mathparadoxes.com/uk/glossary/independence/", "link": "Спробувати на симуляції"}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("mp-terms").textContent), pop = null, cur = null;
+  function close() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute("aria-expanded", "false"); cur = null; } }
+  function open(btn) {
+    var t = data[btn.dataset.term]; close(); cur = btn; btn.setAttribute("aria-expanded", "true");
+    pop = document.createElement("div"); pop.className = "mp-term-pop"; pop.setAttribute("role", "dialog");
+    var h = document.createElement("b"); h.textContent = t.name;
+    var d = document.createElement("p"); d.textContent = t.short;
+    var k = document.createElement("p"); k.className = "mp-term-hook"; k.textContent = t.hook;
+    var a = document.createElement("a"); a.href = t.url; a.textContent = t.link + " →";
+    pop.append(h, d, k, a); document.body.appendChild(pop);
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = Math.max(12, Math.min(r.left + scrollX, scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (r.bottom + scrollY + 8) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-term");
+    if (btn) { e.preventDefault(); if (btn === cur) close(); else open(btn); return; }
+    if (pop && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+})();
+</script>
+<script>
+(function () {
+  function close(b) { b.setAttribute("aria-expanded", "false"); b.nextElementSibling.hidden = true; }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".mp-level-btn");
+    [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), function (b) { if (b !== btn) close(b); });
+    if (!btn) return;
+    if (btn.getAttribute("aria-expanded") === "true") return close(btn);
+    var hint = btn.nextElementSibling, box = (btn.closest(".problem") || document.documentElement).getBoundingClientRect();
+    btn.setAttribute("aria-expanded", "true"); hint.hidden = false;
+    btn.parentNode.classList.toggle("flip", btn.getBoundingClientRect().left + hint.offsetWidth > box.right - 12);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") [].forEach.call(document.querySelectorAll('.mp-level-btn[aria-expanded="true"]'), close);
+  });
+})();
+</script>
+<script>
+    !function (t, e, c, n) {
+        var s = e.createElement(c);
+        s.async = 1, s.src = 'https://scripts.claspo.io/scripts/' + n + '.js';
+        s.onerror = function () { t.claspoBlocked = true; t.dispatchEvent(new Event('claspo-blocked')); };
+        var r = e.scripts[0];
+        r.parentNode.insertBefore(s, r);
+        var f = function () {
+            f.c(arguments);
+        };
+        f.q = [];
+        f.c = function () {
+            f.q.push(arguments);
+        };
+        t['claspo'] = t['claspo'] || f;
+    }(window, document, 'script', '3C669B8434174669B9FC04D110EE78ED');
+</script><script>claspo('addVariables', { page_lang: 'uk' }); claspo('init');</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Розділи"><a href="https://mathparadoxes.com/uk/#all" aria-current="page">Задачі</a><a href="https://mathparadoxes.com/uk/courses/">Курси</a><a href="https://mathparadoxes.com/uk/glossary/">Словник</a><span class="mp-social"><a href="https://www.youtube.com/@mathparadoxes" rel="me noopener">YouTube</a><a href="https://t.me/mathparadoxes" rel="me noopener">Telegram</a></span></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t), old = false;
+  // items saved before 2026-11 carry the old URLs (Ukrainian at /x/, English at /x/en/): move them to /uk/x/ and /x/
+  list.forEach(function (p) {
+    if (p.u && p.u.uk && !/^https?:\/\/[^\/]+\/uk\//.test(p.u.uk)) {
+      p.u = { uk: p.u.uk.replace(/^(https?:\/\/[^\/]+\/)/, "$1uk/"), en: String(p.u.en).replace(/en\/$/, "") };
+      old = true;
+    }
+  });
+  if (old && !me) try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+<script>
+(function () {
+  var btn = document.querySelector(".mp-sx-btn");
+  if (!btn) return;
+  var T = JSON.parse(btn.dataset.t), lang = document.documentElement.dataset.lang === "en" ? "en" : "uk";
+  var data = null, loading = null, box = null, input, list, tabs, foot, tab = "", act = 0, opts = [], back = null;
+  var W = { n: 3, on: 2.5, k: 2, d: 1, x: 0.8, o: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
+  // small words that may match nothing without dropping the result ("задача про монети")
+  var STOP = ["и", "та", "в", "у", "на", "з", "из", "до", "для", "про", "як", "що", "the", "a", "an", "of", "in", "on", "and", "to", "for", "how", "what"];
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  btn.querySelector("kbd").textContent = mac ? "⌘K" : "Ctrl K";
+
+  function norm(s) {
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’'ʼ`ъ]/g, "")
+      .replace(/[іыий]/g, "и").replace(/[єэё]/g, "е").replace(/ґ/g, "г");
+  }
+  function words(s) { return norm(s).split(/[^0-9a-zа-я]+/).filter(Boolean); }
+  // one edit apart: a letter swapped, missing, extra or two letters transposed
+  function near(a, b) {
+    var la = a.length, lb = b.length, i = 0;
+    if (Math.abs(la - lb) > 1) return false;
+    while (i < la && i < lb && a[i] === b[i]) i++;
+    if (la === lb) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+    return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+  }
+  // how well a query word q fits a word w of the text: whole word, its start, the same stem (Ukrainian endings), a typo
+  function hit(q, w) {
+    if (w === q) return 1;
+    if (w.lastIndexOf(q, 0) === 0) return 0.85;
+    if (q.length >= 4) {
+      if (q.length >= 5 && w.lastIndexOf(q.slice(0, Math.max(4, q.length - 2)), 0) === 0) return 0.6;
+      for (var d = -1; d <= 1; d++) if (near(q, w.slice(0, q.length + d))) return 0.45;
+    }
+    return q.length >= 3 && w.indexOf(q) > 0 ? 0.35 : 0;
+  }
+  // the score of an item, and in it.low the weakest word match (a typo or a piece of a word is weak)
+  function score(it, qs, phrase) {
+    var total = 0;
+    it.low = 1;
+    for (var i = 0; i < qs.length; i++) {
+      var best = 0, bestF;
+      for (var f in W) {
+        var ws = it.w[f];
+        for (var j = 0; j < ws.length; j++) { var h = hit(qs[i], ws[j]) * W[f]; if (h > best) { best = h; bestF = f; } }
+      }
+      if (!best && STOP.indexOf(qs[i]) === -1) return 0;
+      if (best) it.low = Math.min(it.low, best / W[bestF]);
+      total += best;
+    }
+    var name = it.w.nn, alt = it.w.no;
+    if (name.lastIndexOf(phrase, 0) === 0 || alt.lastIndexOf(phrase, 0) === 0) total += 2;
+    else if (name.indexOf(phrase) !== -1 || alt.indexOf(phrase) !== -1) total += 1;
+    return total + (it.t === "p" ? 0.2 : it.t === "h" ? -0.2 : 0);
+  }
+  function load() {
+    if (!loading) loading = fetch(btn.dataset.src).then(function (r) { return r.json(); }).then(function (j) {
+      data = j.items;
+      // a chapter's line under the name is only its course and number, so "парадокси" does not find all 21 chapters
+      data.forEach(function (it) {
+        it.w = { n: words(it.n), on: words(it.on || ""), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), o: words(it.o || ""),
+                 nn: words(it.n).join(" "), no: words(it.on || "").join(" ") };
+      });
+    });
+    return loading;
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done(it) {
+    if (it.t === "p") return !!get("mp-solved:" + it.s);
+    if (it.t !== "c") return false;
+    var d = []; try { d = JSON.parse(get("mp-course:" + it.s) || "[]"); } catch (e) {}
+    return d.length > 0;
+  }
+  function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+  // the text with the words that match the query in <mark>
+  function marked(text, qs) {
+    var out = document.createDocumentFragment(), parts = String(text).split(/([0-9A-Za-zА-Яа-яЄєІіЇїҐґЁё’'ʼ]+)/);
+    parts.forEach(function (p, i) {
+      if (!p) return;
+      var w = i % 2 && words(p), on = w && qs.length && w.some(function (x) { return qs.some(function (q) { return hit(q, x) >= 0.45; }); });
+      out.appendChild(on ? el("mark", null, p) : document.createTextNode(p));
+    });
+    return out;
+  }
+  function icon(it) {
+    var s = el("span", "mp-sx-ic mp-sx-" + it.t);
+    s.style.setProperty("--tint", it.tint || "var(--soft)");  // not the page's own --tint
+    if (it.t === "p") { var b = s.appendChild(el("span", "mp-bars")); for (var i = 1; i <= 3; i++) b.appendChild(el("i", i <= it.lv ? "on" : "")); }
+    else s.textContent = it.t === "g" ? "Aa" : it.t === "c" ? "≡" : "§";
+    return s;
+  }
+  function row(it, qs) {
+    var a = el("a", "mp-sx-it"); a.href = it.u; a.setAttribute("role", "option"); a.id = "mp-sx-o" + opts.length;
+    var tx = el("span", "mp-sx-tx"), n = el("b"), d = el("span");
+    n.appendChild(marked(it.n, qs)); d.appendChild(marked(it.d || "", qs)); tx.append(n, d);
+    a.append(icon(it), tx);
+    if (done(it)) { var ok = el("span", "mp-sx-ok", "✓"); ok.title = T.solved; a.appendChild(ok); }
+    opts.push(a);
+    return a;
+  }
+  function head(text) { return el("li", "mp-sx-h", text); }
+  function wrap(a) { var li = el("li"); li.setAttribute("role", "presentation"); li.appendChild(a); return li; }
+  function render() {
+    var q = input.value.trim(), qs = words(q), phrase = qs.join(" ");
+    list.textContent = ""; opts = []; act = 0;
+    tabs.hidden = !qs.length;
+    if (!qs.length) {
+      var recent = []; try { recent = JSON.parse(get("mp-recent") || "[]"); } catch (e) {}
+      recent = recent.slice(0, 5).map(function (r) {
+        var it = data && data.filter(function (x) { return (x.t === "p" && x.s === r.s) || (x.t === "c" && "course:" + x.s === r.s); })[0];
+        return it || { t: r.c ? "c" : "p", s: r.s, n: r.n[lang], u: r.u[lang] };
+      });
+      if (recent.length) { list.appendChild(head(T.recent)); recent.forEach(function (it) { list.appendChild(wrap(row(it, []))); }); }
+      var li = el("li", "mp-sx-try"); li.appendChild(el("span", null, T.try + ": "));
+      T.ideas.forEach(function (w, i) {
+        var b = el("button", null, w); b.type = "button";
+        b.addEventListener("click", function () { input.value = w; render(); input.focus(); });
+        if (i) li.appendChild(document.createTextNode(" · "));
+        li.appendChild(b);
+      });
+      list.appendChild(li);
+      return mark();
+    }
+    if (!data) { list.appendChild(el("li", "mp-sx-msg", T.load)); return; }
+    var found = data.map(function (it) { return { it: it, s: score(it, qs, phrase) }; }).filter(function (r) { return r.s > 0; });
+    // typos and pieces of words count only when nothing matches by whole words, their starts or stems
+    if (found.some(function (r) { return r.it.low >= 0.6; })) found = found.filter(function (r) { return r.it.low >= 0.6; });
+    found.sort(function (a, b) { return b.s - a.s; });
+    var count = { "": found.length, p: 0, c: 0, g: 0 };
+    found.forEach(function (r) { count[GROUP[r.it.t]]++; });
+    [].forEach.call(tabs.children, function (b) {
+      b.lastChild.textContent = count[b.dataset.k] ? " " + count[b.dataset.k] : "";
+      b.setAttribute("aria-pressed", b.dataset.k === tab);
+      b.disabled = !count[b.dataset.k] && b.dataset.k !== tab;
+    });
+    if (tab) found = found.filter(function (r) { return GROUP[r.it.t] === tab; });
+    if (!found.length) {
+      var m = el("li", "mp-sx-msg", T.none + " "), a = el("a", null, T.every);
+      a.href = document.querySelector(".mp-nav-list a:not(.mp-cont)").href; m.appendChild(a); list.appendChild(m);
+      return mark();
+    }
+    // groups in the order of their best match; with no tab chosen each shows its first 6
+    var order = [], by = {};
+    found.forEach(function (r) { var g = GROUP[r.it.t]; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(r.it); });
+    order.forEach(function (g) {
+      if (!tab) list.appendChild(head(T[g]));
+      var items = tab ? by[g] : by[g].slice(0, 6);
+      items.forEach(function (it) { list.appendChild(wrap(row(it, qs))); });
+      if (!tab && by[g].length > 6) {
+        var more = el("button", "mp-sx-more", "+" + (by[g].length - 6) + " →"); more.type = "button";
+        more.addEventListener("click", function () { tab = g; render(); input.focus(); });
+        var li = el("li"); li.appendChild(more); list.appendChild(li);
+      }
+    });
+    mark();
+  }
+  function mark() {
+    opts.forEach(function (o, i) { o.setAttribute("aria-selected", i === act); });
+    if (opts[act]) { input.setAttribute("aria-activedescendant", opts[act].id); opts[act].scrollIntoView({ block: "nearest" }); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function build() {
+    box = el("div", "mp-sx"); box.hidden = true;
+    box.innerHTML = '<div class="mp-sx-box" role="dialog" aria-modal="true"><div class="mp-sx-head">' + btn.querySelector("svg").outerHTML +
+      '<input type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="mp-sx-list" aria-autocomplete="list">' +
+      '<button type="button" class="mp-sx-x"></button></div><div class="mp-sx-tabs"></div><ul class="mp-sx-list" id="mp-sx-list" role="listbox"></ul>' +
+      '<div class="mp-sx-foot"></div></div>';
+    document.body.appendChild(box);
+    input = box.querySelector("input"); list = box.querySelector("ul"); tabs = box.querySelector(".mp-sx-tabs"); foot = box.querySelector(".mp-sx-foot");
+    box.firstChild.setAttribute("aria-label", T.btn); input.placeholder = T.ph; input.setAttribute("aria-label", T.btn);
+    var x = box.querySelector(".mp-sx-x"); x.textContent = "Esc"; x.setAttribute("aria-label", T.close);
+    foot.textContent = T.keys;
+    [["", T.all], ["p", T.p], ["c", T.c], ["g", T.g]].forEach(function (k) {
+      var b = el("button", null, k[1]); b.type = "button"; b.dataset.k = k[0]; b.appendChild(el("span"));
+      b.addEventListener("click", function () { tab = k[0]; render(); input.focus(); });
+      tabs.appendChild(b);
+    });
+    input.addEventListener("input", function () { tab = ""; render(); });
+    box.addEventListener("click", function (e) { if (e.target === box || e.target === x) close(); });
+    box.addEventListener("mousemove", function (e) {
+      var o = e.target.closest(".mp-sx-it"), i = opts.indexOf(o);
+      if (i !== -1 && i !== act) { act = i; mark(); }
+    });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (opts.length) { act = (act + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length; mark(); }
+      } else if (e.key === "Enter" && opts[act]) { e.preventDefault(); opts[act].click(); }
+    });
+  }
+  function open(q) {
+    if (!box) build();
+    if (!box.hidden) return input.focus();
+    back = document.activeElement; box.hidden = false; document.documentElement.classList.add("mp-sx-on");
+    if (q != null) input.value = q;
+    input.focus(); input.select(); render();
+    load().then(render, function () { list.textContent = ""; list.appendChild(el("li", "mp-sx-msg", T.fail)); loading = null; });
+  }
+  function close() {
+    if (!box || box.hidden) return;
+    box.hidden = true; document.documentElement.classList.remove("mp-sx-on");
+    if (back && back.focus) back.focus();
+  }
+  btn.addEventListener("click", function () { open(); });
+  btn.addEventListener("pointerenter", load, { once: true });
+  btn.addEventListener("focus", load, { once: true });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target, typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box && !box.hidden ? close() : open(); }
+    else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); open(); }
+    else if (e.key === "Escape" && box && !box.hidden) { e.preventDefault(); close(); }
+    else if (e.key === "Tab" && box && !box.hidden) {
+      // keep the focus inside the palette
+      var f = [].slice.call(box.querySelectorAll("input, button:not([disabled]), a[href]"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+    }
+  });
+  var q = new URLSearchParams(location.search).get("q");
+  if (q) open(q);
+})();
+</script>
+</body>
+</html>
