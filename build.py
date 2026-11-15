@@ -53,11 +53,14 @@ SITE_NAME = {"uk": "Математичні парадокси", "en": "Math para
 # logo mark (three doors, the third one taken); the source files live in brand/
 BRAND_MARK = '<svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>'
 AUTHOR_NAME = {"uk": "Дмитро Кудренко", "en": "Dmytro Kudrenko"}
-# the site's own channels for the puzzle videos, per language (the YouTube channel has a Ukrainian translation);
+# the site's own channels for the puzzle videos, per language (the YouTube channel has a Ukrainian translation; there are
+# no Ukrainian TikTok or Instagram accounts yet, so the Ukrainian pages link the English ones);
 # shown at the end of the footer menu of every page and as sameAs of the WebSite in the home page's JSON-LD
 SOCIAL = {
-    "en": [("YouTube", "https://www.youtube.com/@mathparadoxes"), ("TikTok", "https://www.tiktok.com/@mathparadoxes")],
-    "uk": [("YouTube", "https://www.youtube.com/@mathparadoxes"), ("Telegram", "https://t.me/mathparadoxes")],
+    "en": [("YouTube", "https://www.youtube.com/@mathparadoxes"), ("TikTok", "https://www.tiktok.com/@mathparadoxes"),
+           ("Instagram", "https://www.instagram.com/math.paradoxes/")],
+    "uk": [("YouTube", "https://www.youtube.com/@mathparadoxes"), ("TikTok", "https://www.tiktok.com/@mathparadoxes"),
+           ("Instagram", "https://www.instagram.com/math.paradoxes/"), ("Telegram", "https://t.me/mathparadoxes")],
 }
 AUTHOR_ORGS = [("Stripo", "https://stripo.email/"), ("Claspo", "https://claspo.io/"), ("Yespo", "https://yespo.io/"),
                ("Reteno", "https://reteno.com/"), ("eSputnik", "https://esputnik.com/")]
