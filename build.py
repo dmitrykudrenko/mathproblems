@@ -56,7 +56,8 @@ AUTHOR_NAME = {"uk": "Дмитро Кудренко", "en": "Dmytro Kudrenko"}
 # the site's own channels for the puzzle videos, per language (the YouTube channel has a Ukrainian translation);
 # shown at the end of the footer menu of every page and as sameAs of the WebSite in the home page's JSON-LD
 SOCIAL = {
-    "en": [("YouTube", "https://www.youtube.com/@mathparadoxes"), ("TikTok", "https://www.tiktok.com/@mathparadoxes")],
+    "en": [("YouTube", "https://www.youtube.com/@mathparadoxes"), ("TikTok", "https://www.tiktok.com/@mathparadoxes"),
+           ("Instagram", "https://www.instagram.com/math.paradoxes/")],
     "uk": [("YouTube", "https://www.youtube.com/@mathparadoxes"), ("Telegram", "https://t.me/mathparadoxes")],
 }
 AUTHOR_ORGS = [("Stripo", "https://stripo.email/"), ("Claspo", "https://claspo.io/"), ("Yespo", "https://yespo.io/"),
