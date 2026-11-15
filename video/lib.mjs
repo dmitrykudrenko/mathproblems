@@ -107,7 +107,9 @@ export function optionsGrid(ctx, C, options, at, t, a, { y0 = 780, h = 260 } = {
   options.forEach((v, i) => {
     const p = prog(t, at[i], .5);
     if (p <= 0) return;
-    optionBox(ctx, C, 'ABCD'[i], v, x0 + (i % 2) * (w + gap), y0 + Math.floor(i / 2) * (h + gap), w, h, .4 + .6 * back(p), a * clamp(p * 3));
+    const alone = i === options.length - 1 && i % 2 === 0;          // an odd last card sits centred
+    const x = alone ? (W - w) / 2 : x0 + (i % 2) * (w + gap);
+    optionBox(ctx, C, 'ABCD'[i], v, x, y0 + Math.floor(i / 2) * (h + gap), w, h, .4 + .6 * back(p), a * clamp(p * 3));
   });
 }
 

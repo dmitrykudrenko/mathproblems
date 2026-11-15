@@ -33,8 +33,8 @@ const T = {
     hint: 'Чи однакових пацієнтів отримали обидва методи?',
     easy: 'легкі випадки', hard: 'важкі випадки',
     hintSub: 'Порівнюйте схожих пацієнтів між собою.',
-    options: ['Відкрита операція', 'Через прокол'],
-    endOptions: ['78%', '83%'],
+    options: ['Відкрита операція', 'Через прокол', 'Цих даних замало'],
+    endOptions: ['78%', '83%', 'Даних замало'],
     comment: 'Ваша відповідь — у коментарях',
     play: 'Розбивка, симуляція і пояснення:',
     url: 'mathparadoxes.com/uk/simpson-paradox',
@@ -51,8 +51,8 @@ const T = {
     hint: 'Did both treatments get the same kind of patients?',
     easy: 'easy cases', hard: 'hard cases',
     hintSub: 'Compare similar patients with each other.',
-    options: ['Open surgery', 'Through a puncture'],
-    endOptions: ['78%', '83%'],
+    options: ['Open surgery', 'Through a puncture', 'Not enough data'],
+    endOptions: ['78%', '83%', 'Not enough data'],
     comment: 'Drop your answer in the comments',
     play: 'The split, a simulation, the why:',
     url: 'mathparadoxes.com/simpson-paradox',
@@ -64,20 +64,20 @@ export const VOICE = {
   uk: [
     'Уявіть: вам обирати метод лікування каменів у нирках.',
     'Метод А успішний у сімдесяти восьми відсотках випадків, метод Бе — у вісімдесяти трьох. Який метод ви оберете для себе?',
-    'Відкрита операція, метод А? Чи операція через прокол, метод Бе?',
+    'Відкрита операція, метод А? Операція через прокол, метод Бе? Чи цих даних замало, щоб обрати?',
     'Зупиніть відео і оберіть.',
     'Підказка: спитайте себе, чи однакових пацієнтів отримали обидва методи.',
     'Одні випадки важчі за інші для будь-якого методу. Тож порівнюйте схожих пацієнтів між собою.',
-    'То який метод оберете ви? Напишіть у коментарях, а перевірити себе можна на сайті — посилання на екрані.',
+    'То що оберете ви? Напишіть у коментарях, а перевірити себе можна на сайті — посилання на екрані.',
   ],
   en: [
     'Picture this: you have to pick a treatment for kidney stones. Three hundred fifty patients got each one.',
     'Treatment A succeeds with kidney stones in seventy-eight percent of cases, treatment B in eighty-three. Which would you choose for yourself?',
-    'Open surgery, treatment A? Or surgery through a small puncture, treatment B?',
+    'Open surgery, treatment A? Surgery through a small puncture, treatment B? Or is this not enough to decide?',
     'Pause the video and make your pick.',
     "Here's a hint: before trusting those percentages, ask yourself whether both treatments got the same kind of patients.",
     'Some cases are harder for any treatment. So compare similar patients with each other.',
-    'So which one would you choose? Drop your answer in the comments, and check it on the site. The link is on screen.',
+    "So what's your pick? Drop your answer in the comments, and check it on the site. The link is on screen.",
   ],
 };
 
@@ -98,7 +98,7 @@ export function setTimeline(d) {
   S.fillDur = Math.max(2.5, d[1] * 0.55);
   S.options = S.voice[1] + d[1] + 0.4;
   S.voice[2] = S.options + 0.2;
-  S.optAt = [S.voice[2] + 0.1, S.voice[2] + d[2] * 0.5];           // each card as its treatment is said
+  S.optAt = [0, 1, 2].map(i => S.voice[2] + 0.1 + i * d[2] * 0.36);   // each card as it is said
   S.pause = S.voice[2] + d[2] + 0.3;
   S.voice[3] = S.pause;
   S.count = S.pause + d[3] + 0.2;
