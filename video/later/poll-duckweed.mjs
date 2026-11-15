@@ -1,6 +1,6 @@
 // «What visitors chose»: first answers to round 1 of problems/duckweed-lake (a 1–30 day slider), grouped by the
 // page's zones, from the stats worker on 2026-11-15: 5 | 15×3 | – | 29×2.
-import { makeShort } from './beats.mjs';
+import { makeShort } from '../beats.mjs';
 
 export default makeShort({
   format: 'poll',

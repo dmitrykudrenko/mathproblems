@@ -1,6 +1,6 @@
 // «What visitors chose»: first answers to round 1 of problems/hundred-prisoners (a 0–100% slider), grouped into the
 // short's four options, from the stats worker on 2026-11-15: 0.05 | 7.6 | 25, 30×2 | 50.1 | 77.5×3, 100×3.
-import { makeShort } from './beats.mjs';
+import { makeShort } from '../beats.mjs';
 
 export default makeShort({
   format: 'poll',

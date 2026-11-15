@@ -53,6 +53,43 @@ Next: coin-streaks, german-tank-problem, inspection-paradox, braess-paradox, sle
 
 Covers (`cover.mjs`) are on TikTok. YouTube takes custom covers only after the channel is verified by phone (the same step makes description links clickable): upload them then.
 
+## Formats around the puzzles
+
+Besides the puzzle shorts (question → options → pause → hint), six more formats, built with `beats.mjs` (a short is a list of spoken lines with what the screen shows) and `visuals.mjs` (animated pictures: dots, a map, a doubling tower, icons, a stack, a histogram). Each format has its own colour and kicker.
+
+| Format | Kicker | What it does | Ends with |
+|---|---|---|---|
+| wrong | MOST PEOPLE GET THIS WRONG | a sourced figure of how many get it wrong, then the question | the guess in the comments |
+| word | ONE WORD, 40 SECONDS | a glossary hook, why, where it hits you; gives the full payoff | a question for the comments |
+| story | A TRUE STORY | a real story with its numbers | «how did they do it?» → the page |
+| try | TRY IT YOURSELF | a real-world experiment | «post your result» |
+| cost | A COSTLY MISTAKE | a case where the wrong number cost money or harm | «what did yours cost?» |
+| poll | WHAT VISITORS CHOSE | real first votes from the site, none marked right | waits for 100+ answers per problem (`later/`) |
+
+Rules: facts only from the site with its source on screen; never a site puzzle's answer; simulations say they are simulations; the first line is the most surprising fact (no dates first); end with the comments and «link in the profile», since links in Shorts are not clickable; 25–45 s.
+
+## Queue: formats (English), one a day at 17:00 Lisbon
+
+| Date | Short | Title / caption hook |
+|---|---|---|
+| 11-18 | story-german-tanks | Spies said 1,400 tanks a month. Statisticians said 246. Who was right? |
+| 11-19 | word-mean | Almost everyone has more legs than average |
+| 11-20 | cost-pill-scare | One missing number led to thousands of abortions |
+| 11-21 | wrong-vos-savant | 10,000 letters told her she was wrong. Who was right? |
+| 11-22 | word-logarithm | Fold paper 42 times and reach the Moon |
+| 11-23 | wrong-mammography | 4 in 5 doctors got this wrong. Can you? |
+| 11-24 | story-literary-digest | The biggest poll in history picked the wrong president |
+| 11-25 | wrong-bat-ball | You have 10 seconds: how much is the ball? |
+| 11-26 | word-combinatorics | Your shuffled deck has never existed before |
+| 11-27 | story-london-bombs | Were the bombs on London aimed? |
+| 11-28 | try-birthday-chat | Check your group chat for a shared birthday |
+| 11-29 | try-xkcd-tanks | Count xkcd comics like a WWII statistician |
+| 11-30 | try-monty-cups | Test Monty Hall with three cups tonight |
+| 12-01 | cost-ab-power | Your A/B test said +24%. The truth: +10% (also for LinkedIn) |
+| 12-02 | cost-holdout | 20 winning tests, +49% in the report, +7% in reality (also for LinkedIn) |
+
+Two shorts about one problem stay at least a week apart (birthday 11-15 / 11-28, Monty Hall 11-15 / 11-21 / 11-30, tanks 11-18 / 11-29).
+
 ## Captions (English)
 
 No answer anywhere: the title and description ask, the site answers. No emoji. The page link goes in the YouTube description (not clickable in Shorts, still read) and in the TikTok caption as text.

@@ -1,6 +1,6 @@
 // «What visitors chose»: real first answers to round 1 of problems/simpson-paradox, from the stats worker on
 // 2026-11-15 (keys 0, 1, 2 = the three buttons). No option is marked right.
-import { makeShort } from './beats.mjs';
+import { makeShort } from '../beats.mjs';
 
 export default makeShort({
   format: 'poll',

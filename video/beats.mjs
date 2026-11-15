@@ -17,6 +17,7 @@ import {
   background, kicker, optionsGrid, countdown, optionCues, countdownCues,
 } from './lib.mjs';
 import { T0 } from './intro.mjs';
+import { VISUALS } from './visuals.mjs';
 
 const BASE = { paper: '#EDEFF5', surface: '#FFFFFF', ink: '#141A30', muted: '#586079', line: '#D3D8E5' };
 export const FORMATS = {
@@ -53,9 +54,13 @@ export function makeShort(spec) {
   setTimeline(beats.map(b => Math.max(2, b.say.split(' ').length / 2.6)));
 
   // ---- the beat kinds
+  // returns the y below the title block, where a visual can start
   function title(ctx, s, t0, t, a) {
-    const n = text(ctx, s.title, 80, ROW.title, { font: `800 ${s.size || 76}px ${F.display}`, maxW: 920, lh: (s.size || 76) * 1.22, alpha: a, dy: 24 * (1 - easeOut(prog(t, t0, .6))) });
-    if (s.sub) text(ctx, s.sub, 80, ROW.title + n * (s.size || 76) * 1.22 + 40, { font: `500 46px ${F.body}`, maxW: 900, lh: 62, color: C.muted, alpha: a * easeOut(prog(t, t0 + .5, .5)) });
+    const size = s.size || (s.visual ? 64 : 76), lh = size * 1.22;
+    const n = text(ctx, s.title, 80, ROW.title, { font: `800 ${size}px ${F.display}`, maxW: 920, lh, alpha: a, dy: 24 * (1 - easeOut(prog(t, t0, .6))) });
+    let y = ROW.title + (n - 1) * lh;
+    if (s.sub) y += 30 + 62 * text(ctx, s.sub, 80, y + 70, { font: `500 46px ${F.body}`, maxW: 900, lh: 62, color: C.muted, alpha: a * easeOut(prog(t, t0 + .5, .5)) });
+    return y + 60;
   }
 
   function source(ctx, s, a) {
@@ -176,7 +181,8 @@ export function makeShort(spec) {
       const s = b.show, dur = t1 - t0;
       kicker(ctx, C, b.kicker || fmt.kicker, a);
       // a title sits on top; any one visual below it
-      if (s.title) title(ctx, s, t0, t, a);
+      const below = s.title ? title(ctx, s, t0, t, a) : 560;
+      if (s.visual) VISUALS[s.visual.kind](ctx, s.visual, t0, t, a, dur, C, Math.max(below + 30, 640));
       if (s.stat) stat(ctx, s, t0, t, a);
       else if (s.compare) compare(ctx, s, t0, t, a, dur);
       else if (s.question) question(ctx, s, t0, t, a, i);
@@ -196,6 +202,8 @@ export function makeShort(spec) {
       if (s.options) c.push(...optionCues(s.options.map((_, k) => S.voice[i] + .6 + k * .35)));
       if (s.countdown) c.push(...countdownCues(S.count[i], S.count[i] + 4));
       if (s.bars) s.bars.forEach((_, k) => c.push([t0 + .4 + k * Math.min(.7, (dur - 1.5) / s.bars.length), 'pluck', k]));
+      if (s.visual?.kind === 'icons') s.visual.items.forEach((it, k) => c.push([t0 + .2 + (it.at ?? k * Math.min(.45, (dur * .6) / s.visual.items.length)), 'pop', k % 8]));
+      if (s.visual?.kind === 'dots') (s.visual.marks || []).forEach(m => c.push([t0 + m.at * dur, 'chime']));
       if (s.steps) s.steps.forEach((_, k) => c.push([t0 + .3 + k * Math.max(.7, (dur - 1) / s.steps.length), 'tick', k]));
     });
     return c;
@@ -204,7 +212,8 @@ export function makeShort(spec) {
   const cover = spec.cover && {
     crop: spec.cover.crop || [560, 1560],
     en: { hook: spec.cover.hook },
-    get t() { return T0 + (S.start[spec.cover.beat] + S.end[spec.cover.beat]) / 2; },
+    // `at`: how far into the beat the frame is taken (default the middle; later for pictures that build up)
+    get t() { const b = spec.cover.beat, f = spec.cover.at ?? .5; return T0 + S.start[b] + (S.end[b] - S.start[b]) * f; },
   };
 
   return {
