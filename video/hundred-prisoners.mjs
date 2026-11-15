@@ -103,6 +103,13 @@ export const INTRO = {
   en: { title: 'The 100 prisoners problem' },
 };
 
+// the channel-grid cover (cover.mjs): a frame of the short and a hook that asks, never answers
+export const COVER = {
+  t: 12, crop: [820, 1540],
+  uk: { hook: '100 скриньок. *50* спроб. Шанси?' },
+  en: { hook: '100 boxes. *50* tries. The odds?' },
+};
+
 const N = 100, OPEN = 50, ME = 7;
 
 // Slips inside the boxes: a fixed random permutation; prisoner #7 opens 50 boxes at random

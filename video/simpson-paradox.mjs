@@ -87,6 +87,13 @@ export const INTRO = {
   en: { title: "Simpson's paradox" },
 };
 
+// the channel-grid cover (cover.mjs): a frame of the short and a hook that asks, never answers
+export const COVER = {
+  t: 12, crop: [780, 1460],
+  uk: { hook: '*78%* чи *83%*?' },
+  en: { hook: '*78%* or *83%*?' },
+};
+
 // Timeline (seconds), built around the spoken lines: d[i] is the length of VOICE line i.
 let S;
 export function setTimeline(d) {
