@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-basics": "#EEF2E0", "course-auctions": "#EFE9D2", "course-game-theory": "#E6E2F0", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "course-feature-impact": "#EFEDE6", "course-feature-impact--trust": "#EFEDE6", "lake-escape": "#D7ECEF", "winners-curse": "#F2E4D9", "small-numbers": "#E4E6EE", "multi-armed-bandit": "#F8E3EC", "will-rogers": "#E6F1EA", "persuadables": "#F4EEDC", "truel": "#F0DCD4", "guess-two-thirds": "#E7DDF0", "dollar-auction": "#DDEADF", "hotelling-beach": "#F6EAD3", "fly-between-trains": "#E6F3F7", "hilbert-hotel": "#DFE4F2", "parrondo-paradox": "#E9DCEC", "axelrod-tournament": "#D6E6F7", "travelers-dilemma": "#E8D9CF", "prosecutors-fallacy": "#F3E8E4", "ant-rubber-rope": "#F5E9DF", "hat-check": "#EDE4D8", "broken-stick": "#F1E9DC", "elevator-paradox": "#F4E9E4", "revenue-equivalence": "#DCE9F0", "keep-waiting": "#EAE8F7", "newcomb-paradox": "#E3ECF7", "zeno-paradox": "#F2EEDB", "missing-square": "#EDF4E4", "ergodicity": "#EEF3D6", "unexpected-hanging": "#DEEFEA", "coin-rotation": "#F7EFD6", "condorcet-paradox": "#F0E6E9", "alabama-paradox": "#E4E9F7", "intransitive-dice": "#E3EEF3", "potato-paradox": "#EEE6D3", "coastline-paradox": "#DAF0EC", "raven-paradox": "#E9E9F0", "bingo-paradox": "#F7E7DC", "pythagorean-comma": "#EFDDE0", "wild-card-poker": "#E4EFE0", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-basics": "#EEF2E0", "course-auctions": "#EFE9D2", "course-game-theory": "#E6E2F0", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "course-feature-impact": "#EFEDE6", "course-feature-impact--trust": "#EFEDE6", "lake-escape": "#D7ECEF", "winners-curse": "#F2E4D9", "small-numbers": "#E4E6EE", "multi-armed-bandit": "#F8E3EC", "will-rogers": "#E6F1EA", "persuadables": "#F4EEDC", "truel": "#F0DCD4", "guess-two-thirds": "#E7DDF0", "dollar-auction": "#DDEADF", "hotelling-beach": "#F6EAD3", "fly-between-trains": "#E6F3F7", "hilbert-hotel": "#DFE4F2", "parrondo-paradox": "#E9DCEC", "axelrod-tournament": "#D6E6F7", "travelers-dilemma": "#E8D9CF", "prosecutors-fallacy": "#F3E8E4", "ant-rubber-rope": "#F5E9DF", "hat-check": "#EDE4D8", "broken-stick": "#F1E9DC", "elevator-paradox": "#F4E9E4", "revenue-equivalence": "#DCE9F0", "keep-waiting": "#EAE8F7", "newcomb-paradox": "#E3ECF7", "zeno-paradox": "#F2EEDB", "missing-square": "#EDF4E4", "ergodicity": "#EEF3D6", "unexpected-hanging": "#DEEFEA", "coin-rotation": "#F7EFD6", "condorcet-paradox": "#F0E6E9", "alabama-paradox": "#E4E9F7", "intransitive-dice": "#E3EEF3", "potato-paradox": "#EEE6D3", "coastline-paradox": "#DAF0EC", "raven-paradox": "#E9E9F0", "bingo-paradox": "#F7E7DC", "pythagorean-comma": "#EFDDE0", "wild-card-poker": "#E4EFE0", "compound-interest": "#EEDFC0", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
 
 TEXT = {
@@ -358,6 +358,10 @@ TEXT = {
     "wild-card-poker": {
         "uk": (["ПОКЕР", "ІЗ ДЖОКЕРОМ"], "Трійка чи дві пари: що частіше?"),
         "en": (["WILD-CARD", "POKER"], "Three of a kind or two pair?"),
+    },
+    "compound-interest": {
+        "uk": (["ВІДСОТКИ", "ЩОСЕКУНДИ"], "100 % на рік щосекунди. Скільки?"),
+        "en": (["INTEREST", "EVERY SECOND"], "100% a year, every second. How much?"),
     },
     "hub": {
         "uk": (["МАТЕМАТИЧНІ", "ПАРАДОКСИ"], "Задачі, у яких інтуїція помиляється"),
@@ -1414,6 +1418,22 @@ def extra_visual(kind, x, y, lang="en"):
         out.append(f'<text x="{x + 200}" y="{y + 206}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="16" fill="#DDEFE4">{"чи" if lang == "uk" else "or"}</text>')
         out.append(f'<text x="{x + 200}" y="{y + 236}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="24" fill="#fff">{labels[1]}</text>')
         out.append(f'<text x="{x + 200}" y="{y + 292}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="44" fill="{SIGNAL}">?</text>')
+    elif kind == "compound-interest":
+        # a year of a 1,000 deposit at 100%: one yearly step, then the twice-a-year and monthly staircases; every second is "?" above them
+        out.append(f'<rect x="{x + 10}" y="{y + 10}" width="380" height="300" rx="18" fill="#fff"/>')
+        X = lambda f: x + 40 + f * 320
+        Y = lambda v: y + 290 - (v - 1000) / 1700 * 200
+        def path(n):
+            pts, s_ = [(X(0), Y(1000))], 1000.0
+            for k in range(1, n + 1):
+                pts.append((X(k / n), Y(s_))); s_ *= 1 + 1 / n; pts.append((X(k / n), Y(s_)))
+            return " ".join(f"{a:.1f},{b:.1f}" for a, b in pts)
+        out.append(f'<line x1="{X(0)}" y1="{Y(1000)}" x2="{X(1)}" y2="{Y(1000)}" stroke="#D3D8E5" stroke-width="2"/>')
+        for n, c, w in ((1, "#C9CEDC", 4), (2, "#C9CEDC", 4), (12, "#B8860B", 5)):
+            out.append(f'<polyline points="{path(n)}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linejoin="round"/>')
+        out.append(f'<line x1="{X(1) - 6}" y1="{Y(2613) - 14}" x2="{X(1) - 6}" y2="{y + 64}" stroke="{SIGNAL}" stroke-width="3" stroke-dasharray="6 6"/>')
+        out.append(f'<text x="{X(1) - 6}" y="{y + 58}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="50" fill="{SIGNAL}">?</text>')
+        out.append(f'<text x="{X(0)}" y="{y + 50}" font-family="{FONT}" font-weight="700" font-size="18" fill="{INK}">{"1 000" if lang == "uk" else "1,000"} · 100%</text>')
     return "".join(out)
 
 
@@ -1450,7 +1470,7 @@ def svg(kind, lang):
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
                   "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin", "berkson-paradox",
                   "ab-test", "ab-test-peeking", "multiple-testing", "course-ab-testing", "course-ab-testing--check", "course-ab-basics", "course-auctions", "course-game-theory", "course-interview-puzzles", "course-interview-puzzles--trainer", "course-data-traps", "course-feature-impact", "course-feature-impact--trust", "lake-escape",
-                  "winners-curse", "small-numbers", "multi-armed-bandit", "will-rogers", "persuadables", "truel", "guess-two-thirds", "dollar-auction", "hotelling-beach", "fly-between-trains", "hilbert-hotel", "parrondo-paradox", "axelrod-tournament", "travelers-dilemma", "prosecutors-fallacy", "ant-rubber-rope", "hat-check", "broken-stick", "elevator-paradox", "revenue-equivalence", "keep-waiting", "newcomb-paradox", "zeno-paradox", "missing-square", "ergodicity", "unexpected-hanging", "coin-rotation", "condorcet-paradox", "alabama-paradox", "intransitive-dice", "potato-paradox", "coastline-paradox", "raven-paradox", "bingo-paradox", "pythagorean-comma", "wild-card-poker"):
+                  "winners-curse", "small-numbers", "multi-armed-bandit", "will-rogers", "persuadables", "truel", "guess-two-thirds", "dollar-auction", "hotelling-beach", "fly-between-trains", "hilbert-hotel", "parrondo-paradox", "axelrod-tournament", "travelers-dilemma", "prosecutors-fallacy", "ant-rubber-rope", "hat-check", "broken-stick", "elevator-paradox", "revenue-equivalence", "keep-waiting", "newcomb-paradox", "zeno-paradox", "missing-square", "ergodicity", "unexpected-hanging", "coin-rotation", "condorcet-paradox", "alabama-paradox", "intransitive-dice", "potato-paradox", "coastline-paradox", "raven-paradox", "bingo-paradox", "pythagorean-comma", "wild-card-poker", "compound-interest"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
