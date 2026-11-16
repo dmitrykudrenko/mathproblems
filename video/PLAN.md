@@ -70,25 +70,25 @@ Rules: facts only from the site with its source on screen; never a site puzzle's
 
 ## Queue: formats (English), one a day at 17:00 Lisbon
 
-Status 2026-11-16. YouTube: an unverified channel takes about 10 uploads a day; the rest go up after the limit resets (or at once after phone verification, which also unlocks custom covers and clickable links). The brand channel still asks for phone verification before custom covers, so every YouTube short so far uses an auto frame. TikTok schedules at most 10 days ahead. Titles, descriptions, tags and TikTok captions for every short are in `captions.json`.
+Status 2026-11-16. The YouTube channel is phone-verified (2026-11-16): no ~10-a-day upload cap, and every YouTube short has its custom cover from `out/<id>-en-cover.png`. Links in Shorts descriptions are never clickable on YouTube; the clickable path to the site is the channel header link. TikTok schedules at most 10 days ahead. Titles, descriptions, tags and TikTok captions for every short are in `captions.json`.
 
 | Date | Short | YouTube | TikTok |
 |---|---|---|---|
-| 11-18 | story-german-tanks | scheduled | scheduled, cover |
-| 11-19 | word-mean | scheduled | scheduled, cover |
-| 11-20 | cost-pill-scare | scheduled | scheduled, cover |
-| 11-21 | wrong-vos-savant | scheduled | scheduled, cover |
-| 11-22 | word-logarithm | scheduled | scheduled, cover |
-| 11-23 | wrong-mammography | scheduled | scheduled, cover |
-| 11-24 | story-literary-digest | scheduled | scheduled, cover |
-| 11-25 | wrong-bat-ball | scheduled | scheduled, cover |
-| 11-26 | word-combinatorics | scheduled | scheduled, cover |
-| 11-27 | story-london-bombs | scheduled | from 11-17 |
-| 11-28 | try-birthday-chat | scheduled | from 11-18 |
-| 11-29 | try-xkcd-tanks | scheduled | from 11-19 |
-| 11-30 | try-monty-cups | scheduled | from 11-20 |
-| 12-01 | cost-ab-power | scheduled | from 11-21 (also LinkedIn) |
-| 12-02 | cost-holdout | after the upload limit (next: 11-17) | from 11-22 (also LinkedIn) |
+| 11-18 | story-german-tanks | scheduled, cover | scheduled, cover |
+| 11-19 | word-mean | scheduled, cover | scheduled, cover |
+| 11-20 | cost-pill-scare | scheduled, cover | scheduled, cover |
+| 11-21 | wrong-vos-savant | scheduled, cover | scheduled, cover |
+| 11-22 | word-logarithm | scheduled, cover | scheduled, cover |
+| 11-23 | wrong-mammography | scheduled, cover | scheduled, cover |
+| 11-24 | story-literary-digest | scheduled, cover | scheduled, cover |
+| 11-25 | wrong-bat-ball | scheduled, cover | scheduled, cover |
+| 11-26 | word-combinatorics | scheduled, cover | scheduled, cover |
+| 11-27 | story-london-bombs | scheduled, cover | from 11-17 |
+| 11-28 | try-birthday-chat | scheduled, cover | from 11-18 |
+| 11-29 | try-xkcd-tanks | scheduled, cover | from 11-19 |
+| 11-30 | try-monty-cups | scheduled, cover | from 11-20 |
+| 12-01 | cost-ab-power | scheduled, cover | from 11-21 (also LinkedIn) |
+| 12-02 | cost-holdout | scheduled, cover | from 11-22 (also LinkedIn) |
 
 Two shorts about one problem stay at least a week apart (birthday 11-15 / 11-28, Monty Hall 11-15 / 11-21 / 11-30, tanks 11-18 / 11-29).
 
