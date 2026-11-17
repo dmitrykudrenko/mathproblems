@@ -83,7 +83,7 @@ Status 2026-11-16. The YouTube channel is phone-verified (2026-11-16): no ~10-a-
 | 11-24 | story-literary-digest | scheduled, cover | scheduled, cover |
 | 11-25 | wrong-bat-ball | scheduled, cover | scheduled, cover |
 | 11-26 | word-combinatorics | scheduled, cover | scheduled, cover |
-| 11-27 | story-london-bombs | scheduled, cover | from 11-17 |
+| 11-27 | story-london-bombs | scheduled, cover | scheduled, cover |
 | 11-28 | try-birthday-chat | scheduled, cover | from 11-18 |
 | 11-29 | try-xkcd-tanks | scheduled, cover | from 11-19 |
 | 11-30 | try-monty-cups | scheduled, cover | from 11-20 |
