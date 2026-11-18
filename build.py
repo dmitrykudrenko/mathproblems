@@ -2065,6 +2065,61 @@ def build_subscribed(problems, base):
         write(DOCS / LANG_PATH[lang] / "subscribed" / "index.html", doc)
 
 
+REELS = ROOT / "video" / "reels.json"
+# the series of the shorts, as their sting and cover label them (video/series.mjs on the video branch)
+REEL_SERIES = {
+    "puzzle": {"uk": "Задача", "en": "Puzzle"}, "wrong": {"uk": "Більшість помиляється", "en": "Most get it wrong"},
+    "word": {"uk": "Словник", "en": "Glossary"}, "story": {"uk": "Історія", "en": "True story"},
+    "try": {"uk": "Перевірте", "en": "Try it"}, "cost": {"uk": "Дорога помилка", "en": "Costly mistake"},
+}
+
+
+def build_reels(problems, base):
+    """docs/reels/: where the profile link of the video channels leads (links in a short's caption are not
+    clickable, so a caption says «#6 · link in bio»). Every short by its number, newest first, leading on to its
+    puzzle or glossary article. Not indexed and not in the sitemap: a list of links, the pages it links to are
+    the ones to find. Rows of shorts not out yet are dropped by the page itself on the visitor's date, so the
+    build stays the same from day to day and the page needs no rebuild."""
+    src_dir = PAGES / "reels"
+    meta = json.loads((src_dir / "meta.json").read_text(encoding="utf-8"))
+    src = (src_dir / "page.html").read_text(encoding="utf-8")
+    reels = json.loads(REELS.read_text(encoding="utf-8"))["reels"]
+    nums = [r["n"] for r in reels]
+    if nums != list(range(1, len(reels) + 1)):
+        raise SystemExit("video/reels.json: numbers must run 1, 2, 3… in order, never renumbered")
+    _, gpages, _ = load_glossary()
+    by_slug = {p[0]: p for p in problems}
+    urls = {l: base + LANG_PATH[l] + "reels/" for l in LANGS}
+    home = {l: base + LANG_PATH[l] for l in LANGS}
+    for lang in LANGS:
+        m, other = meta[lang], ("en" if lang == "uk" else "uk")
+        rows = []
+        for r in sorted(reels, key=lambda r: -r["n"]):
+            if r["series"] not in REEL_SERIES or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", r["date"]):
+                raise SystemExit(f"video/reels.json: #{r['n']} needs a known series and a YYYY-MM-DD date")
+            g = r["page"].removeprefix("glossary/")
+            if g != r["page"] and g in gpages:
+                href, name = glossary_url(base, lang, g), gpages[g][lang]["name"]
+            elif r["page"] in by_slug:
+                href, name = by_slug[r["page"]][2][lang], by_slug[r["page"]][1][lang]["card"]["title"]
+            else:
+                raise SystemExit(f"video/reels.json: #{r['n']} points to an unknown page {r['page']}")
+            rows.append(f'    <li class="reel" id="{r["n"]}" data-from="{r["date"]}"><a href="{href}"><span class="n">#{r["n"]}</span>'
+                        f'<span class="s">{REEL_SERIES[r["series"]][lang]}</span><b>{e(r["hook"][lang])}</b>'
+                        f'<i>{e(name)} →</i></a></li>')
+        body = LangStripper(src.replace("<!--REELS-->", "\n".join(rows)), other).strip()
+        body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
+        body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
+        body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
+        style = body[:body.index("</style>") + len("</style>")]
+        body = body[len(style):]
+        ld = {"@context": "https://schema.org", "@type": "WebPage", "url": urls[lang], "name": m["title"], "inLanguage": lang}
+        h = head(lang, urls, m["title"], m["description"], base + f"og-{lang}.png", m["title"], ld, base, robots="noindex, follow")
+        doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
+               f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{CF_ANALYTICS}\n</body>\n</html>\n')
+        write(DOCS / LANG_PATH[lang] / "reels" / "index.html", doc)
+
+
 SHELF_TEXT = {"uk": ("Є українською", "Лише англійською"), "en": (None, None)}
 
 
@@ -2931,6 +2986,7 @@ def build(base, out=None):
     hub = build_hub(problems, base)
     build_404(problems, base)
     build_subscribed(problems, base)
+    build_reels(problems, base)
     shelf = build_books(problems, base, books)
     glossary = build_glossary(problems, base)
     courses = build_courses(problems, base)
