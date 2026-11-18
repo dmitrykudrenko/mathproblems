@@ -11,7 +11,8 @@
    Bayati, Hamidi, Johari, Khosravi, "Unreasonable effectiveness of greedy algorithms in multi-armed bandit with many arms", NeurIPS 33 (2020);
    Li, Chu, Langford, Schapire, "A contextual-bandit approach to personalized news article recommendation", WWW 2010; Netflix Tech Blog, "Artwork Personalization at Netflix" (2017).
    All numbers on the page: exact binomial sums and exact dynamic programming over (wins, losses) states, checked by simulation.
-   Round 5 "many machines" and "swap places" tables: node simulations (800 and 20,000 games), greedy cross-checked in Python. */
+   Round 5 "many machines" and "swap places" tables: node simulations (800 and 20,000 games), greedy cross-checked in Python.
+   Round 5 greedy warm-up: exact forward DP over (wins, pulls) states for 100 pulls; 1,000 and 10,000 pulls from node and Python simulations. */
 :root {
   --tint: #F8E3EC;
   --paper: #FBF5F8;
@@ -395,6 +396,8 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
       <p class="en"><b>Rule:</b> first tries each machine once. Then before every pull it compares the win rates (wins / pulls) and pulls whichever is higher right now. Equal rates: a coin toss.</p>
       <p class="uk"><b>Приклад:</b> лівий програв першу спробу (0 з 1), правий виграв (1 з 1). Частка правого вже ніколи не впаде до нуля, тож лівий більше не отримає жодної спроби, навіть якщо кращий саме він.</p>
       <p class="en"><b>Example:</b> the left machine lost its first pull (0 of 1), the right one won (1 of 1). The right one's rate can never drop to zero, so the left one never gets another pull, even if it is the better one.</p>
+      <p class="uk"><b>Не те саме, що розвідка 1 + 1:</b> та після двох спроб вирішує назавжди, а жадібна перевіряє рахунок після кожної спроби. Якщо обидва автомати виграли першу спробу, обидві кидають монету, але жадібна після першого ж програшу обраного автомата перемикається на інший. Тому розвідка 1 + 1 віддає гіршому автомату понад половину спроб у 45% ігор, а жадібна у 38%.</p>
+      <p class="en"><b>Not the same as explore 1 + 1:</b> that one decides for good after two pulls, while greedy checks the score after every pull. If both machines won their first pull, both toss a coin, but greedy switches to the other machine as soon as the chosen one loses. That is why explore 1 + 1 gives the worse machine more than half of the pulls in 45% of games, and greedy in 38%.</p>
     </div>
     <div class="strat" style="--c:var(--ink)">
       <h3><span class="uk">Розвідка N + N, далі лідер</span><span class="en">Explore N + N, then the leader</span></h3>
@@ -608,6 +611,38 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
         <p class="en">The greedy strategy gets stuck on the worse machine in roughly one game in three, so its losses grow in proportion to the length of the game: ten times the pulls, ten times the losses. The best N + N exploration grows more slowly, but it requires knowing the gap between the machines in advance.</p>
         <p class="uk">Семплювання Томпсона нічого не знає наперед, а втрачає найменше: від 1 000 до 10 000 спроб його втрати зростають приблизно на 9 виграшів, а в жадібної стратегії більш ніж на 300. 1985 року Тзе Леунг Лай і Герберт Роббінс довели, що жодна стратегія не може в довгій грі втрачати менше, ніж пропорційно логарифму числа спроб. Кожне множення гри на 10 додає приблизно однакову порцію втрат. Семплювання Томпсона досягає цієї межі.</p>
         <p class="en">Thompson sampling knows nothing in advance, yet loses least: from 1,000 to 10,000 pulls its losses grow by about 9 wins, the greedy strategy's by over 300. In 1985 Tze Leung Lai and Herbert Robbins proved that no strategy can, over a long game, lose less than in proportion to the logarithm of the number of pulls. Every tenfold increase of the game adds roughly the same portion of losses. Thompson sampling reaches this limit.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="uk">Жадібна після розвідки по m спроб: втрати зі 100</span><span class="en">Greedy after m pulls on each: wins lost out of 100</span></h3>
+        <div class="tbl-wrap" style="margin-top:10px">
+          <table>
+            <thead><tr>
+              <th><span class="uk">Розвідка на старті</span><span class="en">Warm-up</span></th>
+              <th class="num"><span class="uk">Втрачено</span><span class="en">Lost</span></th>
+              <th class="num"><span class="uk">Гірший отримав понад 50 спроб</span><span class="en">Worse got over 50 pulls</span></th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="uk">m = 1 (просто жадібна)</span><span class="en">m = 1 (plain greedy)</span></td><td class="num"><span class="uk">3,91</span><span class="en">3.91</span></td><td class="num">38%</td></tr>
+              <tr><td>m = 3</td><td class="num"><span class="uk">3,48</span><span class="en">3.48</span></td><td class="num">33%</td></tr>
+              <tr><td>m = 5</td><td class="num"><span class="uk">3,27</span><span class="en">3.27</span></td><td class="num">29%</td></tr>
+              <tr class="hl"><td>m = 11</td><td class="num"><span class="uk">3,11</span><span class="en">3.11</span></td><td class="num">24%</td></tr>
+              <tr><td>m = 20</td><td class="num"><span class="uk">3,30</span><span class="en">3.30</span></td><td class="num">20%</td></tr>
+              <tr><td>m = 30</td><td class="num"><span class="uk">3,76</span><span class="en">3.76</span></td><td class="num">18%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top:10px"><span class="uk">Ті самі автомати на 60% і 50%, 100 спроб. Числа точні: пораховано всі можливі рахунки гри. Для порівняння: семплювання Томпсона втрачає 3,29, найкраща розвідка 16 + 16 втрачає 3,54.</span><span class="en">The same 60% and 50% machines, 100 pulls. The numbers are exact: every possible score of the game is counted. For comparison, Thompson sampling loses 3.29 and the best 16 + 16 exploration loses 3.54.</span></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Латка</span><span class="en">A patch</span></span>
+        <h3><span class="uk">Трохи розвідки рятує жадібну стратегію</span><span class="en">A little exploration rescues greedy</span></h3>
+        <p class="uk">Жадібна стратегія застрягає через невдалий старт: один програш, і автомат може більше не отримати спроб. Якщо спершу смикнути кожен автомат по m разів, а вже потім грати жадібно, старт стає надійнішим. Розвідка по 11 спроб робить найгіршу стратегію найкращою: 3,11 втрачених виграшів, менше, ніж у Томпсона і в плану 16 + 16. Від плану N + N вона відрізняється тим, що й після розвідки стежить за рахунком і може передумати.</p>
+        <p class="en">Greedy gets stuck because of a bad start: one loss, and a machine may never get another pull. If you first pull each machine m times and only then play greedily, the start is more reliable. A warm-up of 11 pulls turns the worst strategy into the best: 3.11 wins lost, less than Thompson and the 16 + 16 plan. Unlike the N + N plan, it keeps watching the score after the warm-up and can change its mind.</p>
+        <p class="uk">Підступ у тому, що найкраще m залежить від гри. Для 1 000 спроб це вже близько 50 (втрати ≈ 11, у Томпсона ≈ 12), для 10 000 близько 150 (≈ 20, як у Томпсона). Не вгадали: розвідка по 50 на 10 000 спроб втрачає ≈ 52, удвічі більше. Щоб обрати m, треба заздалегідь знати і довжину гри, і різницю між автоматами. Томпсон не знає ні того, ні іншого і майже не поступається, тому на практиці зазвичай беруть його.</p>
+        <p class="en">The catch is that the best m depends on the game. For 1,000 pulls it is already about 50 (≈ 11 lost, Thompson ≈ 12); for 10,000, about 150 (≈ 20, the same as Thompson). Guess wrong, and a warm-up of 50 over 10,000 pulls loses ≈ 52, twice as much. To choose m you need to know both the length of the game and the gap between the machines in advance. Thompson knows neither and barely falls behind, which is why it is usually the one used in practice.</p>
       </div>
     </div>
 

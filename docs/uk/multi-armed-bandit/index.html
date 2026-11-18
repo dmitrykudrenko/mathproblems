@@ -165,7 +165,8 @@ img { max-width: 100%; }
    Bayati, Hamidi, Johari, Khosravi, "Unreasonable effectiveness of greedy algorithms in multi-armed bandit with many arms", NeurIPS 33 (2020);
    Li, Chu, Langford, Schapire, "A contextual-bandit approach to personalized news article recommendation", WWW 2010; Netflix Tech Blog, "Artwork Personalization at Netflix" (2017).
    All numbers on the page: exact binomial sums and exact dynamic programming over (wins, losses) states, checked by simulation.
-   Round 5 "many machines" and "swap places" tables: node simulations (800 and 20,000 games), greedy cross-checked in Python. */
+   Round 5 "many machines" and "swap places" tables: node simulations (800 and 20,000 games), greedy cross-checked in Python.
+   Round 5 greedy warm-up: exact forward DP over (wins, pulls) states for 100 pulls; 1,000 and 10,000 pulls from node and Python simulations. */
 :root {
   --tint: #F8E3EC;
   --paper: #FBF5F8;
@@ -626,6 +627,8 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
       
       <p class="uk"><b>Приклад:</b> лівий програв першу спробу (0 з 1), правий виграв (1 з 1). Частка правого вже ніколи не впаде до нуля, тож лівий більше не отримає жодної спроби, навіть якщо кращий саме він.</p>
       
+      <p class="uk"><b>Не те саме, що розвідка 1 + 1:</b> та після двох спроб вирішує назавжди, а жадібна перевіряє рахунок після кожної спроби. Якщо обидва автомати виграли першу спробу, обидві кидають монету, але жадібна після першого ж програшу обраного автомата перемикається на інший. Тому розвідка 1 + 1 віддає гіршому автомату понад половину спроб у 45% ігор, а жадібна у 38%.</p>
+      
     </div>
     <div class="strat" style="--c:var(--ink)">
       <h3><span class="uk">Розвідка N + N, далі лідер</span></h3>
@@ -871,6 +874,38 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
         <p class="uk">Жадібна стратегія застрягає на гіршому автоматі приблизно в кожній третій грі, тому її втрати ростуть пропорційно довжині гри: удесятеро більше спроб, удесятеро більші втрати. Найкраща розвідка N + N росте повільніше, але для неї треба заздалегідь знати різницю між автоматами.</p>
         
         <p class="uk">Семплювання Томпсона нічого не знає наперед, а втрачає найменше: від 1&nbsp;000 до 10&nbsp;000 спроб його втрати зростають приблизно на 9 виграшів, а в жадібної стратегії більш ніж на 300. 1985 року Тзе Леунг Лай і Герберт Роббінс довели, що жодна стратегія не може в довгій грі втрачати менше, ніж пропорційно <a href="https://mathparadoxes.com/uk/glossary/logarithm/" class="mp-term" data-term="logarithm" aria-expanded="false">логарифму</a> числа спроб. Кожне множення гри на 10 додає приблизно однакову порцію втрат. Семплювання Томпсона досягає цієї межі.</p>
+        
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="uk">Жадібна після розвідки по m спроб: втрати зі 100</span></h3>
+        <div class="tbl-wrap" style="margin-top:10px">
+          <table>
+            <thead><tr>
+              <th><span class="uk">Розвідка на старті</span></th>
+              <th class="num"><span class="uk">Втрачено</span></th>
+              <th class="num"><span class="uk">Гірший отримав понад 50 спроб</span></th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="uk">m = 1 (просто жадібна)</span></td><td class="num"><span class="uk">3,91</span></td><td class="num">38%</td></tr>
+              <tr><td>m = 3</td><td class="num"><span class="uk">3,48</span></td><td class="num">33%</td></tr>
+              <tr><td>m = 5</td><td class="num"><span class="uk">3,27</span></td><td class="num">29%</td></tr>
+              <tr class="hl"><td>m = 11</td><td class="num"><span class="uk">3,11</span></td><td class="num">24%</td></tr>
+              <tr><td>m = 20</td><td class="num"><span class="uk">3,30</span></td><td class="num">20%</td></tr>
+              <tr><td>m = 30</td><td class="num"><span class="uk">3,76</span></td><td class="num">18%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top:10px"><span class="uk">Ті самі автомати на 60% і 50%, 100 спроб. Числа точні: пораховано всі можливі рахунки гри. Для порівняння: семплювання Томпсона втрачає 3,29, найкраща розвідка 16 + 16 втрачає 3,54.</span></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Латка</span></span>
+        <h3><span class="uk">Трохи розвідки рятує жадібну стратегію</span></h3>
+        <p class="uk">Жадібна стратегія застрягає через невдалий старт: один програш, і автомат може більше не отримати спроб. Якщо спершу смикнути кожен автомат по m разів, а вже потім грати жадібно, старт стає надійнішим. Розвідка по 11 спроб робить найгіршу стратегію найкращою: 3,11 втрачених виграшів, менше, ніж у Томпсона і в плану 16 + 16. Від плану N + N вона відрізняється тим, що й після розвідки стежить за рахунком і може передумати.</p>
+        
+        <p class="uk">Підступ у тому, що найкраще m залежить від гри. Для 1&nbsp;000 спроб це вже близько 50 (втрати ≈ 11, у Томпсона ≈ 12), для 10&nbsp;000 близько 150 (≈ 20, як у Томпсона). Не вгадали: розвідка по 50 на 10&nbsp;000 спроб втрачає ≈ 52, удвічі більше. Щоб обрати m, треба заздалегідь знати і довжину гри, і різницю між автоматами. Томпсон не знає ні того, ні іншого і майже не поступається, тому на практиці зазвичай беруть його.</p>
         
       </div>
     </div>
