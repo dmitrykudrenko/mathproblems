@@ -7,8 +7,11 @@
 /* Layout: same running order as regression-to-mean. The two slot machines with their win tallies are this problem's signature object.
    Sources for the history and facts: Thompson, Biometrika 25 (1933) 285–294; Robbins, Bull. AMS 58 (1952) 527–535;
    Gittins, JRSS B 41 (1979) 148–177, and Whittle's discussion of it (pp. 164–177); Lai & Robbins, Adv. Appl. Math. 6 (1985) 4–22;
-   Bartlett et al., Pediatrics 76 (1985) 479–487 (ECMO, randomised play-the-winner); Chapelle & Li, NIPS 24 (2011).
-   All numbers on the page: exact binomial sums and exact dynamic programming over (wins, losses) states, checked by simulation. */
+   Bartlett et al., Pediatrics 76 (1985) 479–487 (ECMO, randomised play-the-winner); Chapelle & Li, NIPS 24 (2011);
+   Bayati, Hamidi, Johari, Khosravi, "Unreasonable effectiveness of greedy algorithms in multi-armed bandit with many arms", NeurIPS 33 (2020);
+   Li, Chu, Langford, Schapire, "A contextual-bandit approach to personalized news article recommendation", WWW 2010; Netflix Tech Blog, "Artwork Personalization at Netflix" (2017).
+   All numbers on the page: exact binomial sums and exact dynamic programming over (wins, losses) states, checked by simulation.
+   Round 5 "many machines" and "swap places" tables: node simulations (800 and 20,000 games), greedy cross-checked in Python. */
 :root {
   --tint: #F8E3EC;
   --paper: #FBF5F8;
@@ -142,6 +145,11 @@ canvas { display: block; width: 100%; }
 /* ---------- simulation ---------- */
 .sim-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
 .sim-grid > * { min-width: 0; }
+.strats { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.strat { border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; }
+.strat h3 { font-size: 1rem; }
+.strat p { font-size: .9rem; color: var(--muted); }
+.strat p b { color: var(--ink); font-weight: 600; }
 .tiles { display: grid; gap: 12px; align-content: start; }
 .tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
 .tile .k { font-size: .82rem; color: var(--muted); }
@@ -373,6 +381,36 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
     <p class="lead uk">Графік показує, скільки виграшів у середньому втрачає кожна стратегія порівняно з тим, хто від початку знає кращий автомат і смикає лише його. Лінії пораховано точно, точки беруться із симуляції. Повзунком змініть довжину розвідки в плані «N + N».</p>
     <p class="lead en">The chart shows how many wins each strategy loses on average compared with someone who knows the better machine from the start and pulls only that one. The lines are exact; the dots come from the simulation. Use the slider to change the length of the exploration in the "N + N" plan.</p>
   </div>
+  <div class="strats">
+    <div class="strat" style="--c:var(--muted)">
+      <h3><span class="uk">Навпіл 50/50</span><span class="en">50/50 split</span></h3>
+      <p class="uk"><b>Правило:</b> смикає автомати по черзі — лівий, правий, лівий, правий — і на результати не дивиться.</p>
+      <p class="en"><b>Rule:</b> pulls the machines in turn (left, right, left, right) and never looks at the results.</p>
+      <p class="uk"><b>Підсумок:</b> рівно 50 спроб кожному автомату, тож половина гри завжди йде гіршому.</p>
+      <p class="en"><b>Outcome:</b> exactly 50 pulls each, so half the game always goes to the worse machine.</p>
+    </div>
+    <div class="strat" style="--c:var(--c-greedy)">
+      <h3><span class="uk">Жадібна</span><span class="en">Greedy</span></h3>
+      <p class="uk"><b>Правило:</b> спершу пробує кожен автомат по разу. Далі перед кожною спробою порівнює частку виграшів (виграші / спроби) і смикає той, у кого вона зараз більша. Рівні частки — кидок монети.</p>
+      <p class="en"><b>Rule:</b> first tries each machine once. Then before every pull it compares the win rates (wins / pulls) and pulls whichever is higher right now. Equal rates: a coin toss.</p>
+      <p class="uk"><b>Приклад:</b> лівий програв першу спробу (0 з 1), правий виграв (1 з 1). Частка правого вже ніколи не впаде до нуля, тож лівий більше не отримає жодної спроби, навіть якщо кращий саме він.</p>
+      <p class="en"><b>Example:</b> the left machine lost its first pull (0 of 1), the right one won (1 of 1). The right one's rate can never drop to zero, so the left one never gets another pull, even if it is the better one.</p>
+    </div>
+    <div class="strat" style="--c:var(--ink)">
+      <h3><span class="uk">Розвідка N + N, далі лідер</span><span class="en">Explore N + N, then the leader</span></h3>
+      <p class="uk"><b>Правило:</b> смикає кожен автомат по N разів по черзі. Потім раз і назавжди обирає той, що виграв більше (нічия — монета), і віддає йому всі решту спроб.</p>
+      <p class="en"><b>Rule:</b> pulls each machine N times in turn. Then it picks, once and for all, the one that won more (a tie: a coin toss) and gives it all the remaining pulls.</p>
+      <p class="uk"><b>Приклад:</b> при N = 10 це план із задачі: 20 спроб на тест, 80 переможцю. Повзунок нижче змінює N.</p>
+      <p class="en"><b>Example:</b> with N = 10 this is the plan from the puzzle: 20 pulls for the test, 80 for the winner. The slider below changes N.</p>
+    </div>
+    <div class="strat" style="--c:var(--c-ts)">
+      <h3><span class="uk">Семплювання Томпсона</span><span class="en">Thompson sampling</span></h3>
+      <p class="uk"><b>Правило:</b> перед кожною спробою «вгадує» для кожного автомата випадкову частку виграшів, правдоподібну за його рахунком: що менше спроб, то ширше розкид здогадок. Смикає автомат із більшою здогадкою.</p>
+      <p class="en"><b>Rule:</b> before every pull it "guesses" a random win rate for each machine that is plausible given its score: the fewer pulls, the wider the guesses spread. It pulls the machine with the higher guess.</p>
+      <p class="uk"><b>Приклад:</b> при рахунку 6 з 10 проти 5 з 10 лідер отримує наступну спробу з шансом 66%, а при 60 зі 100 проти 50 зі 100 уже 92%. Відстаючий отримує дедалі менше спроб, але ніколи не нуль.</p>
+      <p class="en"><b>Example:</b> at 6 of 10 against 5 of 10 the leader gets the next pull with a 66% chance; at 60 of 100 against 50 of 100, with 92%. The one behind gets fewer and fewer pulls, but never none.</p>
+    </div>
+  </div>
   <div class="card">
     <div class="controls">
       <label class="ctl" for="sim-n"><span><span class="uk">Розвідка: по</span><span class="en">Explore:</span> <b class="mono" id="sim-n-v">10</b> <span class="uk">спроб на автомат</span><span class="en">pulls per machine</span></span>
@@ -538,9 +576,9 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
 <section class="round" id="more">
   <div class="round-head">
     <span class="eyebrow"><span class="uk">Раунд 5 · Масштабування</span><span class="en">Round 5 · Scaling up</span></span>
-    <h2><span class="uk">Довга гра, ресторани і A/B-тести</span><span class="en">The long game, restaurants and A/B tests</span></h2>
-    <p class="lead uk">Що буде, якщо спроб не 100, а 100 000; де ця дилема трапляється в житті; і чому бандит, який заробляє більше за A/B-тест, знає менше.</p>
-    <p class="lead en">What happens with 100,000 pulls instead of 100; where this dilemma turns up in everyday life; and why a bandit that earns more than an A/B test ends up knowing less.</p>
+    <h2><span class="uk">Довга гра, сто автоматів і мінливий світ</span><span class="en">The long game, a hundred machines and a changing world</span></h2>
+    <p class="lead uk">Що буде, якщо спроб не 100, а 10 000; де ця дилема трапляється в житті; чому бандит, який заробляє більше за A/B-тест, знає менше; що змінюється, коли автоматів сто або коли вони самі міняються.</p>
+    <p class="lead en">What happens with 10,000 pulls instead of 100; where this dilemma turns up in everyday life; why a bandit that earns more than an A/B test ends up knowing less; and what changes with a hundred machines, or when the machines themselves change.</p>
   </div>
   <div class="esc">
 
@@ -591,6 +629,72 @@ footer { padding-block: 36px 48px; border-top: 1px solid var(--line); color: var
         <p class="en">The same two variants at 60% and 50%, 1,000 visitors. An A/B test splits them evenly: 550 conversions, and the difference between the variants is known to within ±6.1 points (95%). A bandit with Thompson sampling gets about 588 conversions on average, 38 more. But the worse variant is seen by few people: under 90 in half the runs, and 23 or fewer in one run in ten. So in a typical run the difference is known only to within about ±11 points: the bandit knows who is better, but not well by how much.</p>
         <p class="uk">Питання до сервісу, що продає «оптимізацію штучним інтелектом»: чи покаже він різницю між варіантами з похибкою? Що буде, якщо конверсія змінюється за днями тижня чи через новизну? Чи є мінімальна частка трафіку для кожного варіанта? Детальніше про бандитів у тестах на сторінці <a class="uk" href="../ab-test-peeking/">«Підглядання в A/B-тест»</a>, а про шум у тестах на сторінці <a class="uk" href="../ab-test/">«Дві однакові сторінки»</a>.</p>
         <p class="en">Questions to ask a service selling "AI optimisation": will it show the difference between the variants with an error margin? What happens if conversion shifts by weekday or through novelty? Is there a minimum share of traffic for each variant? More on bandits in tests is on the <a class="en" href="../ab-test-peeking/">peeking at an A/B test</a> page, and on noise in tests on <a class="en" href="../ab-test/">"Two identical pages"</a>.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="uk">100 автоматів, 10 000 спроб: скільки втрачено</span><span class="en">100 machines, 10,000 pulls: wins lost</span></h3>
+        <div class="tbl-wrap" style="margin-top:10px">
+          <table>
+            <thead><tr>
+              <th><span class="uk">Стратегія</span><span class="en">Strategy</span></th>
+              <th class="num"><span class="uk">Один на 60%, 99 на 50%</span><span class="en">One at 60%, 99 at 50%</span></th>
+              <th class="num"><span class="uk">Усі різні, 40–60%</span><span class="en">All different, 40–60%</span></th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="uk">Усі по черзі</span><span class="en">All in turn</span></td><td class="num">990</td><td class="num">980</td></tr>
+              <tr><td><span class="uk">Розвідка по 30, далі лідер</span><span class="en">Explore 30 each, then the leader</span></td><td class="num">≈ 940</td><td class="num">≈ 550</td></tr>
+              <tr><td><span class="uk">Семплювання Томпсона</span><span class="en">Thompson sampling</span></td><td class="num">≈ 935</td><td class="num">≈ 620</td></tr>
+              <tr><td><span class="uk">Відсів навпіл</span><span class="en">Halving</span></td><td class="num">≈ 700</td><td class="num">≈ 300</td></tr>
+              <tr class="hl"><td><span class="uk">Жадібна</span><span class="en">Greedy</span></td><td class="num">≈ 770</td><td class="num">≈ 200</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top:10px"><span class="uk">Втрати порівняно з тим, хто від початку знає найкращий автомат. «Усі по черзі» пораховано точно, решта взята із симуляції 800 ігор (похибка до ±30). Відсів навпіл: половину гри ділить на 7 етапів, на кожному смикає порівну всі автомати, що лишилися, і відкидає гіршу половину; решту гри грає на останньому.</span><span class="en">Losses compared with someone who knows the best machine from the start. "All in turn" is exact; the rest come from a simulation of 800 games (error up to ±30). Halving: splits half the game into 7 stages, in each one pulls all remaining machines equally and drops the worse half; the rest of the game goes to the last one standing.</span></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Багато автоматів</span><span class="en">Many machines</span></span>
+        <h3><span class="uk">Коли автоматів сто, жадібна стає найкращою</span><span class="en">With a hundred machines, greedy becomes the best</span></h3>
+        <p class="uk">Щоб надійно відрізнити 60% від 50%, треба кількасот спроб на кожен автомат. Сто автоматів на 10 000 спроб так не перевірити. Якщо кращий лише один, а решта однакові, його не знаходить жодна стратегія: усі втрачають від 700 до 940 виграшів, майже як гра навмання.</p>
+        <p class="en">To tell 60% from 50% reliably you need several hundred pulls on each machine. A hundred machines can't be checked like that in 10,000 pulls. If only one is better and the rest are the same, no strategy finds it: they all lose 700 to 940 wins, almost as much as playing at random.</p>
+        <p class="uk">Якщо ж автомати всі різні, найгірша для двох автоматів стратегія стає найкращою. Коли добрих автоматів багато, той, що на старті виглядає добре, майже напевно непоганий, а шукати найкращий серед сотні дорожче, ніж він дасть. Томпсон тут переплачує за розвідку: він акуратно перевіряє кожен автомат, хоча часу на це немає. Цей ефект описали Мохсен Баяті та співавтори 2020 року.</p>
+        <p class="en">But if the machines all differ, the worst strategy for two machines becomes the best. When there are many good machines, one that looks good early on is almost certainly decent, and hunting for the best among a hundred costs more than it brings. Thompson overpays for exploration here: it carefully checks every machine though there is no time for it. Mohsen Bayati and co-authors described this effect in 2020.</p>
+        <p class="uk">Правило: якщо автоматів більше, ніж спроб вистачить на кожен, не перевіряйте всі. Швидко відсійте слабких і грайте на лідерах.</p>
+        <p class="en">The rule: if there are more machines than you have pulls to check each one, don't check them all. Weed out the weak ones fast and play the leaders.</p>
+      </div>
+    </div>
+
+    <div class="esc-block">
+      <div class="card">
+        <h3><span class="uk">Автомати міняються місцями: скільки втрачено з 1 000</span><span class="en">The machines swap places: wins lost out of 1,000</span></h3>
+        <div class="tbl-wrap" style="margin-top:10px">
+          <table>
+            <thead><tr>
+              <th><span class="uk">Кидок монети кожні</span><span class="en">Coin toss every</span></th>
+              <th class="num"><span class="uk">Розвідка 16 + 16</span><span class="en">Explore 16 + 16</span></th>
+              <th class="num"><span class="uk">Томпсон</span><span class="en">Thompson</span></th>
+              <th class="num"><span class="uk">Томпсон, що забуває</span><span class="en">Forgetful Thompson</span></th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="uk">100 спроб</span><span class="en">100 pulls</span></td><td class="num">49</td><td class="num">45</td><td class="num">39</td></tr>
+              <tr><td><span class="uk">200 спроб</span><span class="en">200 pulls</span></td><td class="num">47</td><td class="num">40</td><td class="num">33</td></tr>
+              <tr><td><span class="uk">500 спроб</span><span class="en">500 pulls</span></td><td class="num">40</td><td class="num">29</td><td class="num">27</td></tr>
+              <tr><td><span class="uk">ніколи</span><span class="en">never</span></td><td class="num">29</td><td class="num">12</td><td class="num">24</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top:10px"><span class="uk">Ті самі автомати на 60% і 50%, 1 000 спроб. Кожні X спроб кидаємо монету і, якщо випаде, міняємо автомати місцями; гравець X не знає. Смикати навпіл означає втратити 50. Томпсон, що забуває: після кожної спроби вага всіх старих результатів множиться на 0,99, тож результат 70 спроб тому важить удвічі менше за свіжий. Симуляція 20 000 ігор, похибка менше ±0,5.</span><span class="en">The same 60% and 50% machines, 1,000 pulls. Every X pulls a coin is tossed, and on heads the machines swap places; the player doesn't know X. Splitting 50/50 loses 50. Forgetful Thompson: after every pull the weight of all old results is multiplied by 0.99, so a result from 70 pulls ago counts half as much as a fresh one. Simulation of 20,000 games, error under ±0.5.</span></p>
+      </div>
+      <div class="card esc-text">
+        <span class="kicker"><span class="uk">Світ змінюється</span><span class="en">The world changes</span></span>
+        <h3><span class="uk">Розвідка, яка не закінчується</span><span class="en">Exploration that never ends</span></h3>
+        <p class="uk">Якщо автомати час від часу міняються, план «перевірив і вирішив назавжди» найгірший: він обирає один раз, а світ змінюється. Звичайний Томпсон теж відстає, бо пам'ятає всю історію і довго не вірить, що лідер змінився. Допомагає забування: старі результати поступово втрачають вагу, тому відстаючий автомат знову отримує шанс.</p>
+        <p class="en">If the machines change from time to time, the plan "test, then decide for good" is the worst: it chooses once, and the world moves on. Plain Thompson lags too, because it remembers the whole history and is slow to believe the leader has changed. Forgetting helps: old results gradually lose weight, so the machine that is behind gets another chance.</p>
+        <p class="uk">Але забування має ціну: якщо нічого не змінюється, воно викидає корисні дані (24 замість 12). Швидкість забування — це ставка на те, як швидко змінюється світ. А що частіші зміни, то менше допомагає будь-яка стратегія: коли світ змінюється швидше, ніж можна помітити різницю в 10 пунктів, усі вони наближаються до смикання навпіл.</p>
+        <p class="en">But forgetting has a price: if nothing changes, it throws away useful data (24 instead of 12). The forgetting rate is a bet on how fast the world changes. And the more often things change, the less any strategy helps: when the world changes faster than a 10-point gap can be noticed, they all approach splitting 50/50.</p>
+        <p class="uk">Саме так працюють рекомендації. Нові статті, фільми й товари треба комусь показати, щоб дізнатися, чи вони добрі, а смаки змінюються. До того ж у кожного свій найкращий «автомат»: такі задачі звуть контекстними бандитами. 2010 року Yahoo! обирала ними новини для головної сторінки (Лі, Чу, Ленгфорд, Шапіре), а Netflix так обирає, яку обкладинку фільму показати конкретному глядачу.</p>
+        <p class="en">This is how recommendations work. New articles, films and products have to be shown to someone to learn whether they are good, and tastes change. On top of that, each person has their own best "machine": such problems are called contextual bandits. In 2010 Yahoo! used them to pick news for its front page (Li, Chu, Langford, Schapire), and Netflix uses them to choose which artwork of a film to show a particular viewer.</p>
       </div>
     </div>
 
