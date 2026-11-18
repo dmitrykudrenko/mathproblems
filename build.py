@@ -1373,6 +1373,18 @@ VL_NOT = re.compile(r"\.\s+[A-Z]|\s+to\s+Z(?![A-Za-z])")  # an initial (C. R. Bl
 # (75 км, 10 $, 3 млн, 5 km) and, in Ukrainian, the space before a dash, so a line never starts with «—».
 NB_GROUPS = re.compile(r"(?<![\d.,])\d{1,3}(?: \d{3})+(?!\d)")
 NB_UNIT = re.compile(r"(\d) (%|‰|₴|\$|€|°|км|см|мм|м|кг|хв|год|с|грн|млн|млрд|тис\.|km|cm|mm|m|kg|min|h|s|million|billion)(?!\w)")
+# Numbers written once for both languages (a stat tile, a table cell, a formula) carry the Ukrainian decimal comma;
+# the English build turns it into a point. Three digits after the comma read as English thousands (1,068) and stay,
+# and so does a pair in brackets, the (7,4) Hamming code.
+EN_DECIMAL = re.compile(r"(?<![\d,.])(\d+),(\d{1,2}|\d{4,})(?![\d,])")
+
+
+def _en_decimals(text):
+    def rep(mo):
+        if text[mo.start() - 1:mo.start()] == "(" and text[mo.end():mo.end() + 1] == ")":
+            return mo.group(0)
+        return mo.group(1) + "." + mo.group(2)
+    return EN_DECIMAL.sub(rep, text)
 
 
 def mark_labels(doc, lang):
@@ -1399,6 +1411,8 @@ def _mark_text(doc, lang):
                     prev = ""
             out.append(part)
             continue
+        if lang == "en" and not any(t in ("code", "textarea", "title") for t, _ in skip):
+            part = _en_decimals(part)
         if skip or not part.strip():
             out.append(part)
             continue
