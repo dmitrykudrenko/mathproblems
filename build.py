@@ -2369,7 +2369,7 @@ COURSE_LIST = []  # [(name, meta)], filled by build() before the problem pages
 COURSE_TEXT = {
     "uk": {"courses": "Курси", "course": "Курс", "chapter": "розділ %d з %d", "solved": "розв'язано ✓", "todo": "ще не розв'язано",
            "progress": "Пройдено <b>0</b> з %d розділів", "problems": "Задач з каталогу розв'язано: <b>0</b> з %d",
-           "reset": "Почати курс спочатку", "show": "Показати висновок", "resume": "Продовжити з розділу",
+           "reset": "Почати курс спочатку", "show": "Показати висновок", "resume": "Продовжити з розділу", "start": "Почати з розділу 1",
            "needs": "Тут знадобиться те, що ви ще не пройшли:", "needs_ch": "розділ %d «%s»",
            "gate": "Висновок відкриється, коли ви розв'яжете задачу вище. Або", "gate_ch": "Висновок відкриється після вашої відповіді вище. Або",
            "more": "Що далі", "all": "Усі курси",
@@ -2377,7 +2377,7 @@ COURSE_TEXT = {
            "hub": "Тематичні шляхи для різних читачів: історія, адаптовані кейси, задачі з каталогу і терміни зі словника."},
     "en": {"courses": "Courses", "course": "Course", "chapter": "chapter %d of %d", "solved": "solved ✓", "todo": "not solved yet",
            "progress": "Done <b>0</b> of %d chapters", "problems": "Catalogue puzzles solved: <b>0</b> of %d",
-           "reset": "Start the course over", "show": "Show the takeaway", "resume": "Continue from chapter",
+           "reset": "Start the course over", "show": "Show the takeaway", "resume": "Continue from chapter", "start": "Start with chapter 1",
            "needs": "This builds on what you haven't done yet:", "needs_ch": "chapter %d, “%s”",
            "gate": "The takeaway opens once you solve the puzzle above. Or", "gate_ch": "The takeaway opens once you answer above. Or",
            "more": "What next", "all": "All courses",
@@ -2438,8 +2438,10 @@ COURSE_SCRIPT = """<script>
         res.hidden = !n || !next;
         if (next) { var a = document.querySelector('.cs-toc a[href="#' + next + '"]'); res.href = "#" + next; res.textContent = T.resume + " " + (a ? a.textContent.replace(/^\\s*(\\d+)\\s*/, "$1 · ") : next) + " →"; }
       }
+      var st = document.querySelector(".cs-start"); if (st) st.hidden = !!n;
     }
   }
+  var s1 = document.querySelector(".cs-start a"); if (s1) s1.addEventListener("click", function () { mpCourseEvent("start"); });
   var r = P && P.querySelector(".cs-reset");
   if (r) r.addEventListener("click", function () { try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); });
   paint();
@@ -2673,6 +2675,10 @@ def build_courses(problems, base):
                                                    f'<span class="cs-pc">{t["progress"] % len(chs)}</span><span class="cs-bar"><i></i></span>'
                                                    f'<span class="cs-pp">{t["problems"] % len(slugs)}</span>'
                                                    f'<a class="cs-resume" href="#" hidden></a><button type="button" class="cs-reset">{t["reset"]}</button></div>')
+            # a start button above the long lead: on a phone the first chapter is several screens down; hidden once
+            # the reader has progress (the resume link takes over), the click is counted as the course event "start"
+            body = body.replace('<p class="lead', f'<p class="cs-start"><a href="#{chs[0]}" style="display:inline-block;background:var(--ink);color:#fff;'
+                                                  f'text-decoration:none;border-radius:999px;padding:12px 22px;font-weight:600">{t["start"]} ↓</a></p>\n    <p class="lead', 1)
             more = (f'<section class="cs-ch cs-more"><h2>{t["more"]}</h2><p class="mp-related-all">'
                     f'<a href="{course_url(base, lang)}">{t["all"]} →</a><a href="{glossary_url(base, lang)}">{t["glossary"]} →</a>'
                     f'<a href="{home[lang]}#problems">{t["catalogue"]} →</a></p></section>')
