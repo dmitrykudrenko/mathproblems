@@ -2,7 +2,8 @@
 // POST {"s": slug, "k": key, "h": hints} (as text/plain, so the browser sends no preflight) counts one first
 // guess and returns the problem's counts per answer key; GET ?s=slug returns them. Nothing about the visitor is
 // stored: no IP, no cookies, no time stamps, only a counter per (problem, answer key, hints opened before it).
-const ORIGINS = [/^https:\/\/(www\.)?mathparadoxes\.com$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
+// Only the live site: local and test builds must not write into the live stats (build them with --stats-api "").
+const ORIGINS = [/^https:\/\/(www\.)?mathparadoxes\.com$/];
 const SLUG = /^[a-z0-9-]{1,60}$/;
 const KEY = /^[A-Za-z0-9.|+-]{1,60}$/;
 const MAX_KEYS = 1000;   // distinct answers per problem; new ones above this are dropped
