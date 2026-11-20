@@ -1449,8 +1449,8 @@ def _mark_text(doc, lang):
 # the very bottom. Filled in by build() before anything is written.
 SITE_NAV = {}
 NAV_TEXT = {
-    "uk": {"problems": "Задачі", "courses": "Курси", "glossary": "Словник", "continue": "Продовжити", "course": "Продовжити курс", "menu": "Меню", "nav": "Розділи"},
-    "en": {"problems": "Puzzles", "courses": "Courses", "glossary": "Glossary", "continue": "Continue", "course": "Continue the course", "menu": "Menu", "nav": "Sections"},
+    "uk": {"problems": "Задачі", "courses": "Курси", "glossary": "Словник", "blog": "Блог", "continue": "Продовжити", "course": "Продовжити курс", "menu": "Меню", "nav": "Розділи"},
+    "en": {"problems": "Puzzles", "courses": "Courses", "glossary": "Glossary", "blog": "Blog", "continue": "Continue", "course": "Continue the course", "menu": "Menu", "nav": "Sections"},
 }
 NAV_SCRIPT = """<script>
 (function () {
@@ -1830,7 +1830,8 @@ def with_site_nav(doc, lang, path):
     if not n:
         return doc
     social = "".join(f'<a href="{u}" rel="me noopener">{n}</a>' for n, u in SOCIAL[lang])
-    foot = (f'<nav class="mp-fnav" aria-label="{t["nav"]}">{items}<span class="mp-social">{social}</span></nav>\n'
+    blog = f'<a href="{base + LANG_PATH[lang]}blog/"{" aria-current=\"page\"" if rel[0] == "blog" else ""}>{t["blog"]}</a>'
+    foot = (f'<nav class="mp-fnav" aria-label="{t["nav"]}">{items}{blog}<span class="mp-social">{social}</span></nav>\n'
             f'{NAV_SCRIPT}\n{SEARCH_SCRIPT}\n')
     i = doc.rindex("</body>")
     return doc[:i] + foot + doc[i:]
@@ -1869,7 +1870,7 @@ def build_problem(slug, base, metas, books, related):
                       f'<a class="brand" href="{hub[lang]}" style="text-decoration:none">{BRAND_MARK}{SITE_NAME[lang]}</a>', body, count=1)
         style = body[:body.index("</style>") + len("</style>")]
         body = body[len(style):]
-        body = body.replace('<header class="hero">\n  <div>', '<header class="hero">\n  <div>\n    <div class="mp-meta">' + level_badge(lang, meta["level"], hub[lang]) + course_strip(lang, slug, base) + "</div>", 1)
+        body = body.replace('<header class="hero">\n  <div>', '<header class="hero">\n  <div>\n    <div class="mp-meta">' + level_badge(lang, meta["level"], hub[lang]) + course_strip(lang, slug, base) + blog_strip(lang, slug, base) + "</div>", 1)
         ld = {"@context": "https://schema.org", "@graph": [
             {
                 "@type": ["WebPage", "LearningResource"],
@@ -2626,6 +2627,30 @@ def course_slugs(meta):
     return seen
 
 
+BLOG_REFS = {}  # problem slug -> [(post slug, post meta)], filled by load_blog_refs() before the problem pages
+
+
+def load_blog_refs():
+    """Which blog posts link to each problem (<!--CARDS:...--> and {{P:slug}}), so problem pages can link back."""
+    BLOG_REFS.clear()
+    for d in sorted(p for p in BLOG.iterdir() if p.is_dir()) if BLOG.is_dir() else []:
+        if not ((d / "page.html").exists() and (d / "meta.json").exists()):
+            continue
+        src = (d / "page.html").read_text(encoding="utf-8")
+        meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+        slugs = re.findall(r"\{\{P:([a-z0-9-]+)\}\}", src)
+        for m in re.findall(r"<!--CARDS:([a-z0-9, -]+)-->", src):
+            slugs += [x.strip() for x in m.split(",")]
+        for slug in dict.fromkeys(slugs):
+            BLOG_REFS.setdefault(slug, []).append((d.name, meta))
+
+
+def blog_strip(lang, slug, base):
+    """'Blog · «post title» →' lines for a problem page, one per blog post that uses the problem."""
+    return "".join(f'<a class="mp-course" href="{base + LANG_PATH[lang]}blog/{p}/"><b>{NAV_TEXT[lang]["blog"]}</b> · '
+                   f'«{e(m[lang]["title"])}» →</a>' for p, m in BLOG_REFS.get(slug, []))
+
+
 def course_strip(lang, slug, base):
     """'Course «…» · chapter k of N →' lines for a problem page, one per course that sends readers to it."""
     out = []
@@ -3078,6 +3103,7 @@ def build(base, out=None):
                                  "u": {l: course_url(base, l, c) for l in LANGS},
                                  "c": [ch["id"] for ch in cm["chapters"] if ch.get("check", True)]} for c, cm in COURSE_LIST})
     related = pick_related(metas)
+    load_blog_refs()
     problems = [build_problem(s, base, metas, books, related[s]) for s, _ in metas]
     hub = build_hub(problems, base)
     build_404(problems, base)
@@ -3086,14 +3112,14 @@ def build(base, out=None):
     shelf = build_books(problems, base, books)
     glossary = build_glossary(problems, base)
     courses = build_courses(problems, base)
-    build_blog(problems, base)  # not in the sitemap or the menu yet: the blog is shared by direct link only for now
+    blog = build_blog(problems, base)
     build_feeds(metas, base)
     build_search(metas, base)
     write_redirects(base)
 
     today = date.today().isoformat()
     entries = []
-    for urls, mod in [(hub, today), (shelf, today)] + glossary + courses + [(p[2], p[1]["updated"]) for p in problems]:
+    for urls, mod in [(hub, today), (shelf, today)] + glossary + courses + blog + [(p[2], p[1]["updated"]) for p in problems]:
         for lang in LANGS:
             alts = "".join(f'\n    <xhtml:link rel="alternate" hreflang="{h}" href="{urls[h]}"/>' for h in LANGS)
             alts += f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{urls[X_DEFAULT]}"/>'
