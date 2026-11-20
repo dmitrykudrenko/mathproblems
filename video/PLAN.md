@@ -53,6 +53,45 @@ Next: coin-streaks, german-tank-problem, inspection-paradox, braess-paradox, sle
 
 Covers (`cover.mjs`) are on TikTok. YouTube takes custom covers only after the channel is verified by phone (the same step makes description links clickable): upload them then.
 
+## Formats around the puzzles
+
+Besides the puzzle shorts (question → options → pause → hint), six more formats, built with `beats.mjs` (a short is a list of spoken lines with what the screen shows) and `visuals.mjs` (animated pictures: dots, a map, a doubling tower, icons, a stack, a histogram). Each format has its own colour and kicker, and with the puzzles each is a series (`series.mjs`): its own deep background and label (PUZZLE, MOST GET IT WRONG, GLOSSARY, TRUE STORY, TRY IT, COSTLY MISTAKE, THE VOTE) on the sting and the cover.
+
+| Format | Kicker | What it does | Ends with |
+|---|---|---|---|
+| wrong | MOST PEOPLE GET THIS WRONG | a sourced figure of how many get it wrong, then the question | the guess in the comments |
+| word | ONE WORD, 40 SECONDS | a glossary hook, why, where it hits you; gives the full payoff | a question for the comments |
+| story | A TRUE STORY | a real story with its numbers | «how did they do it?» → the page |
+| try | TRY IT YOURSELF | a real-world experiment | «post your result» |
+| cost | A COSTLY MISTAKE | a case where the wrong number cost money or harm | «what did yours cost?» |
+| poll | WHAT VISITORS CHOSE | real first votes from the site, none marked right | waits for 100+ answers per problem (`later/`) |
+
+Rules: facts only from the site with its source on screen; never a site puzzle's answer; simulations say they are simulations; the first line is the most surprising fact (no dates first); end with the comments and «link in the profile», since links in Shorts are not clickable; 25–45 s.
+
+## Queue: formats (English), one a day at 17:00 Lisbon
+
+Status 2026-11-16. The YouTube channel is phone-verified (2026-11-16): no ~10-a-day upload cap, and every YouTube short has its custom cover from `out/<id>-en-cover.png`. Links in Shorts descriptions are never clickable on YouTube; the clickable path to the site is the channel header link. TikTok schedules at most 10 days ahead. Titles, descriptions, tags and TikTok captions for every short are in `captions.json`.
+
+| Date | Short | YouTube | TikTok |
+|---|---|---|---|
+| 11-18 | story-german-tanks | scheduled, cover | scheduled, cover |
+| 11-19 | word-mean | scheduled, cover | scheduled, cover |
+| 11-20 | cost-pill-scare | scheduled, cover | scheduled, cover |
+| 11-21 | wrong-vos-savant | scheduled, cover | scheduled, cover |
+| 11-22 | word-logarithm | scheduled, cover | scheduled, cover |
+| 11-23 | wrong-mammography | scheduled, cover | scheduled, cover |
+| 11-24 | story-literary-digest | scheduled, cover | scheduled, cover |
+| 11-25 | wrong-bat-ball | scheduled, cover | scheduled, cover |
+| 11-26 | word-combinatorics | scheduled, cover | scheduled, cover |
+| 11-27 | story-london-bombs | scheduled, cover | scheduled, cover |
+| 11-28 | try-birthday-chat | scheduled, cover | from 11-18 |
+| 11-29 | try-xkcd-tanks | scheduled, cover | from 11-19 |
+| 11-30 | try-monty-cups | scheduled, cover | from 11-20 |
+| 12-01 | cost-ab-power | scheduled, cover | from 11-21 (also LinkedIn) |
+| 12-02 | cost-holdout | scheduled, cover | from 11-22 (also LinkedIn) |
+
+Two shorts about one problem stay at least a week apart (birthday 11-15 / 11-28, Monty Hall 11-15 / 11-21 / 11-30, tanks 11-18 / 11-29).
+
 ## Captions (English)
 
 No answer anywhere: the title and description ask, the site answers. No emoji. The page link goes in the YouTube description (not clickable in Shorts, still read) and in the TikTok caption as text.

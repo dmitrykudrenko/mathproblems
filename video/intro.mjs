@@ -1,9 +1,11 @@
 // Branded sting, 0.75 s, before every short: the three-doors mark, the site name and the
-// problem's title in its own colour on ink, then the ink panel lifts off the first scene.
+// series label (PUZZLE, WORD, TRUE STORY…) on the series' own deep colour, then the panel lifts
+// off the first scene. One or two words only: a title would not be read in under a second.
 // It opens already drawn (LEAD skips the draw-on), because the first frame is what a viewer
 // sees while deciding to scroll on, and what Shorts/TikTok take as the default cover.
 // A scene opts in with `export const INTRO = { tint, uk: { title }, en: { title } }`.
 import { loadImage, Path2D } from '@napi-rs/canvas';
+import { SERIES, seriesLabel } from './series.mjs';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -19,7 +21,7 @@ async function lockup(lang) {
 }
 const LOCKUP = { uk: await lockup('uk'), en: await lockup('en') };
 
-const T0 = 0.75, WIPE = 0.32;             // main scene starts at T0, under the lifting panel
+export const T0 = 0.75; const WIPE = 0.32;             // main scene starts at T0, under the lifting panel
 const LEAD = 0.95;                        // sting time at frame 0: everything is drawn by then
 const INK = '#141A30', LIGHT = '#F2F3F7', SIGNAL = '#E86AB0';
 const MARK_W = 130;                       // the mark's share of the lockup, in viewBox units
@@ -49,9 +51,10 @@ function drawIntro(ctx, time, lang, cfg, W, H) {
   const lift = easeIn(prog(time, T0, WIPE)) * H, t = time + LEAD;
   ctx.save();
   ctx.translate(0, -lift);
-  ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
+  const series = SERIES[cfg.series || 'puzzle'];
+  ctx.fillStyle = series.deep; ctx.fillRect(0, 0, W, H);
 
-  const { img, vb } = LOCKUP[lang], s = SCALE, w = vb * s, x0 = (W - w) / 2, y0 = 760;
+  const { img, vb } = LOCKUP[lang], s = SCALE, w = vb * s, x0 = (W - w) / 2, y0 = 700;
   ctx.save();
   ctx.translate(x0, y0); ctx.scale(s, s);
   // doors draw on, one after another
@@ -84,17 +87,9 @@ function drawIntro(ctx, time, lang, cfg, W, H) {
     ctx.restore();
   }
 
-  // the problem: its own title in its own colour
+  // the series label
   const a = easeOut(prog(t, 0.62, 0.3));
-  if (a > 0) {
-    ctx.save(); ctx.globalAlpha = a;
-    ctx.fillStyle = cfg.tint;
-    ctx.fillRect(W / 2 - 60 * a, 960, 120 * a, 6);
-    ctx.font = '800 58px Unbounded'; ctx.textAlign = 'center';
-    // 760 px: TikTok's like/comment buttons cover the right edge of the frame
-    wrap(ctx, cfg[lang].title, 760).forEach((l, i) => ctx.fillText(l, W / 2, 1070 + i * 74 + 16 * (1 - a)));
-    ctx.restore();
-  }
+  if (a > 0) { ctx.save(); ctx.globalAlpha = a; seriesLabel(ctx, cfg.series || 'puzzle', lang, W / 2, 1010 + 16 * (1 - a), 64); ctx.restore(); }
   ctx.restore();
 }
 
