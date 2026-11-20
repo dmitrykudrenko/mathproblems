@@ -2220,7 +2220,20 @@ def build_blog(problems, base):
     home = {l: base + LANG_PATH[l] for l in LANGS}
     list_urls = {l: base + LANG_PATH[l] + "blog/" for l in LANGS}
 
+    def cards(body):
+        # <!--CARDS:slug,slug--> becomes a row of the home page's puzzle cards (illustration, name, question, level)
+        def grid(m):
+            slugs = [x.strip() for x in m.group(1).split(",")]
+            missing = [x for x in slugs if x not in by_slug]
+            if missing:
+                raise SystemExit(f"blog: <!--CARDS:...--> names unpublished problems {missing}")
+            return '<div class="pcs">\n' + problem_cards([by_slug[x] for x in slugs]) + '\n</div>'
+        return re.sub(r"<!--CARDS:([a-z0-9, -]+)-->", grid, body)
+
     def links(body, lang):
+        body = cards(body)
+        for slug in re.findall(r"\{\{(?:URL|OG):([a-z0-9-]+)\}\}", body):
+            body = body.replace("{{URL:%s}}" % slug, by_slug[slug][2][lang]).replace("{{OG:%s}}" % slug, base + slug + f"/og-{lang}.png")
         def prob(m):
             if m.group(1) not in by_slug:
                 raise SystemExit(f"blog: {{{{P:{m.group(1)}}}}} is not a published problem")
