@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/uk/blog/product-hunt-game-theory/", "en": "/blog/product-hunt-game-theory/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want && HERE === "uk") return;
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = null;
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  // the gate card sits after round 1; once it hides, the browser would keep the bottom of the page in view, so jump to round 2
+  function toRounds(b) {
+    var r = b.closest(".sp-gate") && document.querySelector(".sp-rounds");
+    if (r) requestAnimationFrame(function () { r.scrollIntoView({ block: "start" }); });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+    if (on) toRounds(b);
+  });
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else { window.mpSolve(); toRounds(b); }
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+
+<title>Product Hunt як гра: що теорія ігор каже про голосування</title>
+<meta name="description" content="Запуски на Product Hunt з 2018 року і голосування e-Commerce Berlin: чому важить місце, а не голоси, і коли витрачати сили.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/uk/blog/product-hunt-game-theory/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/uk/blog/product-hunt-game-theory/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/blog/product-hunt-game-theory/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/blog/product-hunt-game-theory/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/uk/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Product Hunt як гра: що теорія ігор каже про голосування">
+<meta property="og:description" content="Запуски на Product Hunt з 2018 року і голосування e-Commerce Berlin: чому важить місце, а не голоси, і коли витрачати сили.">
+<meta property="og:url" content="https://mathparadoxes.com/uk/blog/product-hunt-game-theory/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Product Hunt як гра: що теорія ігор каже про голосування">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Product Hunt як гра: що теорія ігор каже про голосування">
+<meta name="twitter:description" content="Запуски на Product Hunt з 2018 року і голосування e-Commerce Berlin: чому важить місце, а не голоси, і коли витрачати сили.">
+<meta name="twitter:image" content="https://mathparadoxes.com/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "BlogPosting", "@id": "https://mathparadoxes.com/uk/blog/product-hunt-game-theory/#post", "url": "https://mathparadoxes.com/uk/blog/product-hunt-game-theory/", "headline": "Product Hunt як гра: що теорія ігор каже про голосування", "description": "Запуски на Product Hunt з 2018 року і голосування e-Commerce Berlin: чому важить місце, а не голоси, і коли витрачати сили.", "inLanguage": "uk", "datePublished": "2026-11-20", "dateModified": "2026-11-20", "author": {"@id": "https://mathparadoxes.com/#author"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/uk/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=debad5fb">
+<style>
+/* Layout: one blog article. Text column, one chart of the launch day drawn from the data in the script, a small
+   timeline for the e-Commerce Berlin votes. Shared tokens and components come from site.css. */
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 760px; margin: 0 auto; }
+h1, h2, h3, p, ul, ol, table, figure, blockquote { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.post-head { margin-top: 18px; border-radius: 32px; padding: 48px 40px 40px; display: grid; gap: 18px; background: var(--dots), var(--soft); }
+.post-head h1 { font-size: clamp(1.9rem, 5.4vw, 3.4rem); overflow-wrap: break-word; }
+.post-meta { color: var(--muted); font-size: .9rem; }
+article { display: grid; gap: 18px; padding-top: 40px; font-size: 1.06rem; }
+article h2 { font-size: clamp(1.3rem, 3.2vw, 1.9rem); margin-top: 28px; }
+article ul, article ol { padding-left: 1.3em; display: grid; gap: 8px; }
+.note { border-left: 3px solid var(--ink); padding: 4px 0 4px 16px; color: var(--muted); }
+.quote { border-radius: var(--r); background: var(--soft); padding: 20px 24px; font-size: 1.1rem; }
+.quote cite { display: block; margin-top: 8px; color: var(--muted); font-style: normal; font-size: .9rem; }
+.tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .98rem; }
+.tbl th, .tbl td { text-align: left; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl th { font-weight: 600; color: var(--muted); font-size: .86rem; }
+.tbl td.n { text-align: right; padding-right: 0; }
+.tbl-wrap { overflow-x: auto; }
+figure { border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: grid; gap: 12px; }
+figcaption { color: var(--muted); font-size: .9rem; }
+#ph-chart svg { width: 100%; height: auto; display: block; }
+#ph-chart text { font-family: var(--f); font-size: 12px; fill: var(--muted); }
+#ph-chart .lbl { fill: var(--ink); font-weight: 600; }
+.strat { display: grid; gap: 10px; border: 1px solid var(--line); border-radius: var(--r); padding: 22px 24px; }
+.strat h3 { font-size: 1.15rem; }
+.strat .see { font-size: .95rem; color: var(--muted); }
+.timeline { list-style: none; padding: 0 !important; display: grid; gap: 0 !important; }
+.timeline li { display: grid; grid-template-columns: 64px 1fr; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.timeline b { font-variant-numeric: tabular-nums; }
+.check { list-style: none; padding: 0 !important; }
+.check li { padding-left: 30px; position: relative; }
+.check li::before { content: ""; position: absolute; left: 0; top: .3em; width: 16px; height: 16px; border: 2px solid var(--ink); border-radius: 4px; }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+@media (max-width: 700px) { .post-head { padding: 36px 20px 28px; border-radius: 24px; } .strat { padding: 18px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="https://mathparadoxes.com/uk/"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+    <nav class="mp-nav" aria-label="Розділи" data-t="{&quot;cont&quot;: &quot;Продовжити&quot;, &quot;course&quot;: &quot;Продовжити курс&quot;}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Меню"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Продовжити: <b></b></a><a href="https://mathparadoxes.com/uk/#all">Задачі</a><a href="https://mathparadoxes.com/uk/courses/">Курси</a><a href="https://mathparadoxes.com/uk/glossary/">Словник</a></div><button type="button" class="mp-sx-btn" aria-haspopup="dialog" aria-label="Пошук" data-src="https://mathparadoxes.com/uk/search.json" data-t="{&quot;btn&quot;: &quot;Пошук&quot;, &quot;ph&quot;: &quot;Задача, курс або термін&quot;, &quot;all&quot;: &quot;Усе&quot;, &quot;p&quot;: &quot;Задачі&quot;, &quot;c&quot;: &quot;Курси&quot;, &quot;g&quot;: &quot;Словник&quot;, &quot;recent&quot;: &quot;Нещодавно відкриті&quot;, &quot;try&quot;: &quot;Спробуйте&quot;, &quot;none&quot;: &quot;Нічого не знайшлося. Спробуйте інше слово або&quot;, &quot;every&quot;: &quot;подивіться всі задачі&quot;, &quot;keys&quot;: &quot;↑↓ вибрати · Enter відкрити · Esc закрити&quot;, &quot;solved&quot;: &quot;розв&#x27;язано&quot;, &quot;load&quot;: &quot;Завантаження…&quot;, &quot;fail&quot;: &quot;Не вдалося завантажити пошук. Перевірте з&#x27;єднання.&quot;, &quot;close&quot;: &quot;Закрити&quot;, &quot;course&quot;: &quot;Курс&quot;, &quot;chapter&quot;: &quot;розділ %d з %d&quot;, &quot;glossary&quot;: &quot;Словник&quot;, &quot;ideas&quot;: [&quot;ймовірність&quot;, &quot;A/B-тест&quot;, &quot;Монті Голл&quot;, &quot;медіана&quot;, &quot;співбесіда&quot;, &quot;аукціон&quot;]}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="mp-sx-lbl">Пошук</span><kbd>/</kbd></button></nav>
+  <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="https://mathparadoxes.com/uk/blog/product-hunt-game-theory/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="https://mathparadoxes.com/blog/product-hunt-game-theory/" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+
+  <header class="post-head">
+    <a class="eyebrow" href="https://mathparadoxes.com/uk/blog/" style="text-decoration:none"><span class="uk">Блог</span></a>
+    <h1><span class="uk">Product Hunt як гра</span></h1>
+    <p class="lead uk">Що теорія ігор каже про голосування, де важить лише місце, і коли витрачати сили: на прикладі запусків на Product Hunt і голосувань e-Commerce Berlin.</p>
+    
+    <p class="post-meta"><span class="uk">Дмитро Кудренко · 20 листопада 2026</span></p>
+  </header>
+
+  <article>
+    <p class="uk">19 листопада ми вкотре запускали Stripo на Product Hunt і закінчили день четвертими. Я був хантером на п'яти наших запусках з 2018 року, і щоразу день ставить одне питання: просити підтримки зараз чи притримати сили на вечір?</p>
+    
+    <p class="uk">Це питання з теорії ігор. Вона не дає рецепту перемоги, але чесно пояснює, у яку гру ви граєте, і які ходи в ній мають сенс. Нижче&nbsp;— п'ять стратегій, кожна з реальним прикладом і задачею на сайті, де цю ідею можна перевірити руками.</p>
+    
+
+    <h2><span class="uk">Правила гри</span></h2>
+    <ul class="uk">
+      <li>День на Product Hunt починається о 00:01 за Каліфорнією (10:01 за Києвом) і триває 24 години.</li>
+      <li>Перші 4 години кількість голосів і місця приховані. Видно лише коментарі.</li>
+      <li>Після цього таблицю бачать усі, і кожен може реагувати на суперників.</li>
+      <li>Product Hunt не публікує формулу рейтингу. Голоси нових чи підозрілих акаунтів важать менше або зникають.</li>
+    </ul>
+    
+
+    <h2><span class="uk">Яка це гра: важить місце, а не голоси</span></h2>
+    <p class="uk">Подивіться на наші запуски. Найбільше голосів ми зібрали у 2025 році, і це дало лише друге місце. Claspo у 2023-му зібрав на третину менше і став першим.</p>
+    
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th><span class="uk">Запуск</span></th><th><span class="uk">Голоси</span></th><th><span class="uk">Місце дня</span></th></tr></thead>
+        <tbody>
+          <tr><td>Stripo 2.0 · <span class="uk">серпень 2019</span></td><td class="n">253</td><td class="n">5</td></tr>
+          <tr><td>Claspo · <span class="uk">березень 2023</span></td><td class="n">494</td><td class="n">1</td></tr>
+          <tr><td>Stripo · <span class="uk">березень 2025</span></td><td class="n">707</td><td class="n">2</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="uk">Те саме видно й без нас. 19 листопада переможець попереднього дня мав 369 голосів, переможець минулого тижня&nbsp;— 541, минулого місяця&nbsp;— 692. Скільки треба для першого місця, залежить не від вас, а від того, хто вийшов того ж дня.</p>
+    
+    <p class="uk">Економісти називають таке <b>турніром за рангом</b> (Lazear і Rosen, 1981): нагороду дають за місце, а не за результат. До того ж це змагання, де витрачені зусилля не повертаються, навіть якщо програв (контест Таллока, 1980). Звідси два наслідки, на яких стоїть усе далі: стежити треба за суперниками, а не за власним лічильником, а разом учасники часто витрачають майже стільки, скільки вартий приз.</p>
+    
+
+    <figure>
+      <div id="ph-chart" role="img" aria-label="Votes of the top five products on 19 November 2026 by Kyiv time"></div>
+      <figcaption class="uk">Голоси п'ятірки лідерів 19 листопада 2026 за київським часом, знімки головної Product Hunt. Сіра смуга&nbsp;— перші 4 години, коли голоси приховані. Остання точка&nbsp;— фінал дня о 10:00 наступного ранку.</figcaption>
+      
+    </figure>
+    <p class="uk">На графіку видно обидві сили, про які йтиметься далі. Перші два місця склалися ще наосліп: коли Product Hunt відкрив голоси, TestSprite і Verse Engine уже йшли першим і другим і більше не віддали ці місця. А Adside, який після відкриття голосів був десятим, до кінця дня піднявся на п'яте. Stripo закінчив четвертим.</p>
+    
+
+    <h2><span class="uk">П'ять стратегій</span></h2>
+
+    <section class="strat">
+      <h3><span class="uk">1. Вибрати поле бою</span></h3>
+      <p class="uk">Вівторок і четвер&nbsp;— найактивніші дні: більше трафіку, але й найсильніші суперники. На вихідних перемогти легше, але й побачать вас менше. Це задача Готеллінга: де стати з морозивом на пляжі, щоб покупців вистачило, а конкурентів було менше. А ще в неї є пастка: якщо всі шукають «тихий» день, він перестає бути тихим. Тут треба думати на крок уперед за інших, як у грі «вгадай дві третини».</p>
+      
+      <p class="see"><span class="uk">Задачі:</span> <a href="https://mathparadoxes.com/uk/hotelling-beach/"><span class="uk">Морозиво на пляжі</span></a> · <a href="https://mathparadoxes.com/uk/guess-two-thirds/"><span class="uk">Вгадай 2/3 від середнього</span></a></p>
+    </section>
+
+    <section class="strat">
+      <h3><span class="uk">2. Ранній ривок чи резерв на фінал</span></h3>
+      <p class="uk">Тут діють дві протилежні сили. Перша&nbsp;— видимість: місце в рейтингу саме приводить нових людей, тож хто рано вийшов нагору, отримує голоси, про які не просив. Якщо за перші 3–4 години не набрати хід, можна взагалі не потрапити на головну. Друга&nbsp;— дедлайн: коли гра закінчується в точно відомий момент, вигідно приберегти сили на кінець, щоб суперник не встиг відповісти. Roth і Ockenfels (2002) показали це на аукціонах: на eBay, де торги закінчуються в точний час, ставки масово роблять в останні хвилини, а на Amazon, де час подовжувався після кожної ставки, такого майже не було.</p>
+      
+      <p class="uk">У 2025 році ми близько 10 годин були першими, а в останні три години суперник додав активності й обійшов нас. Ми зробили ранній ривок, він&nbsp;— фінальний. Добра стратегія враховує обидві сили: набрати хід на старті рівно настільки, щоб потрапити у видиму зону, а частину підтримки (розсилку, інший часовий пояс, партнерів) тримати на останні години.</p>
+      <p class="uk">Звідси практичне правило: не розсилати лист усій базі одночасно. О десятій ранку за Києвом в Америці ніч, і половина листів згорить непрочитаною. Краще сегментувати базу за часовими поясами і надсилати кожному в його ранок. Так само з постами: допис у Facebook працює для української аудиторії, допис у LinkedIn&nbsp;— для американської, і час у них різний. Знайомі, яких особисто попросили поділитися,&nbsp;— ще одна хвиля, яку можна поставити туди, де вона потрібна.</p>
+      
+      
+    </section>
+
+    <section class="strat">
+      <h3><span class="uk">3. Не провокувати</span></h3>
+      <p class="uk">Коли двоє бачать, що йдуть поруч, обидва дістають резерви, і гонка дорожчає для обох. Так влаштований аукціон за долар: кожен наступний крок здається розумним, а разом учасники платять більше, ніж вартий приз. Тому той, хто йде трохи позаду і не світить своїх планів, часто виграє більше, ніж лідер, який усіх розбурхав. Перші 4 години на Product Hunt&nbsp;— це взагалі гра наосліп, як аукціон із закритими ставками: реагувати не можна, можна лише добре підготуватися.</p>
+      
+      <p class="see"><span class="uk">Задачі:</span> <a href="https://mathparadoxes.com/uk/dollar-auction/"><span class="uk">Аукціон за долар</span></a> · <a href="https://mathparadoxes.com/uk/revenue-equivalence/"><span class="uk">Чотири аукціони</span></a></p>
+    </section>
+
+    <section class="strat">
+      <h3><span class="uk">4. Якість, а не кількість</span></h3>
+      <p class="uk">19 листопада Stripo мав 135 коментарів&nbsp;— більше, ніж будь-хто того дня (у наступного 56), і при цьому четверте місце. Коли метрику легко наростити, вона перестає щось означати, і платформа вчиться її знецінювати. Це закон Гудгарта. Голоси з однієї тісної мережі, нових акаунтів чи хвилі за п'ять хвилин важать менше. Сто голосів від людей, які справді користуються продуктом, кращі за триста від друзів.</p>
+      
+    </section>
+
+    <section class="strat">
+      <h3><span class="uk">5. Знати, скільки коштує перше місце</span></h3>
+      <p class="uk">У турнірі за рангом різниця між першим і другим місцем часто&nbsp;— кілька голосів, а ціна цих голосів у кінці дня найвища. Той, хто таки виграв гонку, найчастіше заплатив за неї найбільше: це прокляття переможця. Перед запуском варто чесно відповісти собі, що дає саме перше місце, а що дають топ-3 чи топ-5: бейдж, розсилки, інфопривід, відгуки користувачів. Іноді найкраща стратегія&nbsp;— гарантувати топ-5 і не битися за першість.</p>
+      <p class="uk">Те саме з резервом. Якщо у вас є сили на фінальний ривок, спершу перевірте, чи він щось змінить. Коли видно, що відрив не наздогнати, вкинути резерв&nbsp;— означає спалити його даремно: витрачене не повернеться, а місце не зміниться. Краще зберегти людей і їхню добру волю для наступного запуску.</p>
+      
+      
+      <p class="see"><span class="uk">Задача:</span> <a href="https://mathparadoxes.com/uk/winners-curse/"><span class="uk">Прокляття переможця</span></a></p>
+    </section>
+
+    <h2><span class="uk">Те саме в e-Commerce Berlin</span></h2>
+    <p class="uk">Ту саму гру я бачив на голосуваннях e-Commerce Berlin: учасники обирають топ-3 доповіді, а журі бере одну з них у програму. Голосування тягнеться місяцями, але вирішується в останні години.</p>
+    
+    <p class="uk">Навіщо це взагалі: доповідь на сцені&nbsp;— це публікації, новини і PR, яких не купиш рекламою. Тому за місце б'ються всерйоз, і в останні дні суперники підключають до голосування цілі компанії.</p>
+    
+    <ul class="timeline">
+      <li><b>2017</b><span class="uk">Голосування за доповідь на конференції 2018 року. У п'ятницю прошу підтримки: треба 500 голосів, і цю мету я вже двічі піднімав, бо суперники теж росли. У суботу ми швидко виходимо в лідери, потім команда з Польщі стрімко наздоганяє. Фінал&nbsp;— 506 : 492 на нашу користь.</span></li>
+      <li><b>2018</b><span class="uk">E-commerce Berlin Awards, де обирають найкорисніший сервіс. У наступний тур проходить перша десятка, ми другі. У коментарях радять: «Кличте за дві години до часу Х, щоб суперник не встиг перегрупуватися». Відповідаю, що цього разу не треба: проходить перша десятка.</span></li>
+      <li><b>2020</b><span class="uk">Доповідь про гейміфікацію в листах. Фінал у категорії «маркетинг»: 278, 274, <b>234 у нас</b> і 233 у четвертого. Третє місце з 110 заявок ми втримали з перевагою в один голос.</span></li>
+      <li><b>2022</b><span class="uk">За шість днів до кінця у нас 51 голос і 22-ге місце з 125 (у лідера 99). В останній день ми перші з ранку, ввечері нас починають посувати, і за годину треба ще 10 голосів. Знову перемога.</span></li>
+    </ul>
+    <blockquote class="quote uk">«Останні 3 години був справжній батл. Дійшло до того, що в останню секунду вони вкинули 2&nbsp;000 ботів, але фотофініш усе зафіксував. Ботів відкликали».<cite>мій допис у Facebook після голосування, 20 листопада 2017</cite></blockquote>
+    
+    <p class="uk">У цих числах і є вся гонка. Між сценою і її відсутністю&nbsp;— 14 голосів із пів тисячі у 2017-му і один голос у 2020-му. У 2022-му тижні голосування дали 51 голос і 22-ге місце, а перше вирішили останні дні й години. Порада з 2018 року&nbsp;— це той самий снайпінг на дедлайні, а моя відповідь&nbsp;— уточнення з теорії ігор: коли нагорода&nbsp;— потрапити в десятку, а не стати першим, фінальний ривок не потрібен. Стратегію визначають правила.</p>
+    
+    <p class="uk">Висновок, який я звідти виніс: якщо ти вже витратив свою аудиторію на довгому розгоні, у фіналі сил не лишається. Краще не провокувати суперників, триматися на проміжній позиції й знати, скільки зусиль знадобиться, щоб піднятися наприкінці. А якщо «підігрівати» голосування місяцями, конкуренти теж шукатимуть резерви, і гонка подорожчає для всіх.</p>
+    
+    <p class="uk">Різниця з Product Hunt одна, і вона важлива: у Берліні голосує лише та аудиторія, яку привели самі учасники, тож місце не приводить нових голосів. Тому там резерв на фінал працює сильніше, а на Product Hunt ранній старт теж має ціну.</p>
+    
+
+    <h2><span class="uk">До чого бути готовим</span></h2>
+    <ul class="check uk">
+      <li>Вибрати день, знаючи, з ким можете зустрітися, і чого хочете: трафіку чи бейджа.</li>
+      <li>Розписати підтримку на хвилі: стартова, щоб потрапити у видиму зону, і фінальна, на останні години.</li>
+      <li>Сегментувати розсилку за часовими поясами, а пости&nbsp;— за аудиторіями: Facebook для своїх, LinkedIn для американців.</li>
+      <li>Перед фінальним ривком оцінити, чи він змінить місце. Якщо ні&nbsp;— зберегти резерв.</li>
+      <li>Не показувати план і проміжні цифри публічно, щоб не запускати ескалацію.</li>
+      <li>Просити не голос, а подивитися продукт і написати, що думаєте: це дає якісні голоси й коментарі.</li>
+      <li>Заздалегідь вирішити, скільки коштує перше місце порівняно з топ-5, і не платити більше.</li>
+      <li>Бути готовим, що хтось прийде з резервом в останні години. Це не нечесно, це просто інша стратегія.</li>
+    </ul>
+    
+    <p class="uk">Більше про такі ігри&nbsp;— у курсі <a href="https://mathparadoxes.com/uk/courses/game-theory/">«Теорія ігор для бізнесу»</a>: короткі інтерактивні кейси, де можна зіграти проти бота й перевірити ці стратегії самому.</p>
+    
+    <p class="note uk">Дані: сторінки запусків і нагород на Product Hunt, стаття в блозі Stripo про запуск 2025 року, знімки головної Product Hunt 19 листопада 2026, мої дописи у Facebook про e-Commerce Berlin (2017–2022), архівні знімки сторінки голосування e-Commerce Berlin (Internet Archive, 27.10.2020 і 13.10.2022).</p>
+    
+  </article>
+
+  <footer>
+    <span class="uk">Математичні парадокси · автор <a href="https://mathparadoxes.com/uk/#author">Дмитро Кудренко</a> · <a href="https://mathparadoxes.com/uk/blog/">Блог</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(function () {
+  // Snapshots of the Product Hunt home page, 19 November 2026, Kyiv time (UTC+2); votes are hidden until about 14:00.
+  // "34:00" is 10:00 the next morning, the end of the day: final numbers from producthunt.com/leaderboard/daily/2026/11/19.
+  // Source: Stripo launch-day dashboard, product rows of the Featured list (Promoted slots left out).
+  var t = ["15:13","16:16","16:50","16:58","17:54","18:15","18:35","19:58","20:34","20:58","21:24","23:51","00:22","00:54","34:00"];
+  var s = [
+    ["TestSprite 4.0", [166,196,206,206,226,233,237,251,254,257,258,268,274,275,280]],
+    ["Verse Engine", [152,169,185,183,193,200,213,224,226,226,230,239,243,244,249]],
+    ["Netlify Server", [137,156,162,165,173,178,193,196,198,198,204,220,228,229,235]],
+    ["Stripo", [140,153,160,159,168,172,174,183,187,190,193,214,218,219,222]],
+    ["Adside", [93,96,96,98,113,115,118,140,154,157,161,177,180,189,201]]
+  ];
+  function hr(x) { var p = x.split(":"), h = +p[0] + p[1] / 60; return h < 10 ? h + 24 : h; }
+  var box = document.getElementById("ph-chart"), W = Math.max(320, Math.min(680, box.clientWidth || 680)), H = W < 500 ? 300 : 360, L = 34, R = 112, T = 16, B = 34, x0 = 10, x1 = 34, y1 = 300;
+  function X(h) { return L + (h - x0) / (x1 - x0) * (W - L - R); }
+  function Y(v) { return T + (1 - v / y1) * (H - T - B); }
+  var ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  function el(n, a, txt) { var e = document.createElementNS(ns, n); for (var k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; svg.appendChild(e); return e; }
+  el("rect", {x: X(10), y: T, width: X(14) - X(10), height: H - T - B, fill: "#EDEDED"});
+  var en = document.documentElement.dataset.lang === "en";
+  var hidden = W < 500 ? (en ? "hidden" : "приховано") : (en ? "votes hidden" : "голоси приховані");
+  el("text", {x: (X(10) + X(14)) / 2, y: T + 34, "text-anchor": "middle"}, hidden);
+  [0, 100, 200, 300].forEach(function (v) {
+    el("line", {x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: "#E4E4E4"});
+    el("text", {x: L - 6, y: Y(v) + 4, "text-anchor": "end"}, v);
+  });
+  (W < 500 ? [10, 18, 26, 34] : [10, 14, 18, 22, 26, 30, 34]).forEach(function (h) {
+    el("text", {x: X(h), y: H - 12, "text-anchor": "middle"}, (h % 24 < 10 ? "0" : "") + (h % 24) + ":00");
+  });
+  var ends = [];
+  s.forEach(function (row) {
+    var mine = row[0] === "Stripo", pts = row[1].map(function (v, i) { return X(hr(t[i])) + "," + Y(v); }).join(" ");
+    el("polyline", {points: pts, fill: "none", stroke: mine ? "#151515" : "#9A9A9A", "stroke-width": mine ? 3 : 1.6,
+      "stroke-dasharray": row[0] === "Adside" ? "5 4" : "none", "stroke-linejoin": "round"});
+    ends.push({n: row[0], y: Y(row[1][row[1].length - 1]), v: row[1][row[1].length - 1], mine: mine});
+  });
+  ends.sort(function (a, b) { return a.y - b.y; });
+  for (var i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 15) ends[i].y = ends[i - 1].y + 15;
+  ends.forEach(function (e) { el("text", {x: W - R + 8, y: e.y + 4, "class": e.mine ? "lbl" : ""}, e.n + " " + e.v); });
+  box.appendChild(svg);
+})();
+</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Розділи"><a href="https://mathparadoxes.com/uk/#all">Задачі</a><a href="https://mathparadoxes.com/uk/courses/">Курси</a><a href="https://mathparadoxes.com/uk/glossary/">Словник</a><span class="mp-social"><a href="https://www.youtube.com/@mathparadoxes" rel="me noopener">YouTube</a><a href="https://www.tiktok.com/@mathparadoxes" rel="me noopener">TikTok</a><a href="https://www.instagram.com/math.paradoxes/" rel="me noopener">Instagram</a><a href="https://t.me/mathparadoxes" rel="me noopener">Telegram</a></span></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t), old = false;
+  // items saved before 2026-11 carry the old URLs (Ukrainian at /x/, English at /x/en/): move them to /uk/x/ and /x/
+  list.forEach(function (p) {
+    if (p.u && p.u.uk && !/^https?:\/\/[^\/]+\/uk\//.test(p.u.uk)) {
+      p.u = { uk: p.u.uk.replace(/^(https?:\/\/[^\/]+\/)/, "$1uk/"), en: String(p.u.en).replace(/en\/$/, "") };
+      old = true;
+    }
+  });
+  if (old && !me) try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+<script>
+(function () {
+  var btn = document.querySelector(".mp-sx-btn");
+  if (!btn) return;
+  var T = JSON.parse(btn.dataset.t), lang = document.documentElement.dataset.lang === "en" ? "en" : "uk";
+  var data = null, loading = null, box = null, input, list, tabs, foot, tab = "", act = 0, opts = [], back = null;
+  var W = { n: 3, on: 2.5, k: 2, d: 1, x: 0.8, o: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
+  // small words that may match nothing without dropping the result ("задача про монети")
+  var STOP = ["и", "та", "в", "у", "на", "з", "из", "до", "для", "про", "як", "що", "the", "a", "an", "of", "in", "on", "and", "to", "for", "how", "what"];
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  btn.querySelector("kbd").textContent = mac ? "⌘K" : "Ctrl K";
+
+  function norm(s) {
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’'ʼ`ъ]/g, "")
+      .replace(/[іыий]/g, "и").replace(/[єэё]/g, "е").replace(/ґ/g, "г");
+  }
+  function words(s) { return norm(s).split(/[^0-9a-zа-я]+/).filter(Boolean); }
+  // one edit apart: a letter swapped, missing, extra or two letters transposed
+  function near(a, b) {
+    var la = a.length, lb = b.length, i = 0;
+    if (Math.abs(la - lb) > 1) return false;
+    while (i < la && i < lb && a[i] === b[i]) i++;
+    if (la === lb) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+    return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+  }
+  // how well a query word q fits a word w of the text: whole word, its start, the same stem (Ukrainian endings), a typo
+  function hit(q, w) {
+    if (w === q) return 1;
+    if (w.lastIndexOf(q, 0) === 0) return 0.85;
+    if (q.length >= 4) {
+      if (q.length >= 5 && w.lastIndexOf(q.slice(0, Math.max(4, q.length - 2)), 0) === 0) return 0.6;
+      for (var d = -1; d <= 1; d++) if (near(q, w.slice(0, q.length + d))) return 0.45;
+    }
+    return q.length >= 3 && w.indexOf(q) > 0 ? 0.35 : 0;
+  }
+  // the score of an item, and in it.low the weakest word match (a typo or a piece of a word is weak)
+  function score(it, qs, phrase) {
+    var total = 0;
+    it.low = 1;
+    for (var i = 0; i < qs.length; i++) {
+      var best = 0, bestF;
+      for (var f in W) {
+        var ws = it.w[f];
+        for (var j = 0; j < ws.length; j++) { var h = hit(qs[i], ws[j]) * W[f]; if (h > best) { best = h; bestF = f; } }
+      }
+      if (!best && STOP.indexOf(qs[i]) === -1) return 0;
+      if (best) it.low = Math.min(it.low, best / W[bestF]);
+      total += best;
+    }
+    var name = it.w.nn, alt = it.w.no;
+    if (name.lastIndexOf(phrase, 0) === 0 || alt.lastIndexOf(phrase, 0) === 0) total += 2;
+    else if (name.indexOf(phrase) !== -1 || alt.indexOf(phrase) !== -1) total += 1;
+    return total + (it.t === "p" ? 0.2 : it.t === "h" ? -0.2 : 0);
+  }
+  function load() {
+    if (!loading) loading = fetch(btn.dataset.src).then(function (r) { return r.json(); }).then(function (j) {
+      data = j.items;
+      // a chapter's line under the name is only its course and number, so "парадокси" does not find all 21 chapters
+      data.forEach(function (it) {
+        it.w = { n: words(it.n), on: words(it.on || ""), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), o: words(it.o || ""),
+                 nn: words(it.n).join(" "), no: words(it.on || "").join(" ") };
+      });
+    });
+    return loading;
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done(it) {
+    if (it.t === "p") return !!get("mp-solved:" + it.s);
+    if (it.t !== "c") return false;
+    var d = []; try { d = JSON.parse(get("mp-course:" + it.s) || "[]"); } catch (e) {}
+    return d.length > 0;
+  }
+  function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+  // the text with the words that match the query in <mark>
+  function marked(text, qs) {
+    var out = document.createDocumentFragment(), parts = String(text).split(/([0-9A-Za-zА-Яа-яЄєІіЇїҐґЁё’'ʼ]+)/);
+    parts.forEach(function (p, i) {
+      if (!p) return;
+      var w = i % 2 && words(p), on = w && qs.length && w.some(function (x) { return qs.some(function (q) { return hit(q, x) >= 0.45; }); });
+      out.appendChild(on ? el("mark", null, p) : document.createTextNode(p));
+    });
+    return out;
+  }
+  function icon(it) {
+    var s = el("span", "mp-sx-ic mp-sx-" + it.t);
+    s.style.setProperty("--tint", it.tint || "var(--soft)");  // not the page's own --tint
+    if (it.t === "p") { var b = s.appendChild(el("span", "mp-bars")); for (var i = 1; i <= 3; i++) b.appendChild(el("i", i <= it.lv ? "on" : "")); }
+    else s.textContent = it.t === "g" ? "Aa" : it.t === "c" ? "≡" : "§";
+    return s;
+  }
+  function row(it, qs) {
+    var a = el("a", "mp-sx-it"); a.href = it.u; a.setAttribute("role", "option"); a.id = "mp-sx-o" + opts.length;
+    var tx = el("span", "mp-sx-tx"), n = el("b"), d = el("span");
+    n.appendChild(marked(it.n, qs)); d.appendChild(marked(it.d || "", qs)); tx.append(n, d);
+    a.append(icon(it), tx);
+    if (done(it)) { var ok = el("span", "mp-sx-ok", "✓"); ok.title = T.solved; a.appendChild(ok); }
+    opts.push(a);
+    return a;
+  }
+  function head(text) { return el("li", "mp-sx-h", text); }
+  function wrap(a) { var li = el("li"); li.setAttribute("role", "presentation"); li.appendChild(a); return li; }
+  function render() {
+    var q = input.value.trim(), qs = words(q), phrase = qs.join(" ");
+    list.textContent = ""; opts = []; act = 0;
+    tabs.hidden = !qs.length;
+    if (!qs.length) {
+      var recent = []; try { recent = JSON.parse(get("mp-recent") || "[]"); } catch (e) {}
+      recent = recent.slice(0, 5).map(function (r) {
+        var it = data && data.filter(function (x) { return (x.t === "p" && x.s === r.s) || (x.t === "c" && "course:" + x.s === r.s); })[0];
+        return it || { t: r.c ? "c" : "p", s: r.s, n: r.n[lang], u: r.u[lang] };
+      });
+      if (recent.length) { list.appendChild(head(T.recent)); recent.forEach(function (it) { list.appendChild(wrap(row(it, []))); }); }
+      var li = el("li", "mp-sx-try"); li.appendChild(el("span", null, T.try + ": "));
+      T.ideas.forEach(function (w, i) {
+        var b = el("button", null, w); b.type = "button";
+        b.addEventListener("click", function () { input.value = w; render(); input.focus(); });
+        if (i) li.appendChild(document.createTextNode(" · "));
+        li.appendChild(b);
+      });
+      list.appendChild(li);
+      return mark();
+    }
+    if (!data) { list.appendChild(el("li", "mp-sx-msg", T.load)); return; }
+    var found = data.map(function (it) { return { it: it, s: score(it, qs, phrase) }; }).filter(function (r) { return r.s > 0; });
+    // typos and pieces of words count only when nothing matches by whole words, their starts or stems
+    if (found.some(function (r) { return r.it.low >= 0.6; })) found = found.filter(function (r) { return r.it.low >= 0.6; });
+    found.sort(function (a, b) { return b.s - a.s; });
+    var count = { "": found.length, p: 0, c: 0, g: 0 };
+    found.forEach(function (r) { count[GROUP[r.it.t]]++; });
+    [].forEach.call(tabs.children, function (b) {
+      b.lastChild.textContent = count[b.dataset.k] ? " " + count[b.dataset.k] : "";
+      b.setAttribute("aria-pressed", b.dataset.k === tab);
+      b.disabled = !count[b.dataset.k] && b.dataset.k !== tab;
+    });
+    if (tab) found = found.filter(function (r) { return GROUP[r.it.t] === tab; });
+    if (!found.length) {
+      var m = el("li", "mp-sx-msg", T.none + " "), a = el("a", null, T.every);
+      a.href = document.querySelector(".mp-nav-list a:not(.mp-cont)").href; m.appendChild(a); list.appendChild(m);
+      return mark();
+    }
+    // groups in the order of their best match; with no tab chosen each shows its first 6
+    var order = [], by = {};
+    found.forEach(function (r) { var g = GROUP[r.it.t]; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(r.it); });
+    order.forEach(function (g) {
+      if (!tab) list.appendChild(head(T[g]));
+      var items = tab ? by[g] : by[g].slice(0, 6);
+      items.forEach(function (it) { list.appendChild(wrap(row(it, qs))); });
+      if (!tab && by[g].length > 6) {
+        var more = el("button", "mp-sx-more", "+" + (by[g].length - 6) + " →"); more.type = "button";
+        more.addEventListener("click", function () { tab = g; render(); input.focus(); });
+        var li = el("li"); li.appendChild(more); list.appendChild(li);
+      }
+    });
+    mark();
+  }
+  function mark() {
+    opts.forEach(function (o, i) { o.setAttribute("aria-selected", i === act); });
+    if (opts[act]) { input.setAttribute("aria-activedescendant", opts[act].id); opts[act].scrollIntoView({ block: "nearest" }); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function build() {
+    box = el("div", "mp-sx"); box.hidden = true;
+    box.innerHTML = '<div class="mp-sx-box" role="dialog" aria-modal="true"><div class="mp-sx-head">' + btn.querySelector("svg").outerHTML +
+      '<input type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="mp-sx-list" aria-autocomplete="list">' +
+      '<button type="button" class="mp-sx-x"></button></div><div class="mp-sx-tabs"></div><ul class="mp-sx-list" id="mp-sx-list" role="listbox"></ul>' +
+      '<div class="mp-sx-foot"></div></div>';
+    document.body.appendChild(box);
+    input = box.querySelector("input"); list = box.querySelector("ul"); tabs = box.querySelector(".mp-sx-tabs"); foot = box.querySelector(".mp-sx-foot");
+    box.firstChild.setAttribute("aria-label", T.btn); input.placeholder = T.ph; input.setAttribute("aria-label", T.btn);
+    var x = box.querySelector(".mp-sx-x"); x.textContent = "Esc"; x.setAttribute("aria-label", T.close);
+    foot.textContent = T.keys;
+    [["", T.all], ["p", T.p], ["c", T.c], ["g", T.g]].forEach(function (k) {
+      var b = el("button", null, k[1]); b.type = "button"; b.dataset.k = k[0]; b.appendChild(el("span"));
+      b.addEventListener("click", function () { tab = k[0]; render(); input.focus(); });
+      tabs.appendChild(b);
+    });
+    input.addEventListener("input", function () { tab = ""; render(); });
+    box.addEventListener("click", function (e) { if (e.target === box || e.target === x) close(); });
+    box.addEventListener("mousemove", function (e) {
+      var o = e.target.closest(".mp-sx-it"), i = opts.indexOf(o);
+      if (i !== -1 && i !== act) { act = i; mark(); }
+    });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (opts.length) { act = (act + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length; mark(); }
+      } else if (e.key === "Enter" && opts[act]) { e.preventDefault(); opts[act].click(); }
+    });
+  }
+  function open(q) {
+    if (!box) build();
+    if (!box.hidden) return input.focus();
+    back = document.activeElement; box.hidden = false; document.documentElement.classList.add("mp-sx-on");
+    if (q != null) input.value = q;
+    input.focus(); input.select(); render();
+    load().then(render, function () { list.textContent = ""; list.appendChild(el("li", "mp-sx-msg", T.fail)); loading = null; });
+  }
+  function close() {
+    if (!box || box.hidden) return;
+    box.hidden = true; document.documentElement.classList.remove("mp-sx-on");
+    if (back && back.focus) back.focus();
+  }
+  btn.addEventListener("click", function () { open(); });
+  btn.addEventListener("pointerenter", load, { once: true });
+  btn.addEventListener("focus", load, { once: true });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target, typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box && !box.hidden ? close() : open(); }
+    else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); open(); }
+    else if (e.key === "Escape" && box && !box.hidden) { e.preventDefault(); close(); }
+    else if (e.key === "Tab" && box && !box.hidden) {
+      // keep the focus inside the palette
+      var f = [].slice.call(box.querySelectorAll("input, button:not([disabled]), a[href]"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+    }
+  });
+  var q = new URLSearchParams(location.search).get("q");
+  if (q) open(q);
+})();
+</script>
+</body>
+</html>
