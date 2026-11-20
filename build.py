@@ -1449,8 +1449,8 @@ def _mark_text(doc, lang):
 # the very bottom. Filled in by build() before anything is written.
 SITE_NAV = {}
 NAV_TEXT = {
-    "uk": {"problems": "Задачі", "courses": "Курси", "glossary": "Словник", "blog": "Блог", "continue": "Продовжити", "course": "Продовжити курс", "menu": "Меню", "nav": "Розділи"},
-    "en": {"problems": "Puzzles", "courses": "Courses", "glossary": "Glossary", "blog": "Blog", "continue": "Continue", "course": "Continue the course", "menu": "Menu", "nav": "Sections"},
+    "uk": {"problems": "Задачі", "courses": "Курси", "glossary": "Словник", "blog": "Парадокси в житті", "continue": "Продовжити", "course": "Продовжити курс", "menu": "Меню", "nav": "Розділи"},
+    "en": {"problems": "Puzzles", "courses": "Courses", "glossary": "Glossary", "blog": "Paradoxes in real life", "continue": "Continue", "course": "Continue the course", "menu": "Menu", "nav": "Sections"},
 }
 NAV_SCRIPT = """<script>
 (function () {
