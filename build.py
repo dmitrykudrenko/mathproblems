@@ -2193,6 +2193,79 @@ def build_books(problems, base, books):
     return urls
 
 
+# Blog: first-person articles on where the site's maths shows up in real life (blog/<slug>/page.html + meta.json,
+# blog/index.html is the list, its titles in blog/index.json). An article is one bilingual page like the others:
+# one <style> on top, class="uk"/"en" text, {{P:slug}} and {{COURSE:name}} turn into links. Only articles whose
+# meta.json has "published" are built; the list hides itself until one is.
+BLOG = ROOT / "blog"
+
+
+def build_blog(problems, base):
+    if not (BLOG / "index.json").exists():
+        return []
+    index = json.loads((BLOG / "index.json").read_text(encoding="utf-8"))
+    posts = []
+    for d in sorted(p for p in BLOG.iterdir() if p.is_dir()):
+        if not ((d / "page.html").exists() and (d / "meta.json").exists()):
+            continue
+        meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+        for k in ("published", "updated"):
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", meta.get(k, "")):
+                raise SystemExit(f"blog/{d.name}/meta.json: \"{k}\" must be a YYYY-MM-DD date")
+        posts.append((d.name, meta, (d / "page.html").read_text(encoding="utf-8")))
+    if not posts:
+        return []
+    posts.sort(key=lambda p: p[1]["published"], reverse=True)
+    by_slug = {p[0]: p for p in problems}
+    home = {l: base + LANG_PATH[l] for l in LANGS}
+    list_urls = {l: base + LANG_PATH[l] + "blog/" for l in LANGS}
+
+    def links(body, lang):
+        def prob(m):
+            if m.group(1) not in by_slug:
+                raise SystemExit(f"blog: {{{{P:{m.group(1)}}}}} is not a published problem")
+            return by_slug[m.group(1)][2][lang]
+        body = re.sub(r"\{\{P:([a-z0-9-]+)\}\}", prob, body)
+        return re.sub(r"\{\{COURSE:([a-z0-9-]+)\}\}", lambda m: course_url(base, lang, m.group(1)), body)
+
+    def page(lang, urls, src, title, description, image, ld, path):
+        other = "en" if lang == "uk" else "uk"
+        body = LangStripper(links(src, lang), other).strip()
+        body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
+        body = body.replace("{{BLOG}}", list_urls[lang]).replace("{{GLOSSARY}}", glossary_url(base, lang))
+        body = body.replace('href="#uk" hreflang="uk"', f'href="{urls["uk"]}" hreflang="uk"')
+        body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
+        style = body[:body.index("</style>") + len("</style>")]
+        body = body[len(style):]
+        h = head(lang, urls, title, description, image, title, ld, base)
+        doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
+               f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{CF_ANALYTICS}\n</body>\n</html>\n')
+        write(DOCS / LANG_PATH[lang] / path / "index.html", doc)
+
+    out = []
+    for slug, meta, src in posts:
+        urls = {l: base + LANG_PATH[l] + "blog/" + slug + "/" for l in LANGS}
+        for lang in LANGS:
+            m = meta[lang]
+            ld = {"@context": "https://schema.org", "@graph": [
+                {"@type": "BlogPosting", "@id": urls[lang] + "#post", "url": urls[lang], "headline": m["title"],
+                 "description": m["description"], "inLanguage": lang, "datePublished": meta["published"],
+                 "dateModified": meta["updated"], "author": {"@id": base + "#author"}},
+                author_ld(lang, base)]}
+            page(lang, urls, src, m["title"], m["description"], base + f"og-{lang}.png", ld, "blog/" + slug)
+        out.append((urls, meta["updated"]))
+    src = (BLOG / "index.html").read_text(encoding="utf-8")
+    for lang in LANGS:
+        items = "\n".join(
+            f'    <li><a href="{base + LANG_PATH[lang] + "blog/" + s + "/"}"><b>{e(m[lang]["title"])}</b>'
+            f'<span>{e(m[lang]["description"])}</span><i>{m["published"]}</i></a></li>' for s, m, _ in posts)
+        m = index[lang]
+        ld = {"@context": "https://schema.org", "@type": "Blog", "url": list_urls[lang], "name": m["title"], "inLanguage": lang}
+        page(lang, list_urls, src.replace("<!--POSTS-->", items), m["title"], m["description"],
+             base + f"og-{lang}.png", ld, "blog")
+    return [(list_urls, posts[0][1]["updated"])] + out
+
+
 # Glossary: a small sub-site of terms (median, expected value, correlation...) that readers meet in the explanations.
 #   glossary/terms.json        one entry per term: names and word forms per language, a one-line definition, a hook
 #                              (a small paradox around the term, never a site puzzle's answer), its article and puzzles
@@ -2990,6 +3063,7 @@ def build(base, out=None):
     shelf = build_books(problems, base, books)
     glossary = build_glossary(problems, base)
     courses = build_courses(problems, base)
+    build_blog(problems, base)  # not in the sitemap or the menu yet: the blog is shared by direct link only for now
     build_feeds(metas, base)
     build_search(metas, base)
     write_redirects(base)
