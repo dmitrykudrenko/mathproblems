@@ -2258,6 +2258,10 @@ def build_blog(problems, base):
     out = []
     for slug, meta, src in posts:
         urls = {l: base + LANG_PATH[l] + "blog/" + slug + "/" for l in LANGS}
+        # blog/<slug>/assets/ (images such as official badges) is copied once and shared by both languages
+        if (BLOG / slug / "assets").is_dir():
+            shutil.copytree(BLOG / slug / "assets", DOCS / "blog" / slug / "assets", dirs_exist_ok=True)
+        src = src.replace("{{ASSETS}}", base + "blog/" + slug + "/assets/")
         for lang in LANGS:
             m = meta[lang]
             ld = {"@context": "https://schema.org", "@graph": [
