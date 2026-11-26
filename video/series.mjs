@@ -8,6 +8,7 @@ export const SERIES = {
   story:  { deep: '#4A3000', light: '#F2B84B', label: { en: 'TRUE STORY', uk: 'ІСТОРІЯ' } },
   try:    { deep: '#1B420E', light: '#9BDB6F', label: { en: 'TRY IT', uk: 'ПЕРЕВІРТЕ' } },
   cost:   { deep: '#251863', light: '#B3A6FF', label: { en: 'COSTLY MISTAKE', uk: 'ДОРОГА ПОМИЛКА' } },
+  movie:  { deep: '#3D1405', light: '#FF8A4C', label: { en: 'MOVIE MATHS', uk: 'МАТЕМАТИКА КІНО' } },
   poll:   { deep: '#11286B', light: '#8FA8FF', label: { en: 'THE VOTE', uk: 'ГОЛОСУВАННЯ' } },
 };
 

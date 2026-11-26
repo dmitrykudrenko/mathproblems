@@ -18,6 +18,7 @@ import {
 } from './lib.mjs';
 import { T0 } from './intro.mjs';
 import { VISUALS } from './visuals.mjs';
+import { clip } from './footage.mjs';
 
 const BASE = { paper: '#EDEFF5', surface: '#FFFFFF', ink: '#141A30', muted: '#586079', line: '#D3D8E5' };
 export const FORMATS = {
@@ -27,13 +28,19 @@ export const FORMATS = {
   try:   { kicker: 'TRY IT YOURSELF', tint: '#DDF2CF', tintSoft: '#ECF3E6', accent: '#3D8B1F', intro: '#9BDB6F' },
   cost:  { kicker: 'A COSTLY MISTAKE', tint: '#E3DCFA', tintSoft: '#EDEAF6', accent: '#5B3FD1', intro: '#A99BFF' },
   poll:  { kicker: 'WHAT VISITORS CHOSE', tint: '#D7E3FF', tintSoft: '#E8EDF8', accent: '#2A3DD1', intro: '#8FA8FF' },
+  movie: { kicker: 'GAME THEORY AT THE MOVIES', tint: '#F3E4C4', tintSoft: '#F3EDE2', accent: '#C2410C', intro: '#FF8A4C' },
 };
+// beats over film footage (show.clip) swap to light text on the darkened frame
+const ON_CLIP = { ink: '#FBF6EC', muted: '#D9CBB2', line: 'rgba(255,255,255,.4)', surface: 'rgba(28,18,10,.72)', paper: '#141A30' };
+const CLIP_ACCENT = { movie: '#FF8A4C' };
 
 const GAP = 0.55;                       // silence after each line
 const ABCD = 'ABCDE';
 
 export function makeShort(spec) {
-  const fmt = FORMATS[spec.format], C = { ...BASE, ...fmt, day: fmt.accent };
+  const fmt = FORMATS[spec.format], LIGHT = { ...BASE, ...fmt, day: fmt.accent };
+  const DARK = { ...LIGHT, ...ON_CLIP, accent: CLIP_ACCENT[spec.format] || fmt.intro };
+  let C = LIGHT;
   const beats = spec.beats;
   let S = { start: [], voice: [], end: [] }, DURATION = 30;
 
@@ -57,7 +64,7 @@ export function makeShort(spec) {
   // returns the y below the title block, where a visual can start
   function title(ctx, s, t0, t, a) {
     const size = s.size || (s.visual ? 64 : 76), lh = size * 1.22;
-    const n = text(ctx, s.title, 80, ROW.title, { font: `800 ${size}px ${F.display}`, maxW: 920, lh, alpha: a, dy: 24 * (1 - easeOut(prog(t, t0, .6))) });
+    const n = text(ctx, s.title, 80, ROW.title, { font: `800 ${size}px ${F.display}`, color: C.ink, maxW: 920, lh, alpha: a, dy: 24 * (1 - easeOut(prog(t, t0, .6))) });
     let y = ROW.title + (n - 1) * lh;
     if (s.sub) y += 30 + 62 * text(ctx, s.sub, 80, y + 70, { font: `500 46px ${F.body}`, maxW: 900, lh: 62, color: C.muted, alpha: a * easeOut(prog(t, t0 + .5, .5)) });
     return y + 60;
@@ -150,7 +157,7 @@ export function makeShort(spec) {
       ctx.fillStyle = C.accent; ctx.beginPath(); ctx.arc(120, y - 16, 40, 0, 7); ctx.fill();
       ctx.restore();
       text(ctx, String(k + 1), 120, y + 2, { font: `800 44px ${F.display}`, color: '#fff', align: 'center', alpha: a * p });
-      const n = text(ctx, st, 190, y, { font: `600 46px ${F.body}`, maxW: 800, lh: 60, alpha: a * p, dy: 20 * (1 - p) });
+      const n = text(ctx, st, 190, y, { font: `600 46px ${F.body}`, color: C.ink, maxW: 800, lh: 60, alpha: a * p, dy: 20 * (1 - p) });
       y += Math.max(130, n * 60 + 70);
     });
   }
@@ -171,14 +178,19 @@ export function makeShort(spec) {
   }
 
   function draw(ctx, t, lang) {
+    C = LIGHT;
     background(ctx, C, t);
     beats.forEach((b, i) => {
-      const t0 = S.start[i], t1 = S.end[i];
-      if (t < t0 - .1 || t > t1 + .5) return;
+      const t0c = S.start[i], t1 = S.end[i];
+      if (t < t0c - .1 || t > t1 + .5) return;
       const last = i === beats.length - 1;
-      const a = last ? easeOut(prog(t, t0, .4)) : life(t, t0, t1 + .3, .35);
+      const a = last ? easeOut(prog(t, t0c, .4)) : life(t, t0c, t1 + .3, .35);
       if (a <= 0) return;
-      const s = b.show, dur = t1 - t0;
+      const s = b.show;
+      // over footage: the clip plays first, then our picture comes in on the held frame
+      C = s.clip ? DARK : LIGHT;
+      if (s.clip) clip(ctx, s.clip, t0c, t, a, C);
+      const t0 = s.clip && !s.clip.held ? t0c + s.clip.len : t0c, dur = t1 - t0;
       kicker(ctx, C, b.kicker || fmt.kicker, a);
       // a title sits on top; any one visual below it
       const below = s.title ? title(ctx, s, t0, t, a) : 560;
@@ -195,7 +207,8 @@ export function makeShort(spec) {
   function cues() {
     const c = [];
     beats.forEach((b, i) => {
-      const s = b.show, t0 = S.start[i], dur = S.end[i] - t0;
+      const s = b.show, t0 = S.start[i] + (s.clip && !s.clip.held ? s.clip.len : 0), dur = S.end[i] - t0;
+      if (s.clip && !s.clip.held) c.push([S.start[i] + s.clip.len, 'whoosh']);
       c.push([t0, 'whoosh']);
       if (s.stat) c.push([t0 + .25, 'chime']);
       if (s.compare) s.compare.forEach((_, k) => c.push([t0 + .3 + k * Math.max(.6, (dur - 1) / s.compare.length), 'pop', k]));
@@ -203,6 +216,7 @@ export function makeShort(spec) {
       if (s.countdown) c.push(...countdownCues(S.count[i], S.count[i] + 4));
       if (s.bars) s.bars.forEach((_, k) => c.push([t0 + .4 + k * Math.min(.7, (dur - 1.5) / s.bars.length), 'pluck', k]));
       if (s.visual?.kind === 'icons') s.visual.items.forEach((it, k) => c.push([t0 + .2 + (it.at ?? k * Math.min(.45, (dur * .6) / s.visual.items.length)), 'pop', k % 8]));
+      if (s.visual?.kind === 'arena') c.push([t0 + .3, 'pluck', 0], [t0 + dur * .7, 'chime']);
       if (s.visual?.kind === 'dots') (s.visual.marks || []).forEach(m => c.push([t0 + m.at * dur, 'chime']));
       if (s.steps) s.steps.forEach((_, k) => c.push([t0 + .3 + k * Math.max(.7, (dur - 1) / s.steps.length), 'tick', k]));
     });
