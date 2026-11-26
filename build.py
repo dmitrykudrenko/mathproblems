@@ -1921,6 +1921,7 @@ def build_problem(slug, base, metas, books, related):
             items.append((base + LANG_PATH[lang] + s + "/", rm["card"]["title"], rm.get("share", {}).get("description", rm["card"]["text"])))
         body = with_related(body, related_block(lang, items, hub[lang], glossary_url(base, lang)))
         body = with_books(body, books_block(lang, refs, books, base + LANG_PATH[lang] + "books/"))
+        body = with_blog(body, blog_block(lang, slug, base))
         body = with_terms(body, lang, TERMS, base)  # last: its script must not be taken for the page script above
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static data-spoil>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
                f'</head>\n<body>\n{body.strip()}\n{LEVEL_SCRIPT}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
@@ -2645,10 +2646,52 @@ def load_blog_refs():
             BLOG_REFS.setdefault(slug, []).append((d.name, meta))
 
 
+BLOG_REFS_TEXT = {
+    "uk": ("Статті, де є ця задача", "Усі статті", ("стаття", "статті", "статей")),
+    "en": ("Posts that use this puzzle", "All posts", ("post", "posts", "posts")),
+}
+
+
 def blog_strip(lang, slug, base):
-    """'Blog · «post title» →' lines for a problem page, one per blog post that uses the problem."""
-    return "".join(f'<a class="mp-course" href="{base + LANG_PATH[lang]}blog/{p}/"><b>{NAV_TEXT[lang]["blog"]}</b> · '
-                   f'«{e(m[lang]["title"])}» →</a>' for p, m in BLOG_REFS.get(slug, []))
+    """One quiet line above a problem's title: 'Paradoxes in real life · 2 posts ↓', down to the posts block."""
+    n = len(BLOG_REFS.get(slug, []))
+    if not n:
+        return ""
+    forms = BLOG_REFS_TEXT[lang][2]
+    word = forms[0] if n % 10 == 1 and n % 100 != 11 else forms[1] if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14 else forms[2]
+    return f'<a class="mp-course" href="#blog"><b>{NAV_TEXT[lang]["blog"]}</b> · {n} {word} ↓</a>'
+
+
+def blog_block(lang, slug, base):
+    """'Paradoxes in real life' block near the end of a problem page: the blog posts that use the problem."""
+    refs = BLOG_REFS.get(slug, [])
+    if not refs:
+        return ""
+    title, all_label = BLOG_REFS_TEXT[lang][:2]
+    root = base + LANG_PATH[lang] + "blog/"
+    cards = "\n".join(f'    <a class="mp-related-card" href="{root}{p}/"><h3>{e(m[lang]["title"])}</h3><p>{e(m[lang]["description"])}</p></a>'
+                      for p, m in refs)
+    return f"""<section class="mp-blogrefs" id="blog">
+  <div class="mp-related-head">
+    <span class="eyebrow">{NAV_TEXT[lang]["blog"]}</span>
+    <h2>{title}</h2>
+  </div>
+  <div class="mp-books-grid">
+{cards}
+  </div>
+  <a class="mp-related-all" href="{root}">{all_label} →</a>
+</section>"""
+
+
+def with_blog(body, block):
+    """Put the blog block first among the end blocks: before the books, the related problems or the discussion."""
+    if not block:
+        return body
+    for mark in ('<section class="mp-books"', '<section class="mp-related"', '<section class="mp-discuss"'):
+        i = body.find(mark)
+        if i != -1:
+            return body[:i] + block + "\n\n" + body[i:]
+    return body
 
 
 def course_strip(lang, slug, base):
