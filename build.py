@@ -2225,6 +2225,21 @@ def post_thumb(slug, lang, base):
     return art_thumb(img, BLOG / slug / "page.html") if img else ""
 
 
+def blog_tags(tags, posts, lang):
+    """One row of filter chips above the post list: "All" plus every tag that some posts have and some don't
+    (a tag on every post filters nothing, so it waits until a post without it appears). ?t=<tag> opens the list
+    filtered; the script on blog/index.html does the filtering."""
+    used = [t for t in tags if 0 < sum(t in m["tags"] for _, m, _ in posts) < len(posts)]
+    if not used:
+        return ""
+    chips = [f'<a href="./" data-t="" aria-current="true">{e(TOPICS_ALL[lang])}</a>']
+    chips += [f'<a href="?t={t}" data-t="{t}">{e(tags[t][lang])}</a>' for t in used]
+    return f'<nav class="tags" aria-label="{e(BLOG_TAGS_LABEL[lang])}">' + "".join(chips) + "</nav>"
+
+
+BLOG_TAGS_LABEL = {"uk": "Теми постів", "en": "Post topics"}
+
+
 def build_blog(problems, base):
     if not (BLOG / "index.json").exists():
         return []
@@ -2237,6 +2252,9 @@ def build_blog(problems, base):
         for k in ("published", "updated"):
             if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", meta.get(k, "")):
                 raise SystemExit(f"blog/{d.name}/meta.json: \"{k}\" must be a YYYY-MM-DD date")
+        bad = [t for t in meta.get("tags", [None]) if t not in index.get("tags", {})]
+        if not meta.get("tags") or bad:
+            raise SystemExit(f"blog/{d.name}/meta.json: \"tags\" must list keys from blog/index.json \"tags\" (got {bad or 'none'})")
         posts.append((d.name, meta, (d / "page.html").read_text(encoding="utf-8")))
     if not posts:
         return []
@@ -2302,11 +2320,11 @@ def build_blog(problems, base):
     src = (BLOG / "index.html").read_text(encoding="utf-8")
     for lang in LANGS:
         items = "\n".join(
-            f'    <li><a href="{base + LANG_PATH[lang] + "blog/" + s + "/"}">{post_thumb(s, lang, base)}<b>{e(m[lang]["title"])}</b>'
+            f'    <li data-tags="{" ".join(m["tags"])}"><a href="{base + LANG_PATH[lang] + "blog/" + s + "/"}">{post_thumb(s, lang, base)}<b>{e(m[lang]["title"])}</b>'
             f'<span>{e(m[lang]["description"])}</span><i>{m["published"]}</i></a></li>' for s, m, _ in posts)
         m = index[lang]
         ld = {"@context": "https://schema.org", "@type": "Blog", "url": list_urls[lang], "name": m["title"], "inLanguage": lang}
-        page(lang, list_urls, src.replace("<!--POSTS-->", items), m["title"], m["description"],
+        page(lang, list_urls, src.replace("<!--POSTS-->", items).replace("<!--TAGS-->", blog_tags(index["tags"], posts, lang)), m["title"], m["description"],
              base + f"og-{lang}.png", ld, "blog")
     return [(list_urls, posts[0][1]["updated"])] + out
 
