@@ -4,9 +4,10 @@
 // Story: the plates → the Cornucopia (section 2, hawk-dove for 24 tributes: equilibrium share V/D, payoff
 // (V/2)(1 − V/D), shown as 4r(1 − r) of the best, 75% at r = 25%) → the whole arena (section 7, the simulator).
 // The simulator's results (best start and mode, which stats pay) are folded on the page: never shown here.
-// What is shown is the page's own open example, checked against its code (power = S + 0.6A + 2·wpn, +1 in the
-// pack; win = lg(Δ/3); escape = 0.85·lg((speed_you − speed_them)/2), speed = P + 0.4A): all fives vs a Career
-// S8 A8 P5 with a Horn weapon → fight 3.7% ≈ 4%, escape 30%, escape with speed 9 → 68%.
+// What is shown is the page's own open example (as of 2026-11-27), checked against its code (power =
+// S + 0.6A + 2·wpn, +1 in the pack; win = lg(Δ/3); escape = 0.85·lg((speed_you − speed_them)/2), speed = P + 0.4A):
+// all fives vs a Career S7 A7 P5 with a Horn weapon → fight 6.1% ≈ 6%, escape 34% («about a third» on the page),
+// escape with speed 9 → 70.7% ≈ 71%.
 // Footage: Lionsgate Movies' official trailers on YouTube, video only, saved to video/footage/:
 //   T1 = Official Trailer (fS35YSjopjE, 2026-04-13), T2 = Official Trailer 2 (lYXtL5TreOE, 2026-09-16).
 // Shots picked from contact sheets, cut points from ffmpeg scene detection.
@@ -24,7 +25,7 @@ export default makeShort({
   format: 'movie',
   intro: 'The Hunger Games and game theory',
   url: 'mathparadoxes.com/blog/hunger-games-game-theory',
-  cover: { beat: 1, at: .85, hook: 'Run to the *Cornucopia*?' },
+  cover: { beat: 1, at: .85, crop: [600, 1720], hook: 'Run for the *Cornucopia*, or run away?' },
   beats: [
     { say: 'Twenty-four tributes — one winner. Sixty seconds on the plate… run for the Cornucopia, or run away?',
       show: { clip: PLATES, title: 'Run for the Cornucopia, or run away?' } },
@@ -34,9 +35,9 @@ export default makeShort({
       show: { clip: { ...RUN, held: true }, title: 'A richer horn, poorer tributes', visual: { kind: 'arena', from: .5, to: .95, payoff: true, ...ARENA } } },
     { say: 'So we built the whole arena, and played it two thousand times — and you build your own tribute.',
       show: { clip: FIGHT, title: 'Build your tribute', visual: { kind: 'stats', rows: FIVES, total: 'age 15 · 25 points to spend' } } },
-    { say: 'A Career with a weapon finds you. Fight, and you win four times in a hundred. Run, and it’s thirty… with speed nine, sixty-eight.',
+    { say: 'A Career with a weapon finds you. Fight, and you win six times in a hundred. Run, and it’s thirty-four… with speed nine, seventy-one.',
       show: { title: 'A Career with a weapon finds you', sub: 'You: fives in everything',
-        compare: [{ value: '4%', label: 'you win the fight' }, { value: '30%', label: 'you get away' }, { value: '68%', label: 'get away with speed 9', color: 'accent' }] } },
+        compare: [{ value: '6%', label: 'you win the fight' }, { value: '34%', label: 'you get away' }, { value: '71%', label: 'get away with speed 9', color: 'accent' }] } },
     { say: 'So, at the start — the Cornucopia, the edge, or run? Which one wins most often?',
       show: { question: 'All fives. Which start wins most often?', options: ['The Cornucopia', 'Grab from the edge', 'Run'], countdown: true } },
     { say: 'Then build your own tribute and play two thousand Games. The link is in the profile.',

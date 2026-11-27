@@ -2073,6 +2073,7 @@ REEL_SERIES = {
     "puzzle": {"uk": "Задача", "en": "Puzzle"}, "wrong": {"uk": "Більшість помиляється", "en": "Most get it wrong"},
     "word": {"uk": "Словник", "en": "Glossary"}, "story": {"uk": "Історія", "en": "True story"},
     "try": {"uk": "Перевірте", "en": "Try it"}, "cost": {"uk": "Дорога помилка", "en": "Costly mistake"},
+    "movie": {"uk": "Математика кіно", "en": "Movie maths"},
 }
 
 
@@ -2104,6 +2105,9 @@ def build_reels(problems, base):
                 href, name = glossary_url(base, lang, g), gpages[g][lang]["name"]
             elif r["page"] in by_slug:
                 href, name = by_slug[r["page"]][2][lang], by_slug[r["page"]][1][lang]["card"]["title"]
+            elif r["page"].startswith("blog/") and (ROOT / r["page"] / "meta.json").exists():
+                href = base + LANG_PATH[lang] + r["page"] + "/"
+                name = json.loads((ROOT / r["page"] / "meta.json").read_text(encoding="utf-8"))[lang]["title"]
             else:
                 raise SystemExit(f"video/reels.json: #{r['n']} points to an unknown page {r['page']}")
             rows.append(f'    <li class="reel" id="{r["n"]}" data-from="{r["date"]}"><a href="{href}"><span class="n">#{r["n"]}</span>'
