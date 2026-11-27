@@ -140,8 +140,8 @@ img { max-width: 100%; }
 </style>
 <link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=2b2a0176">
 <style>
-/* Layout: one blog article. Text column, a pursuit curve in the hero, two widgets (the chase: where you aim and how fast
-   you run; the winners' list: who fills the top). Shared tokens and components come from site.css. */
+/* Layout: one blog article. Text column, a pursuit curve in the hero, two widgets (the ship chase: speed, the leader's course, where
+   you aim, inertia; the winners' list: who fills the top). Shared tokens and components come from site.css. */
 :root { --tint: #E4ECF7; }
 :root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
 * { box-sizing: border-box; }
@@ -172,11 +172,7 @@ figcaption { color: var(--muted); font-size: .9rem; }
 .sea-ctl { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: end; }
 .sea-ctl .pick { font-size: .9rem; }
 .sea-again { border: 1px solid var(--line); background: #fff; border-radius: 22px; padding: 6px 14px; cursor: pointer; font: inherit; }
-.gauge { position: relative; height: 10px; border-radius: 5px; background: var(--soft); overflow: hidden; }
-.gauge i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: #151515; border-radius: 5px; }
-.gauge s { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: var(--signal); }
-.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 24px; align-items: center; }
-.two svg { width: 100%; height: auto; display: block; }
+.sea canvas.gap-chart { height: 150px; background: transparent; border-radius: 0; }
 .ctl { display: grid; gap: 14px; }
 .ctl label { display: grid; gap: 8px; font-weight: 600; }
 .ctl input[type=range] { width: 100%; accent-color: var(--ink); }
@@ -205,8 +201,7 @@ figcaption { color: var(--muted); font-size: .9rem; }
 .check a { white-space: nowrap; }
 .check li::before { content: ""; position: absolute; left: 0; top: .3em; width: 16px; height: 16px; border: 2px solid var(--ink); border-radius: 4px; }
 footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
-@media (max-width: 860px) { .hero, .two { grid-template-columns: 1fr; } .hero { gap: 28px; } .strat { padding: 18px; } }
-</style>
+@media (max-width: 860px) { .hero, </style>
 </head>
 <body>
 <div class="wrap">
@@ -248,14 +243,16 @@ footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-s
         <div class="pick"><span class="en">Your speed</span>
           <div class="seg" role="group" id="sh-k"><button type="button" data-v="1" aria-pressed="true"><span class="en">Same</span></button><button type="button" data-v="1.1">+10%</button><button type="button" data-v="1.2">+20%</button></div></div>
         <div class="pick"><span class="en">The leader</span>
-          <div class="seg" role="group" id="sh-path"><button type="button" data-v="straight" aria-pressed="true"><span class="en">Straight</span></button><button type="button" data-v="turn"><span class="en">Turns</span></button><button type="button" data-v="dodge"><span class="en">Dodges</span></button></div></div>
+          <div class="seg" role="group" id="sh-path"><button type="button" data-v="straight" aria-pressed="true"><span class="en">Holds course</span></button><button type="button" data-v="turn"><span class="en">Turns</span></button></div></div>
+        <div class="pick"><span class="en">Where you aim</span>
+          <div class="seg" role="group" id="sh-aim"><button type="button" data-v="now" aria-pressed="true"><span class="en">Where they are</span></button><button type="button" data-v="past"><span class="en">Where seen</span></button><button type="button" data-v="predict"><span class="en">Forecast</span></button></div></div>
         <div class="pick"><span class="en">Your inertia</span>
           <div class="seg" role="group" id="sh-in"><button type="button" data-v="off" aria-pressed="true"><span class="en">None</span></button><button type="button" data-v="on"><span class="en">Yes</span></button></div></div>
         <button type="button" class="sea-again" id="sh-again"><span class="en">Again</span></button>
       </div>
-      <div class="gauge" aria-hidden="true"><i id="sh-bar"></i><s></s></div>
+      <canvas id="sh-chart" class="gap-chart" role="img" aria-label="Distance between you and the leader over time, for this run and the previous ones"></canvas>
       <div class="readout"><b id="sh-out"></b><span id="sh-say"></span></div>
-      <figcaption><span class="en">The black ship is the leader, the white one is you: at every moment you turn your bow to where the leader is now. You start at distance 1; the bar shows the current gap, the tick marks half the starting one. "Dodges": when you get within 0.3, the leader turns at right angles to the line between you; caught means within 0.05. With inertia you turn by at most 3 radians per unit of time, so your turning radius is a third of your speed. All numbers are checked in Python.</span></figcaption>
+      <figcaption><span class="en">The black ship is the leader, the white one is you. You start at distance 1; the chart below shows the gap over time for this run and the three before it; the dotted line is half the starting gap. "Where they are": at every moment you turn your bow to the leader. "Where seen": you see the leader half a unit of time late (the grey outline) and sail there. "Forecast": you see them just as late, but carry their visible course and speed forward and sail to the meeting point (the cross). With inertia you can't turn on the spot: your smallest turning radius is 1, the starting distance. All numbers are checked by simulation.</span></figcaption>
     </figure>
 
     <h2 id="past"><span class="en">1. Run to where you can see them</span></h2>
@@ -263,21 +260,8 @@ footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-s
     <p class="en">What we see of a competitor is their past. A shipped feature, a new pricing page, a campaign everyone talks about: all of these are decisions they made months ago. When we copy what we see, we aim not at them but at the place where they were.</p>
     
     <p class="en">The model: the leader runs straight ahead, you start off to one side, and at every moment you run towards the point where they were a little earlier. Here the maths gives a hard answer: <b>you close in on exactly that point in the past, so you stay behind by your delay, however fast you run.</b> Speed only gets you to that fixed distance behind sooner.</p>
-    <figure>
-      <div class="two">
-        <svg id="ch-svg" class="chart" viewBox="0 0 300 300" role="img" aria-label="The chase: the leader's straight path and your path for the chosen aim and speed"></svg>
-        <div class="ctl">
-          <div class="pick"><span class="en">Where you run</span>
-            <div class="seg" role="group" id="ch-mode"><button type="button" data-v="past" aria-pressed="true"><span class="en">Where you see them</span></button><button type="button" data-v="now"><span class="en">Where they are now</span></button><button type="button" data-v="ahead"><span class="en">Where they will be</span></button></div></div>
-          <label><span><span class="en">Your speed relative to the leader</span> · <span class="val" id="ch-k-out">×1.2</span></span>
-            <input type="range" id="ch-k" min="1" max="2" step="0.1" value="1.2"></label>
-          <div class="readout"><b id="ch-out"></b><span id="ch-say"></span></div>
-        </div>
-      </div>
-      <figcaption><span class="en">The leader starts at distance 1 from you and runs straight at speed 1, so a unit of time is how long they take to cover the starting gap. "Where you see them" means you see where they were half a unit of time ago. The calculation is a step-by-step simulation, checked in Python.</span></figcaption>
-    </figure>
     
-    <p class="en">So with a half-unit delay, even running twice as fast as the leader you stay 0.5 behind. To catch up you have to aim not at what you saw but at the leader themself, that is, know what the competitor is doing now, not what they have shown.</p>
+    <p class="en">Try it in the ship animation at the top: choose "Where seen". With a half-unit delay, even running twice as fast as the leader you stay 0.5 behind. To catch up you have to aim not at what you saw but at the leader themself, that is, know what the competitor is doing now, not what they have shown.</p>
 
     <h2 id="now"><span class="en">2. Run to where they are now</span></h2>
     
@@ -288,13 +272,11 @@ footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-s
       <li><b>Even the faster one runs longer than they need to.</b> Being 20% faster, you catch up in 2.7 units of time. Running straight to where the leader will be would take 1.5, almost half as long. The curve eats the rest: you keep chasing a position that has already moved. True, you don't have to be at their exact spot: you get close, within a tenth of the starting distance, by 2.2. But a straight course would get you there by 1.4.
     </ul>
     
-    <p class="en">Switch the widget above to "Where they are now" and watch your path bend in behind the leader.</p>
+    <p class="en">In the ship animation at the top choose "Where they are" and watch your path bend in behind the leader.</p>
     
     <p class="en">And what if the leader changes course too? Switch the leader in the ship animation to "Turns". At the same speed the gap no longer freezes at half but keeps shrinking: at every turn you cut the corner. A leader who holds their course can't be caught by an equally fast pursuer; a leader who keeps turning can. So a vision you stick to protects a lead as well.</p>
     
-    <p class="en">Now add inertia. A predator is faster than a hare but can't turn on the spot: it has a minimum turning radius. The hare lets it come close and turns sharply aside. Set the leader to "Dodges" and switch your inertia on and off. Without inertia dodging is useless: a pursuer who turns at once catches the hare even sooner than if it ran straight. With inertia the same faster pursuer shoots past every time and turns on an arc, and the hare escapes again and again. Biologists call this the turning gambit, and mathematicians have known a similar game since 1951 as Rufus Isaacs's homicidal chauffeur problem: a fast car with a limited turning radius against a slow but agile pedestrian.</p>
-    
-    <p class="en">In business, inertia is how fast a company can change course. So the same behaviour by the leader gives opposite results. One who keeps wavering is easy prey for a pursuer who turns at once. But a big pursuer with inertia can't catch even a slower rival who turns sharply at the right moment.</p>
+    <p class="en">Now give yourself inertia: you can't turn on the spot, and your smallest turning radius equals the starting distance. Against a leader who holds course this changes almost nothing: you only turn once, at the start, and 20% faster you catch up at 2.9 instead of 2.7. But a leader who changes course can no longer be caught: you can't keep up with the turns, you come close and shoot past every time. In business, inertia is how fast a company can change course. So chasing a competitor's every turn makes sense only if you turn at least as fast as they do.</p>
     
     <p class="en">This happens a lot. We see a company's big breakthrough, and half a year or a year later, when we roll out the same thing, it turns out the strategy was bad and they have already abandoned it. A public example is social audio. In February 2021 the Clubhouse app was downloaded 9.6&nbsp;million times, and the big platforms rushed to build their own voice rooms: Twitter Spaces opened to everyone in May, Facebook Live Audio Rooms and Spotify Greenroom launched in June. But by April Clubhouse was down to about 0.9&nbsp;million downloads, about a tenth of its peak (Sensor Tower data). Facebook closed its rooms in 2022, Spotify shut its app in April 2023. They were catching up with a point the market had already left.</p>
 
@@ -305,6 +287,8 @@ footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-s
     <p class="en">In business this idea is often retold with the hockey player Wayne Gretzky's words: "skate to where the puck is going, not to where it has been". But <a href="https://ellisdon.com/insights/the-problem-with-gretzky">critics of the metaphor</a> rightly note that everyone who reads the same game skates to where the puck is going. And in business there is more than one puck. So it isn't enough to predict where the market is heading; you need your own point, not the one everyone sees.</p>
     
     <p class="en">Besides, the market is not a competitor running in a straight line. It turns by itself. Whoever aims at a competitor chases a point that moves twice: with the competitor and with the market.</p>
+    
+    <p class="en">You can try this way in the ship animation at the top: choose "Forecast". You see the leader with the same delay as in the first way, but instead of sailing to where they were, you carry their visible course forward and sail to the meeting point. If the leader holds course, even old data tells the truth: 20% faster, you catch up at 1.5, as with perfect knowledge, not at 2.7 like the one aiming at the leader themself. A real leader is exactly like that: they don't wander, they know where they are going. If the leader changes course, a forecast from old data gets you close fast, but you keep overshooting.</p>
     
     <p class="en">There is one more idea here. When you chase a competitor, you see the goal you need to reach. And that place doesn't have to lie on the competitor's path. If the competitor is successful, the point you need is most likely not far from them, but you can get there first if you have the right, your own, view of the market. And the real win comes when the competitor is moving the other way, while you notice something that changes the market and head for exactly that point.</p>
     
@@ -430,74 +414,59 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
     const dot = document.getElementById('hero-dot'); dot.setAttribute('cx', sx(last[0])); dot.setAttribute('cy', sy(last[1]));
   })();
 
-  const svg = document.getElementById('ch-svg'), kIn = document.getElementById('ch-k'), modeBox = document.getElementById('ch-mode');
-  let mode = 'past';
-  const SX = v => 60 + v * 190, SY = v => 285 - v * 85;
-  function draw() {
-    const k = +kIn.value;
-    document.getElementById('ch-k-out').textContent = '×' + num(k, 1);
-    const view = chase(k, mode, 3.1, 0.002), full = chase(k, mode, 12, 0.0005);
-    svg.innerHTML = '';
-    el('line', { x1: SX(0), y1: SY(0), x2: SX(0), y2: SY(3.1), stroke: '#151515', 'stroke-width': 3, 'stroke-linecap': 'round' }, svg);
-    el('text', { x: SX(0) + 8, y: 18 }, svg).textContent = T('лідер', 'leader');
-    el('path', { d: 'M' + view.pts.map(p => SX(p[0]).toFixed(1) + ' ' + SY(Math.min(p[1], 3.1)).toFixed(1)).join(' L'), fill: 'none', stroke: '#151515', 'stroke-width': 3, 'stroke-dasharray': '7 6', 'stroke-linecap': 'round' }, svg);
-    el('circle', { cx: SX(1), cy: SY(0), r: 7, fill: '#fff', stroke: '#151515', 'stroke-width': 3 }, svg);
-    el('text', { x: SX(1) - 10, y: SY(0) - 12, 'text-anchor': 'end' }, svg).textContent = T('ви', 'you');
-    const out = document.getElementById('ch-out'), say = document.getElementById('ch-say');
-    if (full.caught != null) {
-      out.textContent = T('Наздогнали за ', 'Caught up in ') + num(full.caught, 2) + T(' од. часу', ' time units');
-      const ahead = 1 / Math.sqrt(k * k - 1);
-      const near = T('Поруч, ближче ніж 0,1, — уже за ', 'Close, within 0.1, already at ') + num(full.near, 2) + '. ';
-      say.textContent = near + (mode === 'ahead' ? T('Найкоротший шлях: прямо до точки зустрічі.', 'The shortest path: straight to the meeting point.')
-        : T('Прямо до точки зустрічі вистачило б ', 'Straight to the meeting point would take ') + num(ahead, 2) + T(', а поруч ви були б за ', ', and you would be close by ') + num((1 - NEAR) * ahead, 2) + '.');
-    } else {
-      out.textContent = T('Не наздогнали: відстань ', 'Never caught up: the gap stays ') + num(full.gap, 2);
-      say.textContent = mode === 'past'
-        ? (k <= 1.001 ? T('З тією самою швидкістю ви не наздоганяєте навіть місце, де він був: до запізнення додається ще й крива погоні.', "At the same speed you don't even reach the place where they were: the pursuit curve adds to the delay.")
-          : T('Ви бачите, де він був пів одиниці часу тому, і рівно на стільки відстаєте. Більша швидкість цього не змінить.', 'You see where they were half a unit of time ago, and that is exactly how far behind you stay. More speed won\'t change it.'))
-        : mode === 'now' ? T('З тією самою швидкістю відстань скорочується до половини початкової і завмирає.', 'At the same speed the gap shrinks to half the starting one and freezes.')
-        : T('З тією самою швидкістю точки зустрічі немає: лідер завжди на тій самій відстані.', 'At the same speed there is no meeting point: the leader stays the same distance away.');
-    }
-  }
-  modeBox.addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b) return;
-    mode = b.dataset.v; modeBox.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); draw();
-  });
-  kIn.addEventListener('input', draw); draw();
 
-  // Ships: pursuit in real time. The leader starts at (0, 0) heading along +x at speed 1; you start at (0, 1) with speed k
-  // and always steer at the leader's current position. Leader: "straight"; "turn": heading -60°·sin(2πt/4), first away
-  // from you; "dodge" (a hare): when you are closer than RD it runs at right angles to the line between you, to the side
-  // your bow is not pointing. Inertia: you turn at most OMEGA radians per time unit (turning radius k/OMEGA); without it
-  // you turn at once. Caught: closer than 2e-3, or 0.05 for the hare. Checked in Python and with this step code in node:
-  // straight k=1 gap→0.5, k=1.1 caught 5.22, k=1.2 2.72; turn k=1 0.20 at t=8 and shrinking, k=1.1 5.32, k=1.2 3.36;
-  // inertia changes neither; hare without inertia: k=1.1 caught 2.47, k=1.2 1.45; hare with inertia: never caught in
-  // 40 time units, it dodges again each time you close in. The camera follows; pauses off screen; static with reduced motion.
+  // Ships: pursuit in real time. The leader sails along +x at speed 1 (and had been before the start) from (0, 0); you
+  // start at (0, 1) with speed k. Leader: "straight", or "turn": heading -60°·sin(2πt/4), first away from you.
+  // Aim: "now" = at the leader (Bouguer's pure pursuit); "past" = where you see them, LAG late; "predict" = you see them
+  // LAG late, carry their seen velocity (over the last 0.1) forward by LAG and steer to the meeting point for your speed
+  // (if there is none, to the forecast position). Caught: closer than 2e-3. Checked with this step code in node (and the
+  // "now" cases in Python): straight: now k=1 gap→0.5, 1.1 caught 5.22, 1.2 2.72; past: k>1 stays 0.50 behind, k=1 0.8;
+  // predict: k=1 0.5, 1.1 caught 2.18, 1.2 1.51 (= the straight-course optimum). Turn: now k=1 0.20 at t=8 and
+  // shrinking, 1.1 5.32, 1.2 3.36; past ~0.5 behind; predict 1.1/1.2: within 0.1 by 2.6/2.3 but overshooting, k=1 caught
+  // at 10.9. The camera follows the leader; pauses off screen; static with reduced motion.
   (function () {
-    const cv = document.getElementById('sh-cv'), kBox = document.getElementById('sh-k'), pBox = document.getElementById('sh-path'), iBox = document.getElementById('sh-in');
-    const out = document.getElementById('sh-out'), say = document.getElementById('sh-say'), bar = document.getElementById('sh-bar');
-    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const A = Math.PI / 3, P = 4, OMEGA = 3, RD = 0.3;
-    const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
-    let k = 1, mode = 'straight', inertia = false, st, raf = null, seen = false, hold = null;
-    const speed = () => mode === 'dodge' ? 1.6 : 0.8;  // time units per real second
-    const tEnd = () => mode === 'dodge' ? (k > 1 ? 24 : 6) : mode === 'turn' && k === 1 ? 9 : 7;
-    function reset() { st = { t: 0, x: 0, y: 1, ph: -Math.PI / 2, lx: 0, ly: 0, lh: 0, side: 0, dodges: 0, trail: [[0, 1]], lead: [[0, 0]], done: false, caught: false }; }
+    const cv = document.getElementById('sh-cv'), kBox = document.getElementById('sh-k'), pBox = document.getElementById('sh-path'), aBox = document.getElementById('sh-aim');
+    const out = document.getElementById('sh-out'), say = document.getElementById('sh-say'), chart = document.getElementById('sh-chart');
+    let runs = [];  // earlier runs kept on the chart: { label, pts }
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches, SPEED = 0.8;  // time units per real second
+    const A = Math.PI / 3, P = 4, LAG = 0.5, RADIUS = 1;
+    let k = 1, mode = 'straight', aim = 'now', inertia = false, st, raf = null, seen = false, hold = null;
+    const tEnd = () => mode === 'turn' ? 11 : 7;
+    function label() {
+      return [k === 1 ? T('як у лідера', 'same speed') : '+' + Math.round((k - 1) * 100) + '%', mode === 'turn' ? T('змінює курс', 'turns') : '',
+        { now: '', past: T('де видно', 'where seen'), predict: T('прогноз', 'forecast') }[aim], inertia ? T('інерція', 'inertia') : ''].filter(Boolean).join(', ');
+    }
+    function reset() { if (st && st.gaps.length > 5) { runs = runs.filter(r => r.label !== st.label).concat([{ label: st.label, pts: st.gaps }]).slice(-3); }
+      st = { label: label(), gaps: [[0, 1]], t: 0, x: 0, y: 1, ph: -Math.PI / 2, lx: 0, ly: 0, lh: 0, hist: [[0, 0, 0]], goal: null, trail: [[0, 1]], lead: [[0, 0]], done: false, caught: false }; }
+    function seenAt(t) {  // the leader's position at time t, linear between stored steps
+      const h = st.hist; if (t <= 0) return [t, 0];
+      let lo = 0, hi = h.length - 1;
+      while (hi - lo > 1) { const m = (lo + hi) >> 1; if (h[m][0] <= t) lo = m; else hi = m; }
+      const a = h[lo], b = h[hi], f = b[0] > a[0] ? Math.min(1, Math.max(0, (t - a[0]) / (b[0] - a[0]))) : 0;
+      return [a[1] + f * (b[1] - a[1]), a[2] + f * (b[2] - a[2])];
+    }
+    function target() {
+      if (aim === 'now') return [st.lx, st.ly];
+      const p = seenAt(st.t - LAG);
+      if (aim === 'past') return p;
+      const p0 = seenAt(st.t - LAG - 0.1), vx = (p[0] - p0[0]) / 0.1, vy = (p[1] - p0[1]) / 0.1;
+      const qx = p[0] + vx * LAG, qy = p[1] + vy * LAG, rx = qx - st.x, ry = qy - st.y;
+      const a = vx * vx + vy * vy - k * k, b = 2 * (rx * vx + ry * vy), c = rx * rx + ry * ry;
+      let tau = -1;
+      if (Math.abs(a) < 1e-9) { if (b < 0) tau = -c / b; }
+      else { const D = b * b - 4 * a * c; if (D >= 0) { const r = [(-b - Math.sqrt(D)) / (2 * a), (-b + Math.sqrt(D)) / (2 * a)].filter(u => u > 0); if (r.length) tau = Math.min(...r); } }
+      return tau > 0 ? [qx + vx * tau, qy + vy * tau] : [qx, qy];
+    }
     function step(dt) {
-      const cap = mode === 'dodge' ? 0.05 : 2e-3;
-      const dx = st.lx - st.x, dy = st.ly - st.y, d = Math.hypot(dx, dy);
-      if (d < cap) { st.done = st.caught = true; return; }
+      const dx = st.lx - st.x, dy = st.ly - st.y;
+      if (Math.hypot(dx, dy) < 2e-3) { st.done = st.caught = true; return; }
       if (mode === 'turn') st.lh = -A * Math.sin(2 * Math.PI * (st.t + dt / 2) / P);
-      if (mode === 'dodge') {
-        if (d < RD) {
-          if (!st.side) { st.side = Math.cos(st.ph) * dy - Math.sin(st.ph) * dx >= 0 ? 1 : -1; st.dodges++; }
-          st.lh = Math.atan2(dy, dx) + st.side * Math.PI / 2;
-        } else st.side = 0;
-      }
-      const want = Math.atan2(dy, dx);
-      st.ph = inertia ? st.ph + Math.max(-OMEGA * dt, Math.min(OMEGA * dt, wrap(want - st.ph))) : want;
+      const g = target(), want = Math.atan2(g[1] - st.y, g[0] - st.x), turn = k / RADIUS * dt; st.goal = g;
+      st.ph = inertia ? st.ph + Math.max(-turn, Math.min(turn, Math.atan2(Math.sin(want - st.ph), Math.cos(want - st.ph)))) : want;
       st.x += k * dt * Math.cos(st.ph); st.y += k * dt * Math.sin(st.ph);
       st.lx += dt * Math.cos(st.lh); st.ly += dt * Math.sin(st.lh); st.t += dt;
+      st.hist.push([st.t, st.lx, st.ly]);
+      if (st.t - st.gaps[st.gaps.length - 1][0] >= 0.05) st.gaps.push([st.t, Math.hypot(st.lx - st.x, st.ly - st.y)]);
       if (st.t >= tEnd()) st.done = true;
     }
     function advance(dtTotal) {
@@ -507,26 +476,20 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
       if (Math.hypot(st.x - a[0], st.y - a[1]) > 0.01) st.trail.push([st.x, st.y]);
       if (Math.hypot(st.lx - b[0], st.ly - b[1]) > 0.01) st.lead.push([st.lx, st.ly]);
     }
-    function ship(ctx, x, y, ang, fill, size) {
+    function ship(ctx, x, y, ang, fill, size, stroke) {
       ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
       ctx.beginPath(); ctx.moveTo(size, 0); ctx.quadraticCurveTo(size * 0.2, -size * 0.55, -size * 0.8, -size * 0.45);
       ctx.lineTo(-size * 0.8, size * 0.45); ctx.quadraticCurveTo(size * 0.2, size * 0.55, size, 0); ctx.closePath();
-      ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#151515'; ctx.stroke(); ctx.restore();
+      ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = stroke || '#151515'; ctx.stroke(); ctx.restore();
     }
     function draw() {
       const dpr = devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
       if (!W || !H) return;
       cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
       const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-      let sc, X, Y, camX, camY;
-      if (mode === 'dodge') {  // the hare runs anywhere: centre the view between the two
-        sc = Math.min(W, H) / 2.6; camX = (st.lx + st.x) / 2 - W / sc / 2; camY = (st.ly + st.y) / 2 - H / sc / 2;
-        X = v => (v - camX) * sc; Y = v => H - (v - camY) * sc;
-      } else {
-        const y0 = mode === 'turn' ? -1.3 : -0.25, y1 = 1.2; sc = Math.min(W / 3.2, H / (y1 - y0));
-        camX = Math.max(0, st.lx - W / sc * 0.62) - 0.35; camY = y0 - (H / sc - (y1 - y0)) / 2;
-        X = v => (v - camX) * sc; Y = v => H - (v - camY) * sc;
-      }
+      const y0 = mode === 'turn' ? -1.3 : -0.25, y1 = 1.2, sc = Math.min(W / 3.2, H / (y1 - y0));
+      const camX = Math.max(0, st.lx - W / sc * 0.62) - 0.35, camY = y0 - (H / sc - (y1 - y0)) / 2;
+      const X = v => (v - camX) * sc, Y = v => H - (v - camY) * sc;
       // wave marks fixed to the sea
       ctx.strokeStyle = 'rgba(21,21,21,.12)'; ctx.lineWidth = 1.5;
       for (let gx = Math.floor(camX / 0.5) * 0.5; gx < camX + W / sc + 0.5; gx += 0.5)
@@ -540,48 +503,84 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
         ctx.beginPath(); tr.forEach((q, i) => i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1]))); ctx.lineTo(X(ex), Y(ey)); ctx.stroke();
       }
       ctx.setLineDash([]);
-      // line of sight: where you want to point
-      if (!st.caught) { ctx.strokeStyle = 'rgba(21,21,21,.35)'; ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
-        ctx.beginPath(); ctx.moveTo(X(st.x), Y(st.y)); ctx.lineTo(X(st.lx), Y(st.ly)); ctx.stroke(); ctx.setLineDash([]); }
-      const size = Math.max(10, Math.min(18, sc * 0.11));
+      const size = Math.max(10, Math.min(18, sc * 0.11)), g = st.goal || target();
+      // what you see (late) and where you steer
+      if (aim !== 'now' && !st.caught) {
+        const p = seenAt(st.t - LAG), p0 = seenAt(st.t - LAG - 0.05);
+        ship(ctx, X(p[0]), Y(p[1]), -Math.atan2(p[1] - p0[1], p[0] - p0[0]), 'rgba(255,255,255,0)', size * 0.8, 'rgba(21,21,21,.35)');
+      }
+      if (!st.caught) {
+        ctx.strokeStyle = 'rgba(21,21,21,.35)'; ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
+        ctx.beginPath(); ctx.moveTo(X(st.x), Y(st.y)); ctx.lineTo(X(g[0]), Y(g[1])); ctx.stroke(); ctx.setLineDash([]);
+        if (aim === 'predict') { const gx = X(g[0]), gy = Y(g[1]); ctx.strokeStyle = '#151515'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(gx - 6, gy - 6); ctx.lineTo(gx + 6, gy + 6); ctx.moveTo(gx + 6, gy - 6); ctx.lineTo(gx - 6, gy + 6); ctx.stroke(); }
+      }
       ship(ctx, X(st.x), Y(st.y), -st.ph, '#fff', size);
       ship(ctx, X(st.lx), Y(st.ly), -st.lh, '#151515', size * 0.8);  // drawn last so it stays visible when you reach it
       const gap = Math.hypot(st.lx - st.x, st.ly - st.y);
-      bar.style.width = Math.min(100, gap * 100) + '%';
+      drawChart();
       out.textContent = T('Відстань ', 'Gap ') + num(gap, 2) + T(' · час ', ' · time ') + num(st.t, 1);
       say.textContent = text(gap);
     }
+    // distance over time: this run in black, up to three earlier runs in grey with their settings
+    function drawChart() {
+      const dpr = devicePixelRatio || 1, W = chart.clientWidth, H = chart.clientHeight;
+      if (!W || !H) return;
+      chart.width = Math.round(W * dpr); chart.height = Math.round(H * dpr);
+      const ctx = chart.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+      const all = runs.map(r => r.pts).concat([st.gaps]), top = Math.max(1, ...all.flat().map(q => q[1]));
+      const L = 30, B = 20, TM = 11, X = t => L + (W - L - 6) * t / TM, Y = g => H - B - (H - B - 6) * Math.min(g, top) / top;
+      ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = '#6b6b6b'; ctx.strokeStyle = '#e3e3e3'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(L, Y(0)); ctx.lineTo(W - 6, Y(0)); ctx.stroke();
+      for (let t = 0; t <= TM; t += 2) { ctx.textAlign = 'center'; ctx.fillText(String(t), X(t), H - 5); }
+      ctx.textAlign = 'right'; [0, 0.5, 1].concat(top > 1.5 ? [Math.floor(top)] : []).forEach(g => ctx.fillText(num(g, g % 1 ? 1 : 0), L - 6, Y(g) + 4));
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--signal').trim() || '#d0007a'; ctx.setLineDash([3, 4]);
+      ctx.beginPath(); ctx.moveTo(L, Y(0.5)); ctx.lineTo(W - 6, Y(0.5)); ctx.stroke(); ctx.setLineDash([]);
+      const line = (pts, col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1]))); ctx.stroke(); };
+      runs.forEach(r => { if (r.label === st.label) return; line(r.pts, 'rgba(21,21,21,.25)', 2);
+        const e = r.pts[r.pts.length - 1]; ctx.fillStyle = '#8a8a8a'; ctx.textAlign = X(e[0]) > W - 90 ? 'right' : 'left';
+        ctx.fillText(r.label, X(e[0]) + (ctx.textAlign === 'left' ? 4 : -4), Math.max(12, Y(e[1]) - 4)); });
+      line(st.gaps.concat([[st.t, Math.hypot(st.lx - st.x, st.ly - st.y)]]), '#151515', 2.5);
+      ctx.fillStyle = '#6b6b6b'; ctx.textAlign = 'left'; ctx.fillText(T('відстань', 'gap'), L + 4, 12);
+    }
     // what to say under the animation; the fixed numbers come from the checks listed above
     function text(gap) {
-      const at = num(st.t, 1), soft = inertia && mode !== 'dodge' ? T(' Інерція тут не заважає: лідер не робить різких поворотів.', " Inertia doesn't matter here: the leader makes no sharp turns.") : '';
-      if (mode === 'dodge') {
-        if (k === 1) return T('Ви не швидші за лідера, тож і не підходите ближче ніж на 0,5: йому навіть не треба ухилятися.', "You're no faster than the leader, so you never get closer than 0.5: they don't even need to dodge.");
-        const straight = k > 1.15 ? T('2,7', '2.7') : T('5,2', '5.2');
-        if (st.caught) return T('Спіймали за ' + at + '. Проти того, хто розвертається миттєво, ухилятися марно: якби лідер плив прямо, це забрало б ' + straight + '.',
-          'Caught at ' + at + ". Dodging is useless against someone who turns at once: had the leader sailed straight, it would take " + straight + '.');
-        if (!st.dodges) return T('Ви швидші і наздоганяєте. Дивіться, що буде, коли підійдете ближче ніж на 0,3.', "You're faster and closing in. Watch what happens when you get within 0.3.");
-        if (!inertia) return T('Лідер різко звертає, але ви розвертаєтеся миттєво.', 'The leader turns sharply, but you turn at once.');
-        return st.done ? T('За ' + at + ' так і не спіймали, хоч ви швидші: лідер ухилявся ' + st.dodges + ' р.', 'Not caught in ' + at + ", though you're faster: the leader dodged " + st.dodges + ' times.')
-          : T('Лідер різко звертає, а ви з інерцією проскакуєте повз і розвертаєтеся по дузі. Ухилень: ' + st.dodges + '.', 'The leader turns sharply, and with your inertia you shoot past and turn on an arc. Dodges: ' + st.dodges + '.');
+      const at = num(st.t, 1);
+      if (inertia) {
+        const before = { 'straight now': ['5,2', '2,7', '5.2', '2.7'], 'straight predict': ['2,2', '1,5', '2.2', '1.5'] }[mode + ' ' + aim], i = k > 1.15 ? 1 : 0;
+        if (st.caught) return T('Наздогнали за ' + at + (before ? '; без інерції — за ' + before[i] : '') + '. Лідер тримає курс, тож розвертатися по широкій дузі треба лише на старті.', 'Caught up at ' + at + (before ? '; without inertia at ' + before[i + 2] : '') + '. The leader holds course, so you only have to turn on a wide arc at the start.');
+        if (mode === 'turn' && st.t > 3) return T('Лідер змінює курс, а ви з інерцією не встигаєте за його поворотами: підходите близько і знову проскакуєте повз. Без інерції ви б зрізали кути.', "The leader changes course, and with your inertia you can't keep up with the turns: you come close and shoot past again. Without inertia you would cut the corners.");
+        if (st.done) return T('Не наздогнали: відстань ' + num(gap, 2) + '.', 'Never caught up: the gap is ' + num(gap, 2) + '.');
+        return T('З інерцією ви не розвертаєтеся на місці, а йдете по дузі радіусом 1.', "With inertia you can't turn on the spot; you go round an arc of radius 1.");
+      }
+      if (aim === 'past') return st.t < 2.5 ? T('Ви бачите лідера із запізненням пів одиниці часу і пливете туди, де він був.', 'You see the leader half a unit of time late and sail to where they were.')
+        : k > 1 ? T('Ви швидші, але відстаєте рівно на своє запізнення: 0,5. Більша швидкість цього не змінить.', "You're faster, but you trail by exactly your delay: 0.5. More speed won't change it.")
+        : T('З тією самою швидкістю ви відстаєте ще більше: до запізнення додається крива погоні.', 'At the same speed you fall even further behind: the pursuit curve adds to the delay.');
+      if (aim === 'predict') {
+        if (st.caught) return mode === 'straight' ? T('Наздогнали за ' + at + ', так само швидко, як якби все бачили без запізнення: лідер тримає курс, тож і старі дані кажуть правду. Якщо цілитися в нього самого, знадобилося б ' + (k > 1.15 ? '2,7' : '5,2') + '.', 'Caught up at ' + at + ', as fast as with no delay at all: the leader holds course, so even old data tells the truth. Aiming at the leader themself would take ' + (k > 1.15 ? '2.7' : '5.2') + '.')
+          : T('Наздогнали за ' + at + '.', 'Caught up at ' + at + '.');
+        if (k === 1 && mode === 'straight') return T('З тією самою швидкістю точки зустрічі немає: прогноз не допоможе, ви лише йдете поруч на тій самій відстані.', "At the same speed there is no meeting point: a forecast can't help, you only keep pace at the same distance.");
+        if (mode === 'turn' && st.t > 3) return T('Лідер змінює курс, тож прогноз зі старих даних щоразу трохи хибить: ви швидко опиняєтеся поруч, але проскакуєте повз.', 'The leader changes course, so a forecast from old data is always a little off: you get close fast, but keep overshooting.');
+        return T('Ви бачите лідера із запізненням, але продовжуєте його видимий курс уперед і пливете до точки зустрічі.', 'You see the leader late, but carry their visible course forward and sail to the meeting point.');
       }
       if (mode === 'turn') {
-        if (k > 1) return (st.caught ? T('Наздогнали за ' + at + ': лідер спершу відвернув від вас, тому довше, ніж за тим, хто пливе прямо (' + (k > 1.15 ? '2,7' : '5,2') + ').', 'Caught up at ' + at + ': the leader first turned away from you, so it took longer than with one sailing straight (' + (k > 1.15 ? '2.7' : '5.2') + ').')
-          : T('Лідер змінює курс, а ви щомиті цілитеся просто в нього.', 'The leader changes course, and you aim straight at them at every moment.')) + soft;
-        return (gap < 0.5 && st.t > 2.5 ? T('Відстань уже менша за половину і далі скорочується: на кожному повороті ви зрізаєте кут. Якби лідер плив прямо, вона завмерла б на 0,5.', 'The gap is already under half and keeps shrinking: at every turn you cut the corner. Had the leader sailed straight, it would freeze at 0.5.')
-          : T('Ви пливете так само швидко, а лідер змінює курс. Дивіться на відстань.', 'You sail just as fast, and the leader changes course. Watch the gap.')) + soft;
+        if (k > 1) return st.caught ? T('Наздогнали за ' + at + ': лідер спершу відвернув від вас, тому довше, ніж за тим, хто пливе прямо (' + (k > 1.15 ? '2,7' : '5,2') + ').', 'Caught up at ' + at + ': the leader first turned away from you, so it took longer than with one sailing straight (' + (k > 1.15 ? '2.7' : '5.2') + ').')
+          : T('Лідер змінює курс, а ви щомиті цілитеся просто в нього.', 'The leader changes course, and you aim straight at them at every moment.');
+        return gap < 0.5 && st.t > 2.5 ? T('Відстань уже менша за половину і далі скорочується: на кожному повороті ви зрізаєте кут. Якби лідер плив прямо, вона завмерла б на 0,5.', 'The gap is already under half and keeps shrinking: at every turn you cut the corner. Had the leader sailed straight, it would freeze at 0.5.')
+          : T('Ви пливете так само швидко, а лідер змінює курс. Дивіться на відстань.', 'You sail just as fast, and the leader changes course. Watch the gap.');
       }
       if (k > 1) {
         const f = k > 1.15 ? ['2,7', '2,2', '1,5', '1,4', '2.7', '2.2', '1.5', '1.4'] : ['5,2', '4,2', '2,2', '2,0', '5.2', '4.2', '2.2', '2.0'];
-        return (st.caught ? T('У самій точці лідера — за ' + f[0] + ', поруч (ближче ніж 0,1) — за ' + f[1] + '. Прямим курсом: ' + f[2] + ' і ' + f[3] + '.', "At the leader's exact spot at " + f[4] + ', close (within 0.1) at ' + f[5] + '. On a straight course: ' + f[6] + ' and ' + f[7] + '.')
+        return st.caught ? T('У самій точці лідера — за ' + f[0] + ', поруч (ближче ніж 0,1) — за ' + f[1] + '. Прямим курсом: ' + f[2] + ' і ' + f[3] + '.', "At the leader's exact spot at " + f[4] + ', close (within 0.1) at ' + f[5] + '. On a straight course: ' + f[6] + ' and ' + f[7] + '.')
           : gap <= 0.1 ? T('Ви вже поруч, ближче ніж 0,1. Останній відрізок до самої точки забирає ще ' + (k > 1.15 ? 'пів одиниці' : 'майже одиницю') + ' часу.', "You're already close, within 0.1. The last stretch to their exact spot takes " + (k > 1.15 ? 'another half unit' : 'almost another unit') + ' of time.')
-          : T('Ви швидші, але весь час доганяєте місце, яке вже змінилося.', "You're faster, but you keep chasing a spot that has already moved.")) + soft;
+          : T('Ви швидші, але весь час доганяєте місце, яке вже змінилося.', "You're faster, but you keep chasing a spot that has already moved.");
       }
-      return (st.t > 3 ? T('Відстань завмирає на половині початкової: ви пливете слідом, але не ближче.', 'The gap freezes at half the starting one: you sail in their wake, but no closer.')
-        : T('Ви пливете так само швидко і весь час цілитеся просто в лідера.', 'You sail just as fast and always aim straight at the leader.')) + soft;
+      return st.t > 3 ? T('Відстань завмирає на половині початкової: ви пливете слідом, але не ближче.', 'The gap freezes at half the starting one: you sail in their wake, but no closer.')
+        : T('Ви пливете так само швидко і весь час цілитеся просто в лідера.', 'You sail just as fast and always aim straight at the leader.');
     }
     function frame(ts, prev) {
       if (!seen) { raf = null; return; }
-      advance(Math.min(0.05, (ts - (prev || ts)) / 1000) * speed()); draw();
+      advance(Math.min(0.05, (ts - (prev || ts)) / 1000) * SPEED); draw();
       if (st.done) { raf = null; hold = setTimeout(() => { hold = null; reset(); start(); }, 2800); return; }
       raf = requestAnimationFrame(t2 => frame(t2, ts));
     }
@@ -593,7 +592,7 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
         set(b.dataset.v); box.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); restart();
       });
     }
-    seg(kBox, v => { k = +v; }); seg(pBox, v => { mode = v; }); seg(iBox, v => { inertia = v === 'on'; });
+    seg(kBox, v => { k = +v; }); seg(pBox, v => { mode = v; }); seg(aBox, v => { aim = v; }); seg(document.getElementById('sh-in'), v => { inertia = v === 'on'; });
     document.getElementById('sh-again').addEventListener('click', restart);
     new IntersectionObserver(es => { seen = es[0].isIntersecting; if (seen) start(); }).observe(cv);
     addEventListener('resize', () => draw());
