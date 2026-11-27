@@ -5,6 +5,10 @@
 //    for the language (ELEVENLABS_VOICE_UK / ELEVENLABS_VOICE_EN); clips are cached by text;
 // 3. the macOS system voice, a placeholder for checking the timing only.
 // VOICE=draft (environment) skips ElevenLabs: system voice only, for stills while the text still changes.
+// ElevenLabs reads the whole script in one request (/with-timestamps), cut into lines in the pauses between
+// them, so phrases flow like one reading instead of each ending as a separate utterance (falling at every
+// full stop). VOICE=lines asks for each line separately, as before 2026-11-27.
+// Punctuation steers the take: a dash or «…» keeps the voice up where the thought goes on.
 import { execFileSync } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
@@ -12,6 +16,9 @@ import os from 'os';
 
 const SYSTEM = { uk: 'Lesya', en: 'Samantha' };
 const MODEL = 'eleven_multilingual_v2';
+// calm and even (chosen by ear on 2026-11-27 over 0.45 / 0.25); VOICE_STABILITY / VOICE_STYLE override, to compare
+const SETTINGS = { stability: +(process.env.VOICE_STABILITY ?? 0.6), similarity_boost: 0.8, style: +(process.env.VOICE_STYLE ?? 0), use_speaker_boost: true };
+const TAG = [SETTINGS.stability, SETTINGS.style];
 
 const duration = f => Number(execFileSync('ffprobe',
   ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f]).toString());
@@ -34,23 +41,67 @@ async function eleven(key, voiceId, text, prev, next, file) {
     body: JSON.stringify({
       text, model_id: MODEL,
       previous_text: prev, next_text: next,   // keeps intonation continuous across lines
-      voice_settings: { stability: 0.45, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true },
+      voice_settings: SETTINGS,
     }),
   });
   if (!r.ok) throw new Error(`ElevenLabs ${r.status}: ${(await r.text()).slice(0, 300)}`);
   fs.writeFileSync(file, Buffer.from(await r.arrayBuffer()));
 }
 
+// The whole script in one request; the character timings tell where each line starts and ends.
+async function elevenWhole(key, voiceId, lines, file) {
+  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps?output_format=mp3_44100_128`, {
+    method: 'POST',
+    headers: { 'xi-api-key': key, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      text: lines.join(' '), model_id: MODEL,
+      voice_settings: SETTINGS,
+    }),
+  });
+  if (!r.ok) throw new Error(`ElevenLabs ${r.status}: ${(await r.text()).slice(0, 300)}`);
+  const j = await r.json();
+  fs.writeFileSync(file, Buffer.from(j.audio_base64, 'base64'));
+  fs.writeFileSync(file.replace(/\.mp3$/, '.json'), JSON.stringify(j.alignment));
+}
+
+async function whole(dir, name, lang, lines, key, voiceId) {
+  const h = crypto.createHash('sha1').update([MODEL, voiceId, ...TAG, ...lines].join('|')).digest('hex').slice(0, 10);
+  const base = `${dir}/out/tts/${name}-${lang}-whole-${h}`;
+  if (!fs.existsSync(`${base}.json`)) await elevenWhole(key, voiceId, lines, `${base}.mp3`);
+  const al = JSON.parse(fs.readFileSync(`${base}.json`, 'utf8'));
+  const st = al.character_start_times_seconds, en = al.character_end_times_seconds;
+  if (al.characters.join('') !== lines.join(' ')) throw new Error('ElevenLabs alignment does not match the script');
+  if (!fs.existsSync(`${base}.wav`)) execFileSync('ffmpeg', ['-loglevel', 'error', '-i', `${base}.mp3`, `${base}.wav`]);
+  const total = duration(`${base}.wav`);
+  // each line's first and last spoken character; cut in the middle of the pause between lines
+  let at = 0;
+  const span = lines.map(l => { const s = at, e = at + l.length - 1; at += l.length + 1; return [st[s], en[e]]; });
+  // the timings are approximate and the pauses short: cut at the quietest 20 ms near the gap
+  const pcm = execFileSync('ffmpeg', ['-loglevel', 'error', '-i', `${base}.wav`, '-ac', '1', '-ar', '8000', '-f', 's16le', '-'], { maxBuffer: 1 << 28 });
+  const rate = 8000, win = 160, level = k => { let q = 0; for (let j = 0; j < win; j++) q += pcm.readInt16LE(Math.min(pcm.length - 2, 2 * (k + j))) ** 2; return q; };
+  const quiet = (a, b) => { let best = a * rate, lo = Infinity; for (let k = Math.round(a * rate); k < b * rate; k += 40) { const q = level(k); if (q < lo) { lo = q; best = k; } } return (best + win / 2) / rate; };
+  const cuts = span.map(([s], i) => i ? quiet(span[i - 1][1] - .08, s + .12) : 0).concat(total);
+  return lines.map((_, i) => {
+    const file = `${base}-${i}.wav`;
+    if (!fs.existsSync(file))
+      execFileSync('ffmpeg', ['-loglevel', 'error', '-i', `${base}.wav`, '-af',
+        `atrim=${cuts[i]}:${cuts[i + 1]},asetpts=PTS-STARTPTS,afade=t=in:d=0.01,areverse,afade=t=in:d=0.01,areverse`, file]);
+    return { file, dur: duration(file), source: 'elevenlabs (one take)' };
+  });
+}
+
 export async function clips(dir, name, lang, lines) {
   fs.mkdirSync(`${dir}/out/tts`, { recursive: true });
   const E = env(dir), key = E.ELEVENLABS_API_KEY, voiceId = E[`ELEVENLABS_VOICE_${lang.toUpperCase()}`];
+  if (key && voiceId && E.VOICE !== 'lines' && !lines.some((_, i) => ['wav', 'm4a', 'mp3', 'aiff'].some(e => fs.existsSync(`${dir}/voice/${name}-${lang}-${i}.${e}`))))
+    return whole(dir, name, lang, lines, key, voiceId);
   const out = [];
   for (const [i, line] of lines.entries()) {
     const base = `${dir}/voice/${name}-${lang}-${i}`;
     let file = ['wav', 'm4a', 'mp3', 'aiff'].map(e => `${base}.${e}`).find(f => fs.existsSync(f));
     let source = 'recorded';
     if (!file && key && voiceId && E.VOICE !== 'draft') {
-      const h = crypto.createHash('sha1').update([MODEL, voiceId, line].join('|')).digest('hex').slice(0, 10);
+      const h = crypto.createHash('sha1').update([MODEL, voiceId, ...TAG, line].join('|')).digest('hex').slice(0, 10);
       file = `${dir}/out/tts/${name}-${lang}-${i}-${h}.mp3`;
       if (!fs.existsSync(file)) await eleven(key, voiceId, line, lines[i - 1] || '', lines[i + 1] || '', file);
       source = 'elevenlabs';
