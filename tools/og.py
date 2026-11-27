@@ -2,17 +2,20 @@
 """Draw the 1200x630 social-preview images (og-uk.png / og-en.png) for the hub and every problem.
 
 macOS only: renders SVG with Quick Look (qlmanage) and crops with sips.
-Usage:  python3 tools/og.py
+Usage:  python3 tools/og.py            all images
+        python3 tools/og.py blog-      only the kinds that start with the given prefixes
 """
 import random
+import sys
 import subprocess
 import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INK, SIGNAL, SOFT, MUTED = "#151515", "#D9318F", "#FBE3F0", "#6B6B6B"
-TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-basics": "#EEF2E0", "course-auctions": "#EFE9D2", "course-game-theory": "#E6E2F0", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "course-feature-impact": "#EFEDE6", "course-feature-impact--trust": "#EFEDE6", "lake-escape": "#D7ECEF", "winners-curse": "#F2E4D9", "small-numbers": "#E4E6EE", "multi-armed-bandit": "#F8E3EC", "will-rogers": "#E6F1EA", "persuadables": "#F4EEDC", "truel": "#F0DCD4", "guess-two-thirds": "#E7DDF0", "dollar-auction": "#DDEADF", "hotelling-beach": "#F6EAD3", "fly-between-trains": "#E6F3F7", "hilbert-hotel": "#DFE4F2", "parrondo-paradox": "#E9DCEC", "axelrod-tournament": "#D6E6F7", "travelers-dilemma": "#E8D9CF", "prosecutors-fallacy": "#F3E8E4", "ant-rubber-rope": "#F5E9DF", "hat-check": "#EDE4D8", "broken-stick": "#F1E9DC", "elevator-paradox": "#F4E9E4", "revenue-equivalence": "#DCE9F0", "keep-waiting": "#EAE8F7", "newcomb-paradox": "#E3ECF7", "zeno-paradox": "#F2EEDB", "missing-square": "#EDF4E4", "ergodicity": "#EEF3D6", "unexpected-hanging": "#DEEFEA", "coin-rotation": "#F7EFD6", "condorcet-paradox": "#F0E6E9", "alabama-paradox": "#E4E9F7", "intransitive-dice": "#E3EEF3", "potato-paradox": "#EEE6D3", "coastline-paradox": "#DAF0EC", "raven-paradox": "#E9E9F0", "bingo-paradox": "#F7E7DC", "pythagorean-comma": "#EFDDE0", "wild-card-poker": "#E4EFE0", "compound-interest": "#EEDFC0", "solar-system-scale": "#F3E1C9", "hub": "#EEEAFF"}
+TINT = {"monty-hall": "#EEEAFF", "birthday": "#E6F8D8", "false-positive": "#FFEEDD", "secretary-problem": "#E3F1FF", "simpson-paradox": "#E8F6F3", "two-children": "#FCE4EC", "buffon-needle": "#FFF6CC", "friendship-paradox": "#F5E6F0", "duckweed-lake": "#EAF0D8", "rope-around-earth": "#D9F2F5", "hundred-prisoners": "#F0E6DC", "cognitive-reflection": "#FFE3D3", "coupon-collector": "#E2F5E9", "regression-to-mean": "#EDEDF7", "two-envelopes": "#FDF0DE", "coin-streaks": "#E5EEF0", "bertrand-paradox": "#F3F7D9", "penney-game": "#FBE9E1", "inspection-paradox": "#FCEFC7", "german-tank-problem": "#E6EBDD", "st-petersburg-paradox": "#E9E3F3", "benford-law": "#E0ECF6", "poisoned-wine": "#F3E3EA", "election-poll": "#E2E8F3", "two-eggs": "#FFF3D1", "twelve-coins": "#E6EDF2", "hats-parity": "#EFE3F6", "pirates-gold": "#F9E7C4", "blue-eyed-islanders": "#DDEBFA", "twenty-five-horses": "#E5EFD2", "bridge-and-torch": "#FCE6D2", "braess-paradox": "#E8E0D0", "survivorship-bias": "#DCE6E1", "sleeping-beauty": "#E1E2FA", "gamblers-ruin": "#D8EDE2", "berkson-paradox": "#EAE6DC", "ab-test": "#EAF4E2", "ab-test-peeking": "#F6E7D8", "multiple-testing": "#E3F3EE", "course-ab-testing": "#EAF4E2", "course-ab-basics": "#EEF2E0", "course-auctions": "#EFE9D2", "course-game-theory": "#E6E2F0", "course-ab-testing--check": "#EAF4E2", "course-interview-puzzles": "#E7F0F7", "course-interview-puzzles--trainer": "#E7F0F7", "course-data-traps": "#F2EBDD", "course-feature-impact": "#EFEDE6", "course-feature-impact--trust": "#EFEDE6", "lake-escape": "#D7ECEF", "winners-curse": "#F2E4D9", "small-numbers": "#E4E6EE", "multi-armed-bandit": "#F8E3EC", "will-rogers": "#E6F1EA", "persuadables": "#F4EEDC", "truel": "#F0DCD4", "guess-two-thirds": "#E7DDF0", "dollar-auction": "#DDEADF", "hotelling-beach": "#F6EAD3", "fly-between-trains": "#E6F3F7", "hilbert-hotel": "#DFE4F2", "parrondo-paradox": "#E9DCEC", "axelrod-tournament": "#D6E6F7", "travelers-dilemma": "#E8D9CF", "prosecutors-fallacy": "#F3E8E4", "ant-rubber-rope": "#F5E9DF", "hat-check": "#EDE4D8", "broken-stick": "#F1E9DC", "elevator-paradox": "#F4E9E4", "revenue-equivalence": "#DCE9F0", "keep-waiting": "#EAE8F7", "newcomb-paradox": "#E3ECF7", "zeno-paradox": "#F2EEDB", "missing-square": "#EDF4E4", "ergodicity": "#EEF3D6", "unexpected-hanging": "#DEEFEA", "coin-rotation": "#F7EFD6", "condorcet-paradox": "#F0E6E9", "alabama-paradox": "#E4E9F7", "intransitive-dice": "#E3EEF3", "potato-paradox": "#EEE6D3", "coastline-paradox": "#DAF0EC", "raven-paradox": "#E9E9F0", "bingo-paradox": "#F7E7DC", "pythagorean-comma": "#EFDDE0", "wild-card-poker": "#E4EFE0", "compound-interest": "#EEDFC0", "solar-system-scale": "#F3E1C9", "blog-product-hunt-game-theory": "#FFE7DC", "blog-hunger-games-game-theory": "#F3E4C4", "hub": "#EEEAFF"}
 FONT = "Helvetica Neue, Arial, sans-serif"
+BLOG_LABEL = {"uk": "ПАРАДОКСИ В ЖИТТІ · БЛОГ", "en": "PARADOXES IN REAL LIFE · BLOG"}
 
 TEXT = {
     "monty-hall": {
@@ -210,6 +213,14 @@ TEXT = {
     "course-feature-impact--trust": {
         "uk": (["ЧИ МОЖНА", "ДОВІРЯТИ?"], "Ризики звіту і метод оцінки"),
         "en": (["CAN YOU", "TRUST IT?"], "Report risks and a method"),
+    },
+    "blog-product-hunt-game-theory": {
+        "uk": (["PRODUCT HUNT", "ЯК ТУРНІР"], "Коли розповідати про запуск?"),
+        "en": (["PRODUCT HUNT AS", "A TOURNAMENT"], "When to tell people about a launch?"),
+    },
+    "blog-hunger-games-game-theory": {
+        "uk": (["ГОЛОДНІ ІГРИ", "І ТЕОРІЯ ІГОР"], "Чи є в арені найкраща стратегія?"),
+        "en": (["THE HUNGER GAMES", "AND GAME THEORY"], "Is there a best arena strategy?"),
     },
     "lake-escape": {
         "uk": (["ВТЕЧА", "ЧЕРЕЗ ОЗЕРО"], "Вихователь учетверо швидший. Як утекти?"),
@@ -1449,6 +1460,28 @@ def extra_visual(kind, x, y, lang="en"):
         out.append(f'<line x1="{x + 200}" y1="{y + 160}" x2="{x + 330}" y2="{y + 160}" stroke="{INK}" stroke-width="3" stroke-dasharray="7 6"/>')
         out.append(f'<text x="{x + 352}" y="{y + 176}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="50" fill="{SIGNAL}">?</text>')
         out.append(f'<text x="{x + 352}" y="{y + 210}" text-anchor="middle" font-family="{FONT}" font-weight="700" font-size="16" fill="{MUTED}">{"Нептун" if lang == "uk" else "Neptune"}</text>')
+    elif kind == "blog-product-hunt-game-theory":
+        # the day's leaderboard: five products with close upvote counts; only the places 1-3 get a badge
+        out.append(f'<rect x="{x + 10}" y="{y + 10}" width="380" height="310" rx="18" fill="#fff"/>')
+        out.append(f'<text x="{x + 36}" y="{y + 52}" font-family="{FONT}" font-weight="700" font-size="18" fill="{MUTED}">{"ПРОДУКТ ДНЯ" if lang == "uk" else "PRODUCT OF THE DAY"}</text>')
+        for i, v in enumerate((612, 598, 571, 540, 266)):
+            yy = y + 78 + i * 46
+            badge = i < 3
+            out.append(f'<circle cx="{x + 52}" cy="{yy + 16}" r="16" fill="{INK if badge else "#fff"}" stroke="{INK}" stroke-width="2"/>')
+            out.append(f'<text x="{x + 52}" y="{yy + 23}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="18" fill="{"#fff" if badge else INK}">{i + 1}</text>')
+            out.append(f'<rect x="{x + 82}" y="{yy + 4}" width="{v * 0.32:.0f}" height="24" rx="6" fill="#E8643C" fill-opacity="{.9 if badge else .35}"/>')
+            out.append(f'<text x="{x + 364}" y="{yy + 23}" text-anchor="end" font-family="{FONT}" font-weight="700" font-size="18" fill="{INK}">▲ {v}</text>')
+    elif kind == "blog-hunger-games-game-theory":
+        # the arena from above: 24 tributes on pedestals in a ring around the Cornucopia
+        import math
+        cx, cy = x + 200, y + 165
+        out += [f'<circle cx="{cx}" cy="{cy}" r="160" fill="#fff" stroke="{INK}" stroke-width="3"/>',
+                f'<circle cx="{cx}" cy="{cy}" r="112" fill="none" stroke="{INK}" stroke-opacity=".18" stroke-width="2" stroke-dasharray="5 8"/>',
+                f'<path d="M{cx - 26} {cy + 22} L{cx} {cy - 34} L{cx + 26} {cy + 22} Z" fill="{INK}"/>']
+        for k in range(24):
+            a = -math.pi / 2 + 2 * math.pi * k / 24
+            px, py = cx + math.cos(a) * 112, cy + math.sin(a) * 112
+            out.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="10" fill="{"#B8860B" if k % 6 == 0 else INK}"/>')
     return "".join(out)
 
 
@@ -1460,7 +1493,9 @@ def svg(kind, lang):
     for i, l in enumerate(lines):
         parts.append(f'<text x="70" y="{190 + i * (big + 4)}" font-family="{FONT}" font-weight="800" font-size="{big}" letter-spacing="-2" fill="{INK}">{l}</text>')
     parts.append(f'<text x="72" y="{190 + len(lines) * (big + 4) + 18}" font-family="{FONT}" font-weight="500" font-size="32" fill="{MUTED}">{sub}</text>')
-    if kind != "hub" and not kind.startswith("course-"):
+    if kind.startswith("blog-"):
+        parts.append(f'<text x="72" y="488" font-family="{FONT}" font-weight="700" font-size="22" fill="{MUTED}">{BLOG_LABEL[lang]}</text>')
+    elif kind != "hub" and not kind.startswith("course-"):
         y = 500
         parts.append(f'<rect x="72" y="{y - 62}" width="112" height="78" rx="16" fill="#fff" stroke="{SIGNAL}" stroke-width="3" stroke-dasharray="9 7"/>')
         parts.append(f'<text x="128" y="{y}" text-anchor="middle" font-family="{FONT}" font-weight="800" font-size="56" fill="{SIGNAL}">?</text>')
@@ -1485,7 +1520,7 @@ def svg(kind, lang):
                   "two-eggs", "twelve-coins", "hats-parity", "pirates-gold", "blue-eyed-islanders",
                   "twenty-five-horses", "bridge-and-torch", "braess-paradox", "survivorship-bias", "sleeping-beauty", "gamblers-ruin", "berkson-paradox",
                   "ab-test", "ab-test-peeking", "multiple-testing", "course-ab-testing", "course-ab-testing--check", "course-ab-basics", "course-auctions", "course-game-theory", "course-interview-puzzles", "course-interview-puzzles--trainer", "course-data-traps", "course-feature-impact", "course-feature-impact--trust", "lake-escape",
-                  "winners-curse", "small-numbers", "multi-armed-bandit", "will-rogers", "persuadables", "truel", "guess-two-thirds", "dollar-auction", "hotelling-beach", "fly-between-trains", "hilbert-hotel", "parrondo-paradox", "axelrod-tournament", "travelers-dilemma", "prosecutors-fallacy", "ant-rubber-rope", "hat-check", "broken-stick", "elevator-paradox", "revenue-equivalence", "keep-waiting", "newcomb-paradox", "zeno-paradox", "missing-square", "ergodicity", "unexpected-hanging", "coin-rotation", "condorcet-paradox", "alabama-paradox", "intransitive-dice", "potato-paradox", "coastline-paradox", "raven-paradox", "bingo-paradox", "pythagorean-comma", "wild-card-poker", "compound-interest", "solar-system-scale"):
+                  "winners-curse", "small-numbers", "multi-armed-bandit", "will-rogers", "persuadables", "truel", "guess-two-thirds", "dollar-auction", "hotelling-beach", "fly-between-trains", "hilbert-hotel", "parrondo-paradox", "axelrod-tournament", "travelers-dilemma", "prosecutors-fallacy", "ant-rubber-rope", "hat-check", "broken-stick", "elevator-paradox", "revenue-equivalence", "keep-waiting", "newcomb-paradox", "zeno-paradox", "missing-square", "ergodicity", "unexpected-hanging", "coin-rotation", "condorcet-paradox", "alabama-paradox", "intransitive-dice", "potato-paradox", "coastline-paradox", "raven-paradox", "bingo-paradox", "pythagorean-comma", "wild-card-poker", "compound-interest", "solar-system-scale", "blog-product-hunt-game-theory", "blog-hunger-games-game-theory"):
         parts.append(extra_visual(kind, 740, 165, lang))
     elif kind == "duckweed-lake":
         parts.append(lake(740, 130))
@@ -1510,8 +1545,8 @@ def render(kind, lang, out):
 
 
 if __name__ == "__main__":
-    for kind in TEXT:
-        folder = ROOT / ("hub" if kind == "hub" else f"courses/{kind[7:].replace('--', '/')}" if kind.startswith("course-") else f"problems/{kind}") / "assets"
+    for kind in [k for k in TEXT if not sys.argv[1:] or k.startswith(tuple(sys.argv[1:]))]:
+        folder = ROOT / ("hub" if kind == "hub" else f"blog/{kind[5:]}" if kind.startswith("blog-") else f"courses/{kind[7:].replace('--', '/')}" if kind.startswith("course-") else f"problems/{kind}") / "assets"
         folder.mkdir(parents=True, exist_ok=True)
         for old in folder.glob("og-src-*.svg"):
             old.unlink()

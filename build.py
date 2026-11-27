@@ -2202,6 +2202,25 @@ def build_books(problems, base, books):
 BLOG = ROOT / "blog"
 
 
+def post_image(slug, lang, base):
+    """A post's preview (blog/<slug>/assets/og-<lang>.png, drawn by tools/og.py), or None."""
+    return base + f"blog/{slug}/assets/og-{lang}.png" if (BLOG / slug / "assets" / f"og-{lang}.png").exists() else None
+
+
+def art_thumb(img, page_html):
+    """The illustration part of a 1200x630 preview (tools/og.py) on the page's --tint, cropped like the puzzle
+    cards (site.css .mp-thumb); used at the top of blog and course cards."""
+    m = re.search(r"--tint:\s*(#[0-9A-Fa-f]{6})", page_html.read_text(encoding="utf-8"))
+    tint = f' style="--tint: {m.group(1)}"' if m else ""
+    return (f'<span class="mp-thumb"{tint}><span class="mp-thumb-art"><img src="{img}" alt="" width="1200" height="630" '
+            f'loading="lazy" decoding="async"></span></span>')
+
+
+def post_thumb(slug, lang, base):
+    img = post_image(slug, lang, base)
+    return art_thumb(img, BLOG / slug / "page.html") if img else ""
+
+
 def build_blog(problems, base):
     if not (BLOG / "index.json").exists():
         return []
@@ -2271,12 +2290,15 @@ def build_blog(problems, base):
                  "description": m["description"], "inLanguage": lang, "datePublished": meta["published"],
                  "dateModified": meta["updated"], "author": {"@id": base + "#author"}},
                 author_ld(lang, base)]}
-            page(lang, urls, src, m["title"], m["description"], base + f"og-{lang}.png", ld, "blog/" + slug)
+            img = post_image(slug, lang, base)
+            if img:
+                ld["@graph"][0]["image"] = img
+            page(lang, urls, src, m["title"], m["description"], img or base + f"og-{lang}.png", ld, "blog/" + slug)
         out.append((urls, meta["updated"]))
     src = (BLOG / "index.html").read_text(encoding="utf-8")
     for lang in LANGS:
         items = "\n".join(
-            f'    <li><a href="{base + LANG_PATH[lang] + "blog/" + s + "/"}"><b>{e(m[lang]["title"])}</b>'
+            f'    <li><a href="{base + LANG_PATH[lang] + "blog/" + s + "/"}">{post_thumb(s, lang, base)}<b>{e(m[lang]["title"])}</b>'
             f'<span>{e(m[lang]["description"])}</span><i>{m["published"]}</i></a></li>' for s, m, _ in posts)
         m = index[lang]
         ld = {"@context": "https://schema.org", "@type": "Blog", "url": list_urls[lang], "name": m["title"], "inLanguage": lang}
@@ -2669,7 +2691,7 @@ def blog_block(lang, slug, base):
         return ""
     title, all_label = BLOG_REFS_TEXT[lang][:2]
     root = base + LANG_PATH[lang] + "blog/"
-    cards = "\n".join(f'    <a class="mp-related-card" href="{root}{p}/"><h3>{e(m[lang]["title"])}</h3><p>{e(m[lang]["description"])}</p></a>'
+    cards = "\n".join(f'    <a class="mp-related-card" href="{root}{p}/">{post_thumb(p, lang, base)}<h3>{e(m[lang]["title"])}</h3><p>{e(m[lang]["description"])}</p></a>'
                       for p, m in refs)
     return f"""<section class="mp-blogrefs" id="blog">
   <div class="mp-related-head">
@@ -2713,7 +2735,9 @@ def course_card(lang, name, meta, base):
     n = sum(1 for ch in meta["chapters"] if ch["id"] != "checklist")
     m = re.search(r"--tint:\s*(#[0-9A-Fa-f]{6})", (COURSES / name / "page.html").read_text(encoding="utf-8"))
     tint = f' style="--tint: {m.group(1)}"' if m else ""
-    return (f'<a class="mp-course-card" href="{course_url(base, lang, name)}"{tint}>'
+    thumb = (art_thumb(base + f"courses/{name}/og-{lang}.png", COURSES / name / "page.html")
+             if (COURSES / name / "assets" / f"og-{lang}.png").exists() else "")
+    return (f'<a class="mp-course-card" href="{course_url(base, lang, name)}"{tint}>{thumb}'
             f'<span class="eyebrow">{t["course"]} · {e(meta["audience"][lang])}</span>'
             f'<h3>{e(meta[lang]["card"]["title"])}</h3><p>{e(meta[lang]["card"]["text"])}</p>'
             f'<span class="mp-course-meta">{t["chapters"] % (n, len(course_slugs(meta)))}</span></a>')
