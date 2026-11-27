@@ -2259,6 +2259,9 @@ def build_blog(problems, base):
     if not posts:
         return []
     posts.sort(key=lambda p: p[1]["published"], reverse=True)
+    # "unlisted": true in meta.json = open by its link only: built with noindex, but left out of the post list,
+    # the tag chips, the sitemap and the "Paradoxes in real life" block on problem pages (see load_blog_refs)
+    listed = [p for p in posts if not p[1].get("unlisted")]
     by_slug = {p[0]: p for p in problems}
     home = {l: base + LANG_PATH[l] for l in LANGS}
     list_urls = {l: base + LANG_PATH[l] + "blog/" for l in LANGS}
@@ -2284,7 +2287,7 @@ def build_blog(problems, base):
         body = re.sub(r"\{\{P:([a-z0-9-]+)\}\}", prob, body)
         return re.sub(r"\{\{COURSE:([a-z0-9-]+)\}\}", lambda m: course_url(base, lang, m.group(1)), body)
 
-    def page(lang, urls, src, title, description, image, ld, path):
+    def page(lang, urls, src, title, description, image, ld, path, robots=None):
         other = "en" if lang == "uk" else "uk"
         body = LangStripper(links(src, lang), other).strip()
         body = body.replace("{{HOME}}", home[lang]).replace("{{BRAND}}", BRAND_MARK + SITE_NAME[lang])
@@ -2293,7 +2296,7 @@ def build_blog(problems, base):
         body = body.replace('href="#en" hreflang="en"', f'href="{urls["en"]}" hreflang="en"')
         style = body[:body.index("</style>") + len("</style>")]
         body = body[len(style):]
-        h = head(lang, urls, title, description, image, title, ld, base)
+        h = head(lang, urls, title, description, image, title, ld, base, **({"robots": robots} if robots else {}))
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static>\n<head>\n{h}\n{RESET}\n'
                f'{css_link(base)}\n{style}\n</head>\n<body>\n{body.strip()}\n{CF_ANALYTICS}\n</body>\n</html>\n')
         write(DOCS / LANG_PATH[lang] / path / "index.html", doc)
@@ -2315,18 +2318,20 @@ def build_blog(problems, base):
             img = post_image(slug, lang, base)
             if img:
                 ld["@graph"][0]["image"] = img
-            page(lang, urls, src, m["title"], m["description"], img or base + f"og-{lang}.png", ld, "blog/" + slug)
-        out.append((urls, meta["updated"]))
+            page(lang, urls, src, m["title"], m["description"], img or base + f"og-{lang}.png", ld, "blog/" + slug,
+                 robots="noindex" if meta.get("unlisted") else None)
+        if not meta.get("unlisted"):
+            out.append((urls, meta["updated"]))
     src = (BLOG / "index.html").read_text(encoding="utf-8")
     for lang in LANGS:
         items = "\n".join(
             f'    <li data-tags="{" ".join(m["tags"])}"><a href="{base + LANG_PATH[lang] + "blog/" + s + "/"}">{post_thumb(s, lang, base)}<b>{e(m[lang]["title"])}</b>'
-            f'<span>{e(m[lang]["description"])}</span><i>{m["published"]}</i></a></li>' for s, m, _ in posts)
+            f'<span>{e(m[lang]["description"])}</span><i>{m["published"]}</i></a></li>' for s, m, _ in listed)
         m = index[lang]
         ld = {"@context": "https://schema.org", "@type": "Blog", "url": list_urls[lang], "name": m["title"], "inLanguage": lang}
-        page(lang, list_urls, src.replace("<!--POSTS-->", items).replace("<!--TAGS-->", blog_tags(index["tags"], posts, lang)), m["title"], m["description"],
+        page(lang, list_urls, src.replace("<!--POSTS-->", items).replace("<!--TAGS-->", blog_tags(index["tags"], listed, lang)), m["title"], m["description"],
              base + f"og-{lang}.png", ld, "blog")
-    return [(list_urls, posts[0][1]["updated"])] + out
+    return [(list_urls, listed[0][1]["updated"] if listed else posts[0][1]["updated"])] + out
 
 
 # Glossary: a small sub-site of terms (median, expected value, correlation...) that readers meet in the explanations.
@@ -2683,6 +2688,8 @@ def load_blog_refs():
             continue
         src = (d / "page.html").read_text(encoding="utf-8")
         meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+        if meta.get("unlisted"):
+            continue
         slugs = re.findall(r"\{\{P:([a-z0-9-]+)\}\}", src)
         for m in re.findall(r"<!--CARDS:([a-z0-9, -]+)-->", src):
             slugs += [x.strip() for x in m.split(",")]
