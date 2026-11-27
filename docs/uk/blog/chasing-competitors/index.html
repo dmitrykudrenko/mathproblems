@@ -168,7 +168,7 @@ figcaption { color: var(--muted); font-size: .9rem; }
 .strat h3 { font-size: 1.15rem; }
 .rule-box { display: grid; gap: 8px; padding: 16px 18px; border-left: 4px solid var(--ink); background: var(--soft); border-radius: 0 16px 16px 0; }
 .rule-box p { font-size: .95rem; }
-.sea canvas { width: 100%; height: clamp(170px, 34vw, 300px); display: block; border-radius: 12px; background: #DCE8F5; }
+.sea canvas { width: 100%; height: clamp(210px, 38vw, 320px); display: block; border-radius: 12px; background: #DCE8F5; }
 .sea-ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
 .sea-again { border: 1px solid var(--line); background: #fff; border-radius: 22px; padding: 6px 14px; cursor: pointer; font: inherit; }
 .gauge { position: relative; height: 10px; border-radius: 5px; background: var(--soft); overflow: hidden; }
@@ -245,11 +245,12 @@ footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-s
       <canvas id="sh-cv" role="img" aria-label="Animation: the leader's ship sails straight, the pursuer keeps turning its bow to where the leader is now"></canvas>
       <div class="sea-ctl">
         <div class="seg" role="group" id="sh-k"><button type="button" data-v="1" aria-pressed="true"><span class="uk">Та сама швидкість</span></button><button type="button" data-v="1.2"><span class="uk">На 20% швидше</span></button></div>
+        <div class="seg" role="group" id="sh-path"><button type="button" data-v="straight" aria-pressed="true"><span class="uk">Лідер пливе прямо</span></button><button type="button" data-v="turn"><span class="uk">Змінює курс</span></button></div>
         <button type="button" class="sea-again" id="sh-again"><span class="uk">Ще раз</span></button>
       </div>
       <div class="gauge" aria-hidden="true"><i id="sh-bar"></i><s></s></div>
       <div class="readout"><b id="sh-out"></b><span id="sh-say"></span></div>
-      <figcaption><span class="uk">Чорний корабель&nbsp;— лідер, пливе прямо. Білий&nbsp;— ви: щомиті повертаєте ніс туди, де лідер зараз. На старті між вами відстань 1, шкала під анімацією показує поточну відстань, риска&nbsp;— половину початкової.</span></figcaption>
+      <figcaption><span class="uk">Чорний корабель&nbsp;— лідер: пливе прямо або змінює курс. Білий&nbsp;— ви: щомиті повертаєте ніс туди, де лідер зараз. На старті між вами відстань 1, шкала під анімацією показує поточну відстань, риска&nbsp;— половину початкової.</span></figcaption>
     </figure>
 
     <h2 id="past"><span class="uk">1. Бігти туди, де його видно</span></h2>
@@ -282,6 +283,8 @@ footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-s
     </ul>
     
     <p class="uk">Перемкніть у віджеті вище «Де він зараз» і подивіться, як ваша траєкторія загинається за лідером.</p>
+    
+    <p class="uk">А якщо лідер сам змінює курс? Перемкніть в анімації з кораблями «Змінює курс». З тією самою швидкістю відстань уже не завмирає на половині, а скорочується далі: на кожному повороті ви зрізаєте кут. Лідера, який тримає курс, рівний за швидкістю не наздожене; лідера, який весь час повертає,&nbsp;— може. Тож своє бачення, якого тримаєшся, захищає і лідерство.</p>
     
     <p class="uk">Так буває часто. Ми бачимо великий прорив компанії, а через пів року чи рік, коли впроваджуємо те саме, з'ясовується, що стратегія була поганою і вони від неї вже відмовилися. Публічний приклад&nbsp;— соціальне аудіо. У лютому 2021 року застосунок Clubhouse завантажили 9,6&nbsp;млн разів, і великі платформи кинулися робити свої кімнати для голосових розмов: Twitter Spaces вийшли для всіх у травні, Facebook Live Audio Rooms і Spotify Greenroom&nbsp;— у червні. Але вже у квітні Clubhouse завантажили близько 0,9&nbsp;млн разів, приблизно вдесятеро менше, ніж на піку (дані Sensor Tower). Facebook закрив свої кімнати 2022 року, Spotify&nbsp;— свій застосунок у квітні 2023-го. Доганяли точку, з якої ринок уже пішов.</p>
     
@@ -453,26 +456,32 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
   });
   kIn.addEventListener('input', draw); draw();
 
-  // Ships: Bouguer's pure pursuit in real time. Leader at (t, 0) sails along +x at speed 1; you start at (0, 1) with
-  // speed k and always steer at the leader's current position. Equal speed: the gap tends to 0.5; k = 1.2: caught at 2.72
-  // (both checked in Python). The camera follows the leader; the animation pauses off screen and is static with reduced motion.
+  // Ships: Bouguer's pure pursuit in real time. The leader starts at (0, 0) heading along +x at speed 1; you start at
+  // (0, 1) with speed k and always steer at the leader's current position. "turn": the leader's heading is
+  // -60°·sin(2πt/4), first away from you. Checked in Python: straight, equal speed: the gap tends to 0.5; k = 1.2:
+  // caught at 2.72. Turning, equal speed: 0.39 at t = 4, 0.20 at t = 8, under 0.1 at t = 15, still shrinking;
+  // k = 1.2: caught at 3.36. The camera follows the leader; the animation pauses off screen, static with reduced motion.
   (function () {
-    const cv = document.getElementById('sh-cv'), kBox = document.getElementById('sh-k');
+    const cv = document.getElementById('sh-cv'), kBox = document.getElementById('sh-k'), pBox = document.getElementById('sh-path');
     const out = document.getElementById('sh-out'), say = document.getElementById('sh-say'), bar = document.getElementById('sh-bar');
-    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const TEND = { 1: 6, 1.2: 2.7225 }, SPEED = 0.8;  // time units per real second
-    let k = 1, st, raf = null, seen = false, hold = null;
-    function reset() { st = { t: 0, x: 0, y: 1, trail: [[0, 1]], done: false }; }
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches, SPEED = 0.8;  // time units per real second
+    const A = Math.PI / 3, P = 4;
+    let k = 1, turn = false, st, raf = null, seen = false, hold = null;
+    const tEnd = () => k > 1 ? 6 : turn ? 9 : 6;
+    const heading = t => turn ? -A * Math.sin(2 * Math.PI * t / P) : 0;
+    function reset() { st = { t: 0, x: 0, y: 1, lx: 0, ly: 0, trail: [[0, 1]], lead: [[0, 0]], done: false, caught: false }; }
     function advance(dtTotal) {
       const n = Math.max(1, Math.ceil(dtTotal / 0.002)), dt = dtTotal / n;
       for (let i = 0; i < n && !st.done; i++) {
-        const dx = st.t - st.x, dy = -st.y, d = Math.hypot(dx, dy);
-        if (d < 2e-3) { st.done = true; st.x = st.t; st.y = 0; break; }
-        st.x += k * dt * dx / d; st.y += k * dt * dy / d; st.t += dt;
-        if (st.t >= TEND[k]) st.done = true;
+        const dx = st.lx - st.x, dy = st.ly - st.y, d = Math.hypot(dx, dy);
+        if (d < 2e-3) { st.done = st.caught = true; st.x = st.lx; st.y = st.ly; break; }
+        st.x += k * dt * dx / d; st.y += k * dt * dy / d;
+        const h = heading(st.t + dt / 2); st.lx += dt * Math.cos(h); st.ly += dt * Math.sin(h); st.t += dt;
+        if (st.t >= tEnd()) st.done = true;
       }
-      const last = st.trail[st.trail.length - 1];
-      if (Math.hypot(st.x - last[0], st.y - last[1]) > 0.01) st.trail.push([st.x, st.y]);
+      const a = st.trail[st.trail.length - 1], b = st.lead[st.lead.length - 1];
+      if (Math.hypot(st.x - a[0], st.y - a[1]) > 0.01) st.trail.push([st.x, st.y]);
+      if (Math.hypot(st.lx - b[0], st.ly - b[1]) > 0.01) st.lead.push([st.lx, st.ly]);
     }
     function ship(ctx, x, y, ang, fill, size) {
       ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
@@ -485,27 +494,35 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
       if (!W || !H) return;
       cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
       const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-      const sc = Math.min(W / 3.2, H / 1.5), cam = Math.max(0, st.t - W / sc * 0.62);
-      const X = v => (v - cam) * sc + sc * 0.35, Y = v => H - (H - sc) / 2 - v * sc;
+      const y0 = turn ? -1.3 : -0.25, y1 = 1.2, sc = Math.min(W / 3.2, H / (y1 - y0));
+      const cam = Math.max(0, st.lx - W / sc * 0.62);
+      const X = v => (v - cam) * sc + sc * 0.35, Y = v => H - (H - (y1 - y0) * sc) / 2 - (v - y0) * sc;
       // wave marks that scroll with the sea
       ctx.strokeStyle = 'rgba(21,21,21,.12)'; ctx.lineWidth = 1.5;
       for (let gx = Math.floor(cam / 0.5) * 0.5 - 0.5; gx < cam + W / sc + 0.5; gx += 0.5)
-        for (let gy = -0.25; gy < 1.5; gy += 0.5) { const px = X(gx + (gy * 2 % 1 ? 0.25 : 0)), py = Y(gy); ctx.beginPath(); ctx.moveTo(px - 6, py); ctx.quadraticCurveTo(px, py - 4, px + 6, py); ctx.stroke(); }
-      // the leader's wake and your path
+        for (let gy = Math.ceil(y0 * 2) / 2 + 0.25; gy < y1; gy += 0.5) { const px = X(gx + ((gy * 2 + 0.5) % 2 ? 0.25 : 0)), py = Y(gy); ctx.beginPath(); ctx.moveTo(px - 6, py); ctx.quadraticCurveTo(px, py - 4, px + 6, py); ctx.stroke(); }
+      // both wakes
       ctx.setLineDash([7, 6]); ctx.lineCap = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = '#151515';
-      ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(st.t), Y(0)); ctx.stroke();
-      ctx.beginPath(); st.trail.forEach((p, i) => i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))); ctx.lineTo(X(st.x), Y(st.y)); ctx.stroke();
+      for (const [tr, ex, ey] of [[st.lead, st.lx, st.ly], [st.trail, st.x, st.y]]) {
+        ctx.beginPath(); tr.forEach((q, i) => i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1]))); ctx.lineTo(X(ex), Y(ey)); ctx.stroke();
+      }
       ctx.setLineDash([]);
       // line of sight: where your bow points
-      if (!(k > 1 && st.done)) { ctx.strokeStyle = 'rgba(21,21,21,.35)'; ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
-        ctx.beginPath(); ctx.moveTo(X(st.x), Y(st.y)); ctx.lineTo(X(st.t), Y(0)); ctx.stroke(); ctx.setLineDash([]); }
-      const size = Math.max(11, Math.min(18, sc * 0.11)), aim = Math.atan2(-(0 - st.y), st.t - st.x);
-      ship(ctx, X(st.x), Y(st.y), st.done && k > 1 ? 0 : aim, '#fff', size);
-      ship(ctx, X(st.t), Y(0), 0, '#151515', size * 0.8);  // drawn last so it stays visible when you reach it
-      const gap = Math.hypot(st.t - st.x, st.y);
+      if (!st.caught) { ctx.strokeStyle = 'rgba(21,21,21,.35)'; ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
+        ctx.beginPath(); ctx.moveTo(X(st.x), Y(st.y)); ctx.lineTo(X(st.lx), Y(st.ly)); ctx.stroke(); ctx.setLineDash([]); }
+      const size = Math.max(10, Math.min(18, sc * 0.11)), aim = Math.atan2(st.ly - st.y, st.lx - st.x);
+      ship(ctx, X(st.x), Y(st.y), st.caught ? -heading(st.t) : -aim, '#fff', size);
+      ship(ctx, X(st.lx), Y(st.ly), -heading(st.t), '#151515', size * 0.8);  // drawn last so it stays visible when you reach it
+      const gap = Math.hypot(st.lx - st.x, st.ly - st.y);
       bar.style.width = Math.min(100, gap * 100) + '%';
       out.textContent = T('Відстань ', 'Gap ') + num(gap, 2) + T(' · час ', ' · time ') + num(st.t, 1);
-      say.textContent = k > 1
+      say.textContent = turn
+        ? (k > 1
+          ? (st.done ? T('Наздогнали за 3,4: лідер спершу відвернув від вас, тому довше, ніж за тим, хто пливе прямо (2,7).', 'Caught up at 3.4: the leader first turned away from you, so it took longer than with one sailing straight (2.7).')
+            : T('Лідер змінює курс, а ви щомиті цілитеся просто в нього.', 'The leader changes course, and you aim straight at them at every moment.'))
+          : (gap < 0.5 && st.t > 2.5 ? T('Відстань уже менша за половину і далі скорочується: на кожному повороті ви зрізаєте кут. Якби лідер плив прямо, вона завмерла б на 0,5.', 'The gap is already under half and keeps shrinking: at every turn you cut the corner. Had the leader sailed straight, it would freeze at 0.5.')
+            : T('Ви пливете так само швидко, а лідер змінює курс. Дивіться на відстань.', 'You sail just as fast, and the leader changes course. Watch the gap.')))
+        : k > 1
         ? (st.done ? T('У самій точці лідера — за 2,7, поруч (ближче ніж 0,1) — за 2,2. Прямим курсом: 1,5 і 1,4.', "At the leader's exact spot at 2.7, close (within 0.1) at 2.2. On a straight course: 1.5 and 1.4.")
           : gap <= 0.1 ? T('Ви вже поруч, ближче ніж 0,1. Останній відрізок до самої точки забирає ще пів одиниці часу.', "You're already close, within 0.1. The last stretch to their exact spot takes another half unit of time.")
           : T('Ви швидші, але весь час доганяєте місце, яке вже змінилося.', "You're faster, but you keep chasing a spot that has already moved."))
@@ -518,12 +535,15 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
       if (st.done) { raf = null; hold = setTimeout(() => { hold = null; reset(); start(); }, 2800); return; }
       raf = requestAnimationFrame(t2 => frame(t2, ts));
     }
-    function start() { if (still) { advance(TEND[k] + 0.01); draw(); return; } if (!raf && seen && !hold) raf = requestAnimationFrame(t => frame(t)); }
+    function start() { if (still) { advance(tEnd() + 0.01); draw(); return; } if (!raf && seen && !hold) raf = requestAnimationFrame(t => frame(t)); }
     function restart() { clearTimeout(hold); hold = null; if (raf) cancelAnimationFrame(raf); raf = null; reset(); draw(); start(); }
-    kBox.addEventListener('click', e => {
-      const b = e.target.closest('button'); if (!b) return;
-      k = +b.dataset.v; kBox.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); restart();
-    });
+    function seg(box, set) {
+      box.addEventListener('click', e => {
+        const b = e.target.closest('button'); if (!b) return;
+        set(b.dataset.v); box.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); restart();
+      });
+    }
+    seg(kBox, v => { k = +v; }); seg(pBox, v => { turn = v === 'turn'; });
     document.getElementById('sh-again').addEventListener('click', restart);
     new IntersectionObserver(es => { seen = es[0].isIntersecting; if (seen) start(); }).observe(cv);
     addEventListener('resize', () => draw());
