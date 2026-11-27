@@ -90,6 +90,8 @@ Status 2026-11-16. The YouTube channel is phone-verified (2026-11-16): no ~10-a-
 | 12-01 | cost-ab-power | scheduled, cover | from 11-21 (also LinkedIn) |
 | 12-02 | cost-holdout | scheduled, cover | from 11-22 (also LinkedIn) |
 
+Extra, while «Sunrise on the Reaping» is in cinemas (a second short that day, 13:00 Lisbon): reel #21 movie-hunger-games → blog/hunger-games-game-theory. 11-28: YouTube scheduled with cover (copyright check passed), TikTok scheduled with cover, Instagram by hand (Dmytro).
+
 Two shorts about one problem stay at least a week apart (birthday 11-15 / 11-28, Monty Hall 11-15 / 11-21 / 11-30, tanks 11-18 / 11-29).
 
 ## Captions (English)
