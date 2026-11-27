@@ -610,7 +610,7 @@ footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-s
           <h4><span class="uk">Одна гра з вашим вибором</span></h4>
           <button type="button" class="btn ghost" id="s-one"><span class="uk">Інша гра</span></button>
         </div>
-        <p class="sim-cap"><span class="uk">Кожен рядок&nbsp;— трибут (число&nbsp;— його округ, жирні&nbsp;— кар'єристи, ★&nbsp;— переможець), кожна клітинка&nbsp;— день і головне, що сталося з ним того дня. Наведіть на клітинку, щоб побачити подію.</span></p>
+        <p class="sim-cap"><span class="uk">Кожен рядок&nbsp;— трибут (число&nbsp;— його округ, жирні&nbsp;— кар'єристи, ★&nbsp;— переможець), кожна клітинка&nbsp;— день і головне, що сталося з ним того дня. Наведіть на клітинку, щоб побачити всі події того дня.</span></p>
         <div id="s-tl"></div>
         <p class="viz-say" id="s-tl-say"></p>
         <ul class="legend">
@@ -749,7 +749,7 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
     function lg(x) { return 1 / (1 + Math.exp(-x)); }
     function pick(w) { var r = rnd() * (w[0] + w[1] + w[2] + (w[3] || 0) + (w[4] || 0)), k = 0; while ((r -= w[k]) > 0) k++; return k; }
     for (i = 0; i < N; i++) {
-      var t = { car: i >= 1 && i <= 6, hp: 100, food: 0, wpn: 0, alive: true, day: -1, cause: "", ev: [] };
+      var t = { car: i >= 1 && i <= 6, hp: 100, food: 0, wpn: 0, alive: true, day: -1, cause: "", ev: [], evs: [] };
       if (i === 0) { ST.forEach(function (s) { t[s] = me.st[s]; }); t.start = me.start; t.mode = me.mode; }
       else {
         var left = 10 + 12 + Math.floor(rnd() * 7) + (t.car ? 1 : 0) - 5, w = t.car ? [3, 2, 3, 1.5, 1] : [1, 1, 1, 1, 1];
@@ -765,7 +765,8 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
     function speed(t) { return (t.P + 0.4 * t.A) * (0.6 + 0.004 * t.hp); }
     // the day's main event for the timeline: the more serious one wins
     var RANK = { fed: 1, horn: 2, edge: 2, flee: 2, meet: 3, hungry: 4, run: 5, trap: 6, wound: 7, win: 8, dead: 9 };
-    function ev(t, c) { if (!t.ev[d] || RANK[c] > RANK[t.ev[d]]) t.ev[d] = c; }
+    // ev[d] keeps the most serious event of the day (the cell colour), evs[d] all of them in order (the tooltip)
+    function ev(t, c) { (t.evs[d] = t.evs[d] || []).push(c); if (!t.ev[d] || RANK[c] > RANK[t.ev[d]]) t.ev[d] = c; }
     function die(t, why) { t.alive = false; t.day = d; t.cause = why; n--; ev(t, "dead"); }
     // a attacks b. b runs if weaker (nobody can run at the Horn). The loser dies 3 times in 4, else is wounded.
     function clash(a, b, melee) {
@@ -879,6 +880,13 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
   var EV = en
     ? { fed: "quiet day, ate", horn: "ran to the Horn", edge: "grabbed from the edge", flee: "fled at the start", meet: "met someone, no fight", hungry: "no food, lost strength", run: "escaped an attack", trap: "caught in a Gamemaker trap", wound: "lost a fight, wounded", win: "won a fight", dead: "died" }
     : { fed: "спокійний день, поїв", horn: "біг до Рогу", edge: "схопив з краю", flee: "утік зі старту", meet: "зустріч без бійки", hungry: "без їжі, втратив сили", run: "утік від нападу", trap: "потрапив у пастку Гейммейкерів", wound: "програв бійку, поранений", win: "виграв бійку", dead: "загинув" };
+  // all of a day's events for the tooltip: in order, repeats counted, "quiet day" only when nothing else happened
+  function dayList(list) {
+    var seen = [], n = {};
+    list.forEach(function (c) { if (!(c in n)) { seen.push(c); n[c] = 0; } n[c]++; });
+    if (seen.length > 1) seen = seen.filter(function (c) { return c !== "fed"; });
+    return seen.map(function (c) { return EV[c] + (n[c] > 1 ? " ×" + n[c] : ""); }).join("; ");
+  }
   function oneGame() {
     var st = {};
     K.forEach(function (q) { st[q] = +sl[q].value; });
@@ -896,7 +904,7 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
       h += '<div class="tl-row' + (i === 0 ? " tl-you" : "") + (t.car ? " tl-car" : "") + '"><span>' + (t.alive ? "★ " : "") + lab + "</span>";
       for (var d = 0; d < D; d++) {
         var e = t.ev[d];
-        h += e ? '<i class="ev-' + e + '" title="' + (en ? "Day " : "День ") + d + ": " + EV[e] + '"></i>' : "<i></i>";
+        h += e ? '<i class="ev-' + e + '" title="' + (en ? "Day " : "День ") + d + ": " + dayList(t.evs[d]) + '"></i>' : "<i></i>";
       }
       h += "</div>";
     });
@@ -907,6 +915,12 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
       ? "The game lasted " + D + " days. " + (r.win ? "You won." : (w ? "The winner: " + (w.car ? "a Career from District " : "a tribute from District ") + DIST[r.T.indexOf(w)] + ". " : "Nobody survived. ") + "You died on day " + you.day + " " + cause[you.cause] + ".")
       : "Гра тривала " + D + " " + (D % 10 === 1 && D % 100 !== 11 ? "день" : D % 10 >= 2 && D % 10 <= 4 && (D % 100 < 12 || D % 100 > 14) ? "дні" : "днів") + ". " + (r.win ? "Ви перемогли." : (w ? "Переміг " + (w.car ? "кар'єрист з " : "трибут з ") + DIST[r.T.indexOf(w)] + "-го округу. " : "Не вижив ніхто. ") + "Ви загинули в день " + you.day + " " + cause[you.cause] + ".");
     document.getElementById("s-tl").innerHTML = h;
+    var tot = { win: 0, wound: 0, run: 0, hungry: 0, trap: 0 };
+    you.evs.forEach(function (list) { (list || []).forEach(function (c) { if (c in tot) tot[c]++; }); });
+    var TL = en ? { win: "fights won", wound: "wounds", run: "escapes", hungry: "days without food", trap: "traps" }
+                : { win: "виграних бійок", wound: "поранень", run: "утеч від нападу", hungry: "днів без їжі", trap: "пасток" };
+    var parts = Object.keys(tot).filter(function (k) { return tot[k]; }).map(function (k) { return TL[k] + ": " + tot[k]; });
+    if (parts.length) say += (en ? " Your game: " : " Ваша гра: ") + parts.join("; ") + ".";
     document.getElementById("s-tl-say").textContent = say;
   }
   document.getElementById("s-one").addEventListener("click", oneGame);
