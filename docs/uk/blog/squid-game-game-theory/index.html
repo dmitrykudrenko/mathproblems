@@ -1,0 +1,1346 @@
+<!doctype html>
+<html lang="uk" data-lang="uk" data-static>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "uk", ALT = {"uk": "/uk/blog/squid-game-game-theory/", "en": "/blog/squid-game-game-theory/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want && HERE === "uk") return;
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = null;
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  // the gate card sits after round 1; once it hides, the browser would keep the bottom of the page in view, so jump to round 2
+  function toRounds(b) {
+    var r = b.closest(".sp-gate") && document.querySelector(".sp-rounds");
+    if (r) requestAnimationFrame(function () { r.scrollIntoView({ block: "start" }); });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+    if (on) toRounds(b);
+  });
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else { window.mpSolve(); toRounds(b); }
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+
+<title>Гра в кальмара і теорія ігор: стратегія, коли не знаєш наступної гри</title>
+<meta name="description" content="Кого брати в пару, який номер обрати на мосту, чи важить ваш голос і чому гроші ростуть від смертей: стратегії на всю гру і симуляція турніру.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Дмитро Кудренко">
+<link rel="canonical" href="https://mathparadoxes.com/uk/blog/squid-game-game-theory/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/uk/blog/squid-game-game-theory/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/blog/squid-game-game-theory/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/blog/squid-game-game-theory/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Математичні парадокси" href="https://mathparadoxes.com/uk/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Математичні парадокси">
+<meta property="og:title" content="Гра в кальмара і теорія ігор: стратегія, коли не знаєш наступної гри">
+<meta property="og:description" content="Кого брати в пару, який номер обрати на мосту, чи важить ваш голос і чому гроші ростуть від смертей: стратегії на всю гру і симуляція турніру.">
+<meta property="og:url" content="https://mathparadoxes.com/uk/blog/squid-game-game-theory/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://mathparadoxes.com/og-uk.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Гра в кальмара і теорія ігор: стратегія, коли не знаєш наступної гри">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Гра в кальмара і теорія ігор: стратегія, коли не знаєш наступної гри">
+<meta name="twitter:description" content="Кого брати в пару, який номер обрати на мосту, чи важить ваш голос і чому гроші ростуть від смертей: стратегії на всю гру і симуляція турніру.">
+<meta name="twitter:image" content="https://mathparadoxes.com/og-uk.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "BlogPosting", "@id": "https://mathparadoxes.com/uk/blog/squid-game-game-theory/#post", "url": "https://mathparadoxes.com/uk/blog/squid-game-game-theory/", "headline": "Гра в кальмара і теорія ігор: стратегія, коли не знаєш наступної гри", "description": "Кого брати в пару, який номер обрати на мосту, чи важить ваш голос і чому гроші ростуть від смертей: стратегії на всю гру і симуляція турніру.", "inLanguage": "uk", "datePublished": "2026-11-27", "dateModified": "2026-11-27", "author": {"@id": "https://mathparadoxes.com/#author"}}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Дмитро Кудренко", "alternateName": "Dmytro Kudrenko", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/uk/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=2b2a0176">
+<style>
+/* Layout: one blog article. Text column, a glass bridge in the hero, three small widgets (partner choice, bridge order,
+   the deciding vote) and the tournament simulator (section 9: play one tournament step by step, or compare rules). Shared tokens and components come from site.css. */
+:root { --tint: #DCEFE6; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul, ol, table, figure, blockquote { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.hero { padding-block: 32px 24px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero .lead { margin-top: 20px; max-width: 62ch; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-bottom: 18px; }
+.hero-art { border-radius: 32px; background: var(--dots), var(--tint); padding: 24px; display: grid; place-items: center; }
+.hero-art svg { width: 100%; max-width: 420px; height: auto; display: block; }
+article { display: grid; gap: 18px; padding-top: 32px; font-size: 1.06rem; }
+article > p, article > ul, article > ol, .strat p { max-width: 70ch; }
+article > figure, article > .tbl-wrap, article > .strat, article > .sim-more { max-width: 900px; width: 100%; }
+article h2 { font-size: clamp(1.3rem, 3.2vw, 1.9rem); margin-top: 28px; }
+article ul, article ol { padding-left: 1.3em; display: grid; gap: 8px; }
+.note { border-left: 3px solid var(--ink); padding: 4px 0 4px 16px; color: var(--muted); }
+.warn { border-radius: 16px; background: var(--soft); padding: 12px 16px; font-size: .95rem; color: var(--muted); max-width: 70ch; }
+.tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .98rem; }
+.tbl th, .tbl td { text-align: left; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl th { font-weight: 600; color: var(--muted); font-size: .86rem; }
+.tbl td.n, .tbl th.n { text-align: right; padding-right: 0; }
+.tbl td.n { font-weight: 700; }
+.tbl-wrap { overflow-x: auto; }
+figure { border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: grid; gap: 14px; }
+figcaption { color: var(--muted); font-size: .9rem; }
+.strat { display: grid; gap: 12px; border: 1px solid var(--line); border-radius: var(--r); padding: 22px 24px; }
+.strat h3 { font-size: 1.15rem; }
+.rule-box { display: grid; gap: 8px; padding: 16px 18px; border-left: 4px solid var(--ink); background: var(--soft); border-radius: 0 16px 16px 0; max-width: 900px; }
+.rule-box p { font-size: .95rem; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 24px; align-items: center; }
+.two svg { width: 100%; height: auto; display: block; }
+.ctl { display: grid; gap: 14px; }
+.ctl label { display: grid; gap: 8px; font-weight: 600; }
+.ctl input[type=range] { width: 100%; accent-color: var(--ink); }
+.val { font-variant-numeric: tabular-nums; }
+.readout { display: grid; gap: 4px; }
+.readout b { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.readout span { color: var(--muted); font-size: .9rem; }
+.seg { display: flex; flex-wrap: wrap; width: fit-content; max-width: 100%; border-radius: 22px; }
+.seg button { border: 0; background: transparent; cursor: pointer; font-family: inherit; padding: 6px 11px; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.nums button { min-width: 2.4em; padding: 6px 8px; font-variant-numeric: tabular-nums; }
+.chart text { font-size: 12px; fill: #6B6B6B; font-family: inherit; }
+.pcs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; margin-top: 6px; }
+.pc { display: grid; grid-template-columns: 38% minmax(0, 1fr); border-radius: 18px; overflow: hidden; background: var(--paper); border: 1px solid var(--line); color: var(--ink); text-decoration: none; transition: transform .15s, box-shadow .15s; }
+.pc:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0, 0, 0, .08); }
+.pc-img { position: relative; display: flex; justify-content: center; align-items: center; background: var(--dots), var(--tint, var(--soft)); }
+.pc-art { position: relative; width: 100%; aspect-ratio: 400 / 490; overflow: hidden; }
+.pc-art img { position: absolute; width: 300%; height: auto; max-width: none; left: -182.5%; top: -14.29%; }
+.pc-flag { display: none; }
+.pc-txt { padding: 12px 14px; display: grid; gap: 6px; align-content: start; }
+.pc h3 { font-size: 1rem; font-weight: 750; line-height: 1.25; margin: 0; }
+.pc-q { font-size: .88rem; line-height: 1.4; color: var(--muted); }
+.pc-lv { display: inline-flex; gap: 7px; align-items: center; font-size: .76rem; font-weight: 600; color: var(--muted); }
+.check { list-style: none; padding: 0 !important; }
+.check li { padding-left: 30px; position: relative; }
+.check li::before { content: ""; position: absolute; left: 0; top: .3em; width: 16px; height: 16px; border: 2px solid var(--ink); border-radius: 4px; }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+.blind td:first-child { font-weight: 600; }
+.sim { gap: 18px; }
+.sim-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 28px; align-items: start; }
+.sim-pick { display: grid; gap: 8px; font-weight: 600; }
+.sim-left { color: var(--muted); font-size: .9rem; }
+.sim .btn { justify-self: start; cursor: pointer; }
+.sim-res { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.sim-wait { color: var(--muted); }
+.sim-big { display: grid; gap: 4px; }
+.sim-big b { font-size: 2.2rem; font-variant-numeric: tabular-nums; }
+.sim-big span, .sim-cap { color: var(--muted); font-size: .9rem; }
+.sim-tbl th, .sim-tbl td { padding-right: 8px; }
+.sim-tbl td { font-variant-numeric: tabular-nums; }
+.sim-tbl td.cur { outline: 2px solid var(--ink); outline-offset: -2px; }
+.sim-tbl td.best { font-weight: 800; }
+.sim-more { max-width: 900px; border: 1px solid var(--line); border-radius: var(--r); padding: 4px 20px; }
+.sim-more summary { cursor: pointer; padding: 14px 0; }
+.sim-more-body { display: grid; gap: 14px; padding-bottom: 18px; }
+.sim-more-body p { max-width: 70ch; }
+.how h4 { margin: 10px 0 0; font-size: 1.02rem; }
+.how ul { margin: 0; }
+.flow-h { font-size: 1.15rem; margin-top: 8px; }
+.games { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-width: 900px; }
+.gm { display: grid; gap: 4px; align-content: start; background: var(--soft); border-radius: 14px; padding: 12px 14px; font-size: .93rem; }
+.btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.sim-step { font-size: .95rem; }
+.st { display: grid; gap: 14px; border-top: 1px solid var(--line); padding-top: 18px; }
+.st[hidden] { display: none; }
+.st-head { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.st-card { display: grid; gap: 12px; background: var(--soft); border-radius: 16px; padding: 16px 18px; }
+.st-card h4 { margin: 0; font-size: 1.05rem; }
+.st-card p { max-width: 70ch; }
+.st-card .btn { justify-self: start; cursor: pointer; }
+.st-seg { background: var(--paper); }
+.st-seg button small { display: block; font-size: .75rem; opacity: .75; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips span { background: var(--paper); border-radius: 12px; padding: 4px 10px; font-size: .9rem; }
+.st-log { margin: 0; padding-left: 1.3em; display: grid; gap: 4px; color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
+@media (max-width: 860px) { .games { grid-template-columns: 1fr 1fr; }
+  .hero, .two, .sim-grid { grid-template-columns: 1fr; } .hero { gap: 28px; } .strat { padding: 18px; } }
+@media (max-width: 520px) { .games { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="https://mathparadoxes.com/uk/"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Математичні парадокси</a>
+    <nav class="mp-nav" aria-label="Розділи" data-t="{&quot;cont&quot;: &quot;Продовжити&quot;, &quot;course&quot;: &quot;Продовжити курс&quot;}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Меню"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Продовжити: <b></b></a><a href="https://mathparadoxes.com/uk/#all">Задачі</a><a href="https://mathparadoxes.com/uk/courses/">Курси</a><a href="https://mathparadoxes.com/uk/glossary/">Словник</a></div><button type="button" class="mp-sx-btn" aria-haspopup="dialog" aria-label="Пошук" data-src="https://mathparadoxes.com/uk/search.json" data-t="{&quot;btn&quot;: &quot;Пошук&quot;, &quot;ph&quot;: &quot;Задача, курс або термін&quot;, &quot;all&quot;: &quot;Усе&quot;, &quot;p&quot;: &quot;Задачі&quot;, &quot;c&quot;: &quot;Курси&quot;, &quot;g&quot;: &quot;Словник&quot;, &quot;recent&quot;: &quot;Нещодавно відкриті&quot;, &quot;try&quot;: &quot;Спробуйте&quot;, &quot;none&quot;: &quot;Нічого не знайшлося. Спробуйте інше слово або&quot;, &quot;every&quot;: &quot;подивіться всі задачі&quot;, &quot;keys&quot;: &quot;↑↓ вибрати · Enter відкрити · Esc закрити&quot;, &quot;solved&quot;: &quot;розв&#x27;язано&quot;, &quot;load&quot;: &quot;Завантаження…&quot;, &quot;fail&quot;: &quot;Не вдалося завантажити пошук. Перевірте з&#x27;єднання.&quot;, &quot;close&quot;: &quot;Закрити&quot;, &quot;course&quot;: &quot;Курс&quot;, &quot;chapter&quot;: &quot;розділ %d з %d&quot;, &quot;glossary&quot;: &quot;Словник&quot;, &quot;ideas&quot;: [&quot;ймовірність&quot;, &quot;A/B-тест&quot;, &quot;Монті Голл&quot;, &quot;медіана&quot;, &quot;співбесіда&quot;, &quot;аукціон&quot;]}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="mp-sx-lbl">Пошук</span><kbd>/</kbd></button></nav>
+  <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="https://mathparadoxes.com/uk/blog/squid-game-game-theory/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="https://mathparadoxes.com/blog/squid-game-game-theory/" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+
+  <header class="hero">
+    <div>
+      <p class="crumbs"><a href="https://mathparadoxes.com/uk/blog/"><span class="uk">Парадокси в житті</span></a> · <span class="uk">Дмитро Кудренко · 27 листопада 2026</span></p>
+      <h1 class="uk"><span class="kw">Теорія ігор у кіно</span> Гра в кальмара. <span class="q">Як дійти до фіналу, якщо не знаєш правил наступної гри?</span></h1>
+      
+      <p class="lead uk">456 гравців, шість ігор і жодного шансу дізнатися заздалегідь, що буде далі. Напарника, команду і номер у «Грі в кальмара» обирають ще до того, як оголосять правила, а потім напарник може стати суперником. Розберемо, які стратегії мають сенс на всю гру, а не на один раунд, порахуємо їх на простих моделях і зіграємо тисячі турнірів у симуляції.</p>
+      
+    </div>
+    <div class="hero-art">
+      <svg viewBox="0 0 300 300" role="img" aria-label="A glass bridge seen from above: two rows of 18 glass panels; in each pair one panel holds and one breaks">
+        <g id="hero-bridge"></g>
+        <text x="150" y="292" text-anchor="middle" font-size="13" font-weight="700" fill="#151515">?</text>
+      </svg>
+    </div>
+  </header>
+
+  <article>
+    <p class="uk">«Гра в кальмара»&nbsp;— південнокорейський серіал Netflix з трьох сезонів (2021, 2024 і 2025). У кожному сезоні 456 людей у боргах погоджуються на дитячі ігри, де програш означає смерть. За кожного вибулого в скарбничку додають 100 мільйонів вон, а переможець забирає все, 45,6 мільярда.</p>
+    
+    <p class="uk">Цей пост&nbsp;— продовження статті <a href="https://mathparadoxes.com/uk/blog/hunger-games-game-theory/">«Голодні ігри і теорія ігор»</a>. Там ми шукали найкращу стратегію на арені, де гра одна і її правила відомі. Тут та сама ідея, але з новою складністю: правил наступної гри не знає ніхто.</p>
+    
+    <p class="uk">Від Голодних ігор тут три важливі відмінності. Перша: ніхто не знає, якою буде наступна гра, а важливі рішення треба ухвалювати до того, як оголосять правила. Друга: гравці можуть зупинити гру голосуванням більшості. Третя: кожна смерть додає грошей у прозору скарбничку, яка висить над головами всіх, хто вижив. Тому стратегія тут&nbsp;— не хід в одній грі, а правило на всю гру: кого брати в пару, як ставати в чергу, як голосувати.</p>
+    
+    <p class="uk">План такий: вісім ситуацій із серіалу, кожна в простій моделі, а в <a href="#sim">розділі 9</a>&nbsp;— симуляція цілого турніру. У ній ігри випадають у випадковому порядку, як і для героїв серіалу. Ви один раз створюєте персонажа, а потім або проходите турнір гра за грою, ухвалюючи рішення перед кожною, або порівнюєте правила на тисячах турнірів.</p>
+    
+    <p class="warn uk">Обережно: далі спойлери до всіх трьох сезонів «Гри в кальмара».</p>
+    
+    <div class="rule-box">
+      <span class="kicker"><span class="uk">Хто є хто</span></span>
+      <ul class="uk">
+        <li><b>Гі Хун, гравець 456</b>&nbsp;— головний герой, чоловік у великих боргах. Виграє перший сезон, а в другому повертається, щоб зупинити ігри.</li>
+        <li><b>Сан У, гравець 218</b>&nbsp;— друг дитинства Гі Хуна, колись гордість району, тепер фінансист, якого шукає поліція.</li>
+        <li><b>Іль Нам, гравець 001</b>&nbsp;— найстаріший учасник першого сезону.</li>
+        <li><b>Се Бьок (067), Чі Йон (240) і Алі (199)</b>&nbsp;— гравці першого сезону, з якими Гі Хун проходить ігри.</li>
+        <li><b>Front Man</b>&nbsp;— розпорядник ігор у масці. <b>VIP</b>&nbsp;— багаті глядачі, які роблять ставки на гравців.</li>
+      </ul>
+      
+    </div>
+
+    <h2><span class="uk">1. Рішення наосліп</span></h2>
+    <p class="uk">Найхитріше в серіалі&nbsp;— не самі ігри, а те, що гравці роблять перед ними. Організатори просять щось обрати, і лише потім оголошують, навіщо це було.</p>
+    
+    <div class="tbl-wrap">
+      <table class="tbl blind">
+        <thead><tr><th><span class="uk">Гра</span></th><th><span class="uk">Що обирали наосліп</span></th><th><span class="uk">Чим це виявилося</span></th></tr></thead>
+        <tbody>
+          <tr><td><span class="uk">Далгона</span></td><td><span class="uk">Фігуру: коло, трикутник, зірку чи парасольку</span></td><td><span class="uk">Складність: цю фігуру треба вирізати голкою з льодяника за 10 хвилин</span></td></tr>
+          <tr><td><span class="uk">Перетягування каната</span></td><td><span class="uk">Команду з 10 людей</span></td><td><span class="uk">Команду, яка тягне проти іншої над прірвою</span></td></tr>
+          <tr><td><span class="uk">Кульки</span></td><td><span class="uk">Пару</span></td><td><span class="uk">Суперника: граєте проти напарника, і живим лишається один</span></td></tr>
+          <tr><td><span class="uk">Скляний міст</span></td><td><span class="uk">Номер на жилеті, від 1 до 16</span></td><td><span class="uk">Чергу на міст, де кожна друга панель&nbsp;— пастка</span></td></tr>
+          <tr><td><span class="uk">Шестиноге п'ятиборство</span></td><td><span class="uk">Команду з 5 людей</span></td><td><span class="uk">П'ять різних ігор: кожен у команді грає одну, ноги зв'язані</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="uk">Коли не знаєш, яка буде задача, найкраще те, що добре майже в будь-якій задачі. Коло&nbsp;— найпростіша фігура майже за будь-якої гри з льодяником; найважча&nbsp;— парасолька. Гі Хун, головний герой, якраз узяв парасольку і врятувався кмітливістю: почав злизувати льодяник зі зворотного боку, щоб той розм'як. А от команду, пару і номер так просто не обереш: для однієї гри добре одне, для іншої&nbsp;— протилежне. Про кожне з цих рішень&nbsp;— у розділах нижче.</p>
+    
+    <p class="uk">Не все обирають наосліп. У хованках третього сезону колір кульки витягають навмання: сині ховаються, червоні шукають з ножами і мусять убити. Але до початку гри можна помінятися з кимось іншого кольору, якщо той погодиться. Так з'являється ринок ризику: хто не готовий убивати, шукає охочого взяти ніж замість нього. Обмін відбувається, лише коли обом він здається вигідним, тож перед обміном варто спитати себе, чому інший погоджується.</p>
+    
+    <div class="rule-box">
+      <span class="kicker"><span class="uk">У роботі</span></span>
+      <p class="uk">Наосліп ми обираємо постійно: наймаємо людей під продукт, якого ще немає, підписуємо договір на рік наперед, обираємо технологію до того, як знаємо всі вимоги. Тут працює те саме правило: коли задачу ще не видно, обирайте те, що не провалиться за будь-якої задачі, і залишайте собі можливість передумати. Найкращий варіант для одного сценарію часто найгірший для іншого.</p>
+      
+    </div>
+
+    <h2><span class="uk">2. Кого брати в пару, коли не знаєш гри</span></h2>
+    <p class="uk">Перед кульками гравцям кажуть розбитися на пари. Усі вважають, що це командна гра, і шукають когось надійного: Гі Хун бере старого Іль Нама, гравця 001, дві дівчини, Се Бьок і Чі Йон, стають разом. А потім оголошують: ви граєте одне проти одного, і програш означає смерть.</p>
+    
+    <p class="uk">Отже, у кожного, хто обирає пару, є дві протилежні можливості. Якщо гра командна, вам потрібен найсильніший напарник. Якщо напарник стане суперником&nbsp;— найслабший. Що вибрати, якщо не знаєш, що буде?</p>
+    
+    <h3><span class="uk">Проста модель</span></h3>
+    <p class="uk">Нехай сила кожного гравця&nbsp;— одне число: частка гравців, сильніших за яких він є, від 0 до 1. Дуель, як і в <a href="https://mathparadoxes.com/uk/blog/hunger-games-game-theory/">моделі Рогу достатку</a>, сильніший виграє тим частіше, чим більший розрив: гравець сили x перемагає гравця сили y з імовірністю (1 + x − y)/2. Командна гра&nbsp;— те саме, тільки порівнюють середню силу команд. Наступна гра з імовірністю T командна (ви з напарником проти випадкової пари), з імовірністю D&nbsp;— дуель із напарником, а інакше особиста, і напарник у ній ні на що не впливає.</p>
+    
+    <p class="uk">Порахуймо, наскільки змінюється ваш шанс, коли напарник сильнішає. У командній грі напарник&nbsp;— лише половина команди, тож кожна одиниця його сили додає вам чверть одиниці шансу. У дуелі він увесь ваш суперник, і кожна одиниця його сили забирає в вас половину. Тому відповідь проста: <b>беріть найсильнішого, якщо командних ігор більш ніж удвічі більше, ніж дуелей з напарником, і найслабшого, якщо менше.</b> А в команді з k людей поріг ще вищий: командних ігор має бути в k разів більше, бо кожен напарник&nbsp;— лише 1/k команди. Цікаво, що ваша власна сила у відповіді не бере участі: поріг однаковий і для сильного, і для слабкого. Від вашої сили залежить інше&nbsp;— хто погодиться стати з вами в пару, про це нижче.</p>
+    
+    <figure>
+      <div class="two">
+        <svg id="pt-chart" class="chart" viewBox="0 0 320 220" role="img" aria-label="Your chance of surviving the next game as a function of your partner's strength"></svg>
+        <div class="ctl">
+          <label><span><span class="uk">Наступна гра командна з імовірністю</span> · <span class="val" id="pt-t-out">60%</span></span>
+            <input type="range" id="pt-t" min="0" max="100" step="5" value="60"></label>
+          <label><span><span class="uk">Дуель із напарником з імовірністю</span> · <span class="val" id="pt-d-out">20%</span></span>
+            <input type="range" id="pt-d" min="0" max="100" step="5" value="20"></label>
+          <div class="readout"><b id="pt-verdict"></b><span id="pt-why"></span></div>
+        </div>
+      </div>
+      <figcaption><span class="uk">Ви&nbsp;— гравець середньої сили. Лінія показує ваш шанс пережити наступну гру залежно від сили напарника; в особистій грі шанс&nbsp;— 50% за будь-якого напарника. Сума двох імовірностей не може перевищити 100%: другий повзунок підлаштовується.</span></figcaption>
+    </figure>
+    <p class="uk">У першому сезоні ігор, де напарник допомагає, більше, ніж тих, де він заважає. Але сама модель підказує ще дві речі, які в серіалі видно краще за будь-яку формулу.</p>
+    
+    <section class="strat">
+      <h3><span class="uk">Сила&nbsp;— не одне число</span></h3>
+      <p class="uk">Іль Нам&nbsp;— найстаріший і найслабший на вигляд гравець. Гі Хун бере його в пару майже з жалю. А в кульках вирішують не м'язи, а кмітливість і витримка, і старий грає краще, ніж здається. Гі Хун виживає лише тому, що Іль Нам віддає йому останню кульку. «Слабкий на вигляд»&nbsp;— не те саме, що «той, кого легко обіграти». У кого немає сили, той часто вклав себе в щось інше.</p>
+      
+    </section>
+    <section class="strat">
+      <h3><span class="uk">Сильні обирають сильних</span></h3>
+      <p class="uk">Перед перетягуванням каната всі хочуть у команду міцних чоловіків, і жінкам та старим місця не знаходиться. Хто сильніший за вас, той не дуже хоче з вами в пару: він сам може обрати когось сильнішого. Так працює будь-який ринок, де обирають обидві сторони. Ще в 1962 році Девід Гейл і Ллойд Шеплі показали, що на такому ринку завжди існує стійкий розподіл, у якому ніякі двоє не захочуть кинути своїх партнерів заради одне одного. А коли всі хочуть одного й того самого, найсильніших, у стійкому розподілі сильні опиняються з сильними, а слабкі зі слабкими (<a href="https://doi.org/10.1080/00029890.1962.11989827">Gale, Shapley, 1962</a>). Тож питання «кого б я хотів» менш корисне, ніж «хто погодиться і чим він сильний».</p>
+      
+    </section>
+    <div class="rule-box">
+      <span class="kicker"><span class="uk">У роботі</span></span>
+      <p class="uk">Партнер у бізнесі теж буває і командою, і суперником: реселер чи агенція, яка сьогодні продає ваш продукт, завтра може запустити власний. Модель підказує одне: сила партнера сама по собі не робить його кращим вибором. Вона допомагає вам там, де ви по один бік, і працює проти вас там, де ви по різні. Тож питання не «наскільки він сильний», а «у скількох сценаріях ми будемо по один бік».</p>
+      
+    </div>
+    <p class="uk">Як співпраця з партнером тримається, коли гра повторюється, і чому вона ламається, коли кінець відомий,&nbsp;— у задачі про турнір Аксельрода.</p>
+    
+    <div class="pcs">
+      <a class="pc" href="https://mathparadoxes.com/uk/axelrod-tournament/" data-slug="axelrod-tournament" data-topics="games" data-level="2" data-pub="2026-10-27" style="--tint: #D6E6F7"><span class="pc-img"><span class="pc-art"><img src="https://mathparadoxes.com/axelrod-tournament/og-uk.png" alt="" width="1200" height="630" loading="lazy" decoding="async"></span><span class="pc-flag pc-new"><span class="uk">нове</span></span><span class="pc-flag pc-done">✓ <span class="uk">розв&#x27;язано</span></span></span><span class="pc-txt"><h3><span class="uk">Турнір Аксельрода</span></h3><span class="pc-q"><span class="uk">Програми грають дилему в&#x27;язня по 200 раундів кожна з кожною. Хто набере найбільше: вічний зрадник, хитрун, «Око за око» чи монетка?</span></span><span class="pc-lv"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span><span class="uk">Шкільна математика</span></span></span></a>
+</div>
+
+    <h2><span class="uk">3. Команда, коли не знаєш гри: сила чи різноманітність</span></h2>
+    <p class="uk">У перетягуванні каната команда Гі Хуна виглядає найслабшою: у ній старий Іль Нам і кілька жінок. Але старий у молодості грав у цю гру і знає техніку, а Сан У, друг Гі Хуна, вигадує трюк: у вирішальний момент уся команда різко робить три кроки вперед, і суперники, які тягнули щосили, втрачають рівновагу. Команда перемагає не силою, а знанням і хитрістю.</p>
+    
+    <p class="uk">Чи спрацював би цей трюк насправді&nbsp;— питання відкрите: ютубери, які перевіряли його на звичайних командах, бачили, що сильніша команда все одно перемагає. Але сама думка важлива: коли гра невідома, набирати в команду лише за одною якістю&nbsp;— ставка на один сценарій. У другому сезоні це видно ще краще. Шестиноге п'ятиборство складається з п'яти різних ігор: удар паперовим квадратиком, кидання камінця, підкидання камінців, дзиґа і чеґі, корейський волан, який підбивають ногою. Кожен у команді грає лише одну. П'ятеро найсильніших тут програють п'ятьом різним.</p>
+    
+    <p class="uk">Що з цього переважує, коли ігри випадають навмання, перевіримо в симуляції в <a href="#sim">розділі 9</a>: там можна набирати команду за силою або за різноманітністю і подивитися, що буде.</p>
+    
+    <div class="rule-box">
+      <span class="kicker"><span class="uk">У роботі</span></span>
+      <p class="uk">Різноманітність окуповується не завжди, а лише тоді, коли задачі справді потребують різних навичок. У нашому турнірі таких ігор одна з дев'яти, і симуляція показує, що там команда сильних у цілому вигідніша (розділ 9). Тому перш ніж набирати «різних», варто чесно порахувати, яка частка майбутньої роботи потребуватиме різних навичок, а яка&nbsp;— однієї головної.</p>
+      
+    </div>
+
+    <h2><span class="uk">4. Черга: першим, у середині чи останнім</span></h2>
+    <p class="uk">Перед скляним мостом 16 гравців, які лишилися, розбирають жилети з номерами від 1 до 16, і лише потім оголошують, що номер&nbsp;— це черга. Міст складається з 18 пар скляних панелей: у кожній парі одна загартована і тримає людину, друга звичайна і розбивається. На все&nbsp;— 16 хвилин.</p>
+    
+    <p class="uk">Перший гравець угадує кожну пару навмання і йде, поки не помилиться. Тоді наступний уже знає всі пройдені кроки і вгадує далі. Тож гравець з номером k перейде міст, якщо серед 18 підкидань монети буде не більше k − 1 невдач. Це <a href="https://mathparadoxes.com/uk/glossary/binomial-distribution/">біноміальний розподіл</a>, і його можна порахувати точно.</p>
+    
+    <figure>
+      <div class="sim-pick"><span class="uk">Ваш номер</span>
+        <div class="seg nums" role="group" id="br-nums"></div></div>
+      <div class="two">
+        <svg id="br-chart" class="chart" viewBox="0 0 320 200" role="img" aria-label="Chance of crossing the bridge for each number from 1 to 16"></svg>
+        <div class="readout"><b id="br-p"></b><span id="br-say"></span></div>
+      </div>
+      <figcaption><span class="uk">Модель: кожна невідома пара&nbsp;— підкидання монети, загиблий відкриває, яка панель була пасткою, і про відомі кроки ніхто не помиляється. Точний розрахунок перевірено симуляцією на 200 тисячах мостів.</span></figcaption>
+    </figure>
+    <p class="uk">Перші п'ять номерів майже напевно гинуть: у першого шанс 1 до 260 тисяч. Останні чотири майже напевно переходять. Номери 9 і 10&nbsp;— майже підкинута монетка: 41% і 59%. У середньому міст переходять 7 гравців із 16. У серіалі ж перейшли лише троє. Модель не врахувала того, що там сталося: гравці гаяли час, боячись ступити, тож відведених хвилин забракло; скляр, гравець 017, умів відрізняти загартоване скло на око, і організатори вимкнули світло; а Сан У зіштовхнув скляра, щоб той відкрив наступну панель власним тілом.</p>
+    
+    <p class="uk">На мосту найкраще бути останнім. Але не в кожній грі. У грі «Червоне світло, зелене світло» безпечніше йти не першим, а в натовпі, ховаючись за чужими спинами від камери ляльки. Але й не в самому кінці: на поле дається 5 хвилин, і хто не встиг, вибуває. Від гри до гри закономірність повторюється: першим іти небезпечно, бо ви навчаєте інших власним коштом; останнім&nbsp;— ризиковано, бо може забракнути часу.</p>
+    
+    <div class="rule-box">
+      <span class="kicker"><span class="uk">У роботі</span></span>
+      <p class="uk">Це суперечка про перевагу першого гравця на ринку. Пітер Голдер і Джерард Телліс перевірили історію 50 ринків і з'ясували, що 47% компаній, які першими вийшли на ринок, згодом зникли, а лідерами частіше ставали ті, хто прийшов пізніше і вчився на чужих помилках (<a href="https://doi.org/10.1177/002224379303000203">Golder, Tellis, 1993</a>). Але скляний міст нагадує й про інше: в останніх може скінчитися час. Іти другим вигідно, поки ринок ще не зайнятий.</p>
+      
+    </div>
+
+    <h2><span class="uk">5. Голосування: чи вирішує ваш голос</span></h2>
+    <p class="uk">За правилами гра припиняється, якщо більшість гравців проголосує за це. Після першої гри першого сезону живими лишаються 201. Голосують по черзі й відкрито, і рахунок доходить до 100 на 100. Останнім голосує гравець 001, Іль Нам, і його голос зупиняє гру. У другому сезоні голосують після кожної гри: «O»&nbsp;— грати далі, «X»&nbsp;— розійтися і поділити між живими гроші, що вже є в скарбничці. Після другої гри рахунок 139 на 116 за те, щоб грати далі.</p>
+    
+    <p class="uk">Коли ваш голос щось вирішує? Лише тоді, коли всі інші поділилися порівну. Якщо кожен голосує незалежно, цей шанс легко порахувати. І він несподівано залежить від того, наскільки розколота кімната.</p>
+    
+    <figure>
+      <div class="ctl">
+        <label><span><span class="uk">Гравців, які голосують</span> · <span class="val" id="vt-n-out">201</span></span>
+          <input type="range" id="vt-n" min="21" max="455" step="2" value="201"></label>
+        <label><span><span class="uk">Частка тих, хто хоче піти</span> · <span class="val" id="vt-p-out">50%</span></span>
+          <input type="range" id="vt-p" min="30" max="70" step="1" value="50"></label>
+        <div class="readout"><b id="vt-out"></b><span id="vt-say"></span></div>
+      </div>
+      <figcaption><span class="uk">Модель: кожен з інших гравців незалежно голосує «піти» з однією і тією самою ймовірністю. Ваш голос вирішує, якщо інші поділилися рівно навпіл. Розрахунок точний, біноміальний.</span></figcaption>
+    </figure>
+    <p class="uk">Коли кімната розколота рівно навпіл, із 201 гравцем ваш голос вирішальний з імовірністю 5,6%: не так уже й мало. Але варто перевазі зсунутися до 45 на 55, і шанс падає до 2%, а за 40 на 60&nbsp;— до 0,1%. Що менше людей голосує, то більше важить кожен голос: у раді з 21 людини за рівного розколу&nbsp;— 18%.</p>
+    
+    <p class="uk">Відкрите голосування по черзі змінює гру ще сильніше. Іль Нам голосує останнім і бачить рахунок: його голос вирішальний напевно. Тому в серіалі кожен голос перед ним&nbsp;— це ще й сигнал, а голосування перетворюється на агітацію: прихильники «O» і «X» у другому сезоні ділять гуртожиток навпіл і зрештою б'ються.</p>
+    
+    <p class="uk">А тепер те, що з'ясовується лише у фіналі першого сезону: Іль Нам&nbsp;— не просто старий гравець, а автор цих ігор, який вирішив зіграти в них сам. Тобто вирішальний голос 100 на 100 віддав господар гри. У другому сезоні під номером 001 знову грає організатор: Front Man записується гравцем під чужим ім'ям і голосує разом з усіма. Коли серед тих, хто голосує, є автор правил, рахунок показує не лише волю гравців.</p>
+    
+    <div class="rule-box">
+      <span class="kicker"><span class="uk">У роботі</span></span>
+      <p class="uk">На загальних зборах великої компанії окремий голос майже нічого не вирішує, а в раді директорів із семи людей&nbsp;— часто. Звідси дві поради. Якщо хочете, щоб ваш голос важив, шукайте менше коло, де рішення ухвалюють. А якщо голосування відкрите, той, хто голосує останнім, бачить рахунок і точно знає, чи його голос щось вирішить.</p>
+      
+    </div>
+
+    <h2><span class="uk">6. Скарбничка: гроші, які ростуть від чужих смертей</span></h2>
+    <p class="uk">Над гуртожитком висить велика прозора скарбничка, і після кожної гри в неї сиплються гроші: 100 мільйонів вон за кожного вибулого. Після першої гри першого сезону загинули 255 людей, тож у скарбничці 25,5 мільярда. Якби гру зупинили і поділили гроші, як за правилами другого сезону, кожен із 201 живого отримав би близько 127 мільйонів.</p>
+    
+    <p class="uk">Ось чому скарбничку вішають на видноті. Частка кожного живого = 100 мільйонів × загиблі / живі, і кожна нова смерть збільшує частку всіх, хто вижив. Коли живих 100, одна смерть додає кожному з решти близько 4,6 мільйона. Тому в першому сезоні вночі після другої гри гравці нападають одне на одного, а охорона довго не втручається: організаторам це вигідно.</p>
+    
+    <p class="uk">Тут ховається пастка для інтуїції. Якщо ви плануєте виграти, нічні вбивства вам нічого не дають: переможець отримує 45,6 мільярда, лише коли вибули всі інші, і неважливо, хто і коли їх прибрав. Кожен зайвий загиблий збільшує лише частку при поділі, тобто важить для того, хто розраховує піти посередині гри. А тим часом вбивця щоразу ризикує сам. Нічна бійка&nbsp;— це хід не того, хто хоче перемогти, а того, хто хоче вийти з більшою часткою.</p>
+    
+    <p class="uk">Найпрямолінійніше цю логіку показує третій сезон. Після скакалки VIP-гравці вносять у гру немовля як гравця 222, і решта, як пише Netflix, голосує зіграти ще одну гру, бо інакше дитина отримала б свою частку. Новий учасник зменшує частку кожного, і гравці голосують за гру, у якій хтось мусить загинути.</p>
+    
+    <p class="uk">Скарбничка, що росте, ще й тримає в грі. Після кожної гри грошей у ній більше, і кожна наступна гра виглядає вигідною ставкою: частка росте. Але це ставка, у якій програш забирає все, і її доводиться робити знову й знову. Як рахувати повторювані ставки, де можна втратити все,&nbsp;— у задачі про монетку: інтуїція там теж підводить. А як ділять здобич, коли кожен може проголосувати проти,&nbsp;— у задачі про піратів.</p>
+    
+    <div class="pcs">
+      <a class="pc" href="https://mathparadoxes.com/uk/ergodicity/" data-slug="ergodicity" data-topics="chance games" data-level="3" data-pub="2026-11-06" style="--tint: #EEF3D6"><span class="pc-img"><span class="pc-art"><img src="https://mathparadoxes.com/ergodicity/og-uk.png" alt="" width="1200" height="630" loading="lazy" decoding="async"></span><span class="pc-flag pc-new"><span class="uk">нове</span></span><span class="pc-flag pc-done">✓ <span class="uk">розв&#x27;язано</span></span></span><span class="pc-txt"><h3><span class="uk">Монетка +50 / −40</span></h3><span class="pc-q"><span class="uk">У кожного з 10&nbsp;000 гравців $100, і кожен 100 разів ставить усе на чесну монетку: орел +50%, решка −40%. Яка частка гравців закінчить багатшою, ніж почала?</span></span><span class="pc-lv"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="uk">Поглиблено</span></span></span></a>
+      <a class="pc" href="https://mathparadoxes.com/uk/pirates-gold/" data-slug="pirates-gold" data-topics="interview games" data-level="1" data-pub="2026-10-23" style="--tint: #F9E7C4"><span class="pc-img"><span class="pc-art"><img src="https://mathparadoxes.com/pirates-gold/og-uk.png" alt="" width="1200" height="630" loading="lazy" decoding="async"></span><span class="pc-flag pc-new"><span class="uk">нове</span></span><span class="pc-flag pc-done">✓ <span class="uk">розв&#x27;язано</span></span></span><span class="pc-txt"><h3><span class="uk">Пірати і 100 золотих</span></h3><span class="pc-q"><span class="uk">П&#x27;ятеро логічних піратів ділять 100 монет, а капітана, чий поділ не підтримала половина, викидають за борт. Скільки монет він залишить собі?</span></span><span class="pc-lv"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i></i><i></i></span><span class="uk">Для всіх</span></span></span></a>
+</div>
+    <div class="rule-box">
+      <span class="kicker"><span class="uk">У роботі</span></span>
+      <p class="uk">Будь-який бонусний фонд, який ділять між тими, хто лишився, працює як ця скарбничка: кожен, хто вибув, збільшує частку інших. У Microsoft у 2000-х роках оцінювали людей «за кривою»: у кожній команді частина мусила отримати низьку оцінку. За розповідями співробітників у статті Курта Айхенвальда (<a href="https://www.vanityfair.com/news/business/2012/08/microsoft-lost-mojo-steve-ballmer">Vanity Fair, 2012</a>), сильні працівники уникали сильних команд, а колеги приховували одне від одного інформацію. Хто ставить приз, той визначає, у що грають люди.</p>
+      
+    </div>
+
+    <h2><span class="uk">7. Фінал: хтось мусить піти</span></h2>
+    <p class="uk">Фінал третього сезону&nbsp;— «Небесна гра в кальмара»: три високі вежі з майданчиками у формі квадрата, трикутника і кола. У кожному раунді гравці мусять зіштовхнути вниз щонайменше одного з них, а якщо до кінця відліку ніхто не впав, вибувають усі. Серед фіналістів&nbsp;— немовля, гравець 222: його мати загинула в попередній грі, і дитина посіла її місце.</p>
+    
+    <p class="uk">Це гра з обов'язковим вибуванням: хтось піде в кожному раунді, питання лише хто. Інтуїція підказує, що першим зіштовхнуть найслабшого. Але гравці думають далі, від кінця гри, як у <a href="https://mathparadoxes.com/uk/glossary/backward-induction/">зворотній індукції</a>: якщо слабкого прибрати зараз, наступним раундом лишишся сам на сам із найсильнішим. Чи вигідно бути найсильнішим, коли проти тебе можуть об'єднатися двоє,&nbsp;— перевірте на задачі про труель, дуель на трьох.</p>
+    
+    <div class="pcs">
+      <a class="pc" href="https://mathparadoxes.com/uk/truel/" data-slug="truel" data-topics="games" data-level="2" data-pub="2026-10-27" style="--tint: #F0DCD4"><span class="pc-img"><span class="pc-art"><img src="https://mathparadoxes.com/truel/og-uk.png" alt="" width="1200" height="630" loading="lazy" decoding="async"></span><span class="pc-flag pc-new"><span class="uk">нове</span></span><span class="pc-flag pc-done">✓ <span class="uk">розв&#x27;язано</span></span></span><span class="pc-txt"><h3><span class="uk">Труель</span></h3><span class="pc-q"><span class="uk">Троє стріляють по черзі: Аня влучає в 1 з 3 пострілів, Борис у 2 з 3, Сергій завжди. У кого найбільше шансів лишитися останнім?</span></span><span class="pc-lv"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span><span class="uk">Шкільна математика</span></span></span></a>
+</div>
+
+    <h2><span class="uk">8. Змінити саму гру</span></h2>
+    <p class="uk">Найсильніші ходи в серіалі, як і в <a href="https://mathparadoxes.com/uk/blog/hunger-games-game-theory/">Голодних іграх</a>,&nbsp;— не найкраща гра за правилами, а спроби змінити самі правила.</p>
+    
+    <section class="strat">
+      <h3><span class="uk">Повстання разом з організатором</span></h3>
+      <p class="uk">У другому сезоні Гі Хун переконує гравців голосувати «X», а коли голосування не вдається виграти, піднімає повстання проти охорони. Серед повстанців&nbsp;— гравець 001, тобто сам Front Man під чужим ім'ям. У вирішальний момент він покидає повстанців, і повстання провалюється. Змінювати правила разом із тим, хто ці правила пише,&nbsp;— найгірший можливий союз: він знає ваш план і втрачає, якщо план спрацює.</p>
+      
+    </section>
+    <section class="strat">
+      <h3><span class="uk">Вийти з гри, щоб виграв інший</span></h3>
+      <p class="uk">У фіналі третього сезону Гі Хун може виграти, але сам стрибає з вежі, і переможцем стає немовля. Теорія ігор рахує те, що цінують гравці. Організатори будували гру, де кожен цінує лише себе, а Гі Хун цінує інше, тому гра закінчується не так, як вони планували.</p>
+      
+    </section>
+    <div class="rule-box">
+      <span class="kicker"><span class="uk">У роботі</span></span>
+      <p class="uk">Буває, що організатор гри сам у ній грає. Маркетплейс, який продає власні товари поруч із товарами продавців, бачить їхні дані про продажі. Саме через це Єврокомісія в 2020 році надіслала Amazon попередні претензії: компанія нібито використовувала непублічні дані продавців для власної торгівлі (<a href="https://ec.europa.eu/commission/presscorner/detail/en/ip_20_2077">пресреліз IP/20/2077</a>). Перш ніж оптимізувати свою гру на такому майданчику, варто врахувати, що власник бачить більше за вас і може змінити правила.</p>
+      
+    </div>
+
+    <h2 id="sim"><span class="uk">9. Зіграйте самі: від одного турніру до тисяч</span></h2>
+    <p class="uk">Кожна модель вище брала один момент гри. Тепер зберемо турнір цілком. 456 гравців, і ви&nbsp;— один із них. З дев'яти ігор серіалу випадає п'ять у випадковому порядку, а потім фінал. Спершу ви один раз створюєте персонажа, і його якості не зміняться до кінця. Далі є два шляхи: пройти турнір гра за грою, ухвалюючи рішення перед кожною грою, або дати симулятору зіграти тисячі турнірів і порівняти правила, за якими можна ухвалювати ці рішення.</p>
+    
+    <p class="uk">У кожного гравця чотири якості від 1 до 10:</p>
+    
+    <ul class="uk">
+      <li><b>Сила</b>&nbsp;— її видно одразу. Вирішує в перетягуванні каната, у штовханині під час «Мінглу» і для того, хто шукає, у хованках.</li>
+      <li><b>Спритність</b>&nbsp;— руки й ноги: льодяник, стрибки через скакалку, ігри п'ятиборства.</li>
+      <li><b>Кмітливість</b>&nbsp;— кульки, техніка в перетягуванні каната, де сховатися в хованках.</li>
+      <li><b>Витримка</b>&nbsp;— завмерти на «червоне світло», не тремтіти над льодяником, не зірватися в кульках.</li>
+    </ul>
+    
+    <h3 class="flow-h"><span class="uk">Що ви вирішуєте перед кожною грою</span></h3>
+    <p class="uk">Як і в серіалі, спершу оголошують лише те, що треба обрати, а саму гру&nbsp;— потім.</p>
+    
+    <div class="games">
+      <div class="gm"><b><span class="uk">«Станьте в чергу»</span></b><span class="uk">Першим, у середині чи останнім. Далі буде «Червоне світло» або скакалка.</span></div>
+      <div class="gm"><b><span class="uk">«Візьміть жилет»</span></b><span class="uk">Номер від 1 до 16. Далі буде скляний міст.</span></div>
+      <div class="gm"><b><span class="uk">«Оберіть фігуру»</span></b><span class="uk">Коло, трикутник, зірка чи парасолька. Далі буде далгона.</span></div>
+      <div class="gm"><b><span class="uk">«Об'єднайтеся в групи»</span></b><span class="uk">Кого кликати: сильних на вигляд, різних, слабких на вигляд чи «під себе». Далі буде перетягування каната (10), п'ятиборство (5) або кульки (2).</span></div>
+      <div class="gm"><b><span class="uk">«Витягніть кульку»</span></b><span class="uk">Синя&nbsp;— ховатися, червона&nbsp;— шукати. Можна спробувати помінятися.</span></div>
+      <div class="gm"><b><span class="uk">Після кожної гри</span></b><span class="uk">Голосування: грати далі чи розійтися і поділити скарбничку.</span></div>
+    </div>
+    <details class="sim-more how">
+      <summary><b><span class="uk">Як рахує модель</span></b> <span class="uk">— формули простими словами</span></summary>
+      <div class="sim-more-body">
+        <h4><span class="uk">Гравці</span></h4>
+        <ul class="uk">
+          <li><b>Ви</b> розподіляєте 20 очок на чотири якості, від 1 до 10 у кожній.</li>
+          <li><b>Решта 455</b> отримують від 16 до 24 очок випадково, у середньому 20, тобто по 5 на якість: кожна якість починається з 1, а решту очок модель кидає по одному у випадкові якості. Звичка ставати в черзі в кожного своя, навмання: першим, у середині чи останнім.</li>
+          <li><b>Хто вклав очки в силу, мав менше на решту.</b> У моделі, як і в серіалі, міцний на вигляд не обов'язково кмітливий.</li>
+        </ul>
+        
+        <h4><span class="uk">Як ви набираєте команду</span></h4>
+        <p class="uk">Перед командною грою ви звертаєтеся до 20 гравців поруч у порядку, який задає ваше правило:</p>
+        
+        <ul class="uk">
+          <li><b>Сильних</b>&nbsp;— від найсильнішого на вигляд.</li>
+          <li><b>Різних</b>&nbsp;— щоразу того, хто найкраще закриває якість, у якій команда слабка. Для цього треба знати не лише силу, а й решту якостей: за кілька днів у гуртожитку люди приблизно знають, хто на що здатен.</li>
+          <li><b>Слабких</b>&nbsp;— від найслабшого на вигляд.</li>
+          <li><b>Під себе</b>&nbsp;— сильних, але таких, що в кмітливості й витримці разом не перевершують вас: кожне очко їхньої переваги в цих двох якостях знижує їхнє місце у вашому списку, як дві одиниці сили. Це правило враховує ваші власні якості: напарник допомагає в командній грі, а в кульках його можна обіграти.</li>
+        </ul>
+        
+        <p class="uk">Хто сильніший за вас більш ніж на 1, погоджується лише з шансом 10%: сильні обирають сильних. Порожні місця заповнюють ті, хто лишився. Інші гравці розбиваються на команди навмання.</p>
+        
+        <h4><span class="uk">Шанс пережити гру</span></h4>
+        <p class="uk">У кожній грі шанс плавно росте з потрібними якостями: кожне очко додає кілька відсоткових пунктів, але не може дати 100%. Числа для гравця з п'ятірками в усьому:</p>
+        
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th><span class="uk">Гра</span></th><th><span class="uk">Шанс із п'ятірками</span></th><th><span class="uk">Що допомагає</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="uk">Червоне світло</span></td><td><span class="uk">першим 25%, у середині 48%, останнім 33%</span></td><td><span class="uk">витримка 8 у середині&nbsp;— 69%</span></td></tr>
+            <tr><td><span class="uk">Далгона</span></td><td><span class="uk">коло 79%, трикутник 62%, зірка 43%, парасолька 29%</span></td><td><span class="uk">спритність, витримка, кмітливість</span></td></tr>
+            <tr><td><span class="uk">Перетягування</span></td><td><span class="uk">залежить від суперників</span></td><td><span class="uk">сила команди + 1,5 × кмітливість найкмітливішого; перевага 5 дає 73%, 10&nbsp;— 88%</span></td></tr>
+            <tr><td><span class="uk">Кульки</span></td><td><span class="uk">залежить від напарника</span></td><td><span class="uk">кмітливість + витримка; перевага 2 дає 67%, 4&nbsp;— 80%</span></td></tr>
+            <tr><td><span class="uk">Скляний міст</span></td><td><span class="uk">за номером, точно як у розділі 4: від 1 до 260 тисяч у першого до 99,9% в останнього</span></td><td><span class="uk">лише номер</span></td></tr>
+            <tr><td><span class="uk">П'ятиборство</span></td><td><span class="uk">кожна гра 87%, усі п'ять 50%</span></td><td><span class="uk">команда ставить на кожну гру найкращого; якість 7 у кожного&nbsp;— 77%</span></td></tr>
+            <tr><td><span class="uk">Мінгл</span></td><td>35%</td><td><span class="uk">спритність, сила, кмітливість</span></td></tr>
+            <tr><td><span class="uk">Хованки</span></td><td>43%</td><td><span class="uk">кмітливість (хто ховається) або сила (хто шукає); помінятися кольором вдається з шансом 50%</span></td></tr>
+            <tr><td><span class="uk">Скакалка</span></td><td><span class="uk">першим 27%, у середині 45%, останнім 35%</span></td><td><span class="uk">спритність, витримка</span></td></tr>
+          </tbody>
+        </table></div>
+        <p class="rule-box uk"><b>Приклад.</b> У вас п'ятірки в усьому, тож кмітливість і витримка разом&nbsp;— 10. Ви покликали в пару найсильнішого на вигляд: сила 8, а решта по 4, тобто кмітливість і витримка 8. У кульках ви сильніші на 2, і ваш шанс 67%. Покликали найслабшого на вигляд: сила 2, спритність 5, кмітливість 7, витримка 6, тобто 13. Тепер сильніший він, на 3, і ваш шанс лише 26%. Це Іль Нам у цифрах.</p>
+        
+        <h4><span class="uk">Голосування і скарбничка</span></h4>
+        <p class="uk">Після кожної гри, крім останньої, голосують усі живі. Кожен інший гравець голосує «X», тобто розійтися, з імовірністю 47%: у серіалі кімната щоразу ділилася майже навпіл, 100 на 100 і 116 проти 139. Якщо «X» більше половини, гра закінчується, і живі ділять скарбничку: 100 мільйонів вон за кожного загиблого.</p>
+        
+        <h4><span class="uk">Фінал</span></h4>
+        <p class="uk">Хто пережив п'ять ігор, виходить у фінал на вежах. У кожному раунді вибуває один, і слабшого за сумою якостей штовхають частіше: гравця із сумою 16&nbsp;— у 2,7 раза частіше, ніж із 20, а із сумою 24&nbsp;— у 2,7 раза рідше. Раунди йдуть, доки не лишиться один.</p>
+        
+        <h4><span class="uk">Модель і серіал</span></h4>
+        <p class="uk">Скільки гравців вибуває в кожній грі в моделі (у середньому за 800 турнірів) і в серіалі, де число відоме:</p>
+        
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th><span class="uk">Гра</span></th><th class="n"><span class="uk">Модель</span></th><th><span class="uk">Серіал</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="uk">Червоне світло</span></td><td class="n">60%</td><td><span class="uk">56% у першому сезоні (255 з 456), 20% у другому, коли Гі Хун підказав усім завмирати</span></td></tr>
+            <tr><td><span class="uk">Далгона</span></td><td class="n">43%</td><td><span class="uk">42% (79 з 187)</span></td></tr>
+            <tr><td><span class="uk">Перетягування, кульки</span></td><td class="n">48%, 49%</td><td><span class="uk">половина за правилами гри</span></td></tr>
+            <tr><td><span class="uk">Скляний міст</span></td><td class="n">58%</td><td><span class="uk">81% (13 з 16); чому більше&nbsp;— у розділі 4</span></td></tr>
+            <tr><td><span class="uk">П'ятиборство</span></td><td class="n">31%</td><td><span class="uk">≈30% (111 вибулих, лишилося 255)</span></td></tr>
+            <tr><td><span class="uk">Хованки</span></td><td class="n">55%</td><td><span class="uk">58% (35 з 60)</span></td></tr>
+            <tr><td><span class="uk">Мінгл, скакалка</span></td><td class="n">62%, 59%</td><td><span class="uk">точних чисел у джерелах немає</span></td></tr>
+          </tbody>
+        </table></div>
+        <h4><span class="uk">Як рахується ваш шанс</span></h4>
+        <p class="uk">Коли ви проходите турнір самі, модель кидає жереб: вижили ви чи ні. Коли порівнює правила, вона робить інакше. Інших гравців розігрує повністю: хто з ким у команді, хто вижив. А ваш шанс не розігрує, а рахує: множить ваші шанси пережити кожну гру з тими суперниками, які в ній залишилися. Так результат виходить точнішим: подія, що трапляється з одним гравцем зі ста, у тисячі турнірів інакше випала б лише кілька разів.</p>
+        
+      </div>
+    </details>
+    <div class="rule-box">
+      <p><b><span class="uk">Перш ніж порівнювати, вгадайте</span></b></p>
+      <p class="uk">Гравцеві з п'ятірками в усьому кого краще кликати в команду: сильних на вигляд, різних, слабких на вигляд чи «під себе»? І де ставати в черзі: першим, у середині чи останнім?</p>
+      
+    </div>
+    <figure class="sim">
+      <div class="sim-grid">
+        <div class="ctl">
+          <p class="sim-step"><b><span class="uk">Ваш персонаж.</span></b> <span class="uk">20 очок на чотири якості. Вони не зміняться до кінця турніру.</span></p>
+          <label><span><span class="uk">Сила</span> · <span class="val" id="s-S-out">5</span></span><input type="range" id="s-S" data-k="S" min="1" max="10" value="5"></label>
+          <label><span><span class="uk">Спритність</span> · <span class="val" id="s-D-out">5</span></span><input type="range" id="s-D" data-k="D" min="1" max="10" value="5"></label>
+          <label><span><span class="uk">Кмітливість</span> · <span class="val" id="s-W-out">5</span></span><input type="range" id="s-W" data-k="W" min="1" max="10" value="5"></label>
+          <label><span><span class="uk">Витримка</span> · <span class="val" id="s-C-out">5</span></span><input type="range" id="s-C" data-k="C" min="1" max="10" value="5"></label>
+          <p class="sim-left" id="s-left"></p>
+          <div class="btns">
+            <button type="button" class="btn" id="st-go"><span class="uk">Пройти турнір</span></button>
+            <button type="button" class="btn ghost" id="s-go"><span class="uk">Порівняти правила</span></button>
+          </div>
+        </div>
+        <div class="sim-res" id="s-res" aria-live="polite">
+          <p class="sim-wait uk"><b>Пройти турнір</b>&nbsp;— ви граєте гру за грою: перед кожною робите вибір наосліп, потім бачите, що це за гра, які з ваших якостей у ній важать і який у вас шанс, а після гри голосуєте. <b>Порівняти правила</b>&nbsp;— симулятор зіграє за вашого персонажа по 1000 турнірів для кожного з 12 поєднань: кого кликати в команду (4 правила) і де ставати в черзі (3). Номер жилета в цьому режимі випадає з тієї самої третини черги, фігура&nbsp;— навмання.</p>
+          
+        </div>
+      </div>
+      <div class="st" id="st" hidden aria-live="polite"></div>
+      <figcaption><span class="uk">Модель навчальна: правила й коефіцієнти підібрано так, щоб частка вибулих у кожній грі була близька до серіалу (таблиця в «Як рахує модель»), а до фіналу доходили в середньому 10 гравців. Звичайний гравець доходить до фіналу в 2,3% турнірів, тобто приблизно 1 з 44.</span></figcaption>
+    </figure>
+    <details class="sim-more">
+      <summary><b><span class="uk">Що показали симуляції</span></b> <span class="uk">— відкрийте, коли спробуєте самі</span></summary>
+      <div class="sim-more-body">
+        <p class="uk"><b>П'ятірки в усьому.</b> Найкраще&nbsp;— кликати в команду сильних на вигляд і ставати в черзі останнім: до фіналу ви доходите в 3,7% турнірів, у 1,6 раза частіше за звичайного гравця, і виграєте приблизно один турнір із 650. Правило «під себе» поруч, 3,2%. Найгірше&nbsp;— ставати першим і кликати слабких: 0,25%, у 9 разів рідше за звичайного гравця.</p>
+        
+        <p class="uk"><b>Слабкий на вигляд&nbsp;— не легкий суперник.</b> Здавалося б, слабкий напарник&nbsp;— страховка на випадок кульок: його легше обіграти. Але в моделі все навпаки. З напарником, якого ви обрали як найслабшого на вигляд, у кульках ви виживаєте у 41% випадків, а з найсильнішим на вигляд&nbsp;— у 52%. Хто не вклав очки в силу, вклав їх у кмітливість і витримку, а саме вони вирішують у кульках. До того ж зі слабкими ви майже напевно програєте перетягування каната: 13% проти 66%.</p>
+        
+        <p class="uk"><b>«Під себе» виграє кульки, але платить у перетягуванні.</b> Це правило дає найкращі кульки, 63%, бо ви відсіюєте тих, хто кмітливіший за вас. Але сильних, які до того ж поступаються вам у кмітливості, поруч мало, і перетягування падає до 45%. Для п'ятірок у всьому це трохи гірше за просто сильних.</p>
+        
+        <p class="uk"><b>Різні партнери виграють п'ятиборство, але програють кульки.</b> Команда, у якій хтось закриває кожну якість, проходить п'ятиборство в 75% випадків, а «сильна» лише в 66%. Але той, хто закрив вам кмітливість і витримку, у кульках обіграє вас: шанс падає до 31%. Ігор, де допомагає різноманітність, лише одна з дев'яти, а де вона шкодить,&nbsp;— дві.</p>
+        
+        <p class="uk"><b>Найкраще правило залежить від вас.</b> Силачу (сила 9, решта 4, 3, 4) найкраще підходить «під себе»: перетягування 82%, кульки 52%, а якби кликав просто сильних, кульки впали б до 35%. А «старому» гравцеві з силою 2, кмітливістю 8 і витримкою 6 правило майже не допомагає: усі чотири дають 2,4–2,9%, бо сильні не беруть його в команду, а кульки він і так виграє три рази з чотирьох.</p>
+        
+        <p class="uk"><b>Черга важить найбільше.</b> Звичка ставати першим губить майже будь-який профіль, бо на мосту перші п'ять номерів гинуть. Останнім вигідніше, ніж у середині, хоч у «Червоному світлі» і скакалці середина краща: міст, якщо випадає, важить більше за них разом.</p>
+        
+        <p class="uk"><b>Найцінніші очки&nbsp;— у спритність і витримку.</b> Якщо одна якість 8, а решта по 4, то за найкращих правил до фіналу доходять: зі спритністю 8&nbsp;— 4,0%, з витримкою&nbsp;— 3,5%, із силою&nbsp;— 2,9%, з кмітливістю&nbsp;— 2,6%. Спритність і витримка потрібні в більшості особистих ігор, а сила й кмітливість&nbsp;— переважно в командних.</p>
+        
+        <p class="uk"><b>Фіналісти не такі, як усі.</b> У всіх гравців на старті в середньому по 5 у кожній якості. У тих, хто дійшов до фіналу,&nbsp;— сила 5,0, спритність 5,6, кмітливість 5,3, витримка 5,6. Ігри відсіюють за спритністю й витримкою, а сила майже не дає переваги. Якщо вчитися лише на фіналістах, можна вирішити, що вони від початку були особливими, хоча їх просто відібрали ігри.</p>
+        
+        <p class="uk"><b>Що з цього переноситься на бізнес.</b> Не числа і не те, яка якість «найцінніша»: це властивості нашої вигаданої моделі. Переносяться дві речі. Перша: те саме правило дає різний результат різним гравцям, тому стратегію сильнішого конкурента не варто копіювати без поправки на себе. Друга: якщо вивчати лише тих, хто дійшов до фіналу, легко приписати успіх їхнім якостям, хоча частину з них просто відібрала гра. Джеркер Деррелл показав, що саме так виникають популярні міфи менеджменту: ми вчимося на успішних компаніях і майже не бачимо тих, хто з тими самими рисами провалився (<a href="https://doi.org/10.1287/orsc.14.2.227.15164">Denrell, 2003</a>).</p>
+        
+        <p class="uk">Точні числа залежать від правил моделі: змініть коефіцієнти, і вони зсунуться. Але головне стійке: коли не знаєш наступної гри, найбільше важить не якась одна якість, а правила, які ти застосовуєш до кожної гри,&nbsp;— з ким іти і коли ставати в чергу. І ці правила варто підбирати під себе.</p>
+        
+      </div>
+    </details>
+    <p class="uk">Навіть за найкращих правил гравець доходить до фіналу лише в кількох відсотках турнірів, а кожна гра&nbsp;— нова ставка, де програш забирає все. Як швидко закінчуються такі серії ставок,&nbsp;— у задачі про рулетку. А чому не варто вчитися стратегії лише в переможця, як Гі Хун,&nbsp;— у задачі про літаки, які повернулися з бою.</p>
+    
+    <div class="pcs">
+      <a class="pc" href="https://mathparadoxes.com/uk/gamblers-ruin/" data-slug="gamblers-ruin" data-topics="chance games" data-level="2" data-pub="2026-10-24" style="--tint: #D8EDE2"><span class="pc-img"><span class="pc-art"><img src="https://mathparadoxes.com/gamblers-ruin/og-uk.png" alt="" width="1200" height="630" loading="lazy" decoding="async"></span><span class="pc-flag pc-new"><span class="uk">нове</span></span><span class="pc-flag pc-done">✓ <span class="uk">розв&#x27;язано</span></span></span><span class="pc-txt"><h3><span class="uk">Розорення гравця</span></h3><span class="pc-q"><span class="uk">У вас $100, ви ставите по $1 на червоне в рулетці, доки не матимете $200 або нуль. Який шанс подвоїти гроші?</span></span><span class="pc-lv"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span><span class="uk">Шкільна математика</span></span></span></a>
+      <a class="pc" href="https://mathparadoxes.com/uk/survivorship-bias/" data-slug="survivorship-bias" data-topics="stats" data-level="1" data-pub="2026-10-24" style="--tint: #DCE6E1"><span class="pc-img"><span class="pc-art"><img src="https://mathparadoxes.com/survivorship-bias/og-uk.png" alt="" width="1200" height="630" loading="lazy" decoding="async"></span><span class="pc-flag pc-new"><span class="uk">нове</span></span><span class="pc-flag pc-done">✓ <span class="uk">розв&#x27;язано</span></span></span><span class="pc-txt"><h3><span class="uk">Помилка тих, хто вижив: літаки Вальда</span></h3><span class="pc-q"><span class="uk">Бомбардувальники повертаються з дірками у фюзеляжі та крилах, а на двигунах дірок майже немає. Куди ставити броню?</span></span><span class="pc-lv"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i></i><i></i></span><span class="uk">Для всіх</span></span></span></a>
+</div>
+
+    <h2><span class="uk">Що з цього взяти собі</span></h2>
+    <ul class="check uk">
+      <li>Коли обираєте наосліп, обирайте те, що не провалиться за будь-якого сценарію, а не те, що найкраще для одного.</li>
+      <li>Перш ніж кликати в партнери найсильнішого, порахуйте, у скількох сценаріях ви будете з ним по один бік, а в скількох&nbsp;— по різні.</li>
+      <li>Слабкий на вигляд&nbsp;— не обов'язково слабкий: хто не вклався в силу, часто вклався в щось інше.</li>
+      <li>Сильні обирають сильних. Питайте не «кого б я хотів», а «хто погодиться і чим він сильний».</li>
+      <li>Не йдіть першим туди, де перші навчають інших власним коштом. Але й не чекайте до кінця, бо час обмежений.</li>
+      <li>Ваш голос вирішує, лише коли інші поділилися порівну. Хочете важити&nbsp;— шукайте менше коло або говоріть останнім.</li>
+      <li>Фонд, який ділять між тими, хто лишився, робить колег суперниками. Хто ставить приз, той визначає гру.</li>
+      <li>Перевірте, чи не грає разом з усіма той, хто пише правила.</li>
+      <li>Підбирайте правила під себе: те, що найкраще для силача, не найкраще для кмітливого.</li>
+    </ul>
+    
+    <p class="uk">Більше про такі ігри&nbsp;— у курсі <a href="https://mathparadoxes.com/uk/courses/game-theory/">«Теорія ігор для бізнесу»</a>: короткі інтерактивні кейси, де можна зіграти проти бота й перевірити ці стратегії самому.</p>
+    
+    <p class="note uk">Джерела: серіал «Гра в кальмара» (Netflix, 2021, 2024, 2025) і огляд правил ігор від Netflix (<a href="https://www.netflix.com/tudum/articles/squid-game-games-explained">Tudum</a>); D. Gale, L. Shapley, «College Admissions and the Stability of Marriage», American Mathematical Monthly 69 (1962); P. Golder, G. Tellis, «Pioneer Advantage: Marketing Logic or Marketing Legend?», Journal of Marketing Research 30 (1993); K. Eichenwald, «Microsoft's Lost Decade», Vanity Fair (2012); J. Denrell, «Vicarious Learning, Undersampling of Failure, and the Myths of Management», Organization Science 14 (2003); Європейська комісія, пресреліз IP/20/2077 (2020). Моделі вибору партнера і симулятор турніру&nbsp;— навчальне спрощення, а не опис серіалу: їхні правила й коефіцієнти придумані, щоб показати логіку рішень, а не передбачити, хто виграє.</p>
+    
+  </article>
+
+  <footer>
+    <span class="uk">Математичні парадокси · автор <a href="https://mathparadoxes.com/uk/#author">Дмитро Кудренко</a> · <a href="https://mathparadoxes.com/uk/blog/">Парадокси в житті</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(function () {
+  const EN = document.documentElement.dataset.lang === 'en';
+  const T = (uk, en) => EN ? en : uk;
+  const pct = (x, d) => { if (x < 1 && x >= 0.995 && !d) d = 1; return Math.min(x * 100, x < 1 ? 99.9 : 100).toFixed(d === undefined ? 0 : d).replace('.', EN ? '.' : ',') + '%'; };
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+
+  // Hero: two rows of 18 glass panels; panels already "known" are filled, a broken one is dashed.
+  (function () {
+    const g = document.getElementById('hero-bridge');
+    for (let i = 0; i < 18; i++) {
+      const y = 12 + i * 14.6;
+      for (const x of [96, 156]) {
+        const broken = (i === 2 && x === 96) || (i === 5 && x === 156) || (i === 6 && x === 96);
+        const known = i < 7 && !broken;
+        el('rect', { x, y, width: 48, height: 11, rx: 2, fill: known && ((i * 7 + x) % 3 !== 0) ? '#151515' : '#FFFFFF', 'fill-opacity': known ? .85 : 1,
+          stroke: '#151515', 'stroke-width': 1.4, 'stroke-dasharray': broken ? '3 3' : 'none', opacity: broken ? .45 : 1 }, g);
+      }
+    }
+  })();
+
+  // Section 2: partner model. You have strength x = 0.5. Team game: (1/4 + (x + y)/4), duel with partner: (1 + x - y)/2, solo: 1/2.
+  (function () {
+    const t = document.getElementById('pt-t'), d = document.getElementById('pt-d'), svg = document.getElementById('pt-chart');
+    const X0 = 40, X1 = 305, Y0 = 185, Y1 = 15, sx = v => X0 + v * (X1 - X0), sy = v => Y0 - v * (Y0 - Y1);
+    el('line', { x1: X0, y1: Y0, x2: X1, y2: Y0, stroke: '#151515', 'stroke-opacity': .3 }, svg);
+    el('line', { x1: X0, y1: Y0, x2: X0, y2: Y1, stroke: '#151515', 'stroke-opacity': .3 }, svg);
+    [0, .25, .5, .75].forEach(v => { el('text', { x: X0 - 6, y: sy(v) + 4, 'text-anchor': 'end' }, svg).textContent = pct(v); });
+    el('text', { x: X0, y: 204 }, svg).textContent = T('найслабший', 'weakest');
+    el('text', { x: X1, y: 204, 'text-anchor': 'end' }, svg).textContent = T('найсильніший напарник', 'strongest partner');
+    const line = el('line', { stroke: '#151515', 'stroke-width': 3, 'stroke-linecap': 'round' }, svg);
+    const dot = el('circle', { r: 6, fill: '#151515' }, svg);
+    function draw(src) {
+      let T1 = +t.value / 100, D1 = +d.value / 100;
+      if (T1 + D1 > 1) { if (src === t) { D1 = 1 - T1; d.value = Math.round(D1 * 100); } else { T1 = 1 - D1; t.value = Math.round(T1 * 100); } }
+      document.getElementById('pt-t-out').textContent = pct(T1);
+      document.getElementById('pt-d-out').textContent = pct(D1);
+      const f = y => T1 * (0.25 + (0.5 + y) / 4) + D1 * (1 + 0.5 - y) / 2 + (1 - T1 - D1) * 0.5;
+      line.setAttribute('x1', sx(0)); line.setAttribute('y1', sy(f(0))); line.setAttribute('x2', sx(1)); line.setAttribute('y2', sy(f(1)));
+      const slope = T1 / 4 - D1 / 2, best = slope > 1e-9 ? 1 : slope < -1e-9 ? 0 : 0.5;
+      dot.setAttribute('cx', sx(best)); dot.setAttribute('cy', sy(f(best)));
+      document.getElementById('pt-verdict').textContent = slope > 1e-9 ? T('Беріть найсильнішого', 'Take the strongest') : slope < -1e-9 ? T('Беріть найслабшого', 'Take the weakest') : T('Однаково, кого брати', "It doesn't matter whom");
+      document.getElementById('pt-why').textContent = T('Ваш шанс пережити наступну гру: з найслабшим ', 'Your chance of surviving the next game: with the weakest ') + pct(f(0)) + T(', з найсильнішим ', ', with the strongest ') + pct(f(1)) + '.';
+    }
+    t.addEventListener('input', () => draw(t)); d.addEventListener('input', () => draw(d)); draw(t);
+  })();
+
+  // Section 4: glass bridge. Player k crosses iff Bin(18, 1/2) <= k - 1.
+  (function () {
+    const P = []; { let c = 1, s = 0; for (let i = 0; i < 16; i++) { s += c / 262144; P.push(s); c = c * (18 - i) / (i + 1); } }
+    const box = document.getElementById('br-nums'), svg = document.getElementById('br-chart');
+    const X0 = 36, W = 17, Y0 = 170, H = 150, bars = [];
+    [0, .5, 1].forEach(v => { el('text', { x: X0 - 6, y: Y0 - v * H + 4, 'text-anchor': 'end' }, svg).textContent = pct(v); });
+    for (let k = 1; k <= 16; k++) {
+      bars.push(el('rect', { x: X0 + (k - 1) * W + 2, y: Y0 - P[k - 1] * H, width: W - 4, height: Math.max(1, P[k - 1] * H), rx: 2, fill: '#151515', 'fill-opacity': .25 }, svg));
+      if (k === 1 || k % 4 === 0) el('text', { x: X0 + (k - 0.5) * W, y: Y0 + 16, 'text-anchor': 'middle' }, svg).textContent = k;
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = k; b.dataset.v = k; box.appendChild(b);
+    }
+    function set(k) {
+      box.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === k));
+      bars.forEach((b, i) => b.setAttribute('fill-opacity', i === k - 1 ? 1 : .25));
+      const p = P[k - 1];
+      document.getElementById('br-p').textContent = p < 0.001 ? T('1 до ', '1 in ') + Math.round(1 / p).toLocaleString(EN ? 'en' : 'uk') : pct(p, p < 0.1 ? 1 : 0);
+      document.getElementById('br-say').textContent = T('шанс перейти міст з номером ', 'chance of crossing the bridge with number ') + k + T('. У середньому переходять 7 гравців із 16.', '. On average 7 of 16 players cross.');
+    }
+    box.addEventListener('click', e => { const b = e.target.closest('button'); if (b) set(+b.dataset.v); });
+    set(8);
+  })();
+
+  // Section 5: the deciding vote. n voters including you; the other n - 1 each vote to leave with probability p.
+  (function () {
+    const n = document.getElementById('vt-n'), p = document.getElementById('vt-p');
+    function draw() {
+      const N = +n.value, q = +p.value / 100, m = N - 1, h = m / 2;
+      let lc = 0; for (let i = 1; i <= h; i++) lc += Math.log((h + i) / i); // log C(m, m/2)
+      const piv = Math.exp(lc + h * Math.log(q) + h * Math.log(1 - q));
+      document.getElementById('vt-n-out').textContent = N;
+      document.getElementById('vt-p-out').textContent = pct(q);
+      document.getElementById('vt-out').textContent = piv < 0.0001 ? T('менше 0,01%', 'under 0.01%') : pct(piv, piv < 0.1 ? 2 : 1);
+      document.getElementById('vt-say').textContent = T('шанс, що решта ', 'chance that the other ') + m + T(' поділяться рівно навпіл і вирішить ваш голос', ' split exactly in half and your vote decides');
+    }
+    n.addEventListener('input', draw); p.addEventListener('input', draw); draw();
+  })();
+
+  // Section 8: the tournament model (the same code was checked in node before publishing).
+  const SG = (function () {
+    const P = { near: 20, acc: 0.1, tact: 1.5, pen: 1.9, sh: -0.6 };
+    const L = z => 1 / (1 + Math.exp(-z));
+    const GAMES = ['rlgl', 'dalgona', 'tug', 'marbles', 'bridge', 'penta', 'mingle', 'hide', 'rope'];
+    const K = ['S', 'D', 'W', 'C'];
+    const rnd = Math.random, ri = n => Math.floor(rnd() * n);
+    const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = ri(i + 1); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
+    function npc() {
+      const p = { S: 1, D: 1, W: 1, C: 1 }; let left = 12 + ri(9);
+      while (left > 0) { const k = K[ri(4)]; if (p[k] < 10) { p[k]++; left--; } }
+      p.ord = ri(3); return p;
+    }
+    const BR = []; { let c = 1, s = 0; for (let i = 0; i <= 18; i++) { s += c / 262144; BR.push(s); c = c * (18 - i) / (i + 1); } }
+    const bridgeP = k => k - 1 >= 18 ? 1 : BR[k - 1];
+    const POS = [[1, 5], [6, 11], [12, 16]], ORD_RL = [-0.5, 0.5, -0.1], ORD_JR = [-0.4, 0.4, 0], DALG = [1.9, 1.1, 0.3, -0.3];
+    function indiv(g, x, ord, opt) {
+      const sh = P.sh; opt = opt || {};
+      if (g === 'rlgl') return L(sh + 0.3 * (x.C - 5) + 0.15 * (x.D - 5) + ORD_RL[ord]);
+      if (g === 'dalgona') return L(sh + DALG[opt.shape != null ? opt.shape : ri(4)] + 0.3 * (x.D - 5) + 0.2 * (x.C - 5) + 0.15 * (x.W - 5));
+      if (g === 'mingle') return L(sh + 0.2 * (x.D - 5) + 0.15 * (x.S - 5) + 0.15 * (x.W - 5));
+      if (g === 'hide') return (opt.color != null ? opt.color === 0 : rnd() < 0.5) ? L(sh + 0.3 + 0.25 * (x.W - 5) + 0.15 * (x.D - 5)) : L(sh + 0.3 + 0.25 * (x.S - 5) + 0.15 * (x.D - 5));
+      return L(sh + 0.3 * (x.D - 5) + 0.25 * (x.C - 5) + ORD_JR[ord]);
+    }
+    function pick(me, field, size, rule) {
+      const near = shuffle(field.slice()).slice(0, P.near), want = Math.min(size - 1, near.length), team = [];
+      let cand = near.slice();
+      const cover = t => K.reduce((s, k) => s + Math.max(me[k], ...t.map(x => x[k])), 0);
+      while (team.length < want && cand.length) {
+        let c;
+        if (rule === 0) c = cand.reduce((a, b) => b.S > a.S ? b : a);
+        else if (rule === 2) c = cand.reduce((a, b) => b.S < a.S ? b : a);
+        else if (rule === 3) { const sc = x => x.S - 2 * Math.max(0, x.W + x.C - me.W - me.C); c = cand.reduce((a, b) => sc(b) > sc(a) ? b : a); }
+        else { let best = -1; for (const x of cand) { const v = cover(team.concat([x])) * 100 + x.S + x.D + x.W + x.C; if (v > best) { best = v; c = x; } } }
+        cand = cand.filter(x => x !== c);
+        if (me.S >= c.S - 1 || rnd() < P.acc) team.push(c);
+      }
+      for (const x of near) { if (team.length >= want) break; if (!team.includes(x)) team.push(x); }
+      return team;
+    }
+    const tugPow = t => t.reduce((s, x) => s + x.S, 0) + P.tact * Math.max(...t.map(x => x.W));
+    const NEED = ['S', 'D', 'D', 'W', 'C'];
+    const PERMS = []; (function perm(a, i) { if (i === a.length) { PERMS.push(a.slice()); return; } for (let j = i; j < a.length; j++) { [a[i], a[j]] = [a[j], a[i]]; perm(a, i + 1); [a[i], a[j]] = [a[j], a[i]]; } })([0, 1, 2, 3, 4], 0);
+    function pentaP(t) {
+      let best = 0; const n = t.length;
+      for (const a of PERMS) { let p = 1; for (let j = 0; j < 5; j++) p *= L(P.pen + 0.5 * (t[a[j] % n][NEED[j]] - 5)); if (p > best) best = p; }
+      return best;
+    }
+    const marb = (a, b) => L(0.35 * ((a.W + a.C) - (b.W + b.C)));
+    function play(g, me, rule, field, opt) {
+      if (g === 'rlgl' || g === 'dalgona' || g === 'mingle' || g === 'hide' || g === 'rope') {
+        let pm = 0; const R = g === 'dalgona' || g === 'hide' ? 8 : 1; for (let i = 0; i < R; i++) pm += indiv(g, me, me.ord, opt) / R;
+        return [pm, field.filter(x => rnd() < indiv(g, x, x.ord))];
+      }
+      if (g === 'bridge') {
+        const [a, b] = opt && opt.pos ? [opt.pos, opt.pos] : POS[me.ord]; let pm = 0; for (let k = a; k <= b; k++) pm += bridgeP(k) / (b - a + 1);
+        const f = shuffle(field.slice()), out = [];
+        for (let i = 0; i < f.length; i += 16) {
+          const batch = f.slice(i, i + 16).map(x => [x.ord + rnd(), x]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
+          let s = 0;
+          for (const x of batch) { let dead = false; while (s < 18) { s++; if (rnd() < 0.5) { dead = true; break; } } if (!dead) out.push(x); }
+        }
+        return [pm, out];
+      }
+      if (!field.length) return [1, []];
+      const size = g === 'tug' ? 10 : g === 'penta' ? 5 : 2;
+      const team = pick(me, field, size, rule), rest = shuffle(field.filter(x => !team.includes(x))), out = [];
+      if (g === 'marbles') {
+        const p = team[0], pm = marb(me, p);
+        if (rnd() > pm) out.push(p);
+        for (let i = 0; i + 1 < rest.length; i += 2) out.push(rnd() < marb(rest[i], rest[i + 1]) ? rest[i] : rest[i + 1]);
+        if (rest.length % 2) out.push(rest[rest.length - 1]);
+        return [pm, out, team];
+      }
+      if (g === 'tug') {
+        const opp = rest.slice(0, 10), r = rest.slice(10);
+        const pm = opp.length ? L((tugPow([me].concat(team)) - tugPow(opp)) / 5) : 1;
+        out.push(...(rnd() < pm ? team : opp));
+        for (let i = 0; i + 20 <= r.length; i += 20) { const A = r.slice(i, i + 10), B = r.slice(i + 10, i + 20); out.push(...(rnd() < L((tugPow(A) - tugPow(B)) / 5) ? A : B)); }
+        const tail = r.length % 20; if (tail) out.push(...r.slice(r.length - tail).filter(() => rnd() < 0.5));
+        return [pm, out, team, opp];
+      }
+      const pm = pentaP([me].concat(team));
+      if (rnd() < pm) out.push(...team);
+      for (let i = 0; i < rest.length; i += 5) { const Tm = rest.slice(i, i + 5); if (rnd() < pentaP(Tm)) out.push(...Tm); }
+      return [pm, out, team];
+    }
+    const fw = x => Math.exp(-0.25 * (x.S + x.D + x.W + x.C - 20));
+    function final(me, field) {
+      let f = field.slice(), p = 1;
+      while (f.length) {
+        const others = f.reduce((s, x) => s + fw(x), 0);
+        p *= others / (others + fw(me));
+        let r = rnd() * others, i = 0; for (; i < f.length - 1; i++) { r -= fw(f[i]); if (r <= 0) break; }
+        f.splice(i, 1);
+      }
+      return p;
+    }
+    function run(me, rule) {
+      let field = []; for (let i = 0; i < 455; i++) field.push(npc());
+      const games = shuffle(GAMES.slice()).slice(0, 5), per = [];
+      let p = 1;
+      for (const g of games) { const [pg, f] = play(g, me, rule, field); p *= pg; field = f; per.push([g, pg, p, field.length]); }
+      const pf = final(me, field);
+      return { reach: p, win: p * pf, pf, left: field.length, per, fin: field };
+    }
+    return { run, play, npc, final, shuffle, GAMES, tugPow };
+  })();
+
+  const NAMES = { rlgl: ['Червоне світло', 'Red Light'], dalgona: ['Далгона', 'Dalgona'], tug: ['Перетягування каната', 'Tug of war'], marbles: ['Кульки', 'Marbles'],
+    bridge: ['Скляний міст', 'Glass bridge'], penta: ["П'ятиборство", 'Pentathlon'], mingle: ['Мінгл', 'Mingle'], hide: ['Хованки', 'Hide and seek'], rope: ['Скакалка', 'Jump rope'] };
+  const nm = g => NAMES[g][EN ? 1 : 0];
+  const QN = { S: T('Сила', 'Strength'), D: T('Спритність', 'Dexterity'), W: T('Кмітливість', 'Wits'), C: T('Витримка', 'Nerve') };
+  const RULES = [T('Сильних', 'Strong'), T('Різних', 'Varied'), T('Слабких', 'Weak'), T('Під себе', 'Suited to you')];
+  const RULE_HINT = [T('від найсильнішого на вигляд', 'from the strongest-looking down'), T('щоб закрити ваші слабкі місця', 'to cover your weak spots'),
+    T('від найслабшого на вигляд', 'from the weakest-looking up'), T('сильних, але не кмітливіших і не витриманіших за вас', 'the strong, but not sharper or cooler than you')];
+  const ORDS = [T('Першим', 'First'), T('У середині', 'Middle'), T('Останнім', 'Last')];
+  const SHAPES = [T('Коло', 'Circle'), T('Трикутник', 'Triangle'), T('Зірка', 'Star'), T('Парасолька', 'Umbrella')];
+  const BUDGET = 20, NPC_REACH = 0.0227, RUNS = 1000, X_SHARE = 0.47;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const won = m => m >= 1000 ? (m / 1000).toFixed(1).replace('.', EN ? '.' : ',') + T(' млрд вон', ' billion won') : Math.round(m) + T(' млн вон', ' million won');
+  const me = { S: 5, D: 5, W: 5, C: 5 };
+  const sliders = ['S', 'D', 'W', 'C'].map(k => document.getElementById('s-' + k));
+  const goSt = document.getElementById('st-go'), goCmp = document.getElementById('s-go');
+  let busy = false;
+  function left() { return BUDGET - sliders.reduce((s, x) => s + +x.value, 0); }
+  function showLeft() {
+    const l = left();
+    document.getElementById('s-left').textContent = l === 0 ? T('Усі 20 очок розподілено.', 'All 20 points are spent.') :
+      l > 0 ? T('Лишилося очок: ', 'Points left: ') + l + T('. Розподіліть усі 20.', '. Spend all 20.') : T('Забагато на ', 'Over by ') + (-l) + T('. Заберіть зайве.', '. Take some back.');
+    goSt.disabled = goCmp.disabled = l !== 0 || busy;
+  }
+  sliders.forEach(s => s.addEventListener('input', () => {
+    const k = s.dataset.k; document.getElementById('s-' + k + '-out').textContent = s.value; me[k] = +s.value; showLeft();
+  }));
+  showLeft();
+
+  // ---- Play a tournament step by step: blind choice, then the game, your qualities and your chance, then the vote.
+  const ANN = {
+    rlgl: [T('Усіх виводять на велике поле і просять стати в чергу. Що буде далі, не кажуть.', 'Everyone is led onto a big field and told to get in line. Nobody says what comes next.'), 'ord'],
+    rope: [T('Усіх виводять до високого помосту і просять стати в чергу. Що буде далі, не кажуть.', 'Everyone is led to a high platform and told to get in line. Nobody says what comes next.'), 'ord'],
+    bridge: [T('У залі 16 манекенів у жилетах з номерами від 1 до 16. Кожен має взяти собі один.', 'The hall has 16 mannequins in vests numbered 1 to 16. Everyone has to take one.'), 'num'],
+    dalgona: [T('На підлозі намальовано чотири фігури. Станьте біля однієї з них.', 'Four shapes are drawn on the floor. Stand by one of them.'), 'shape'],
+    tug: [T('Об\'єднайтеся в команди по 10 людей. Для чого, не кажуть.', 'Form teams of 10. Nobody says what for.'), 'rule'],
+    penta: [T('Об\'єднайтеся в команди по 5 людей. Для чого, не кажуть.', 'Form teams of 5. Nobody says what for.'), 'rule'],
+    marbles: [T('Розбийтеся на пари. Для чого, не кажуть.', 'Form pairs. Nobody says what for.'), 'rule'],
+    hide: [T('Хованки: сині ховаються і мають ключі від дверей, червоні шукають з ножами, і кожен червоний мусить убити синього. Кожен витягає кульку, а до початку гри можна помінятися з кимось іншого кольору, якщо він погодиться.', 'Hide and seek: blues hide and have door keys, reds seek with knives, and every red must kill a blue. Everyone draws a ball, and before the game you may swap with someone of the other colour if they agree.'), 'color'],
+    mingle: [T('Усіх заводять у кімнату з великою каруселлю посередині і дверима вздовж стін.', 'Everyone is taken into a room with a big carousel in the middle and doors along the walls.'), 'none']
+  };
+  const RULE_TXT = {
+    rlgl: T('«Червоне світло, зелене світло»: дійти до фінішу за 5 хвилин, завмираючи, коли лялька обертається. Хто ворухнувся, вибуває. Хто йде за спинами, того лялька помічає рідше, але останні можуть не встигнути.', 'Red Light, Green Light: reach the finish in 5 minutes, freezing whenever the doll turns. Whoever moves is out. Those walking behind others are seen less often, but the last may run out of time.'),
+    rope: T('Скакалка: перейти поміст із прогалиною посередині, поки велетенські ляльки крутять мотузку. Перші йдуть навмання, середні бачать чужі помилки, останні ризикують не встигнути.', 'Jump rope: cross a platform with a gap in the middle while giant dolls swing the rope. The first go blind, the middle see others\' mistakes, the last risk running out of time.'),
+    bridge: T('Скляний міст: номер — це черга. 18 пар панелей, у кожній одна тримає, друга розбивається.', 'The glass bridge: your number is your place in line. 18 pairs of panels; in each one holds and the other breaks.'),
+    dalgona: T('Далгона: вирізати свою фігуру з льодяника голкою за 10 хвилин. Що складніша фігура, то менше шансів.', 'Dalgona: cut your shape out of a candy with a needle in 10 minutes. The harder the shape, the lower the chance.'),
+    tug: T('Перетягування каната над прірвою: команда, що програла, падає вниз.', 'Tug of war over a drop: the losing team falls.'),
+    penta: T('Шестиноге п\'ятиборство: ноги зв\'язані, п\'ять ігор за 5 хвилин, кожен у команді грає одну. Не впоралися всі — вибуває вся команда.', 'The six-legged pentathlon: legs tied, five games in 5 minutes, each member plays one. If any one fails, the whole team is out.'),
+    marbles: T('Кульки: ви граєте проти свого напарника, у кожного по 10 кульок. Живим лишається один.', 'Marbles: you play against your partner, 10 marbles each. Only one walks away.'),
+    hide: T('Хованки тривають 30 хвилин.', 'Hide and seek lasts 30 minutes.'),
+    mingle: T('Мінгл: карусель зупиняється, називають число, і треба за лічені секунди зайти в кімнату групою саме з такої кількості людей. Хто не встиг, вибуває.', 'Mingle: the carousel stops, a number is called, and within seconds you must get into a room in a group of exactly that size. Whoever fails is out.')
+  };
+  const NEEDS = { rlgl: ['C', 'D'], rope: ['D', 'C'], bridge: [], dalgona: ['D', 'C', 'W'], tug: ['S', 'W'], penta: ['S', 'D', 'W', 'C'], marbles: ['W', 'C'], mingle: ['D', 'S', 'W'] };
+  const st = document.getElementById('st');
+  let G = null;
+  const chips = ks => '<p class="chips">' + ks.map(k => '<span>' + QN[k] + ' <b>' + me[k] + '</b></span>').join('') + '</p>';
+  const btns = (items, act) => '<div class="seg st-seg" role="group">' + items.map((t, i) => '<button type="button" data-act="' + act + '" data-v="' + i + '">' + t + '</button>').join('') + '</div>';
+  function head() {
+    const alive = G.field.length + 1, dead = 456 - alive;
+    return '<div class="st-head"><span>' + (G.i < 5 ? T('Гра ', 'Game ') + (G.i + 1) + T(' з 5', ' of 5') : T('Фінал', 'Final')) + '</span><span>' + T('Живих: ', 'Alive: ') + alive +
+      '</span><span>' + T('У скарбничці: ', 'In the pot: ') + won(dead * 100) + '</span></div>';
+  }
+  function log() { return G.log.length ? '<ol class="st-log">' + G.log.map(x => '<li>' + x + '</li>').join('') + '</ol>' : ''; }
+  function card(h) { st.innerHTML = head() + '<div class="st-card">' + h + '</div>' + log(); }
+  function startTour() {
+    const field = []; for (let i = 0; i < 455; i++) field.push(SG.npc());
+    G = { field, games: SG.shuffle(SG.GAMES.slice()).slice(0, 5), i: 0, log: [] };
+    st.hidden = false; announce(); st.scrollIntoView({ block: 'nearest' });
+  }
+  function announce() {
+    const g = G.games[G.i], [txt, kind] = ANN[g];
+    let h = '<h4>' + T('Оголошення', 'Announcement') + '</h4><p>' + txt + '</p>';
+    if (kind === 'ord') h += btns(ORDS, 'ord');
+    else if (kind === 'num') { const a = []; for (let k = 1; k <= 16; k++) a.push(k); h += '<div class="seg nums st-seg" role="group">' + a.map(k => '<button type="button" data-act="num" data-v="' + k + '">' + k + '</button>').join('') + '</div>'; }
+    else if (kind === 'shape') h += btns(SHAPES, 'shape');
+    else if (kind === 'rule') h += '<p class="sim-cap">' + T('Кого кликаєте?', 'Whom do you ask?') + '</p>' + btns(RULES.map((r, i) => r + ' <small>' + RULE_HINT[i] + '</small>'), 'rule');
+    else if (kind === 'color') { G.color = Math.random() < 0.5 ? 0 : 1; h += '<p><b>' + (G.color ? T('Вам випала червона: ви шукаєте.', 'You drew red: you seek.') : T('Вам випала синя: ви ховаєтеся.', 'You drew blue: you hide.')) + '</b></p>' + btns([T('Лишити', 'Keep it'), T('Спробувати помінятися', 'Try to swap')], 'color'); }
+    else h += btns([T('Стати на карусель', 'Step onto the carousel')], 'none');
+    card(h);
+  }
+  function choose(act, v) {
+    const g = G.games[G.i], p = Object.assign({}, me, { ord: 1 }), opt = {};
+    let rule = 0, choice = '';
+    if (act === 'ord') { p.ord = v; choice = T('у черзі: ', 'in line: ') + ORDS[v].toLowerCase(); }
+    if (act === 'num') { opt.pos = v; choice = T('жилет № ', 'vest no. ') + v; }
+    if (act === 'shape') { opt.shape = v; choice = T('фігура: ', 'shape: ') + SHAPES[v].toLowerCase(); }
+    if (act === 'rule') { rule = v; choice = T('кликали: ', 'asked: ') + RULES[v].toLowerCase(); }
+    if (act === 'color') {
+      let c = G.color; const tried = v === 1, ok = tried && Math.random() < 0.5; if (ok) c = 1 - c;
+      opt.color = c; choice = (c ? T('червоні', 'red') : T('сині', 'blue')) + (tried ? (ok ? T(', помінялися', ', swapped') : T(', охочих не знайшлося', ', nobody would swap')) : '');
+    }
+    const [pm, out, team, opp] = SG.play(g, p, rule, G.field, opt);
+    G.pending = { g, pm, out, choice };
+    const needs = g === 'hide' ? (opt.color ? ['S', 'D'] : ['W', 'D']) : NEEDS[g];
+    let h = '<h4>' + nm(g) + '</h4><p>' + RULE_TXT[g] + '</p>';
+    if (needs.length) h += '<p class="sim-cap">' + T('Що з ваших якостей тут важить:', 'Which of your qualities count here:') + '</p>' + chips(needs);
+    else h += '<p class="sim-cap">' + T('Ваші якості тут не важать нічого: лише номер.', 'Your qualities count for nothing here: only the number.') + '</p>';
+    if (g === 'tug' && team) {
+      const sumS = t => t.reduce((s, x) => s + x.S, 0), mw = t => Math.max(...t.map(x => x.W));
+      const mine = [me].concat(team);
+      h += '<p>' + T('Ваша команда: сила ', 'Your team: strength ') + sumS(mine) + T(', найкмітливіший має ', ', the sharpest has wits ') + mw(mine) + '. ' +
+        (opp && opp.length ? T('Суперники: сила ', 'Opponents: strength ') + sumS(opp) + T(', найкмітливіший ', ', the sharpest ') + mw(opp) + '.' : '') + '</p>';
+    }
+    if (g === 'marbles' && team) {
+      const q = team[0];
+      h += '<p>' + T('Ваш напарник, тепер суперник: сила ', 'Your partner, now your opponent: strength ') + q.S + T(', кмітливість ', ', wits ') + q.W + T(', витримка ', ', nerve ') + q.C +
+        T('. Кмітливість і витримка разом: у нього ', '. Wits and nerve together: theirs ') + (q.W + q.C) + T(', у вас ', ', yours ') + (me.W + me.C) + '.</p>';
+    }
+    if (g === 'penta' && team) {
+      const mine = [me].concat(team), best = k => Math.max(...mine.map(x => x[k]));
+      h += '<p>' + T('Найкращі у вашій команді: ', 'Best on your team: ') + ['S', 'D', 'W', 'C'].map(k => QN[k].toLowerCase() + ' ' + best(k)).join(', ') + '.</p>';
+    }
+    h += '<div class="readout"><b>' + pct(pm, pm < 0.01 ? 2 : 0) + '</b><span>' + T('ваш шанс пережити цю гру', 'your chance of surviving this game') + '</span></div>';
+    h += '<button type="button" class="btn" data-act="play">' + T('Грати', 'Play') + '</button>';
+    card(h);
+  }
+  function playIt() {
+    const P = G.pending, alive = Math.random() < P.pm;
+    const before = G.field.length + 1;
+    G.field = P.out;
+    G.log.push(nm(P.g) + ' · ' + P.choice + ' · ' + T('шанс ', 'chance ') + pct(P.pm, P.pm < 0.01 ? 2 : 0) + ' · ' + (alive ? T('пройшли', 'survived') : T('вибули', 'out')));
+    if (!alive) { endTour('<h4>' + T('Ви вибули', 'You are out') + '</h4><p>' + T('Шанс був ', 'Your chance was ') + pct(P.pm, P.pm < 0.01 ? 2 : 0) + T('. Цього разу не пощастило.', '. Not this time.') + '</p>'); return; }
+    G.i++;
+    const n = G.field.length + 1, out = before - n;
+    let h = '<h4>' + T('Ви пройшли', 'You made it') + '</h4><p>' + T('У цій грі вибуло ', 'This game took ') + out + T(' гравців, лишилося ', ' players, ') + n + T('.', ' are left.') + '</p>';
+    if (G.i < 5) {
+      const share = 100 * (456 - n) / n;
+      h += '<h4>' + T('Голосування', 'The vote') + '</h4><p>' + T('Якщо більшість проголосує «X», гру зупинять і кожен живий отримає ', 'If the majority votes "X", the game stops and everyone alive gets ') + won(share) +
+        T('. Якщо «O», гра триває, і наступна може коштувати життя.', '. If "O", the game goes on, and the next one may cost your life.') + '</p>' + btns([T('O: грати далі', 'O: play on'), T('X: розійтися', 'X: go home')], 'vote');
+    } else {
+      h += '<p>' + T('Ви пережили всі п\'ять ігор. Попереду фінал на вежах.', 'You survived all five games. Ahead is the tower final.') + '</p><button type="button" class="btn" data-act="final">' + T('До фіналу', 'To the final') + '</button>';
+    }
+    card(h);
+  }
+  function vote(v) {
+    const others = G.field.length; let x = 0;
+    for (let i = 0; i < others; i++) if (Math.random() < X_SHARE) x++;
+    const n = others + 1, myX = v === 1 ? 1 : 0, X = x + myX, stop = X * 2 > n, flip = (x + 1 - myX) * 2 > n;
+    const decided = stop !== flip, share = 100 * (456 - n) / n;
+    let h = '<h4>' + T('Результат голосування', 'The result') + '</h4><p>O: ' + (n - X) + ', X: ' + X + '. ' +
+      (decided ? T('Ваш голос вирішив результат.', 'Your vote decided the result.') : T('Ваш голос нічого не змінив: без нього результат був би той самий.', 'Your vote changed nothing: the result would have been the same without it.')) + '</p>';
+    if (stop) { G.log.push(T('Голосування: ', 'Vote: ') + 'O ' + (n - X) + ', X ' + X + T(' · гру зупинено', ' · game stopped')); endTour(h + '<p><b>' + T('Гру зупинено. Ви йдете додому з ', 'The game is stopped. You go home with ') + won(share) + '.</b></p>'); return; }
+    G.log.push(T('Голосування: ', 'Vote: ') + 'O ' + (n - X) + ', X ' + X + T(' · граємо далі', ' · play on'));
+    card(h + '<button type="button" class="btn" data-act="next">' + T('Наступна гра', 'Next game') + '</button>');
+  }
+  function finalStep() {
+    const f = G.field.length + 1, pf = SG.final(me, G.field);
+    card('<h4>' + T('Фінал на вежах', 'The tower final') + '</h4><p>' + T('Фіналістів: ', 'Finalists: ') + f + T('. У кожному раунді хтось мусить упасти, і слабшого штовхають частіше. Сума ваших якостей — ', '. Someone must fall every round, and the weaker are pushed more often. Your qualities add up to ') + BUDGET + '.</p>' +
+      '<div class="readout"><b>' + pct(pf, pf < 0.1 ? 1 : 0) + '</b><span>' + T('ваш шанс виграти фінал', 'your chance of winning the final') + '</span></div><button type="button" class="btn" data-act="finplay" data-v="' + pf + '">' + T('Грати фінал', 'Play the final') + '</button>');
+  }
+  function endTour(h) { card(h + '<button type="button" class="btn" data-act="again">' + T('Ще раз з тим самим персонажем', 'Again with the same character') + '</button>'); }
+  st.addEventListener('click', e => {
+    const b = e.target.closest('button[data-act]'); if (!b) return;
+    const a = b.dataset.act, v = +b.dataset.v;
+    if (a === 'ord' || a === 'num' || a === 'shape' || a === 'rule' || a === 'color' || a === 'none') choose(a, v);
+    else if (a === 'play') playIt();
+    else if (a === 'vote') vote(v);
+    else if (a === 'next') announce();
+    else if (a === 'final') finalStep();
+    else if (a === 'finplay') {
+      const win = Math.random() < v; G.log.push(T('Фінал · шанс ', 'Final · chance ') + pct(v, v < 0.1 ? 1 : 0) + ' · ' + (win ? T('перемога', 'won') : T('вибули', 'out')));
+      endTour(win ? '<h4>' + T('Ви виграли', 'You won') + '</h4><p>' + T('Уся скарбничка ваша: 45,6 млрд вон. Але подивіться на шанси в списку нижче: це вдається приблизно одному турніру з кількох сотень.', 'The whole pot is yours: 45.6 billion won. But look at the chances in the list below: this happens in about one tournament in a few hundred.') + '</p>'
+        : '<h4>' + T('Вас зіштовхнули', 'You were pushed off') + '</h4><p>' + T('Ви дійшли до фіналу, а це вже вдається лише кільком відсоткам гравців.', 'You reached the final, which only a few percent of players ever do.') + '</p>');
+    }
+    else if (a === 'again') startTour();
+  });
+  goSt.addEventListener('click', () => { if (left() === 0) startTour(); });
+
+  // ---- Compare the rules: 1,000 tournaments for each of 12 combinations.
+  const res = document.getElementById('s-res');
+  function evalCombo(rule, ord) {
+    const p = Object.assign({}, me, { ord }); let reach = 0, win = 0; const per = {}, cnt = {}, fin = { S: 0, D: 0, W: 0, C: 0, n: 0 };
+    for (let i = 0; i < RUNS; i++) {
+      const r = SG.run(p, rule); reach += r.reach; win += r.win;
+      for (const x of r.per) { per[x[0]] = (per[x[0]] || 0) + x[1]; cnt[x[0]] = (cnt[x[0]] || 0) + 1; }
+      for (const x of r.fin) { fin.S += x.S; fin.D += x.D; fin.W += x.W; fin.C += x.C; fin.n++; }
+    }
+    for (const g in per) per[g] /= cnt[g];
+    return { reach: reach / RUNS, win: win / RUNS, per, fin };
+  }
+  goCmp.addEventListener('click', () => {
+    if (left() !== 0) return;
+    busy = true; showLeft();
+    const combos = []; for (let r = 0; r < 4; r++) for (let o = 0; o < 3; o++) combos.push([r, o]);
+    const out = {}; let i = 0;
+    res.innerHTML = '<p class="sim-wait">' + T('Граємо… ', 'Playing… ') + '0 / 12</p>';
+    (function step() {
+      const [r, o] = combos[i]; out[r + ',' + o] = evalCombo(r, o); i++;
+      if (i < combos.length) { res.firstChild.textContent = T('Граємо… ', 'Playing… ') + i + ' / 12'; setTimeout(step, 0); }
+      else { show(out); busy = false; showLeft(); }
+    })();
+  });
+  const num = (x, d) => x.toFixed(d).replace('.', EN ? '.' : ',');
+  function show(out) {
+    let best = null; for (const k in out) if (!best || out[k].reach > out[best].reach) best = k;
+    const cur = out[best], [br, bo] = best.split(',').map(Number), ratio = cur.reach / NPC_REACH;
+    const games = Object.keys(cur.per).sort((a, b) => cur.per[a] - cur.per[b]);
+    let h = '<div class="sim-big"><b>' + pct(cur.reach, 1) + '</b><span>' + T('турнірів ваш персонаж доходить до фіналу за найкращих правил: кликати «', 'of tournaments your character reaches the final with the best rules: ask "') +
+      RULES[br].toLowerCase() + T('» і ставати «', '" and stand "') + ORDS[bo].toLowerCase() + T('». Це ', '". That is ') +
+      (ratio >= 1 ? num(ratio, 1) + T(' раза частіше', ' times as often') : num(1 / ratio, 1) + T(' раза рідше', ' times less often')) +
+      T(', ніж у звичайного гравця (2,3%). Виграєте приблизно ', ' as an ordinary player (2.3%). You win about ') + (cur.win > 0 ? T('1 з ', '1 in ') + Math.round(1 / cur.win).toLocaleString(EN ? 'en' : 'uk') : '—') + '.</span></div>';
+    h += '<p class="sim-cap">' + T('Дійти до фіналу за різних правил (рядки — кого кликати, стовпці — де в черзі)', 'Reaching the final with each rule (rows: whom to ask, columns: where in line)') + '</p>' +
+      '<div class="tbl-wrap"><table class="tbl sim-tbl"><thead><tr><th></th>' + ORDS.map(o => '<th class="n">' + o + '</th>').join('') + '</tr></thead><tbody>' +
+      [0, 1, 2, 3].map(r => '<tr><td>' + RULES[r] + '</td>' + [0, 1, 2].map(o => { const k = r + ',' + o;
+        return '<td class="n' + (k === best ? ' best cur' : '') + '">' + pct(out[k].reach, 1) + '</td>'; }).join('') + '</tr>').join('') + '</tbody></table></div>';
+    h += '<p class="sim-cap">' + T('Ваш шанс пережити кожну гру за найкращих правил, якщо вона випаде', 'Your chance of surviving each game with the best rules, if it comes up') + '</p><div class="tbl-wrap"><table class="tbl sim-tbl"><tbody>' +
+      games.map(g => '<tr><td>' + nm(g) + '</td><td class="n">' + pct(cur.per[g]) + '</td></tr>').join('') + '</tbody></table></div>';
+    const f = cur.fin;
+    if (f.n) h += '<p class="sim-cap">' + T('Інші фіналісти в середньому: ', 'The other finalists on average: ') + ['S', 'D', 'W', 'C'].map(k => QN[k].toLowerCase() + ' ' + num(f[k] / f.n, 1)).join(', ') +
+      T('. На старті в усіх гравців по 5.', '. At the start every player averages 5.') + '</p>';
+    res.innerHTML = h;
+  }
+})();
+</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Розділи"><a href="https://mathparadoxes.com/uk/#all">Задачі</a><a href="https://mathparadoxes.com/uk/courses/">Курси</a><a href="https://mathparadoxes.com/uk/glossary/">Словник</a><a href="https://mathparadoxes.com/uk/blog/" aria-current="page">Парадокси в житті</a><span class="mp-social"><a href="https://www.youtube.com/@mathparadoxes" rel="me noopener">YouTube</a><a href="https://www.tiktok.com/@mathparadoxes" rel="me noopener">TikTok</a><a href="https://www.instagram.com/math.paradoxes/" rel="me noopener">Instagram</a><a href="https://t.me/mathparadoxes" rel="me noopener">Telegram</a></span></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t), old = false;
+  // items saved before 2026-11 carry the old URLs (Ukrainian at /x/, English at /x/en/): move them to /uk/x/ and /x/
+  list.forEach(function (p) {
+    if (p.u && p.u.uk && !/^https?:\/\/[^\/]+\/uk\//.test(p.u.uk)) {
+      p.u = { uk: p.u.uk.replace(/^(https?:\/\/[^\/]+\/)/, "$1uk/"), en: String(p.u.en).replace(/en\/$/, "") };
+      old = true;
+    }
+  });
+  if (old && !me) try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+<script>
+(function () {
+  var btn = document.querySelector(".mp-sx-btn");
+  if (!btn) return;
+  var T = JSON.parse(btn.dataset.t), lang = document.documentElement.dataset.lang === "en" ? "en" : "uk";
+  var data = null, loading = null, box = null, input, list, tabs, foot, tab = "", act = 0, opts = [], back = null;
+  var W = { n: 3, on: 2.5, k: 2, d: 1, x: 0.8, o: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
+  // small words that may match nothing without dropping the result ("задача про монети")
+  var STOP = ["и", "та", "в", "у", "на", "з", "из", "до", "для", "про", "як", "що", "the", "a", "an", "of", "in", "on", "and", "to", "for", "how", "what"];
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  btn.querySelector("kbd").textContent = mac ? "⌘K" : "Ctrl K";
+
+  function norm(s) {
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’'ʼ`ъ]/g, "")
+      .replace(/[іыий]/g, "и").replace(/[єэё]/g, "е").replace(/ґ/g, "г");
+  }
+  function words(s) { return norm(s).split(/[^0-9a-zа-я]+/).filter(Boolean); }
+  // one edit apart: a letter swapped, missing, extra or two letters transposed
+  function near(a, b) {
+    var la = a.length, lb = b.length, i = 0;
+    if (Math.abs(la - lb) > 1) return false;
+    while (i < la && i < lb && a[i] === b[i]) i++;
+    if (la === lb) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+    return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+  }
+  // how well a query word q fits a word w of the text: whole word, its start, the same stem (Ukrainian endings), a typo
+  function hit(q, w) {
+    if (w === q) return 1;
+    if (w.lastIndexOf(q, 0) === 0) return 0.85;
+    if (q.length >= 4) {
+      if (q.length >= 5 && w.lastIndexOf(q.slice(0, Math.max(4, q.length - 2)), 0) === 0) return 0.6;
+      for (var d = -1; d <= 1; d++) if (near(q, w.slice(0, q.length + d))) return 0.45;
+    }
+    return q.length >= 3 && w.indexOf(q) > 0 ? 0.35 : 0;
+  }
+  // the score of an item, and in it.low the weakest word match (a typo or a piece of a word is weak)
+  function score(it, qs, phrase) {
+    var total = 0;
+    it.low = 1;
+    for (var i = 0; i < qs.length; i++) {
+      var best = 0, bestF;
+      for (var f in W) {
+        var ws = it.w[f];
+        for (var j = 0; j < ws.length; j++) { var h = hit(qs[i], ws[j]) * W[f]; if (h > best) { best = h; bestF = f; } }
+      }
+      if (!best && STOP.indexOf(qs[i]) === -1) return 0;
+      if (best) it.low = Math.min(it.low, best / W[bestF]);
+      total += best;
+    }
+    var name = it.w.nn, alt = it.w.no;
+    if (name.lastIndexOf(phrase, 0) === 0 || alt.lastIndexOf(phrase, 0) === 0) total += 2;
+    else if (name.indexOf(phrase) !== -1 || alt.indexOf(phrase) !== -1) total += 1;
+    return total + (it.t === "p" ? 0.2 : it.t === "h" ? -0.2 : 0);
+  }
+  function load() {
+    if (!loading) loading = fetch(btn.dataset.src).then(function (r) { return r.json(); }).then(function (j) {
+      data = j.items;
+      // a chapter's line under the name is only its course and number, so "парадокси" does not find all 21 chapters
+      data.forEach(function (it) {
+        it.w = { n: words(it.n), on: words(it.on || ""), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), o: words(it.o || ""),
+                 nn: words(it.n).join(" "), no: words(it.on || "").join(" ") };
+      });
+    });
+    return loading;
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done(it) {
+    if (it.t === "p") return !!get("mp-solved:" + it.s);
+    if (it.t !== "c") return false;
+    var d = []; try { d = JSON.parse(get("mp-course:" + it.s) || "[]"); } catch (e) {}
+    return d.length > 0;
+  }
+  function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+  // the text with the words that match the query in <mark>
+  function marked(text, qs) {
+    var out = document.createDocumentFragment(), parts = String(text).split(/([0-9A-Za-zА-Яа-яЄєІіЇїҐґЁё’'ʼ]+)/);
+    parts.forEach(function (p, i) {
+      if (!p) return;
+      var w = i % 2 && words(p), on = w && qs.length && w.some(function (x) { return qs.some(function (q) { return hit(q, x) >= 0.45; }); });
+      out.appendChild(on ? el("mark", null, p) : document.createTextNode(p));
+    });
+    return out;
+  }
+  function icon(it) {
+    var s = el("span", "mp-sx-ic mp-sx-" + it.t);
+    s.style.setProperty("--tint", it.tint || "var(--soft)");  // not the page's own --tint
+    if (it.t === "p") { var b = s.appendChild(el("span", "mp-bars")); for (var i = 1; i <= 3; i++) b.appendChild(el("i", i <= it.lv ? "on" : "")); }
+    else s.textContent = it.t === "g" ? "Aa" : it.t === "c" ? "≡" : "§";
+    return s;
+  }
+  function row(it, qs) {
+    var a = el("a", "mp-sx-it"); a.href = it.u; a.setAttribute("role", "option"); a.id = "mp-sx-o" + opts.length;
+    var tx = el("span", "mp-sx-tx"), n = el("b"), d = el("span");
+    n.appendChild(marked(it.n, qs)); d.appendChild(marked(it.d || "", qs)); tx.append(n, d);
+    a.append(icon(it), tx);
+    if (done(it)) { var ok = el("span", "mp-sx-ok", "✓"); ok.title = T.solved; a.appendChild(ok); }
+    opts.push(a);
+    return a;
+  }
+  function head(text) { return el("li", "mp-sx-h", text); }
+  function wrap(a) { var li = el("li"); li.setAttribute("role", "presentation"); li.appendChild(a); return li; }
+  function render() {
+    var q = input.value.trim(), qs = words(q), phrase = qs.join(" ");
+    list.textContent = ""; opts = []; act = 0;
+    tabs.hidden = !qs.length;
+    if (!qs.length) {
+      var recent = []; try { recent = JSON.parse(get("mp-recent") || "[]"); } catch (e) {}
+      recent = recent.slice(0, 5).map(function (r) {
+        var it = data && data.filter(function (x) { return (x.t === "p" && x.s === r.s) || (x.t === "c" && "course:" + x.s === r.s); })[0];
+        return it || { t: r.c ? "c" : "p", s: r.s, n: r.n[lang], u: r.u[lang] };
+      });
+      if (recent.length) { list.appendChild(head(T.recent)); recent.forEach(function (it) { list.appendChild(wrap(row(it, []))); }); }
+      var li = el("li", "mp-sx-try"); li.appendChild(el("span", null, T.try + ": "));
+      T.ideas.forEach(function (w, i) {
+        var b = el("button", null, w); b.type = "button";
+        b.addEventListener("click", function () { input.value = w; render(); input.focus(); });
+        if (i) li.appendChild(document.createTextNode(" · "));
+        li.appendChild(b);
+      });
+      list.appendChild(li);
+      return mark();
+    }
+    if (!data) { list.appendChild(el("li", "mp-sx-msg", T.load)); return; }
+    var found = data.map(function (it) { return { it: it, s: score(it, qs, phrase) }; }).filter(function (r) { return r.s > 0; });
+    // typos and pieces of words count only when nothing matches by whole words, their starts or stems
+    if (found.some(function (r) { return r.it.low >= 0.6; })) found = found.filter(function (r) { return r.it.low >= 0.6; });
+    found.sort(function (a, b) { return b.s - a.s; });
+    var count = { "": found.length, p: 0, c: 0, g: 0 };
+    found.forEach(function (r) { count[GROUP[r.it.t]]++; });
+    [].forEach.call(tabs.children, function (b) {
+      b.lastChild.textContent = count[b.dataset.k] ? " " + count[b.dataset.k] : "";
+      b.setAttribute("aria-pressed", b.dataset.k === tab);
+      b.disabled = !count[b.dataset.k] && b.dataset.k !== tab;
+    });
+    if (tab) found = found.filter(function (r) { return GROUP[r.it.t] === tab; });
+    if (!found.length) {
+      var m = el("li", "mp-sx-msg", T.none + " "), a = el("a", null, T.every);
+      a.href = document.querySelector(".mp-nav-list a:not(.mp-cont)").href; m.appendChild(a); list.appendChild(m);
+      return mark();
+    }
+    // groups in the order of their best match; with no tab chosen each shows its first 6
+    var order = [], by = {};
+    found.forEach(function (r) { var g = GROUP[r.it.t]; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(r.it); });
+    order.forEach(function (g) {
+      if (!tab) list.appendChild(head(T[g]));
+      var items = tab ? by[g] : by[g].slice(0, 6);
+      items.forEach(function (it) { list.appendChild(wrap(row(it, qs))); });
+      if (!tab && by[g].length > 6) {
+        var more = el("button", "mp-sx-more", "+" + (by[g].length - 6) + " →"); more.type = "button";
+        more.addEventListener("click", function () { tab = g; render(); input.focus(); });
+        var li = el("li"); li.appendChild(more); list.appendChild(li);
+      }
+    });
+    mark();
+  }
+  function mark() {
+    opts.forEach(function (o, i) { o.setAttribute("aria-selected", i === act); });
+    if (opts[act]) { input.setAttribute("aria-activedescendant", opts[act].id); opts[act].scrollIntoView({ block: "nearest" }); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function build() {
+    box = el("div", "mp-sx"); box.hidden = true;
+    box.innerHTML = '<div class="mp-sx-box" role="dialog" aria-modal="true"><div class="mp-sx-head">' + btn.querySelector("svg").outerHTML +
+      '<input type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="mp-sx-list" aria-autocomplete="list">' +
+      '<button type="button" class="mp-sx-x"></button></div><div class="mp-sx-tabs"></div><ul class="mp-sx-list" id="mp-sx-list" role="listbox"></ul>' +
+      '<div class="mp-sx-foot"></div></div>';
+    document.body.appendChild(box);
+    input = box.querySelector("input"); list = box.querySelector("ul"); tabs = box.querySelector(".mp-sx-tabs"); foot = box.querySelector(".mp-sx-foot");
+    box.firstChild.setAttribute("aria-label", T.btn); input.placeholder = T.ph; input.setAttribute("aria-label", T.btn);
+    var x = box.querySelector(".mp-sx-x"); x.textContent = "Esc"; x.setAttribute("aria-label", T.close);
+    foot.textContent = T.keys;
+    [["", T.all], ["p", T.p], ["c", T.c], ["g", T.g]].forEach(function (k) {
+      var b = el("button", null, k[1]); b.type = "button"; b.dataset.k = k[0]; b.appendChild(el("span"));
+      b.addEventListener("click", function () { tab = k[0]; render(); input.focus(); });
+      tabs.appendChild(b);
+    });
+    input.addEventListener("input", function () { tab = ""; render(); });
+    box.addEventListener("click", function (e) { if (e.target === box || e.target === x) close(); });
+    box.addEventListener("mousemove", function (e) {
+      var o = e.target.closest(".mp-sx-it"), i = opts.indexOf(o);
+      if (i !== -1 && i !== act) { act = i; mark(); }
+    });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (opts.length) { act = (act + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length; mark(); }
+      } else if (e.key === "Enter" && opts[act]) { e.preventDefault(); opts[act].click(); }
+    });
+  }
+  function open(q) {
+    if (!box) build();
+    if (!box.hidden) return input.focus();
+    back = document.activeElement; box.hidden = false; document.documentElement.classList.add("mp-sx-on");
+    if (q != null) input.value = q;
+    input.focus(); input.select(); render();
+    load().then(render, function () { list.textContent = ""; list.appendChild(el("li", "mp-sx-msg", T.fail)); loading = null; });
+  }
+  function close() {
+    if (!box || box.hidden) return;
+    box.hidden = true; document.documentElement.classList.remove("mp-sx-on");
+    if (back && back.focus) back.focus();
+  }
+  btn.addEventListener("click", function () { open(); });
+  btn.addEventListener("pointerenter", load, { once: true });
+  btn.addEventListener("focus", load, { once: true });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target, typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box && !box.hidden ? close() : open(); }
+    else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); open(); }
+    else if (e.key === "Escape" && box && !box.hidden) { e.preventDefault(); close(); }
+    else if (e.key === "Tab" && box && !box.hidden) {
+      // keep the focus inside the palette
+      var f = [].slice.call(box.querySelectorAll("input, button:not([disabled]), a[href]"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+    }
+  });
+  var q = new URLSearchParams(location.search).get("q");
+  if (q) open(q);
+})();
+</script>
+</body>
+</html>
