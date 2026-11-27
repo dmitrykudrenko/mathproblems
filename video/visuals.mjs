@@ -224,4 +224,61 @@ function histogram(ctx, v, t0, t, a, dur, C, top) {
   text(ctx, v.axis, (x0 + x1) / 2, yB + 60, { font: `600 32px ${F.body}`, align: 'center', color: C.muted, alpha: a });
 }
 
-export const VISUALS = { dots, scatter, tower, icons, stack, histogram };
+// ---- arena: hawk-dove at the Cornucopia. n tributes on a ring; as the loot-to-fight-cost ratio r = V/D moves
+// from `from` to `to`, the stable share r of them runs to the horn (accent), the rest back off to the edge.
+// With `payoff`, a bar shows each tribute's average payoff (V/2)(1 − V/D) as a share of its best, 4r(1 − r).
+// labels: { run: 'of 48 run in', ratio: 'loot ÷ cost of a fight', payoff: 'each tribute gets' }
+function arena(ctx, v, t0, t, a, dur, C, top) {
+  const n = v.n || 24, R = v.r || 300, cx = W / 2, cy = top + 40 + R;
+  const r = v.from + (v.to - v.from) * easeInOut(prog(t, t0 + .4, Math.max(1, dur * .7)));
+  const order = Array.from({ length: n }, (_, i) => i), rnd = rng(v.seed || 24);
+  for (let i = n - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  const appear = easeOut(prog(t, t0, .5));
+  ctx.save(); ctx.globalAlpha = a * appear;
+  // the ring of plates and the horn in the middle
+  ctx.strokeStyle = C.line; ctx.lineWidth = 3; ctx.setLineDash([6, 12]);
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = '#E3A21A';
+  ctx.beginPath(); ctx.moveTo(cx - 70, cy - 46); ctx.quadraticCurveTo(cx + 40, cy - 70, cx + 78, cy + 14);
+  ctx.quadraticCurveTo(cx + 20, cy - 4, cx - 70, cy + 46); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(cx - 70, cy, 16, 46, 0, 0, 7); ctx.fill();
+  const k = r * n;
+  order.forEach((who, rank) => {
+    const run = clamp(k - rank);                       // 0 backs off, 1 runs to the horn
+    const ang = -Math.PI / 2 + who * 2 * Math.PI / n;
+    const rad = R * (1 + .06 * (1 - run) * clamp(k) - .58 * easeInOut(run));
+    ctx.fillStyle = run > .5 ? C.accent : C.ink;
+    ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad, n > 30 ? 13 : 20, 0, 7); ctx.fill();
+  });
+  ctx.restore();
+  const L = v.labels || {}, y = cy + R + 110;
+  text(ctx, `${Math.round(k)} ${L.run || ''}`, W / 2, y, { font: `800 56px ${F.display}`, align: 'center', color: C.accent, alpha: a * appear });
+  text(ctx, `${L.ratio || ''}: ${Math.round(r * 100)}%`, W / 2, y + 56, { font: `600 32px ${F.mono}`, align: 'center', color: C.muted, alpha: a * appear });
+  if (!v.payoff) return;
+  const pay = 4 * r * (1 - r), bw = 760, by = y + 100, bp = easeOut(prog(t, t0 + .3, .5));
+  ctx.save(); ctx.globalAlpha = a * bp;
+  ctx.fillStyle = C.line; rrect(ctx, (W - bw) / 2, by, bw, 40, 20); ctx.fill();
+  if (pay > .01) { ctx.fillStyle = C.ink; rrect(ctx, (W - bw) / 2, by, Math.max(40, bw * pay), 40, 20); ctx.fill(); }
+  ctx.restore();
+  text(ctx, `${L.payoff || ''}: ${Math.round(pay * 100)}%`, W / 2, by + 92, { font: `700 36px ${F.body}`, align: 'center', color: C.ink, alpha: a * bp });
+}
+
+// ---- stats: a character sheet, one row per quality with ten pips; `to` (optional) moves points while it plays
+// rows: [{ label, v, to? }], total: caption under the sheet (e.g. 'age 15 · 25 points')
+function stats(ctx, v, t0, t, a, dur, C, top) {
+  const rows = v.rows, rowH = Math.min(150, (1400 - top) / (rows.length + .6)), x0 = 80, px0 = 470, pip = 46, gap = 10;
+  rows.forEach((r, k) => {
+    const y = top + 40 + k * rowH, p = easeOut(prog(t, t0 + .2 + k * .18, .5));
+    const val = r.to == null ? r.v : Math.round(r.v + (r.to - r.v) * easeInOut(prog(t, t0 + dur * .45, dur * .3)));
+    text(ctx, r.label, x0, y + pip * .72, { font: `700 44px ${F.body}`, color: C.ink, alpha: a * p });
+    ctx.save(); ctx.globalAlpha = a * p;
+    for (let i = 0; i < 10; i++) {
+      ctx.fillStyle = i < val ? C.accent : C.line;
+      rrect(ctx, px0 + i * (pip + gap), y, pip, pip, 10); ctx.fill();
+    }
+    ctx.restore();
+  });
+  if (v.total) text(ctx, v.total, W / 2, top + 40 + rows.length * rowH + 50, { font: `600 34px ${F.mono}`, align: 'center', color: C.muted, alpha: a * easeOut(prog(t, t0 + 1, .5)) });
+}
+
+export const VISUALS = { dots, scatter, tower, icons, stack, histogram, arena, stats };
