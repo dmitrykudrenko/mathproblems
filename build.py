@@ -1921,6 +1921,7 @@ def build_problem(slug, base, metas, books, related):
             items.append((base + LANG_PATH[lang] + s + "/", rm["card"]["title"], rm.get("share", {}).get("description", rm["card"]["text"])))
         body = with_related(body, related_block(lang, items, hub[lang], glossary_url(base, lang)))
         body = with_books(body, books_block(lang, refs, books, base + LANG_PATH[lang] + "books/"))
+        body = with_blog(body, blog_block(lang, slug, base))
         body = with_terms(body, lang, TERMS, base)  # last: its script must not be taken for the page script above
         doc = (f'<!doctype html>\n<html lang="{lang}" data-lang="{lang}" data-static data-spoil>\n<head>\n{h}\n{RESET}\n{style}\n{css_link(base)}\n'
                f'</head>\n<body>\n{body.strip()}\n{LEVEL_SCRIPT}\n{claspo_snippet(lang)}\n{CF_ANALYTICS}\n</body>\n</html>\n')
@@ -2201,6 +2202,25 @@ def build_books(problems, base, books):
 BLOG = ROOT / "blog"
 
 
+def post_image(slug, lang, base):
+    """A post's preview (blog/<slug>/assets/og-<lang>.png, drawn by tools/og.py), or None."""
+    return base + f"blog/{slug}/assets/og-{lang}.png" if (BLOG / slug / "assets" / f"og-{lang}.png").exists() else None
+
+
+def art_thumb(img, page_html):
+    """The illustration part of a 1200x630 preview (tools/og.py) on the page's --tint, cropped like the puzzle
+    cards (site.css .mp-thumb); used at the top of blog and course cards."""
+    m = re.search(r"--tint:\s*(#[0-9A-Fa-f]{6})", page_html.read_text(encoding="utf-8"))
+    tint = f' style="--tint: {m.group(1)}"' if m else ""
+    return (f'<span class="mp-thumb"{tint}><span class="mp-thumb-art"><img src="{img}" alt="" width="1200" height="630" '
+            f'loading="lazy" decoding="async"></span></span>')
+
+
+def post_thumb(slug, lang, base):
+    img = post_image(slug, lang, base)
+    return art_thumb(img, BLOG / slug / "page.html") if img else ""
+
+
 def build_blog(problems, base):
     if not (BLOG / "index.json").exists():
         return []
@@ -2270,12 +2290,15 @@ def build_blog(problems, base):
                  "description": m["description"], "inLanguage": lang, "datePublished": meta["published"],
                  "dateModified": meta["updated"], "author": {"@id": base + "#author"}},
                 author_ld(lang, base)]}
-            page(lang, urls, src, m["title"], m["description"], base + f"og-{lang}.png", ld, "blog/" + slug)
+            img = post_image(slug, lang, base)
+            if img:
+                ld["@graph"][0]["image"] = img
+            page(lang, urls, src, m["title"], m["description"], img or base + f"og-{lang}.png", ld, "blog/" + slug)
         out.append((urls, meta["updated"]))
     src = (BLOG / "index.html").read_text(encoding="utf-8")
     for lang in LANGS:
         items = "\n".join(
-            f'    <li><a href="{base + LANG_PATH[lang] + "blog/" + s + "/"}"><b>{e(m[lang]["title"])}</b>'
+            f'    <li><a href="{base + LANG_PATH[lang] + "blog/" + s + "/"}">{post_thumb(s, lang, base)}<b>{e(m[lang]["title"])}</b>'
             f'<span>{e(m[lang]["description"])}</span><i>{m["published"]}</i></a></li>' for s, m, _ in posts)
         m = index[lang]
         ld = {"@context": "https://schema.org", "@type": "Blog", "url": list_urls[lang], "name": m["title"], "inLanguage": lang}
@@ -2645,10 +2668,52 @@ def load_blog_refs():
             BLOG_REFS.setdefault(slug, []).append((d.name, meta))
 
 
+BLOG_REFS_TEXT = {
+    "uk": ("Статті, де є ця задача", "Усі статті", ("стаття", "статті", "статей")),
+    "en": ("Posts that use this puzzle", "All posts", ("post", "posts", "posts")),
+}
+
+
 def blog_strip(lang, slug, base):
-    """'Blog · «post title» →' lines for a problem page, one per blog post that uses the problem."""
-    return "".join(f'<a class="mp-course" href="{base + LANG_PATH[lang]}blog/{p}/"><b>{NAV_TEXT[lang]["blog"]}</b> · '
-                   f'«{e(m[lang]["title"])}» →</a>' for p, m in BLOG_REFS.get(slug, []))
+    """One quiet line above a problem's title: 'Paradoxes in real life · 2 posts ↓', down to the posts block."""
+    n = len(BLOG_REFS.get(slug, []))
+    if not n:
+        return ""
+    forms = BLOG_REFS_TEXT[lang][2]
+    word = forms[0] if n % 10 == 1 and n % 100 != 11 else forms[1] if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14 else forms[2]
+    return f'<a class="mp-course" href="#blog"><b>{NAV_TEXT[lang]["blog"]}</b> · {n} {word} ↓</a>'
+
+
+def blog_block(lang, slug, base):
+    """'Paradoxes in real life' block near the end of a problem page: the blog posts that use the problem."""
+    refs = BLOG_REFS.get(slug, [])
+    if not refs:
+        return ""
+    title, all_label = BLOG_REFS_TEXT[lang][:2]
+    root = base + LANG_PATH[lang] + "blog/"
+    cards = "\n".join(f'    <a class="mp-related-card" href="{root}{p}/">{post_thumb(p, lang, base)}<h3>{e(m[lang]["title"])}</h3><p>{e(m[lang]["description"])}</p></a>'
+                      for p, m in refs)
+    return f"""<section class="mp-blogrefs" id="blog">
+  <div class="mp-related-head">
+    <span class="eyebrow">{NAV_TEXT[lang]["blog"]}</span>
+    <h2>{title}</h2>
+  </div>
+  <div class="mp-books-grid">
+{cards}
+  </div>
+  <a class="mp-related-all" href="{root}">{all_label} →</a>
+</section>"""
+
+
+def with_blog(body, block):
+    """Put the blog block first among the end blocks: before the books, the related problems or the discussion."""
+    if not block:
+        return body
+    for mark in ('<section class="mp-books"', '<section class="mp-related"', '<section class="mp-discuss"'):
+        i = body.find(mark)
+        if i != -1:
+            return body[:i] + block + "\n\n" + body[i:]
+    return body
 
 
 def course_strip(lang, slug, base):
@@ -2670,7 +2735,9 @@ def course_card(lang, name, meta, base):
     n = sum(1 for ch in meta["chapters"] if ch["id"] != "checklist")
     m = re.search(r"--tint:\s*(#[0-9A-Fa-f]{6})", (COURSES / name / "page.html").read_text(encoding="utf-8"))
     tint = f' style="--tint: {m.group(1)}"' if m else ""
-    return (f'<a class="mp-course-card" href="{course_url(base, lang, name)}"{tint}>'
+    thumb = (art_thumb(base + f"courses/{name}/og-{lang}.png", COURSES / name / "page.html")
+             if (COURSES / name / "assets" / f"og-{lang}.png").exists() else "")
+    return (f'<a class="mp-course-card" href="{course_url(base, lang, name)}"{tint}>{thumb}'
             f'<span class="eyebrow">{t["course"]} · {e(meta["audience"][lang])}</span>'
             f'<h3>{e(meta[lang]["card"]["title"])}</h3><p>{e(meta[lang]["card"]["text"])}</p>'
             f'<span class="mp-course-meta">{t["chapters"] % (n, len(course_slugs(meta)))}</span></a>')

@@ -163,7 +163,11 @@ python3 tools/check.py
   `npx wrangler d1 execute mathparadoxes-stats --remote --command "SELECT k, SUM(n) AS n FROM votes WHERE slug = 'course-ab-testing' GROUP BY k ORDER BY k"`
   Посилання «Продовжити з розділу N» у блоці прогресу веде до першого розділу без відповіді.
 - Збірка додає блок «Курси» під списком задач на головній, сторінку `/courses/` (`courses/index.html`, `index.json`), посилання «Курси» в підвалі, плашку «Курс «…» · розділ k з N» на сторінках задач курсу, JSON-LD `Course` і записи в sitemap. Спільні стилі `.cs-*` і `.mp-course*` лежать у `site.css`.
-- Картинку для соцмереж малює `tools/og.py` (ключ `course-<name>`), вона лягає в `courses/<name>/assets/`.
+- Картинку для соцмереж малює `tools/og.py` (ключ `course-<name>`), вона лягає в `courses/<name>/assets/` Вона ж стоїть картинкою на картці курсу на головній і на `/courses/` (ілюстрація з правої частини на тлі курсу), тож без неї новий курс не публікуємо. Лише один курс: `python3 tools/og.py course-<name>`.
+
+### Блог «Парадокси в житті»
+
+Статті від першої особи: `blog/<slug>/page.html` + `meta.json` (`published`, `updated`, для кожної мови `title`, `description`), список — `blog/index.html` і `index.json`. У кожної нової статті має бути картинка-прев'ю: ключ `blog-<slug>` у `tools/og.py` (два рядки назви, питання, `TINT` як `--tint` сторінки, малюнок у `extra_visual`), потім `python3 tools/og.py blog-<slug>`. Картинка лягає в `blog/<slug>/assets/og-<lang>.png` і стає og:image статті, картинкою картки в списку блогу та в блоці «Парадокси в житті» на сторінках задач.
 
 ### Пошук
 
