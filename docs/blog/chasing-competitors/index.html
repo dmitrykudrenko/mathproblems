@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-static>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function () {
+  var COOKIE = "mp_lang", PATH = "/", HERE = "en", ALT = {"uk": "/uk/blog/chasing-competitors/", "en": "/blog/chasing-competitors/"};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[hreflang]");
+    if (a && ALT[a.hreflang]) document.cookie = COOKIE + "=" + a.hreflang + "; path=" + PATH + "; max-age=31536000; SameSite=Lax";
+  });
+  if (/bot|crawl|spider|slurp|lighthouse|facebookexternalhit|embedly|preview|telegram|whatsapp|discord|vkshare/i.test(navigator.userAgent)) return;
+  var m = document.cookie.match(/(?:^|; )mp_lang=(uk|en)/), want = m && m[1];
+  if (!want && HERE === "uk") return;
+  if (!want) {
+    // the first uk/ru/be or en entry in the browser's preference order decides
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    for (var i = 0; i < langs.length && !want; i++) {
+      var p = String(langs[i]).toLowerCase().split("-")[0];
+      if (p === "uk" || p === "ru" || p === "be") want = "uk";
+      else if (p === "en") want = "en";
+    }
+    if (!want) {
+      var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (err) {}
+      want = /Kyiv|Kiev|Zaporozhye|Uzhgorod|Simferopol|Moscow|Minsk/.test(tz) ? "uk" : "en";
+    }
+  }
+  if (want !== HERE) location.replace(ALT[want] + location.search + location.hash);
+})();
+</script>
+<script>
+(function () {
+  var d = document.documentElement, SLUG = null;
+  function key(s) { return "mp-solved:" + s; }
+  function seen(s) { try { return !!localStorage.getItem(key(s)); } catch (e) { return false; } }
+  function mark(s) { try { localStorage.setItem(key(s), "1"); } catch (e) {} }
+  function forget(s) { try { localStorage.removeItem(key(s)); localStorage.removeItem("mp-hints:" + s); } catch (e) {} }
+  function cards() { return [].slice.call(document.querySelectorAll("[data-spoil][id]")); }
+  function some() { d.classList.toggle("some-solved", cards().some(function (c) { return c.classList.contains("solved"); })); }
+  function hideBtn(cls) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "sp-skip sp-after " + cls; b.setAttribute("data-unsolve", "");
+    b.textContent = d.dataset.lang === "en" ? "Hide the answer" : "Сховати відповідь";
+    return b;
+  }
+  if (SLUG && seen(SLUG)) d.classList.add("solved");
+  // "always show all rounds": a visitor who doesn't mind spoilers sees every round on every page (.sp-rounds), the
+  // round-1 guess still works; data-rounds="open" turns it on, "gate" off. Such a browser no longer votes in the stats.
+  try { if (localStorage.getItem("mp-rounds") === "open") d.classList.add("rounds-open"); } catch (e) {}
+  // the gate card sits after round 1; once it hides, the browser would keep the bottom of the page in view, so jump to round 2
+  function toRounds(b) {
+    var r = b.closest(".sp-gate") && document.querySelector(".sp-rounds");
+    if (r) requestAnimationFrame(function () { r.scrollIntoView({ block: "start" }); });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rounds]");
+    if (!b) return;
+    var on = b.getAttribute("data-rounds") === "open";
+    d.classList.toggle("rounds-open", on);
+    try { if (on) localStorage.setItem("mp-rounds", "open"); else localStorage.removeItem("mp-rounds"); } catch (e2) {}
+    document.dispatchEvent(new Event("rounds"));
+    if (on) toRounds(b);
+  });
+  window.mpSolved = function () { return d.classList.contains("solved"); };
+  // a page passes the visitor's round-1 guess, if any; the answer-stats script reads it from the event
+  window.mpSolve = function (guess) {
+    if (!SLUG || window.mpSolved()) return;
+    d.classList.add("solved"); mark(SLUG);
+    document.dispatchEvent(new CustomEvent("solved", { detail: { guess: guess } }));
+  };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-solve], [data-unsolve]");
+    if (!b) return;
+    var card = b.closest("[data-spoil][id]"), hide = b.hasAttribute("data-unsolve");
+    if (hide && b.getAttribute("data-unsolve") === "all") {
+      cards().forEach(function (c) { c.classList.remove("solved"); forget(c.id); });
+    } else if (card && card !== d) {
+      card.classList.toggle("solved", !hide);
+      if (hide) forget(card.id); else mark(card.id);
+    } else if (hide) {
+      // the page may already show a guess result or a played game, so start it over
+      forget(SLUG); scrollTo(0, 0); location.replace(location.pathname);
+      return;
+    } else { window.mpSolve(); toRounds(b); }
+    some();
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (SLUG) {
+      var go = document.querySelector(".hero .hero-go");
+      if (go) { var w = document.createElement("div"); w.className = "hero-go sp-after"; w.appendChild(hideBtn("")); go.parentNode.insertBefore(w, go.nextSibling); }
+      return;
+    }
+    cards().forEach(function (c) {
+      if (seen(c.id)) c.classList.add("solved");
+      var a = c.querySelector(".tz-ans");
+      if (a) a.parentNode.insertBefore(hideBtn("tz-hide"), a.nextSibling);
+    });
+    some();
+  });
+})();
+</script>
+
+<title>Should you chase a competitor? The maths of pursuit and false causes</title>
+<meta name="description" content="Why copying the leader keeps you behind, why the chase takes longer than it looks, and why the cause of their success is rarely the one you see.">
+<meta name="robots" content="noindex">
+<meta name="author" content="Dmytro Kudrenko">
+<link rel="canonical" href="https://mathparadoxes.com/blog/chasing-competitors/">
+<link rel="alternate" hreflang="uk" href="https://mathparadoxes.com/uk/blog/chasing-competitors/">
+<link rel="alternate" hreflang="en" href="https://mathparadoxes.com/blog/chasing-competitors/">
+<link rel="alternate" hreflang="x-default" href="https://mathparadoxes.com/blog/chasing-competitors/">
+<meta name="theme-color" content="#2A3DD1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="https://mathparadoxes.com/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="Math paradoxes" href="https://mathparadoxes.com/feed.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Math paradoxes">
+<meta property="og:title" content="Should you chase a competitor? The maths of pursuit and false causes">
+<meta property="og:description" content="Why copying the leader keeps you behind, why the chase takes longer than it looks, and why the cause of their success is rarely the one you see.">
+<meta property="og:url" content="https://mathparadoxes.com/blog/chasing-competitors/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta property="og:image" content="https://mathparadoxes.com/blog/chasing-competitors/assets/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Should you chase a competitor? The maths of pursuit and false causes">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Should you chase a competitor? The maths of pursuit and false causes">
+<meta name="twitter:description" content="Why copying the leader keeps you behind, why the chase takes longer than it looks, and why the cause of their success is rarely the one you see.">
+<meta name="twitter:image" content="https://mathparadoxes.com/blog/chasing-competitors/assets/og-en.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "BlogPosting", "@id": "https://mathparadoxes.com/blog/chasing-competitors/#post", "url": "https://mathparadoxes.com/blog/chasing-competitors/", "headline": "Should you chase a competitor? The maths of pursuit and false causes", "description": "Why copying the leader keeps you behind, why the chase takes longer than it looks, and why the cause of their success is rarely the one you see.", "inLanguage": "en", "datePublished": "2026-11-28", "dateModified": "2026-11-28", "author": {"@id": "https://mathparadoxes.com/#author"}, "image": "https://mathparadoxes.com/blog/chasing-competitors/assets/og-en.png"}, {"@type": "Person", "@id": "https://mathparadoxes.com/#author", "name": "Dmytro Kudrenko", "alternateName": "Дмитро Кудренко", "jobTitle": "Co-founder", "url": "https://mathparadoxes.com/#author", "image": "https://mathparadoxes.com/author.jpg", "worksFor": [{"@type": "Organization", "name": "Stripo", "url": "https://stripo.email/"}, {"@type": "Organization", "name": "Claspo", "url": "https://claspo.io/"}, {"@type": "Organization", "name": "Yespo", "url": "https://yespo.io/"}, {"@type": "Organization", "name": "Reteno", "url": "https://reteno.com/"}, {"@type": "Organization", "name": "eSputnik", "url": "https://esputnik.com/"}]}]}</script>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<link rel="stylesheet" href="https://mathparadoxes.com/site.css?v=2b2a0176">
+<style>
+/* Layout: one blog article. Text column, a pursuit curve in the hero, two widgets (the chase: where you aim and how fast
+   you run; the winners' list: who fills the top). Shared tokens and components come from site.css. */
+:root { --tint: #E4ECF7; }
+:root:not([data-lang="en"]) .en, :root[data-lang="en"] .uk { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1, h2, h3, p, ul, ol, table, figure, blockquote { margin: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lang { display: inline-flex; }
+.lang a { text-decoration: none; }
+.hero { padding-block: 32px 24px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+.hero > div { min-width: 0; }
+.hero .lead { margin-top: 20px; max-width: 62ch; }
+.crumbs { font-size: .9rem; color: var(--muted); margin-bottom: 18px; }
+.hero-art { border-radius: 32px; background: var(--dots), var(--tint); padding: 24px; display: grid; place-items: center; }
+.hero-art svg { width: 100%; max-width: 420px; height: auto; display: block; }
+article { display: grid; gap: 18px; padding-top: 32px; font-size: 1.06rem; }
+article > p, article > ul, article > ol, .strat p { max-width: 70ch; }
+article h2 { font-size: clamp(1.3rem, 3.2vw, 1.9rem); margin-top: 28px; }
+article ul, article ol { padding-left: 1.3em; display: grid; gap: 8px; }
+.note { border-left: 3px solid var(--ink); padding: 4px 0 4px 16px; color: var(--muted); }
+figure { border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: grid; gap: 14px; }
+figcaption { color: var(--muted); font-size: .9rem; }
+.strat { display: grid; gap: 12px; border: 1px solid var(--line); border-radius: var(--r); padding: 22px 24px; }
+.strat h3 { font-size: 1.15rem; }
+.rule-box { display: grid; gap: 8px; padding: 16px 18px; border-left: 4px solid var(--ink); background: var(--soft); border-radius: 0 16px 16px 0; }
+.rule-box p { font-size: .95rem; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 24px; align-items: center; }
+.two svg { width: 100%; height: auto; display: block; }
+.ctl { display: grid; gap: 14px; }
+.ctl label { display: grid; gap: 8px; font-weight: 600; }
+.ctl input[type=range] { width: 100%; accent-color: var(--ink); }
+.val { font-variant-numeric: tabular-nums; }
+.readout { display: grid; gap: 4px; }
+.readout b { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.readout span { color: var(--muted); font-size: .9rem; }
+.seg { display: flex; flex-wrap: wrap; width: fit-content; max-width: 100%; border-radius: 22px; }
+.seg button { border: 0; background: transparent; cursor: pointer; font-family: inherit; padding: 6px 11px; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.pick { display: grid; gap: 8px; font-weight: 600; }
+.chart text { font-size: 12px; fill: #6B6B6B; font-family: inherit; }
+.pcs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; margin-top: 6px; }
+.pc { display: grid; grid-template-columns: 38% minmax(0, 1fr); border-radius: 18px; overflow: hidden; background: var(--paper); border: 1px solid var(--line); color: var(--ink); text-decoration: none; transition: transform .15s, box-shadow .15s; }
+.pc:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0, 0, 0, .08); }
+.pc-img { position: relative; display: flex; justify-content: center; align-items: center; background: var(--dots), var(--tint, var(--soft)); }
+.pc-art { position: relative; width: 100%; aspect-ratio: 400 / 490; overflow: hidden; }
+.pc-art img { position: absolute; width: 300%; height: auto; max-width: none; left: -182.5%; top: -14.29%; }
+.pc-flag { display: none; }
+.pc-txt { padding: 12px 14px; display: grid; gap: 6px; align-content: start; }
+.pc h3 { font-size: 1rem; font-weight: 750; line-height: 1.25; margin: 0; }
+.pc-q { font-size: .88rem; line-height: 1.4; color: var(--muted); }
+.pc-lv { display: inline-flex; gap: 7px; align-items: center; font-size: .76rem; font-weight: 600; color: var(--muted); }
+.check { list-style: none; padding: 0 !important; }
+.check li { padding-left: 30px; position: relative; }
+.check a { white-space: nowrap; }
+.check li::before { content: ""; position: absolute; left: 0; top: .3em; width: 16px; height: 16px; border: 2px solid var(--ink); border-radius: 4px; }
+footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-size: .88rem; }
+@media (max-width: 860px) { .hero, .two { grid-template-columns: 1fr; } .hero { gap: 28px; } .strat { padding: 18px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="https://mathparadoxes.com/"><svg class="brand-mark" viewBox="0 0 114 90" aria-hidden="true"><path d="M3 84V31A14 14 0 0 1 31 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M43 84V31A14 14 0 0 1 71 31V84" fill="none" stroke="currentColor" stroke-width="8"/><path d="M83 84V31A14 14 0 0 1 111 31V84Z" fill="var(--signal)" stroke="var(--signal)" stroke-width="8" stroke-linejoin="round"/><path d="M0 87H114" stroke="currentColor" stroke-width="8"/></svg>Math paradoxes</a>
+    <nav class="mp-nav" aria-label="Sections" data-t="{&quot;cont&quot;: &quot;Continue&quot;, &quot;course&quot;: &quot;Continue the course&quot;}"><button type="button" class="mp-burger" aria-expanded="false" aria-label="Menu"><i></i><i></i><i></i></button><div class="mp-nav-list"><a class="mp-cont" href="#" hidden>Continue: <b></b></a><a href="https://mathparadoxes.com/#all">Puzzles</a><a href="https://mathparadoxes.com/courses/">Courses</a><a href="https://mathparadoxes.com/glossary/">Glossary</a></div><button type="button" class="mp-sx-btn" aria-haspopup="dialog" aria-label="Search" data-src="https://mathparadoxes.com/search.json" data-t="{&quot;btn&quot;: &quot;Search&quot;, &quot;ph&quot;: &quot;A puzzle, course or term&quot;, &quot;all&quot;: &quot;All&quot;, &quot;p&quot;: &quot;Puzzles&quot;, &quot;c&quot;: &quot;Courses&quot;, &quot;g&quot;: &quot;Glossary&quot;, &quot;recent&quot;: &quot;Recently opened&quot;, &quot;try&quot;: &quot;Try&quot;, &quot;none&quot;: &quot;Nothing found. Try another word or&quot;, &quot;every&quot;: &quot;browse all puzzles&quot;, &quot;keys&quot;: &quot;↑↓ choose · Enter open · Esc close&quot;, &quot;solved&quot;: &quot;solved&quot;, &quot;load&quot;: &quot;Loading…&quot;, &quot;fail&quot;: &quot;Couldn&#x27;t load the search. Check your connection.&quot;, &quot;close&quot;: &quot;Close&quot;, &quot;course&quot;: &quot;Course&quot;, &quot;chapter&quot;: &quot;chapter %d of %d&quot;, &quot;glossary&quot;: &quot;Glossary&quot;, &quot;ideas&quot;: [&quot;probability&quot;, &quot;A/B test&quot;, &quot;Monty Hall&quot;, &quot;median&quot;, &quot;interview&quot;, &quot;auction&quot;]}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="mp-sx-lbl">Search</span><kbd>/</kbd></button></nav>
+  <nav class="lang" id="lang" aria-label="Мова / Language">
+      <a href="https://mathparadoxes.com/uk/blog/chasing-competitors/" hreflang="uk" lang="uk" data-l="uk">UA</a>
+      <a href="https://mathparadoxes.com/blog/chasing-competitors/" hreflang="en" lang="en" data-l="en">EN</a>
+    </nav>
+  </div>
+
+  <header class="hero">
+    <div>
+      <p class="crumbs"><a href="https://mathparadoxes.com/blog/"><span class="en">Paradoxes in real life</span></a> · <span class="en">Dmytro Kudrenko · 28 November 2026</span></p>
+      
+      <h1 class="en"><span class="kw">From my work</span> Chasing a competitor. <span class="q">Can you catch up by running to where they already are?</span></h1>
+      
+      <p class="lead en">We see where a competitor is now and run there. But they decided to run there long ago, and by the time we arrive the market has changed. And we think we know why they succeed, when the real cause is usually not the one we can see. Let's take both traps apart with exact models and see when copying makes sense and when it doesn't.</p>
+    </div>
+    <div class="hero-art">
+      <svg viewBox="0 0 300 300" role="img" aria-label="A pursuit curve: the leader runs straight up, the follower keeps turning towards where the leader is now and ends up running behind">
+        <line x1="70" y1="270" x2="70" y2="30" stroke="#151515" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="70" cy="30" r="9" fill="#151515"/>
+        <path id="hero-path" d="" fill="none" stroke="#151515" stroke-width="3" stroke-dasharray="7 6" stroke-linecap="round"/>
+        <circle id="hero-dot" r="9" fill="#fff" stroke="#151515" stroke-width="3"/>
+      </svg>
+    </div>
+  </header>
+
+  <article>
+    
+    <p class="en">I have seen this trap from the inside. When one of our products was starting out, we were looking for our niche, while competitors were already growing fast and showing their growth charts in posts and articles. They seemed ahead because they did what we didn't. We took their moves apart and set a strategy: repeat their success. It didn't work. They had already taken that niche, and becoming first where there already is a first is much harder. And what looked to us like their unique trait, they had already dropped by then. So we look for our own opportunities, not someone else's.</p>
+    
+    <p class="en">This question has an exact mathematical version. In 1732 the French mathematician Pierre Bouguer solved the pursuit problem: a ship chases another and at every moment turns its bow to where the other one is now. The path is called a pursuit curve. Here are three ways to chase a leader, from the most common to the rarest.</p>
+
+    <h2 id="past"><span class="en">1. Run to where you can see them</span></h2>
+    
+    <p class="en">What we see of a competitor is their past. A shipped feature, a new pricing page, a campaign everyone talks about: all of these are decisions they made months ago. When we copy what we see, we aim not at them but at the place where they were.</p>
+    
+    <p class="en">The model: the leader runs straight ahead, you start off to one side, and at every moment you run towards the point where they were a little earlier. Here the maths gives a hard answer: <b>you close in on exactly that point in the past, so you stay behind by your delay, however fast you run.</b> Speed only gets you to that fixed distance behind sooner.</p>
+    <figure>
+      <div class="two">
+        <svg id="ch-svg" class="chart" viewBox="0 0 300 300" role="img" aria-label="The chase: the leader's straight path and your path for the chosen aim and speed"></svg>
+        <div class="ctl">
+          <div class="pick"><span class="en">Where you run</span>
+            <div class="seg" role="group" id="ch-mode"><button type="button" data-v="past" aria-pressed="true"><span class="en">Where you see them</span></button><button type="button" data-v="now"><span class="en">Where they are now</span></button><button type="button" data-v="ahead"><span class="en">Where they will be</span></button></div></div>
+          <label><span><span class="en">Your speed relative to the leader</span> · <span class="val" id="ch-k-out">×1.2</span></span>
+            <input type="range" id="ch-k" min="1" max="2" step="0.1" value="1.2"></label>
+          <div class="readout"><b id="ch-out"></b><span id="ch-say"></span></div>
+        </div>
+      </div>
+      <figcaption><span class="en">The leader starts at distance 1 from you and runs straight at speed 1, so a unit of time is how long they take to cover the starting gap. "Where you see them" means you see where they were half a unit of time ago. The calculation is a step-by-step simulation, checked in Python.</span></figcaption>
+    </figure>
+    
+    <p class="en">So with a half-unit delay, even running twice as fast as the leader you stay 0.5 behind. To catch up you have to aim not at what you saw but at the leader themself, that is, know what the competitor is doing now, not what they have shown.</p>
+
+    <h2 id="now"><span class="en">2. Run to where they are now</span></h2>
+    
+    <p class="en">Suppose you see the competitor with no delay. That is Bouguer's problem, and it isn't comforting either.</p>
+    
+    <ul class="en">
+      <li><b>At the same speed you never catch up.</b> The gap shrinks to exactly half the starting one and then stays there. It takes one line to prove and a simulation to check: when both run at the same speed, the distance between you plus how far you trail along their path stays constant, and over time those two quantities become equal.</li>
+      <li><b>Even the faster one runs longer than they need to.</b> Being 20% faster, you catch up in 2.7 units of time. Running straight to where the leader will be would take 1.5, almost half as long. The curve eats the rest: you keep chasing a position that has already moved.</li>
+    </ul>
+    
+    <p class="en">Switch the widget above to "Where they are now" and watch your path bend in behind the leader.</p>
+    
+    <p class="en">This happens a lot. We see a company's big breakthrough, and half a year or a year later, when we roll out the same thing, it turns out the strategy was bad and they have already abandoned it. A public example is social audio. In February 2021 the Clubhouse app was downloaded 9.6&nbsp;million times, and the big platforms rushed to build their own voice rooms: Twitter Spaces opened to everyone in May, Facebook Live Audio Rooms and Spotify Greenroom launched in June. But by April Clubhouse was down to about 0.9&nbsp;million downloads, about a tenth of its peak (Sensor Tower data). Facebook closed its rooms in 2022, Spotify shut its app in April 2023. They were catching up with a point the market had already left.</p>
+
+    <h2 id="ahead"><span class="en">3. Run to where they will be</span></h2>
+    
+    <p class="en">The shortest path is straight to the point where you will meet. But that requires knowing where the leader is heading and how fast. In other words, having your own model of where the market is going. And if you have such a model, a simpler question comes up: why aim at the point they chose rather than the one you think the market is heading for?</p>
+    
+    <p class="en">Besides, the market is not a competitor running in a straight line. It turns by itself. Whoever aims at a competitor chases a point that moves twice: with the competitor and with the market.</p>
+
+    <h2 id="cause"><span class="en">4. Why they succeed: not the cause you can see</span></h2>
+    
+    <p class="en">The second trap is not where to run but what to copy. We look at a successful competitor, see their traits and decide that success comes from them. The maths shows at least three reasons why that conclusion is often wrong.</p>
+    <section class="strat">
+      <h3><span class="en">We only see the survivors</span></h3>
+      
+      <p class="en">The same traits may have belonged to dozens of companies that disappeared, but nobody writes about them. A trait equally common among winners and losers explains nothing. The classic example is the planes that came back from combat.</p>
+    </section>
+    <section class="strat">
+      <h3><span class="en">Winners are mostly the ones who took risks</span></h3>
+      
+      <p class="en">Let half the companies play it safe and half take risks, with the risky strategy even slightly worse on average but with three times the spread of results. See who then fills the top of the ranking.</p>
+    </section>
+    <figure>
+      <div class="ctl">
+        <label><span><span class="en">We look at the top</span> <span class="val" id="dn-top-out">10%</span> <span class="en">of companies</span></span>
+          <input type="range" id="dn-top" min="1" max="50" step="1" value="10"></label>
+        <div class="readout"><b id="dn-out"></b><span id="dn-say"></span></div>
+      </div>
+      <figcaption><span class="en">Model: a company's result is normally distributed. The safe strategy has mean 1, spread 1; the risky one mean 0.8, spread 3. Equal numbers of each. 39% of risky companies fail (a result below zero), 16% of safe ones. The calculation is exact and checked in Python.</span></figcaption>
+    </figure>
+    
+    <p class="en">Among the top 10%, risky companies make up 96%; among the top 5%, nearly all. Whoever learns from market leaders learns from exactly them, and adopts a strategy that is worse on average and fails more often. The organisational scholar Jerker Denrell showed that this is how many popular management myths arise (<a href="https://doi.org/10.1287/orsc.14.2.227.15164">Denrell, 2003</a>).</p>
+    <section class="strat">
+      <h3><span class="en">Success paints everything in fine colours</span></h3>
+      
+      <p class="en">When a company succeeds, its culture is called strong and its decisions bold. When the same company falls, the same traits are called rigidity and recklessness. Phil Rosenzweig called this the halo effect and showed that it contaminates the data of many famous studies of "what makes great companies" (<a href="https://cmr.berkeley.edu/2007/08/49-4-misunderstanding-the-nature-of-company-performance-the-halo-effect-and-other-business-delusions/">Rosenzweig, 2007</a>). Add regression to the mean: the best year of the best company was partly luck, so the next one is usually worse. Among the 11 "great" companies in Jim Collins's bestseller <i>Good to Great</i> (2001) was the retailer Circuit City, which went bankrupt a few years later.</p>
+    </section>
+    <div class="pcs">
+      <a class="pc" href="https://mathparadoxes.com/survivorship-bias/" data-slug="survivorship-bias" data-topics="stats" data-level="1" data-pub="2026-10-24" style="--tint: #DCE6E1"><span class="pc-img"><span class="pc-art"><img src="https://mathparadoxes.com/survivorship-bias/og-en.png" alt="" width="1200" height="630" loading="lazy" decoding="async"></span><span class="pc-flag pc-new"><span class="en">new</span></span><span class="pc-flag pc-done">✓ <span class="en">solved</span></span></span><span class="pc-txt"><h3><span class="en">Survivorship bias: Wald&#x27;s planes</span></h3><span class="pc-q"><span class="en">Bombers come back with holes in the fuselage and wings, and hardly any on the engines. Where should the armour go?</span></span><span class="pc-lv"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i></i><i></i></span><span class="en">For everyone</span></span></span></a>
+      <a class="pc" href="https://mathparadoxes.com/regression-to-mean/" data-slug="regression-to-mean" data-topics="stats" data-level="3" data-pub="2026-10-19" style="--tint: #EDEDF7"><span class="pc-img"><span class="pc-art"><img src="https://mathparadoxes.com/regression-to-mean/og-en.png" alt="" width="1200" height="630" loading="lazy" decoding="async"></span><span class="pc-flag pc-new"><span class="en">new</span></span><span class="pc-flag pc-done">✓ <span class="en">solved</span></span></span><span class="pc-txt"><h3><span class="en">Regression to the mean</span></h3><span class="pc-q"><span class="en">After praise players do worse, and after criticism they do better. Does that mean criticism works?</span></span><span class="pc-lv"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="en">Advanced</span></span></span></a>
+</div>
+    
+    <p class="en">Sometimes it isn't the cause that is false but the success itself. In 2015–2017 many media outlets "pivoted to video": Facebook showed that people were watching video longer and longer, and newsrooms cut writers to make clips. In 2016 Facebook admitted that average viewing time had been inflated by 60–80%, because only views longer than three seconds were counted. In 2019 the company agreed to pay $40&nbsp;million to settle the advertisers' lawsuit, without admitting wrongdoing. A whole industry was chasing a trend that didn't exist at that size.</p>
+    
+    <p class="en">Sometimes you misjudge the cause even of your own success. When Stripo entered the market there were almost no competitors, and the whole topic was thought unlikely to take off. Even the leaders were not moving fast. We easily took the top positions in organic search traffic. Later competitors started fighting for it too, but we grew together with the leaders and kept the top spots. For a new product today this is much harder to repeat: competition for organic traffic was already strong, and with AI, organic traffic means something different in SaaS, and promotion has changed a lot. So a success that was possible then can't be repeated today. And we don't even know for sure what exactly let us break out back then. Comparing what companies do today with the past, when the starting positions were different, makes no sense.</p>
+
+    <h2 id="crowd"><span class="en">5. When everyone copies everyone</span></h2>
+    
+    <p class="en">If everyone decides to copy the leader, the market bunches into one point. This is Hotelling's classic model of two ice-cream sellers on a beach: every step towards the rival pays on its own, and in the end both stand side by side in the middle splitting the same customers. What then sets your product apart, apart from price?</p>
+    <div class="pcs">
+      <a class="pc" href="https://mathparadoxes.com/hotelling-beach/" data-slug="hotelling-beach" data-topics="games quick" data-level="1" data-pub="2026-10-27" style="--tint: #F6EAD3"><span class="pc-img"><span class="pc-art"><img src="https://mathparadoxes.com/hotelling-beach/og-en.png" alt="" width="1200" height="630" loading="lazy" decoding="async"></span><span class="pc-flag pc-new"><span class="en">new</span></span><span class="pc-flag pc-done">✓ <span class="en">solved</span></span></span><span class="pc-txt"><h3><span class="en">Ice cream on the beach</span></h3><span class="pc-q"><span class="en">A kilometre of beach and two ice cream sellers who can move their kiosks. Every customer walks to the nearest one. Where will the sellers stand?</span></span><span class="pc-lv"><span class="mp-bars" aria-hidden="true"><i class="on"></i><i></i><i></i></span><span class="en">For everyone</span></span></span></a>
+</div>
+
+    <h2 id="when"><span class="en">6. When copying does make sense</span></h2>
+    
+    <p class="en">The pursuit model hints at the answer too. Your lag equals your delay times the leader's speed. So copying is cheap where the leader barely moves: in what has become standard for everyone and no longer changes. You can catch up there, but you can't win there either, because it's only the minimum without which nobody considers you. Where the leader is running, a copy is always behind.</p>
+
+    <h2 id="vision"><span class="en">7. Your own vision</span></h2>
+    
+    <p class="en">My view: copying is mostly a losing strategy. You arrive where the competitor was, late, and with the wrong idea of why they succeeded there. It matters more to have your own vision of where the market is going, and to go there. The maths of pursuit sides with vision: the shortest path always leads to where the target will be, not to where it is now.</p>
+    
+    <p class="en">I have also seen this from the other side. At Stripo we built modules, but our vision was wider than saved chunks of an email, like snippets. We planned to make them smart modules, where data, layout and design are kept apart, and we released this step by step. The first version was a success, and similar solutions later appeared on the market. But you can only copy the visible part; the architecture underneath can't be seen, and we had built a flexible foundation from the start. Whoever repeats only the visible version has to change course later, and that costs more than going straight to where you need to be.</p>
+    
+    <p class="en">I think the same often happens with investment in AI. Some invested a lot, others nothing. The first made many mistakes, and once the right path becomes clear, those who waited may have better chances than those who already did the work: the first now have legacy to maintain.</p>
+
+    <h2 id="takeaways"><span class="en">What to take away</span></h2>
+    
+    <ul class="check en">
+      <li>What you see of a competitor is their past. Copying what you see keeps you behind by your delay, however fast you run. <a href="#past">Section 1 ↑</a></li>
+      <li>Even with no delay, a chase at the same speed never ends, and for someone slightly faster it takes almost twice as long as the straight path. <a href="#now">Section 2 ↑</a></li>
+      <li>Aiming where the market will be needs your own model of the market, and then it's simpler to head for your own point. <a href="#ahead">Section 3 ↑</a></li>
+      <li>A successful competitor's traits aren't necessarily the cause of success: look also at those who had the same traits and failed. <a href="#cause">Section 4 ↑</a></li>
+      <li>Leaders are mostly the ones who took risks. Copying a leader, you often copy the risk, not the skill. <a href="#cause">Section 4 ↑</a></li>
+      <li>When everyone copies everyone, the market bunches into one point, and price is all that's left to compete on. <a href="#crowd">Section 5 ↑</a></li>
+      <li>Copy only what no longer changes: it's the minimum, not an advantage. <a href="#when">Section 6 ↑</a></li>
+    </ul>
+    
+    <p class="note en">Sources: P. Bouguer, the pursuit curve problem (1732); J. Denrell, "Vicarious Learning, Undersampling of Failure, and the Myths of Management", Organization Science 14 (2003); P. Rosenzweig, "Misunderstanding the Nature of Company Performance: The Halo Effect and Other Business Delusions", California Management Review 49 (2007); J. Collins, <i>Good to Great</i> (2001); Clubhouse downloads: Sensor Tower (via 9to5Mac, 3 May 2021); Spotify Live shutdown: 9to5Mac, 3 April 2023; Facebook video metrics and settlement: Fortune, 7 October 2019. The pursuit and ranking models are a teaching simplification: they show the logic, not a forecast for any particular market.</p>
+  </article>
+
+  <footer>
+    <span class="en">Math paradoxes · by <a href="https://mathparadoxes.com/#author">Dmytro Kudrenko</a> · <a href="https://mathparadoxes.com/blog/">Paradoxes in real life</a></span>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current', a.dataset.l === document.documentElement.dataset.lang));
+(function () {
+  const EN = document.documentElement.dataset.lang === 'en';
+  const T = (uk, en) => EN ? en : uk;
+  const num = (x, d) => x.toFixed(d).replace('.', EN ? '.' : ',');
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+
+  // The chase. Leader starts at (0, 0) and runs along +y at speed 1; you start at (1, 0) with speed k.
+  // past: aim at where the leader was LAG ago; now: aim at the leader (pure pursuit); ahead: straight to the meeting point.
+  const LAG = 0.5;
+  function chase(k, mode, T, dt) {
+    const pts = [[1, 0]];
+    if (mode === 'ahead') {
+      if (k <= 1) return { pts: [[1, 0], [1, T]], caught: null, gap: 1 };
+      const tc = 1 / Math.sqrt(k * k - 1);
+      return { pts: [[1, 0], [0, tc]], caught: tc, gap: 0 };
+    }
+    let x = 1, y = 0, t = 0;
+    while (t < T) {
+      const ty = mode === 'past' ? Math.max(0, t - LAG) : t;
+      if (Math.hypot(x, t - y) < 2e-3) return { pts, caught: t, gap: 0 };
+      const dx = -x, dy = ty - y, d = Math.hypot(dx, dy) || 1;
+      x += k * dt * dx / d; y += k * dt * dy / d; t += dt;
+      if (pts.length < 4000 && Math.round(t / dt) % 10 === 0) pts.push([x, y]);
+    }
+    return { pts, caught: null, gap: Math.hypot(x, T - y) };
+  }
+  // Hero: the equal-speed pursuit curve, drawn once.
+  (function () {
+    const r = chase(1, 'now', 3.2, 0.002), sx = v => 70 + v * 170, sy = v => 270 - v * 75;
+    document.getElementById('hero-path').setAttribute('d', 'M' + r.pts.map(p => sx(p[0]).toFixed(1) + ' ' + sy(p[1]).toFixed(1)).join(' L'));
+    const last = r.pts[r.pts.length - 1];
+    const dot = document.getElementById('hero-dot'); dot.setAttribute('cx', sx(last[0])); dot.setAttribute('cy', sy(last[1]));
+  })();
+
+  const svg = document.getElementById('ch-svg'), kIn = document.getElementById('ch-k'), modeBox = document.getElementById('ch-mode');
+  let mode = 'past';
+  const SX = v => 60 + v * 190, SY = v => 285 - v * 85;
+  function draw() {
+    const k = +kIn.value;
+    document.getElementById('ch-k-out').textContent = '×' + num(k, 1);
+    const view = chase(k, mode, 3.1, 0.002), full = chase(k, mode, 12, 0.0005);
+    svg.innerHTML = '';
+    el('line', { x1: SX(0), y1: SY(0), x2: SX(0), y2: SY(3.1), stroke: '#151515', 'stroke-width': 3, 'stroke-linecap': 'round' }, svg);
+    el('text', { x: SX(0) + 8, y: 18 }, svg).textContent = T('лідер', 'leader');
+    el('path', { d: 'M' + view.pts.map(p => SX(p[0]).toFixed(1) + ' ' + SY(Math.min(p[1], 3.1)).toFixed(1)).join(' L'), fill: 'none', stroke: '#151515', 'stroke-width': 3, 'stroke-dasharray': '7 6', 'stroke-linecap': 'round' }, svg);
+    el('circle', { cx: SX(1), cy: SY(0), r: 7, fill: '#fff', stroke: '#151515', 'stroke-width': 3 }, svg);
+    el('text', { x: SX(1) - 10, y: SY(0) - 12, 'text-anchor': 'end' }, svg).textContent = T('ви', 'you');
+    const out = document.getElementById('ch-out'), say = document.getElementById('ch-say');
+    if (full.caught != null) {
+      out.textContent = T('Наздогнали за ', 'Caught up in ') + num(full.caught, 2) + T(' од. часу', ' time units');
+      const ahead = 1 / Math.sqrt(k * k - 1);
+      say.textContent = mode === 'ahead' ? T('Найкоротший шлях: прямо до точки зустрічі.', 'The shortest path: straight to the meeting point.')
+        : T('Прямо до точки зустрічі вистачило б ', 'Straight to the meeting point would take ') + num(ahead, 2) + '.';
+    } else {
+      out.textContent = T('Не наздогнали: відстань ', 'Never caught up: the gap stays ') + num(full.gap, 2);
+      say.textContent = mode === 'past'
+        ? (k <= 1.001 ? T('З тією самою швидкістю ви не наздоганяєте навіть місце, де він був: до запізнення додається ще й крива погоні.', "At the same speed you don't even reach the place where they were: the pursuit curve adds to the delay.")
+          : T('Ви бачите, де він був пів одиниці часу тому, і рівно на стільки відстаєте. Більша швидкість цього не змінить.', 'You see where they were half a unit of time ago, and that is exactly how far behind you stay. More speed won\'t change it.'))
+        : mode === 'now' ? T('З тією самою швидкістю відстань скорочується до половини початкової і завмирає.', 'At the same speed the gap shrinks to half the starting one and freezes.')
+        : T('З тією самою швидкістю точки зустрічі немає: лідер завжди на тій самій відстані.', 'At the same speed there is no meeting point: the leader stays the same distance away.');
+    }
+  }
+  modeBox.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.v; modeBox.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); draw();
+  });
+  kIn.addEventListener('input', draw); draw();
+
+  // The winners' list: safe N(1, 1) and risky N(0.8, 3), half each. Who fills the top share q?
+  const erf = x => { const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x);
+    return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x)); };
+  const above = (c, m, s) => 0.5 * (1 - erf((c - m) / (s * Math.SQRT2)));
+  const top = document.getElementById('dn-top');
+  function dn() {
+    const q = +top.value / 100; let lo = -20, hi = 20;
+    for (let i = 0; i < 100; i++) { const c = (lo + hi) / 2; (0.5 * above(c, 1, 1) + 0.5 * above(c, 0.8, 3) > q) ? lo = c : hi = c; }
+    const c = (lo + hi) / 2, s = 0.5 * above(c, 1, 1), r = 0.5 * above(c, 0.8, 3), share = r / (s + r);
+    document.getElementById('dn-top-out').textContent = top.value + '%';
+    document.getElementById('dn-out').textContent = (share > 0.995 ? T('майже ', 'almost ') + '100' : Math.round(share * 100)) + '%';
+    document.getElementById('dn-say').textContent = T('з них — ризиковані, хоча в середньому їхня стратегія гірша і провалюється більш ніж удвічі частіше', 'of them took the risky strategy, though it is worse on average and fails more than twice as often');
+  }
+  top.addEventListener('input', dn); dn();
+})();
+</script>
+<script>(function () {
+  var q = new URLSearchParams(location.search).get('notrack'), off = false;
+  try {
+    if (q === '1') localStorage.setItem('mp-notrack', '1');
+    if (q === '0') localStorage.removeItem('mp-notrack');
+    off = localStorage.getItem('mp-notrack') === '1';
+  } catch (e) {}
+  if (q !== null) {
+    var u = new URL(location.href); u.searchParams.delete('notrack');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  }
+  if (off) return;
+  var s = document.createElement('script');
+  s.defer = true; s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', '{"token": "adf9fd3e4773416fb45241d58aea741f"}');
+  document.body.appendChild(s);
+})();</script>
+<nav class="mp-fnav" aria-label="Sections"><a href="https://mathparadoxes.com/#all">Puzzles</a><a href="https://mathparadoxes.com/courses/">Courses</a><a href="https://mathparadoxes.com/glossary/">Glossary</a><a href="https://mathparadoxes.com/blog/" aria-current="page">Paradoxes in real life</a><span class="mp-social"><a href="https://www.youtube.com/@mathparadoxes" rel="me noopener">YouTube</a><a href="https://www.tiktok.com/@mathparadoxes" rel="me noopener">TikTok</a><a href="https://www.instagram.com/math.paradoxes/" rel="me noopener">Instagram</a></span></nav>
+<script>
+(function () {
+  var nav = document.querySelector(".mp-nav"), KEY = "mp-recent";
+  if (!nav) return;
+  var lang = document.documentElement.dataset.lang === "en" ? "en" : "uk", list = [];
+  try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  var me = nav.dataset.slug, T = JSON.parse(nav.dataset.t), old = false;
+  // items saved before 2026-11 carry the old URLs (Ukrainian at /x/, English at /x/en/): move them to /uk/x/ and /x/
+  list.forEach(function (p) {
+    if (p.u && p.u.uk && !/^https?:\/\/[^\/]+\/uk\//.test(p.u.uk)) {
+      p.u = { uk: p.u.uk.replace(/^(https?:\/\/[^\/]+\/)/, "$1uk/"), en: String(p.u.en).replace(/en\/$/, "") };
+      old = true;
+    }
+  });
+  if (old && !me) try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  // a puzzle or course page puts itself first in the list of recently opened ones
+  if (me) {
+    list = [JSON.parse(nav.dataset.me)].concat(list.filter(function (p) { return p.s !== me; })).slice(0, 20);
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  // a course item carries its chapter ids: the first one not done yet is where to go back to
+  function left(p) {
+    if (!p.c) return get("mp-solved:" + p.s) ? null : p.u[lang];
+    var d = []; try { d = JSON.parse(get("mp-course:" + p.s.slice(7)) || "[]"); } catch (e) {}
+    var rest = p.c.filter(function (c) { return d.indexOf(c) === -1; });
+    return d.length && rest.length ? p.u[lang] + "#" + rest[0] : null;
+  }
+  var a = nav.querySelector(".mp-cont");
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i], u = p.s !== me && left(p);
+    if (u) { a.href = u; a.firstChild.textContent = (p.c ? T.course : T.cont) + ": "; a.querySelector("b").textContent = p.n[lang]; a.hidden = false; break; }
+  }
+  var btn = nav.querySelector(".mp-burger");
+  function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); }
+  btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+})();
+</script>
+<script>
+(function () {
+  var btn = document.querySelector(".mp-sx-btn");
+  if (!btn) return;
+  var T = JSON.parse(btn.dataset.t), lang = document.documentElement.dataset.lang === "en" ? "en" : "uk";
+  var data = null, loading = null, box = null, input, list, tabs, foot, tab = "", act = 0, opts = [], back = null;
+  var W = { n: 3, on: 2.5, k: 2, d: 1, x: 0.8, o: 0.8 }, GROUP = { p: "p", c: "c", h: "c", g: "g" };
+  // small words that may match nothing without dropping the result ("задача про монети")
+  var STOP = ["и", "та", "в", "у", "на", "з", "из", "до", "для", "про", "як", "що", "the", "a", "an", "of", "in", "on", "and", "to", "for", "how", "what"];
+  var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  btn.querySelector("kbd").textContent = mac ? "⌘K" : "Ctrl K";
+
+  function norm(s) {
+    return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’'ʼ`ъ]/g, "")
+      .replace(/[іыий]/g, "и").replace(/[єэё]/g, "е").replace(/ґ/g, "г");
+  }
+  function words(s) { return norm(s).split(/[^0-9a-zа-я]+/).filter(Boolean); }
+  // one edit apart: a letter swapped, missing, extra or two letters transposed
+  function near(a, b) {
+    var la = a.length, lb = b.length, i = 0;
+    if (Math.abs(la - lb) > 1) return false;
+    while (i < la && i < lb && a[i] === b[i]) i++;
+    if (la === lb) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+    return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+  }
+  // how well a query word q fits a word w of the text: whole word, its start, the same stem (Ukrainian endings), a typo
+  function hit(q, w) {
+    if (w === q) return 1;
+    if (w.lastIndexOf(q, 0) === 0) return 0.85;
+    if (q.length >= 4) {
+      if (q.length >= 5 && w.lastIndexOf(q.slice(0, Math.max(4, q.length - 2)), 0) === 0) return 0.6;
+      for (var d = -1; d <= 1; d++) if (near(q, w.slice(0, q.length + d))) return 0.45;
+    }
+    return q.length >= 3 && w.indexOf(q) > 0 ? 0.35 : 0;
+  }
+  // the score of an item, and in it.low the weakest word match (a typo or a piece of a word is weak)
+  function score(it, qs, phrase) {
+    var total = 0;
+    it.low = 1;
+    for (var i = 0; i < qs.length; i++) {
+      var best = 0, bestF;
+      for (var f in W) {
+        var ws = it.w[f];
+        for (var j = 0; j < ws.length; j++) { var h = hit(qs[i], ws[j]) * W[f]; if (h > best) { best = h; bestF = f; } }
+      }
+      if (!best && STOP.indexOf(qs[i]) === -1) return 0;
+      if (best) it.low = Math.min(it.low, best / W[bestF]);
+      total += best;
+    }
+    var name = it.w.nn, alt = it.w.no;
+    if (name.lastIndexOf(phrase, 0) === 0 || alt.lastIndexOf(phrase, 0) === 0) total += 2;
+    else if (name.indexOf(phrase) !== -1 || alt.indexOf(phrase) !== -1) total += 1;
+    return total + (it.t === "p" ? 0.2 : it.t === "h" ? -0.2 : 0);
+  }
+  function load() {
+    if (!loading) loading = fetch(btn.dataset.src).then(function (r) { return r.json(); }).then(function (j) {
+      data = j.items;
+      // a chapter's line under the name is only its course and number, so "парадокси" does not find all 21 chapters
+      data.forEach(function (it) {
+        it.w = { n: words(it.n), on: words(it.on || ""), k: words(it.k || ""), d: it.t === "h" ? [] : words(it.d || ""), x: words(it.x || ""), o: words(it.o || ""),
+                 nn: words(it.n).join(" "), no: words(it.on || "").join(" ") };
+      });
+    });
+    return loading;
+  }
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function done(it) {
+    if (it.t === "p") return !!get("mp-solved:" + it.s);
+    if (it.t !== "c") return false;
+    var d = []; try { d = JSON.parse(get("mp-course:" + it.s) || "[]"); } catch (e) {}
+    return d.length > 0;
+  }
+  function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+  // the text with the words that match the query in <mark>
+  function marked(text, qs) {
+    var out = document.createDocumentFragment(), parts = String(text).split(/([0-9A-Za-zА-Яа-яЄєІіЇїҐґЁё’'ʼ]+)/);
+    parts.forEach(function (p, i) {
+      if (!p) return;
+      var w = i % 2 && words(p), on = w && qs.length && w.some(function (x) { return qs.some(function (q) { return hit(q, x) >= 0.45; }); });
+      out.appendChild(on ? el("mark", null, p) : document.createTextNode(p));
+    });
+    return out;
+  }
+  function icon(it) {
+    var s = el("span", "mp-sx-ic mp-sx-" + it.t);
+    s.style.setProperty("--tint", it.tint || "var(--soft)");  // not the page's own --tint
+    if (it.t === "p") { var b = s.appendChild(el("span", "mp-bars")); for (var i = 1; i <= 3; i++) b.appendChild(el("i", i <= it.lv ? "on" : "")); }
+    else s.textContent = it.t === "g" ? "Aa" : it.t === "c" ? "≡" : "§";
+    return s;
+  }
+  function row(it, qs) {
+    var a = el("a", "mp-sx-it"); a.href = it.u; a.setAttribute("role", "option"); a.id = "mp-sx-o" + opts.length;
+    var tx = el("span", "mp-sx-tx"), n = el("b"), d = el("span");
+    n.appendChild(marked(it.n, qs)); d.appendChild(marked(it.d || "", qs)); tx.append(n, d);
+    a.append(icon(it), tx);
+    if (done(it)) { var ok = el("span", "mp-sx-ok", "✓"); ok.title = T.solved; a.appendChild(ok); }
+    opts.push(a);
+    return a;
+  }
+  function head(text) { return el("li", "mp-sx-h", text); }
+  function wrap(a) { var li = el("li"); li.setAttribute("role", "presentation"); li.appendChild(a); return li; }
+  function render() {
+    var q = input.value.trim(), qs = words(q), phrase = qs.join(" ");
+    list.textContent = ""; opts = []; act = 0;
+    tabs.hidden = !qs.length;
+    if (!qs.length) {
+      var recent = []; try { recent = JSON.parse(get("mp-recent") || "[]"); } catch (e) {}
+      recent = recent.slice(0, 5).map(function (r) {
+        var it = data && data.filter(function (x) { return (x.t === "p" && x.s === r.s) || (x.t === "c" && "course:" + x.s === r.s); })[0];
+        return it || { t: r.c ? "c" : "p", s: r.s, n: r.n[lang], u: r.u[lang] };
+      });
+      if (recent.length) { list.appendChild(head(T.recent)); recent.forEach(function (it) { list.appendChild(wrap(row(it, []))); }); }
+      var li = el("li", "mp-sx-try"); li.appendChild(el("span", null, T.try + ": "));
+      T.ideas.forEach(function (w, i) {
+        var b = el("button", null, w); b.type = "button";
+        b.addEventListener("click", function () { input.value = w; render(); input.focus(); });
+        if (i) li.appendChild(document.createTextNode(" · "));
+        li.appendChild(b);
+      });
+      list.appendChild(li);
+      return mark();
+    }
+    if (!data) { list.appendChild(el("li", "mp-sx-msg", T.load)); return; }
+    var found = data.map(function (it) { return { it: it, s: score(it, qs, phrase) }; }).filter(function (r) { return r.s > 0; });
+    // typos and pieces of words count only when nothing matches by whole words, their starts or stems
+    if (found.some(function (r) { return r.it.low >= 0.6; })) found = found.filter(function (r) { return r.it.low >= 0.6; });
+    found.sort(function (a, b) { return b.s - a.s; });
+    var count = { "": found.length, p: 0, c: 0, g: 0 };
+    found.forEach(function (r) { count[GROUP[r.it.t]]++; });
+    [].forEach.call(tabs.children, function (b) {
+      b.lastChild.textContent = count[b.dataset.k] ? " " + count[b.dataset.k] : "";
+      b.setAttribute("aria-pressed", b.dataset.k === tab);
+      b.disabled = !count[b.dataset.k] && b.dataset.k !== tab;
+    });
+    if (tab) found = found.filter(function (r) { return GROUP[r.it.t] === tab; });
+    if (!found.length) {
+      var m = el("li", "mp-sx-msg", T.none + " "), a = el("a", null, T.every);
+      a.href = document.querySelector(".mp-nav-list a:not(.mp-cont)").href; m.appendChild(a); list.appendChild(m);
+      return mark();
+    }
+    // groups in the order of their best match; with no tab chosen each shows its first 6
+    var order = [], by = {};
+    found.forEach(function (r) { var g = GROUP[r.it.t]; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(r.it); });
+    order.forEach(function (g) {
+      if (!tab) list.appendChild(head(T[g]));
+      var items = tab ? by[g] : by[g].slice(0, 6);
+      items.forEach(function (it) { list.appendChild(wrap(row(it, qs))); });
+      if (!tab && by[g].length > 6) {
+        var more = el("button", "mp-sx-more", "+" + (by[g].length - 6) + " →"); more.type = "button";
+        more.addEventListener("click", function () { tab = g; render(); input.focus(); });
+        var li = el("li"); li.appendChild(more); list.appendChild(li);
+      }
+    });
+    mark();
+  }
+  function mark() {
+    opts.forEach(function (o, i) { o.setAttribute("aria-selected", i === act); });
+    if (opts[act]) { input.setAttribute("aria-activedescendant", opts[act].id); opts[act].scrollIntoView({ block: "nearest" }); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function build() {
+    box = el("div", "mp-sx"); box.hidden = true;
+    box.innerHTML = '<div class="mp-sx-box" role="dialog" aria-modal="true"><div class="mp-sx-head">' + btn.querySelector("svg").outerHTML +
+      '<input type="search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="mp-sx-list" aria-autocomplete="list">' +
+      '<button type="button" class="mp-sx-x"></button></div><div class="mp-sx-tabs"></div><ul class="mp-sx-list" id="mp-sx-list" role="listbox"></ul>' +
+      '<div class="mp-sx-foot"></div></div>';
+    document.body.appendChild(box);
+    input = box.querySelector("input"); list = box.querySelector("ul"); tabs = box.querySelector(".mp-sx-tabs"); foot = box.querySelector(".mp-sx-foot");
+    box.firstChild.setAttribute("aria-label", T.btn); input.placeholder = T.ph; input.setAttribute("aria-label", T.btn);
+    var x = box.querySelector(".mp-sx-x"); x.textContent = "Esc"; x.setAttribute("aria-label", T.close);
+    foot.textContent = T.keys;
+    [["", T.all], ["p", T.p], ["c", T.c], ["g", T.g]].forEach(function (k) {
+      var b = el("button", null, k[1]); b.type = "button"; b.dataset.k = k[0]; b.appendChild(el("span"));
+      b.addEventListener("click", function () { tab = k[0]; render(); input.focus(); });
+      tabs.appendChild(b);
+    });
+    input.addEventListener("input", function () { tab = ""; render(); });
+    box.addEventListener("click", function (e) { if (e.target === box || e.target === x) close(); });
+    box.addEventListener("mousemove", function (e) {
+      var o = e.target.closest(".mp-sx-it"), i = opts.indexOf(o);
+      if (i !== -1 && i !== act) { act = i; mark(); }
+    });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (opts.length) { act = (act + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length; mark(); }
+      } else if (e.key === "Enter" && opts[act]) { e.preventDefault(); opts[act].click(); }
+    });
+  }
+  function open(q) {
+    if (!box) build();
+    if (!box.hidden) return input.focus();
+    back = document.activeElement; box.hidden = false; document.documentElement.classList.add("mp-sx-on");
+    if (q != null) input.value = q;
+    input.focus(); input.select(); render();
+    load().then(render, function () { list.textContent = ""; list.appendChild(el("li", "mp-sx-msg", T.fail)); loading = null; });
+  }
+  function close() {
+    if (!box || box.hidden) return;
+    box.hidden = true; document.documentElement.classList.remove("mp-sx-on");
+    if (back && back.focus) back.focus();
+  }
+  btn.addEventListener("click", function () { open(); });
+  btn.addEventListener("pointerenter", load, { once: true });
+  btn.addEventListener("focus", load, { once: true });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target, typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box && !box.hidden ? close() : open(); }
+    else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); open(); }
+    else if (e.key === "Escape" && box && !box.hidden) { e.preventDefault(); close(); }
+    else if (e.key === "Tab" && box && !box.hidden) {
+      // keep the focus inside the palette
+      var f = [].slice.call(box.querySelectorAll("input, button:not([disabled]), a[href]"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+    }
+  });
+  var q = new URLSearchParams(location.search).get("q");
+  if (q) open(q);
+})();
+</script>
+</body>
+</html>

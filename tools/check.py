@@ -82,6 +82,8 @@ def check_pages(built):
         doc = page.read_text(encoding="utf-8")
         lang = re.search(r'<html lang="(\w+)"', doc).group(1)
         other = {"uk": "en", "en": "uk"}[lang]
+        if 'class="story-todo"' in doc:
+            fail(f'{name}: has a class="story-todo" placeholder (an author\'s story still to write)')
         leaks = doc.count(f'class="{other}"')
         if leaks:
             fail(f'{name}: {leaks}x class="{other}" on a {lang} page')

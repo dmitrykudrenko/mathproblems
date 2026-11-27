@@ -37,7 +37,7 @@ Optional `work.json`: 2–3 real cases from marketing, analytics, product or bus
 
 ## Blog
 
-`blog/<slug>/page.html` + `meta.json` (`published`, `updated`, per language `title`, `description`): first-person articles at `/blog/`, listed newest first. Every new post gets a preview image before it ships: an entry `blog-<slug>` in `tools/og.py` (two title lines and a question, `TINT` equal to the page's `--tint`, a visual in `extra_visual`), then `python3 tools/og.py blog-<slug>`; it lands in `blog/<slug>/assets/og-<lang>.png` and becomes the post's og:image, the card picture in the blog list and in the «Paradoxes in real life» block on problem pages. Look at both PNGs before committing.
+`blog/<slug>/page.html` + `meta.json` (`published`, `updated`, per language `title`, `description`): first-person articles at `/blog/`, listed newest first. `"unlisted": true` publishes a post by its link only (noindex; not in the list, tag chips, sitemap or the problem-page block) so Dmytro can edit it live; remove the flag to release it. Every new post gets a preview image before it ships: an entry `blog-<slug>` in `tools/og.py` (two title lines and a question, `TINT` equal to the page's `--tint`, a visual in `extra_visual`), then `python3 tools/og.py blog-<slug>`; it lands in `blog/<slug>/assets/og-<lang>.png` and becomes the post's og:image, the card picture in the blog list and in the «Paradoxes in real life» block on problem pages. Look at both PNGs before committing.
 
 ## Video
 
