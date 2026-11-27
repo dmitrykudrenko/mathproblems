@@ -10,6 +10,7 @@
 // Footage: Lionsgate Movies' official trailers on YouTube, video only, saved to video/footage/:
 //   T1 = Official Trailer (fS35YSjopjE, 2026-04-13), T2 = Official Trailer 2 (lYXtL5TreOE, 2026-09-16).
 // Shots picked from contact sheets, cut points from ffmpeg scene detection.
+// Punctuation in `say` steers the voice: a dash or «…» where the thought goes on, a full stop only where it ends.
 import { makeShort } from './beats.mjs';
 
 const T1 = 'sunrise-on-the-reaping-trailer-1.mp4', T2 = 'sunrise-on-the-reaping-trailer.mp4';
@@ -25,18 +26,18 @@ export default makeShort({
   url: 'mathparadoxes.com/blog/hunger-games-game-theory',
   cover: { beat: 1, at: .85, hook: 'Run to the *Cornucopia*?' },
   beats: [
-    { say: 'Twenty-four tributes, one winner. Sixty seconds on the plate. Run for the Cornucopia, or run away?',
+    { say: 'Twenty-four tributes — one winner. Sixty seconds on the plate… run for the Cornucopia, or run away?',
       show: { clip: PLATES, title: 'Run for the Cornucopia, or run away?' } },
-    { say: 'Game theory says: some run, some back off. The richer the prize in the middle, the more run into the fight.',
+    { say: 'Game theory says some run, and some back off — and the richer the prize in the middle, the more run into the fight.',
       show: { clip: RUN, title: 'The richer the horn, the more run in', visual: { kind: 'arena', from: .1, to: .5, ...ARENA } } },
-    { say: 'And past a point, a richer Cornucopia leaves every tribute worse off. Only the audience wins.',
+    { say: 'And past a point, a richer Cornucopia leaves every tribute worse off — only the audience wins.',
       show: { clip: { ...RUN, held: true }, title: 'A richer horn, poorer tributes', visual: { kind: 'arena', from: .5, to: .95, payoff: true, ...ARENA } } },
-    { say: 'So we built the whole arena and played it two thousand times. You build your own tribute.',
+    { say: 'So we built the whole arena, and played it two thousand times — and you build your own tribute.',
       show: { clip: FIGHT, title: 'Build your tribute', visual: { kind: 'stats', rows: FIVES, total: 'age 15 · 25 points to spend' } } },
-    { say: 'A Career with a weapon finds you. Fight: you win four times in a hundred. Run: thirty. With speed nine: sixty-eight.',
+    { say: 'A Career with a weapon finds you. Fight, and you win four times in a hundred. Run, and it’s thirty… with speed nine, sixty-eight.',
       show: { title: 'A Career with a weapon finds you', sub: 'You: fives in everything',
         compare: [{ value: '4%', label: 'you win the fight' }, { value: '30%', label: 'you get away' }, { value: '68%', label: 'get away with speed 9', color: 'accent' }] } },
-    { say: 'At the start: the Cornucopia, the edge, or run? Which wins most often?',
+    { say: 'So, at the start — the Cornucopia, the edge, or run? Which one wins most often?',
       show: { question: 'All fives. Which start wins most often?', options: ['The Cornucopia', 'Grab from the edge', 'Run'], countdown: true } },
     { say: 'Then build your own tribute and play two thousand Games. The link is in the profile.',
       show: { end: 'Build a tribute,\nplay 2,000 Games', play: 'The simulator is in the article:' } },
