@@ -109,7 +109,7 @@ footer { margin-top: 56px; padding-block: 24px 48px; color: var(--muted); font-s
       </div>
       <canvas id="sh-chart" class="gap-chart" role="img" aria-label="Distance between you and the leader over time, for this run and the previous ones"></canvas>
       <div class="readout"><b id="sh-out"></b><span id="sh-say"></span></div>
-      <figcaption><span class="uk">Чорний корабель — лідер, білий — ви. На старті між вами відстань 1, графік під анімацією показує відстань у часі для цього та трьох попередніх запусків, пунктир — половина початкової. «Де він зараз»: щомиті повертаєте ніс до лідера. «Де видно»: ви бачите лідера із запізненням пів одиниці часу (сірий силует) і пливете туди. «Прогноз»: бачите так само із запізненням, але продовжуєте видимий курс і швидкість лідера вперед і пливете до точки зустрічі (хрестик). З інерцією ви не розвертаєтеся на місці: найменший радіус вашого повороту — 1, як початкова відстань. Усі числа перевірено симуляцією.</span><span class="en">The black ship is the leader, the white one is you. You start at distance 1; the chart below shows the gap over time for this run and the three before it; the dotted line is half the starting gap. "Where they are": at every moment you turn your bow to the leader. "Where seen": you see the leader half a unit of time late (the grey outline) and sail there. "Forecast": you see them just as late, but carry their visible course and speed forward and sail to the meeting point (the cross). With inertia you can't turn on the spot: your smallest turning radius is 1, the starting distance. All numbers are checked by simulation.</span></figcaption>
+      <figcaption><span class="uk">Чорний корабель — лідер, білий — ви. На старті між вами відстань 1, графік під анімацією показує відстань у часі для цього та трьох попередніх запусків, пунктир — половина початкової. «Де він зараз»: щомиті повертаєте ніс до лідера. «Де видно»: ви бачите лідера із запізненням пів одиниці часу (порожній сірий силует «видно») і пливете туди. «Прогноз»: бачите так само із запізненням, але продовжуєте видимий курс і швидкість лідера вперед (сірий пунктир) і пливете туди, де, за прогнозом, його зустрінете (сірий корабель «прогноз» попереду; якщо точка зустрічі далеко, він показаний на відстані 1 уздовж прогнозу). З інерцією ви не розвертаєтеся на місці: найменший радіус вашого повороту — 1, як початкова відстань. Усі числа перевірено симуляцією.</span><span class="en">The black ship is the leader, the white one is you. You start at distance 1; the chart below shows the gap over time for this run and the three before it; the dotted line is half the starting gap. "Where they are": at every moment you turn your bow to the leader. "Where seen": you see the leader half a unit of time late (the hollow grey outline, "seen") and sail there. "Forecast": you see them just as late, but carry their visible course and speed forward (the grey dashed line) and sail to where you expect to meet them (the grey ship ahead, "forecast"; when the meeting point is far off, it is drawn 1 ahead along the forecast). With inertia you can't turn on the spot: your smallest turning radius is 1, the starting distance. All numbers are checked by simulation.</span></figcaption>
     </figure>
 
     <h2 id="past"><span class="uk">1. Бігти туди, де його видно</span><span class="en">1. Run to where you can see them</span></h2>
@@ -318,7 +318,9 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
       let tau = -1;
       if (Math.abs(a) < 1e-9) { if (b < 0) tau = -c / b; }
       else { const D = b * b - 4 * a * c; if (D >= 0) { const r = [(-b - Math.sqrt(D)) / (2 * a), (-b + Math.sqrt(D)) / (2 * a)].filter(u => u > 0); if (r.length) tau = Math.min(...r); } }
-      return tau > 0 ? [qx + vx * tau, qy + vy * tau] : [qx, qy];
+      const g = tau > 0 ? [qx + vx * tau, qy + vy * tau] : [qx, qy];
+      st.fc = { p, v: [vx, vy], q: [qx, qy], tau };  // kept for drawing: what you saw, the course you carry forward
+      return g;
     }
     function step(dt) {
       const dx = st.lx - st.x, dy = st.ly - st.y;
@@ -350,8 +352,8 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
       if (!W || !H) return;
       cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
       const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-      const y0 = mode === 'turn' ? -1.3 : -0.25, y1 = 1.2, sc = Math.min(W / 3.2, H / (y1 - y0));
-      const camX = Math.max(0, st.lx - W / sc * 0.62) - 0.35, camY = y0 - (H / sc - (y1 - y0)) / 2;
+      const y0 = mode === 'turn' ? (aim === 'predict' ? -2.2 : -1.3) : -0.25, y1 = mode === 'turn' && aim === 'predict' ? 2 : 1.2, sc = Math.min(W / 3.2, H / (y1 - y0));
+      const camX = Math.max(0, st.lx - W / sc * (aim === 'predict' ? 0.45 : 0.62)) - (aim === 'now' ? 0.35 : 0.8), camY = y0 - (H / sc - (y1 - y0)) / 2;
       const X = v => (v - camX) * sc, Y = v => H - (v - camY) * sc;
       // wave marks fixed to the sea
       ctx.strokeStyle = 'rgba(21,21,21,.12)'; ctx.lineWidth = 1.5;
@@ -367,16 +369,24 @@ document.querySelectorAll('#lang a').forEach(a => a.setAttribute('aria-current',
       }
       ctx.setLineDash([]);
       const size = Math.max(10, Math.min(18, sc * 0.11)), g = st.goal || target();
+      const tag = (txt, x, y) => { ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#6b6b6b'; ctx.fillText(txt, x, y); };
       // what you see (late) and where you steer
       if (aim !== 'now' && !st.caught) {
         const p = seenAt(st.t - LAG), p0 = seenAt(st.t - LAG - 0.05);
         ship(ctx, X(p[0]), Y(p[1]), -Math.atan2(p[1] - p0[1], p[0] - p0[0]), 'rgba(255,255,255,0)', size * 0.8, 'rgba(21,21,21,.35)');
+        tag(T('видно', 'seen'), X(p[0]), Y(p[1]) + size + 4);
+      }
+      if (aim === 'predict' && st.fc && !st.caught) {  // the forecast: the seen course carried forward, and the leader where you expect to meet
+        // the grey ship is the forecast leader at the meeting point, or at most 1 ahead when the meeting point is far off
+        const f = st.fc, ang = Math.atan2(f.v[1], f.v[0]), d = Math.min(Math.max(f.tau, 0), 1), fx = f.q[0] + f.v[0] * d, fy = f.q[1] + f.v[1] * d;
+        ctx.strokeStyle = 'rgba(21,21,21,.4)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 5]);
+        ctx.beginPath(); ctx.moveTo(X(f.p[0]), Y(f.p[1])); ctx.lineTo(X(fx + 0.4 * Math.cos(ang)), Y(fy + 0.4 * Math.sin(ang))); ctx.stroke(); ctx.setLineDash([]);
+        ship(ctx, X(fx), Y(fy), -ang, 'rgba(21,21,21,.12)', size * 0.8, 'rgba(21,21,21,.55)');
+        tag(T('прогноз', 'forecast'), X(fx), Y(fy) - size - 2);
       }
       if (!st.caught) {
         ctx.strokeStyle = 'rgba(21,21,21,.35)'; ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
         ctx.beginPath(); ctx.moveTo(X(st.x), Y(st.y)); ctx.lineTo(X(g[0]), Y(g[1])); ctx.stroke(); ctx.setLineDash([]);
-        if (aim === 'predict') { const gx = X(g[0]), gy = Y(g[1]); ctx.strokeStyle = '#151515'; ctx.lineWidth = 2;
-          ctx.beginPath(); ctx.moveTo(gx - 6, gy - 6); ctx.lineTo(gx + 6, gy + 6); ctx.moveTo(gx + 6, gy - 6); ctx.lineTo(gx - 6, gy + 6); ctx.stroke(); }
       }
       ship(ctx, X(st.x), Y(st.y), -st.ph, '#fff', size);
       ship(ctx, X(st.lx), Y(st.ly), -st.lh, '#151515', size * 0.8);  // drawn last so it stays visible when you reach it
